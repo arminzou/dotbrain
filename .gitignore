@@ -1,0 +1,20 @@
+.DS_Store
+
+# This repo is wired into a private dotbrain control root as an adopter:
+# repo-root .brain/.beads/.claude/.codex are local gitignored symlinks, never tracked.
+/.brain
+/.beads
+/.claude
+/.codex
+
+# Operator skills overlay: brain skills are the product (tracked); a private data
+# root may symlink additional buckets in. Keep any non-product skill links out.
+/skills/*/
+!/skills/brain/
+
+# Python/uv build + test artifacts.
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+dist/

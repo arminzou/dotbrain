@@ -1,0 +1,23 @@
+version: 1
+# dotbrain's brain-coupled required core (read-only product data).
+#
+# These skills are force-wired by the tool and cannot be removed by operators:
+# the Brain machinery depends on them. Operators layer their OWN skills on top
+# at two scopes:
+#   - global:      ~/dotbrain/skills/skills.yaml  (global_extra)
+#   - per-project: projects/<name>/project.yaml   (skills:)
+#
+# This file is packaged, never seeded into a data root, and read fresh on every
+# run, so adding a required skill in a new release reaches every adopter with no
+# migration.
+
+global_required:
+  - brain/wire-brain
+
+project_required:
+  - brain/operate-beads
+  - brain/enter-main-agent
+  - brain/triage-public
+  - brain/build-context
+  - brain/review-architecture
+  - brain/grill-decisions

@@ -1,0 +1,20 @@
+# dotbrain global settings
+# Seeded into ~/dotbrain/config.yaml by ``dotbrain bootstrap``.
+# Per-project identity (including beads mode) lives in projects/<name>/project.yaml.
+# Never put credentials (passwords, tokens) here — those belong in your secrets store.
+
+# Beads execution store. Each project picks a mode in its project.yaml:
+#   embedded — local Dolt store in the control root, optionally synced to a remote (the default)
+#   server   — shared Dolt sql-server, configured by the block below (cross-machine, multi-project)
+#   none     — no execution store (e.g. a project that tracks work via tracker: gh)
+#
+# The block below is only needed for server-mode projects. Uncomment and point it
+# at your shared Dolt sql-server; leave it out entirely for the embedded default.
+#
+# beads:
+#   server:
+#     host: db.example.internal
+#     port: 3307
+#     user: beads
+#     # Optional SSH hop that can reach the sql-server (used by beads drop-db).
+#     ssh_host: ""

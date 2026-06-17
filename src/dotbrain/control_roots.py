@@ -1,0 +1,295 @@
+"""Control-root lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
+
+A control root is the private project control plane under ``projects/<name>/``. This module owns
+its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
+(``wiring``/``beads``):
+
+- the tracked ``.gitignore`` that hides runtime byproducts;
+- Brain skeleton seeding from packaged ``templates/brain/`` resources;
+- GitHub intake metadata on the brain's issue-tracker;
+- agent-workspace seeding: the Claude/Codex SessionStart + beads hooks;
+- offboarding: keep | archive | delete plus the byproduct cleanup that precedes git mv/rm.
+
+It depends only on ``paths``. It is intentionally not split into ``brain_seed.py`` /
+``agent_workspaces.py`` yet.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
+from dotbrain import resource_loader
+
+from dotbrain import paths
+
+# A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
+Runner = Callable[..., "subprocess.CompletedProcess[str]"]
+
+# Lines seeded into a control root's tracked .gitignore (mirrors wire-project.sh).
+CONTROL_GITIGNORE_LINES: tuple[str, ...] = (
+    ".dolt/",
+    "*.db",
+    ".beads-credential-key",
+    ".beads/proxieddb/",
+    ".beads/metadata.json",
+    ".beads/interactions.jsonl",
+    ".beads/dolt-config.log",
+    ".claude/skills/",
+    ".codex/skills/",
+)
+
+
+def _default_run(
+    argv: Sequence[str], *, cwd: Path | None = None, check: bool = True
+) -> "subprocess.CompletedProcess[str]":
+    return subprocess.run(list(argv), cwd=cwd, check=check, capture_output=True, text=True)
+
+
+# --------------------------------------------------------------------------- pure helpers
+
+
+# --------------------------------------------------------------------------- brain & gitignore
+
+
+def ensure_control_gitignore(control: Path) -> None:
+    file = Path(control) / ".gitignore"
+    file.parent.mkdir(parents=True, exist_ok=True)
+    existing = file.read_text().splitlines() if file.is_file() else []
+    have = set(existing)
+    missing = [line for line in CONTROL_GITIGNORE_LINES if line not in have]
+    if not missing:
+        return
+    body = ("\n".join(existing) + "\n") if existing else ""
+    file.write_text(body + "\n".join(missing) + "\n")
+
+
+def seed_brain(control: Path, dotbrain_root: Path) -> None:
+    """Seed a brain skeleton from packaged dotbrain resources.
+
+    ``DOTBRAIN.md`` and ``README.md`` files are dotbrain-owned and overwritten
+    so package template changes propagate. All other files are project-owned and
+    are only written when missing.
+    """
+
+    brain = Path(control) / ".brain"
+    brain.mkdir(parents=True, exist_ok=True)
+
+    if not resource_loader.resource("templates/brain/AGENTS.md").is_file():
+        raise FileNotFoundError("package resource templates/brain/AGENTS.md is missing")
+
+    for rel, src in resource_loader.iter_resource_files("templates/brain"):
+        if src.name == "project.yaml":
+            # Control-root-level, not inside .brain/; project-owned, seed once.
+            dest = control / "project.yaml"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if not dest.exists():
+                dest.write_text(src.read_text())
+            continue
+        dest = brain / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if src.name in ("DOTBRAIN.md", "README.md"):
+            pass
+        elif dest.exists():
+            continue
+        dest.write_text(src.read_text())
+
+    claude = brain / "CLAUDE.md"
+    if not claude.exists():
+        claude.symlink_to("AGENTS.md")
+
+
+def set_github_intake(control: Path, repo_slug: str) -> str | None:
+    """Point the brain's issue-tracker.md at a GitHub repo. Returns a log line when it acts.
+
+    Rewrites the ``GitHub intake:`` marker when present. If the file exists but predates the marker
+    (a stale brain seeded before the github-intake template), the marker is appended so ``--github`` takes
+    effect instead of silently no-opping.
+    """
+    if not repo_slug:
+        return None
+    file = Path(control) / ".brain" / "agents" / "issue-tracker.md"
+    if not file.is_file():
+        return None
+    lines = file.read_text().splitlines(keepends=True)
+    out: list[str] = []
+    changed = False
+    for line in lines:
+        if line.startswith("GitHub intake:"):
+            out.append(f"GitHub intake: {repo_slug}\n")
+            changed = True
+        else:
+            out.append(line)
+    if not changed:
+        if out and not out[-1].endswith("\n"):
+            out.append("\n")
+        out.append(f"\nGitHub intake: {repo_slug}\n")
+    file.write_text("".join(out))
+    return f"connected GitHub public intake: {repo_slug}"
+
+
+# --------------------------------------------------------------------------- agent workspaces
+
+
+def _hook_command_present(entries: list, command: str) -> bool:
+    for entry in entries:
+        for hook in entry.get("hooks", []) if isinstance(entry, dict) else []:
+            if isinstance(hook, dict) and hook.get("command") == command:
+                return True
+    return False
+
+
+def ensure_json_hook(
+    file: Path,
+    event: str,
+    command: str,
+    matcher: str = "",
+    status_message: str = "",
+) -> None:
+    """Idempotently merge a hook entry into an agent JSON config (Python port of the jq logic).
+
+    Keyed on the command string anywhere under ``.hooks[event][].hooks[].command``.
+    """
+    file = Path(file)
+    file.parent.mkdir(parents=True, exist_ok=True)
+    data = json.loads(file.read_text()) if file.is_file() and file.read_text().strip() else {}
+    if not isinstance(data, dict):
+        data = {}
+
+    hooks = data.setdefault("hooks", {})
+    entries = hooks.setdefault(event, [])
+    if _hook_command_present(entries, command):
+        return
+
+    hook: dict = {"type": "command", "command": command}
+    if status_message:
+        hook["statusMessage"] = status_message
+    entry: dict = {"hooks": [hook]}
+    if matcher:
+        entry["matcher"] = matcher
+    entries.append(entry)
+    file.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def ensure_codex_config(file: Path) -> str | None:
+    """Ensure codex config enables hooks; returns a warning if it exists but does not."""
+    file = Path(file)
+    file.parent.mkdir(parents=True, exist_ok=True)
+    if not file.exists():
+        file.write_text("[features]\nhooks = true\n")
+        return None
+    for line in file.read_text().splitlines():
+        if line.strip().replace(" ", "") == "hooks=true":
+            return None
+    return f"{file} exists but does not explicitly enable hooks"
+
+
+def _merge_hooks_from_template(template_resource: str, dest: Path) -> None:
+    """Merge hook entries from a packaged JSON template into an existing or new file.
+
+    Reads ``templates/<template_resource>``, iterates its ``hooks`` block, and calls
+    ``ensure_json_hook`` for each entry.  User-owned keys outside ``hooks`` are preserved.
+    """
+    import json as _json
+
+    src = resource_loader.resource(f"templates/{template_resource}")
+    template = _json.loads(src.read_text())
+    for event, entries in template.get("hooks", {}).items():
+        for entry in entries if isinstance(entries, list) else [entries]:
+            matcher = entry.get("matcher", "") if isinstance(entry, dict) else ""
+            for hook in entry.get("hooks", []) if isinstance(entry, dict) else []:
+                if isinstance(hook, dict) and hook.get("type") == "command":
+                    ensure_json_hook(
+                        dest, event, hook["command"],
+                        matcher=matcher,
+                        status_message=hook.get("statusMessage", ""),
+                    )
+
+
+def seed_agent_workspaces(control: Path, dotbrain_root: Path, home: Path | None = None) -> list[str]:
+    """Seed Claude/Codex hooks from packaged templates.
+
+    Merges hook entries into any existing agent config — user-owned settings
+    are never overwritten.
+    """
+    control = Path(control)
+    _merge_hooks_from_template("claude/settings.json", control / ".claude" / "settings.json")
+    _merge_hooks_from_template("codex/hooks.json", control / ".codex" / "hooks.json")
+
+    warning = ensure_codex_config(control / ".codex" / "config.toml")
+    return [warning] if warning else []
+
+
+# --------------------------------------------------------------------------- offboarding
+
+
+def _strip_control_byproducts(dotbrain_root: Path, project: str, run: Runner) -> None:
+    """Remove the control root's gitignored runtime/wiring litter (beads runtime state,
+    .claude/.codex skill symlinks). ``git rm``/``git mv`` only handle tracked files, so
+    without this an offboard strands these byproducts on disk. ``-X`` removes *only* ignored
+    files, so an uncommitted (untracked) brain is left intact; ``-ff`` clears nested git/dolt dirs."""
+    run(["git", "-C", str(dotbrain_root), "clean", "-ffdXq", "--", f"projects/{project}"])
+
+
+def _is_tracked(dotbrain_root: Path, project: str, run: Runner) -> bool:
+    """True if the control root has any git-tracked files (wire no longer commits, so a
+    freshly-wired root is untracked and git rm/mv would fail)."""
+    out = run(["git", "-C", str(dotbrain_root), "ls-files", "--", f"projects/{project}"], check=False)
+    return bool((out.stdout or "").strip())
+
+
+def offboard_control_root(
+    dotbrain_root: Path,
+    project: str,
+    mode: str,
+    *,
+    dry_run: bool = False,
+    run: Runner = _default_run,
+) -> list[str]:
+    """keep | archive | delete the control root. Returns log lines."""
+    control = paths.control_root(dotbrain_root, project)
+    if not control.is_dir():
+        return [f"warning: control root {control} not found; nothing to offboard"]
+
+    if mode == "keep":
+        return [f"kept control root: {control} (disconnected; re-wire later with dotbrain wire)"]
+
+    if mode == "archive":
+        if dry_run:
+            return [f"would archive control root projects/{project} -> projects/.archive/{project} "
+                    "(stripping runtime byproducts first)"]
+        _strip_control_byproducts(dotbrain_root, project, run)
+        archive_dir = dotbrain_root / "projects" / ".archive"
+        archive_dir.mkdir(exist_ok=True)
+        dest = archive_dir / project
+        if _is_tracked(dotbrain_root, project, run):
+            run(["git", "-C", str(dotbrain_root), "mv",
+                 f"projects/{project}", f"projects/.archive/{project}"])
+            staged = " (staged)"
+        else:
+            shutil.move(str(control), str(dest))
+            staged = " (uncommitted)"
+        return [
+            f"archived control root -> projects/.archive/{project}{staged}",
+            f"suggested commit: chore(brain): archive {project} control root",
+        ]
+
+    if mode == "delete":
+        if dry_run:
+            return [f"would remove control root projects/{project} (tracked files + runtime byproducts)"]
+        _strip_control_byproducts(dotbrain_root, project, run)
+        # -f: delete is a deliberate full removal, so force past locally-modified tracked files
+        # (e.g. beads backup-state). --ignore-unmatch: a freshly-wired root is untracked.
+        run(["git", "-C", str(dotbrain_root), "rm", "-r", "-q", "-f", "--ignore-unmatch",
+             f"projects/{project}"])
+        if control.exists():
+            shutil.rmtree(control)
+        return [
+            f"removed control root projects/{project}",
+            f"suggested commit: chore(brain): remove {project} control root",
+        ]
+
+    raise ValueError(f"unknown offboard mode: {mode!r}")

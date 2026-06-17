@@ -1,0 +1,301 @@
+"""Tests for adopter_repos.py: control-link reconciliation, repo path resolution, and the
+repo attachment primitives (excludes, symlinks, pointers, wire_repo)."""
+
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from dotbrain import adopter_repos, paths
+
+
+def make_runner(calls: list[list[str]]):
+    def run(argv, *, cwd=None, env=None, check=True):
+        calls.append(list(argv))
+        if argv[0] == "git":
+            return subprocess.run(
+                list(argv), cwd=cwd, env=env, check=check, capture_output=True, text=True
+            )
+        return subprocess.CompletedProcess(list(argv), 0, "", "")
+
+    return run
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+# --------------------------------------------------------------------------- control-root links
+
+
+def test_reconcile_creates_repairs_skips_and_preserves_real_paths(tmp_path: Path) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    control = tmp_path / "control"
+    control.mkdir()
+
+    (control / ".brain").mkdir()
+    (control / ".beads").mkdir()
+    (control / ".claude").mkdir()
+    wrong = tmp_path / "wrong"
+    wrong.mkdir()
+
+    (directory / ".beads").symlink_to(wrong)
+    (directory / ".codex").mkdir()
+
+    targets = {
+        ".brain": control / ".brain",
+        ".beads": control / ".beads",
+        ".claude": control / ".claude",
+        ".codex": control / ".codex",
+    }
+
+    result = adopter_repos.reconcile(directory, targets)
+
+    assert result.created == [".brain", ".claude"]
+    assert result.repaired == [".beads"]
+    assert result.skipped == [".codex"]
+    assert result.collisions == []
+    assert (directory / ".brain").resolve() == (control / ".brain").resolve()
+    assert (directory / ".beads").resolve() == (control / ".beads").resolve()
+    assert (directory / ".claude").resolve() == (control / ".claude").resolve()
+
+
+def test_reconcile_reports_real_path_collisions(tmp_path: Path) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    control = tmp_path / "control"
+    control.mkdir()
+    (control / ".brain").mkdir()
+    (directory / ".brain").mkdir()
+
+    result = adopter_repos.reconcile(directory, {".brain": control / ".brain"})
+
+    assert result.created == []
+    assert result.repaired == []
+    assert result.skipped == []
+    assert result.collisions == [".brain"]
+
+
+def test_reconcile_worktree_repairs_wrong_targets(tmp_path: Path) -> None:
+    repo = tmp_path / "main-repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    for name in paths.CONTROL_LINKS:
+        (repo / name).mkdir()
+    (repo / "README.md").write_text("# main\n")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-q", "-m", "initial commit")
+
+    worktree = repo / ".codex" / "worktrees" / "slice"
+    _git(repo, "worktree", "add", "-b", "slice", str(worktree))
+
+    wrong = tmp_path / "wrong"
+    wrong.mkdir()
+    (worktree / ".brain").symlink_to(wrong)
+
+    result = adopter_repos.reconcile_worktree(worktree)
+
+    assert ".brain" in result.repaired
+    assert set(result.created) == set(paths.CONTROL_LINKS) - {".brain"}
+    assert result.skipped == []
+    assert result.collisions == []
+    for name in paths.CONTROL_LINKS:
+        assert (worktree / name).resolve() == (repo / name).resolve()
+
+
+# --------------------------------------------------------------------------- expand_path
+
+
+def test_expand_path_tilde_alone(fake_home: Path):
+    assert adopter_repos.expand_path("~", fake_home) == fake_home
+
+
+def test_expand_path_tilde_prefix(fake_home: Path):
+    assert adopter_repos.expand_path("~/dotbrain", fake_home) == fake_home / "dotbrain"
+
+
+def test_expand_path_tilde_nested(fake_home: Path):
+    assert adopter_repos.expand_path("~/repos/projects/myproj", fake_home) == \
+        fake_home / "repos" / "projects" / "myproj"
+
+
+def test_expand_path_absolute(fake_home: Path):
+    assert adopter_repos.expand_path("/absolute/path", fake_home) == Path("/absolute/path")
+
+
+def test_expand_path_no_tilde(fake_home: Path):
+    assert adopter_repos.expand_path("relative/path", fake_home) == Path("relative/path")
+
+
+# --------------------------------------------------------------------------- repo_for_control_root
+
+
+def test_repo_for_control_root_reads_repo_file(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "myproject"
+    control.mkdir()
+    (control / ".repo").write_text("~/repos/myproject\n")
+    result = adopter_repos.repo_for_control_root(control, tmp_path, home=fake_home)
+    assert result == fake_home / "repos" / "myproject"
+
+
+def test_repo_for_control_root_local_overrides_repo(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "myproject"
+    control.mkdir()
+    (control / ".repo").write_text("~/repos/myproject\n")
+    (control / ".repo.local").write_text("~/local/myproject\n")
+    result = adopter_repos.repo_for_control_root(control, tmp_path, home=fake_home)
+    assert result == fake_home / "local" / "myproject"
+
+
+def test_repo_for_control_root_dotbrain_fallback(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "dotbrain"
+    control.mkdir()
+    result = adopter_repos.repo_for_control_root(control, tmp_path, home=fake_home)
+    assert result == tmp_path
+
+
+def test_repo_for_control_root_repo_base_fallback(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "myproj"
+    control.mkdir()
+    repo_base = tmp_path / "repos"
+    (repo_base / "myproj").mkdir(parents=True)
+    result = adopter_repos.repo_for_control_root(control, tmp_path, repo_base=repo_base, home=fake_home)
+    assert result == repo_base / "myproj"
+
+
+def test_repo_for_control_root_none_when_not_found(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "ghost"
+    control.mkdir()
+    result = adopter_repos.repo_for_control_root(control, tmp_path, home=fake_home)
+    assert result is None
+
+
+def test_repo_for_control_root_skips_comments(tmp_path: Path, fake_home: Path):
+    control = tmp_path / "myproject"
+    control.mkdir()
+    (control / ".repo").write_text("# comment\n\n~/repos/myproject\n")
+    result = adopter_repos.repo_for_control_root(control, tmp_path, home=fake_home)
+    assert result == fake_home / "repos" / "myproject"
+
+
+# --------------------------------------------------------------------------- pure helpers
+
+
+def test_abbrev_home(fake_home: Path):
+    assert adopter_repos.abbrev_home(fake_home, fake_home) == "~"
+    assert adopter_repos.abbrev_home(fake_home / "repos" / "x", fake_home) == "~/repos/x"
+    assert adopter_repos.abbrev_home(Path("/etc/hosts"), fake_home) == "/etc/hosts"
+
+
+def test_is_dotbrain_repo(dotbrain_root: Path, tmp_path: Path):
+    assert adopter_repos.is_dotbrain_repo(dotbrain_root, dotbrain_root)
+    assert not adopter_repos.is_dotbrain_repo(tmp_path / "other", dotbrain_root)
+
+
+def test_target_is_outside_repo(tmp_path: Path):
+    repo = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    repo.mkdir()
+    outside.mkdir()
+    link = repo / "link"
+    link.symlink_to(outside)
+    assert adopter_repos.target_is_outside_repo(repo, link)
+
+    broken = repo / "broken"
+    broken.symlink_to(tmp_path / "nope")
+    assert not adopter_repos.target_is_outside_repo(repo, broken)  # unresolvable -> treated as inside
+
+
+# --------------------------------------------------------------------------- excludes & symlinks
+
+
+def test_ensure_exclude_line_idempotent(tmp_path: Path):
+    exclude = tmp_path / "info" / "exclude"
+    adopter_repos.ensure_exclude_line(exclude, "/.brain")
+    adopter_repos.ensure_exclude_line(exclude, "/.brain")
+    assert exclude.read_text().splitlines().count("/.brain") == 1
+
+
+def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    good = tmp_path / "target"
+    good.mkdir()
+
+    assert adopter_repos.ensure_symlink(repo, ".brain", good) is None
+    assert (repo / ".brain").resolve() == good.resolve()
+
+    # repointing a wrong existing symlink
+    (repo / ".beads").symlink_to(tmp_path / "stale")
+    assert adopter_repos.ensure_symlink(repo, ".beads", good) is None
+    assert (repo / ".beads").resolve() == good.resolve()
+
+    # a real file in the way is left untouched, with a warning
+    (repo / ".claude").write_text("real")
+    warning = adopter_repos.ensure_symlink(repo, ".claude", good)
+    assert warning and "not a symlink" in warning
+    assert (repo / ".claude").read_text() == "real"
+
+
+def test_ensure_agent_context_pointer_creates_when_absent(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert adopter_repos.ensure_agent_context_pointer(repo) == []
+    assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
+
+
+def test_ensure_agent_context_pointer_dedupes_symlinked_claude(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "AGENTS.md").write_text("# notes\n")
+    (repo / "CLAUDE.md").symlink_to("AGENTS.md")
+    adopter_repos.ensure_agent_context_pointer(repo)
+    adopter_repos.ensure_agent_context_pointer(repo)  # idempotent
+    text = (repo / "AGENTS.md").read_text()
+    assert text.count(".brain/AGENTS.md") == 1  # CLAUDE->AGENTS resolves to one file, appended once
+
+
+# --------------------------------------------------------------------------- attach
+
+
+def test_wire_repo_excludes_external_symlinks(dotbrain_root: Path, control_root: Path, tmp_path: Path):
+    repo = tmp_path / "adopter"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    calls: list[list[str]] = []
+    warnings = adopter_repos.wire_repo(repo, control_root, dotbrain_root, run=make_runner(calls))
+    assert warnings == []
+    for name in paths.CONTROL_LINKS:
+        assert (repo / name).is_symlink()
+    excludes = paths.exclude_entries(repo)
+    assert {"/.brain", "/.beads", "/.claude", "/.codex"} <= excludes
+
+
+def test_wire_repo_can_skip_beads_link(dotbrain_root: Path, control_root: Path, tmp_path: Path):
+    repo = tmp_path / "adopter"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+
+    warnings = adopter_repos.wire_repo(
+        repo,
+        control_root,
+        dotbrain_root,
+        run=make_runner([]),
+        skip_beads_link=True,
+    )
+
+    assert warnings == []
+    assert not (repo / ".beads").exists()
+    assert (repo / ".brain").is_symlink()
+    assert (repo / ".claude").is_symlink()
+    assert (repo / ".codex").is_symlink()
+    assert "/.beads" not in paths.exclude_entries(repo)
