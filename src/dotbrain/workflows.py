@@ -69,7 +69,6 @@ def wire_project(
     server_port: str = "3307",
     server_user: str = "beads",
     database: str = "",
-    github_repo: str = "",
     home: Path | None = None,
     install_global_hook: bool = True,
     run: Runner = _default_run,
@@ -112,9 +111,6 @@ def wire_project(
     control_roots.ensure_control_gitignore(control)
     control_roots.seed_brain(control, dotbrain_root)
     config.migrate_legacy_skill_manifest(dotbrain_root, project)
-    intake_log = control_roots.set_github_intake(control, github_repo)
-    if intake_log:
-        result.logs.append(intake_log)
     result.warnings += control_roots.seed_agent_workspaces(control, dotbrain_root, home)
     if install_global_hook:
         bootstrap.install_global_claude_hook(dotbrain_root, home=home)

@@ -396,59 +396,6 @@ def test_codex_wires_worktree_before_launch(tmp_path: Path, monkeypatch: pytest.
     assert calls == [("create", plan), ("wire", worktree), ("launch", plan)]
 
 
-# --------------------------------------------------------------------------- GitHub intake wiring
-
-
-def _wire_with_github(dotbrain_root, repo, fake_home, github=""):
-    """Wire a repo via CLI, optionally with --github flag."""
-    args = ["wire", "--repo", str(repo), "--skip-beads"]
-    if github:
-        args += ["--github", github]
-    return runner.invoke(app, args, env={"DOTBRAIN_ROOT": str(dotbrain_root)})
-
-
-def test_wire_github_sets_intake_slug(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    """dotbrain wire --github org/repo writes the slug into issue-tracker.md."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
-    repo = tmp_path / "myrepo"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
-
-    result = _wire_with_github(dotbrain_root, repo, fake_home, github="myorg/myrepo")
-    assert result.exit_code == 0, result.output
-
-    issue_tracker = paths.control_root(dotbrain_root, "myrepo") / ".brain" / "agents" / "issue-tracker.md"
-    assert issue_tracker.is_file()
-    assert "GitHub intake: myorg/myrepo" in issue_tracker.read_text()
-
-
-def test_wire_github_survives_repair_rewire(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    """Re-running wire without --github does not revert the intake slug."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
-    repo = tmp_path / "myrepo2"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
-
-    # Initial wire with --github
-    _wire_with_github(dotbrain_root, repo, fake_home, github="myorg/myrepo2")
-    issue_tracker = paths.control_root(dotbrain_root, "myrepo2") / ".brain" / "agents" / "issue-tracker.md"
-    assert "GitHub intake: myorg/myrepo2" in issue_tracker.read_text()
-
-    # Repair re-run without --github
-    result = _wire_with_github(dotbrain_root, repo, fake_home)
-    assert result.exit_code == 0, result.output
-    # Slug must be preserved — set_github_intake is a no-op when github_repo=""
-    assert "GitHub intake: myorg/myrepo2" in issue_tracker.read_text()
-
-
 # NOTE: The intake→beads flow (triage-public skill reading issue-tracker.md, calling gh CLI,
 # recording issues into beads) is manual-only. It requires a live GitHub repo, gh auth, and
 # a running beads database. Covered by the manual test checklist in

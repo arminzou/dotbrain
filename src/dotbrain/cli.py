@@ -166,7 +166,6 @@ def wire(
     server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
     server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user in config.yaml."),
     database: str = typer.Option("", "--beads-database", help="Dolt database name. Defaults to project name."),
-    github: str = typer.Option("", "--github", help="Connect GitHub public intake (ORG/REPO) at wire time."),
     no_repo: bool = typer.Option(False, "--no-repo", help="Create a brain-only control root (no code repo). Requires --name."),
     repo_base: Optional[Path] = typer.Option(None, "--repo-base", help="Base directory for adopter repos (default: ~/repos/projects)."),
 ) -> None:
@@ -176,8 +175,8 @@ def wire(
     """
     root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
     if all:
-        if repo or name or no_repo or github or remote:
-            raise typer.BadParameter("--all is mutually exclusive with --repo, --name, --no-repo, --github, and --beads-remote")
+        if repo or name or no_repo or remote:
+            raise typer.BadParameter("--all is mutually exclusive with --repo, --name, --no-repo, and --beads-remote")
         result = workflows.wire_all_projects(root, repo_base=repo_base)
         for line in result.logs:
             typer.echo(f"[wire] {line}")
@@ -201,7 +200,6 @@ def wire(
             server_port=server_port,
             server_user=server_user,
             database=database,
-            github_repo=github,
         )
     except (ValueError, RuntimeError) as exc:
         raise typer.BadParameter(str(exc)) from exc

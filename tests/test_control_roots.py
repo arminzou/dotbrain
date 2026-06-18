@@ -53,35 +53,6 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_root: Path, tmp_path: P
     assert (control / ".brain" / "AGENTS.md").is_file()
 
 
-def test_set_github_intake_rewrites_line(tmp_path: Path):
-    control = tmp_path / "control"
-    file = control / ".brain" / "agents" / "issue-tracker.md"
-    file.parent.mkdir(parents=True)
-    file.write_text("GitHub intake: (none)\nother: keep\n")
-    log = control_roots.set_github_intake(control, "octocat/repo")
-    assert log == "connected GitHub public intake: octocat/repo"
-    assert "GitHub intake: octocat/repo" in file.read_text()
-    assert "other: keep" in file.read_text()
-
-
-def test_set_github_intake_noop_without_marker(tmp_path: Path):
-    control = tmp_path / "control"
-    assert control_roots.set_github_intake(control, "octocat/repo") is None  # file absent
-
-
-def test_set_github_intake_appends_marker_to_stale_brain(tmp_path: Path):
-    # A brain seeded before the marker existed must not silently drop --github; append the marker.
-    control = tmp_path / "control"
-    file = control / ".brain" / "agents" / "issue-tracker.md"
-    file.parent.mkdir(parents=True)
-    file.write_text("# Issue Tracker\n\nNo public issue tracker configured yet.\n")
-    log = control_roots.set_github_intake(control, "octocat/repo")
-    assert log == "connected GitHub public intake: octocat/repo"
-    text = file.read_text()
-    assert "GitHub intake: octocat/repo" in text
-    assert "No public issue tracker configured yet." in text  # original content preserved
-
-
 def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
     file = tmp_path / "settings.json"
     control_roots.ensure_json_hook(file, "SessionStart", "do-thing")
@@ -115,11 +86,11 @@ def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path
     bootstrap = "dotbrain hook session-start"
     claude = json.loads((control / ".claude" / "settings.json").read_text())
     claude_commands = [h["command"] for e in claude["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert claude_commands == [bootstrap, "bd prime --hook-json"]
+    assert claude_commands == [bootstrap]
     codex = json.loads((control / ".codex" / "hooks.json").read_text())
-    assert {"SessionStart", "PreCompact", "PostCompact", "UserPromptSubmit"} <= set(codex["hooks"])
+    assert set(codex["hooks"]) == {"SessionStart"}
     codex_commands = [h["command"] for e in codex["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert codex_commands == [bootstrap, "bd codex-hook SessionStart"]
+    assert codex_commands == [bootstrap]
     assert "hooks = true" in (control / ".codex" / "config.toml").read_text()
 
 

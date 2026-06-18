@@ -6,7 +6,6 @@ its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads 
 
 - the tracked ``.gitignore`` that hides runtime byproducts;
 - Brain skeleton seeding from packaged ``templates/brain/`` resources;
-- GitHub intake metadata on the brain's issue-tracker;
 - agent-workspace seeding: the Claude/Codex SessionStart + beads hooks;
 - offboarding: keep | archive | delete plus the byproduct cleanup that precedes git mv/rm.
 
@@ -100,35 +99,6 @@ def seed_brain(control: Path, dotbrain_root: Path) -> None:
     claude = brain / "CLAUDE.md"
     if not claude.exists():
         claude.symlink_to("AGENTS.md")
-
-
-def set_github_intake(control: Path, repo_slug: str) -> str | None:
-    """Point the brain's issue-tracker.md at a GitHub repo. Returns a log line when it acts.
-
-    Rewrites the ``GitHub intake:`` marker when present. If the file exists but predates the marker
-    (a stale brain seeded before the github-intake template), the marker is appended so ``--github`` takes
-    effect instead of silently no-opping.
-    """
-    if not repo_slug:
-        return None
-    file = Path(control) / ".brain" / "agents" / "issue-tracker.md"
-    if not file.is_file():
-        return None
-    lines = file.read_text().splitlines(keepends=True)
-    out: list[str] = []
-    changed = False
-    for line in lines:
-        if line.startswith("GitHub intake:"):
-            out.append(f"GitHub intake: {repo_slug}\n")
-            changed = True
-        else:
-            out.append(line)
-    if not changed:
-        if out and not out[-1].endswith("\n"):
-            out.append("\n")
-        out.append(f"\nGitHub intake: {repo_slug}\n")
-    file.write_text("".join(out))
-    return f"connected GitHub public intake: {repo_slug}"
 
 
 # --------------------------------------------------------------------------- agent workspaces

@@ -28,8 +28,8 @@ dotbrain wire
 
 Use `--repo <path>` or `--name <project-name>` only when the defaults are wrong.
 
-To connect GitHub public intake at wire time, add `--github <org>/<repo>`; it writes
-`agents/issue-tracker.md` in the connected state. The default is private-only (beads is always the
+Public tracker metadata, when needed, lives in `project.yaml` rather than a wire-time CLI flag.
+The default wiring remains private-only (beads is always the
 source of truth).
 
 The script owns deterministic wiring and appends the `.brain/AGENTS.md` pointer idempotently to the
@@ -87,7 +87,7 @@ Do not create a per-project brain git repo. The control root is versioned as par
 
 4. **Let the CLI scaffold `.brain/agents/`.**
    `dotbrain wire` seeds `agents/` from `templates/brain/`: a `skills.yaml` baseline plus
-   an `issue-tracker.md` stub. `--github <org>/<repo>` sets the `GitHub intake:` key in that stub.
+   an `issue-tracker.md` stub.
    This skill provisions the containers; it does not hand-write `agents/` content.
    - `agents/labels.md` is **not** seeded — `operate-execution` / `triage-public` create it the first
      time a label convention is actually decided. An absent file means the canonical triage defaults.
