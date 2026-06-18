@@ -1,12 +1,18 @@
 ---
 name: triage-public
-description: Triage public issue tracker items through labels, reproduction, scope decisions, and agent briefs, then hand ready work to private beads execution. Use when the user wants to review incoming issues, classify bugs or enhancements, ask reporters for info, publish agent briefs, or promote public work into private execution.
+description: Triage public issue tracker items through labels, reproduction, scope decisions, and agent briefs, then promote ready work into the private execution engine. Use when the user wants to review incoming issues, classify bugs or enhancements, ask reporters for info, publish agent briefs, or promote public work into private execution.
 ---
 
 # Triage Public
 
-Operate the public collaboration layer. Actual execution is planned and tracked privately through
-`operate-execution`.
+Operate a project's public collaboration layer. The public tracker is declared in `project.yaml`
+(`public-tracker:`); execution itself is planned and tracked privately through `operate-execution`.
+This skill is tracker-agnostic — it owns the triage workflow. The tracker's CLI mechanics and label
+vocabulary live in the tracker reference ([references/github.md](references/github.md) for GitHub).
+
+The private execution engine is the source of truth for all work. Intake never moves that truth to
+the public tracker: an accepted issue is recorded into the private engine as a work item that
+references the public issue. The public tracker holds discussion; the private engine holds the work.
 
 Every comment posted to a public issue during intake must start with:
 
@@ -18,108 +24,67 @@ Every comment posted to a public issue during intake must start with:
 
 Read at session start, before doing anything else:
 
-1. **`.brain/project.yaml`** — determines whether a public tracker is connected (`public-tracker:`).
-   - `none` — no public tracker is connected. There is nothing to intake; all work lives in the
-     private engine (`bd ready`). Tell the user and stop.
-   - `gh` — operate GitHub Issues with the `gh` CLI (see
-     [github.md](github.md)). Infer the repo from the adopter remote;
-     use `public-tracker-id` from `project.yaml` only when it is explicitly set.
+1. **`.brain/project.yaml`** — selects the public tracker (`public-tracker:`).
+   - `none` — nothing to intake; all work lives in the private engine. Tell the user and stop.
+   - `gh` — operate GitHub Issues; load [references/github.md](references/github.md) for CLI
+     mechanics and labels. Infer the repo from the adopter remote; use `public-tracker-id` only
+     when it is explicitly set.
 2. **`.brain/agents/issue-tracker.md`** — project conventions shared with `operate-execution`:
-   linking rules, ADR policy, priority deviations, and any project-specific workflow notes.
-   Empty means pure defaults.
+   linking rules, ADR policy, priority deviations. Empty means pure defaults.
 
-## The Tracker
+## Triage roles
 
-beads is the source of truth for all execution; this skill operates the optional **public** layer on
-top of it.
+Every triaged issue carries exactly one **category** and one **state**:
 
-Intake never moves execution truth to the public tracker: accepted issues are **recorded into the
-private engine** (`origin: gh-<N>`) via `operate-execution`. The public tracker holds discussion;
-the private engine holds the work.
+- Category: `bug`, `enhancement`
+- State: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`
 
-## Reference Docs
+These are the public layer's vocabulary, realized as the tracker's native mechanism (GitHub labels;
+see [references/github.md](references/github.md)). Private work uses the engine's native fields
+instead: when promoting inward, `operate-execution` translates a role to the right field (type,
+status, close reason) rather than copying it as a label. A project records any mapping deviations
+in `.brain/agents/labels.md` (owned by `operate-execution`).
 
-- [AGENT-BRIEF.md](AGENT-BRIEF.md) — how to write durable agent briefs.
-- [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md) — how rejected enhancement knowledge is kept.
+## Show what needs attention
 
-## Roles
+Query the tracker and present, in order: unlabeled issues, `needs-triage`, then `needs-info` with
+reporter activity since the last intake note. Show counts and a one-line summary per issue; let the
+maintainer pick.
 
-Two category roles:
+## Intake a specific issue
 
-- `bug`
-- `enhancement`
-
-Five state roles:
-
-- `needs-triage`
-- `needs-info`
-- `ready-for-agent`
-- `ready-for-human`
-- `wontfix`
-
-Every triaged issue should carry exactly one category role and one state role. These seven are the
-canonical **GitHub triage labels**: the public layer's vocabulary, not beads labels. They live here
-because `triage-public` operates the public tracker; private beads use native fields instead
-(`--type`, status, `bd ready`, close reasons). When promoting an issue inward, `operate-execution`
-translates these labels to native fields rather than copying them; see the translation table in
-[operate-execution/references/beads.md](../operate-execution/references/beads.md).
-
-A project records deviations in `.brain/agents/labels.md`: GitHub-label mappings when intake is
-connected, plus any beads facet labels it adopts. An absent file means these defaults; `operate-execution`
-owns and creates it when a label convention is first decided.
-
-## Show What Needs Attention
-
-Query the public tracker and present:
-
-1. unlabeled issues
-2. `needs-triage`
-3. `needs-info` with reporter activity since the last intake note
-
-Show counts and a one-line summary per issue. Let the maintainer pick.
-
-## Intake a Specific Issue
-
-1. **Gather context.**
-   Read the issue body, comments, labels, reporter, and dates. Parse previous intake notes. Explore
-   the codebase with the project vocabulary and ADRs. Check `.out-of-scope/` for similar rejected
-   enhancements.
-
-2. **Recommend.**
-   Recommend category and state with reasoning. Wait for maintainer direction before public writes.
-
-3. **Reproduce bugs.**
-   For bugs, attempt reproduction before grilling. Report confirmed repro, failed repro, or missing
-   information.
-
-4. **Grill if needed.**
-   Use `grill-decisions` when the issue needs design or terminology clarification.
-
+1. **Gather context.** Read the issue body, comments, labels, reporter, and dates. Parse previous
+   intake notes. Explore the codebase with the project vocabulary and ADRs. Check `.out-of-scope/`
+   for similar rejected enhancements.
+2. **Recommend.** Recommend category and state with reasoning. Wait for maintainer direction before
+   any public write.
+3. **Reproduce bugs.** Attempt reproduction before grilling; report confirmed repro, failed repro,
+   or missing information.
+4. **Grill if needed.** Use `grill-decisions` when the issue needs design or terminology clarification.
 5. **Apply the outcome.**
-   - `ready-for-agent`: post an agent brief; optionally create/link private beads work with
-     `operate-execution`.
-   - `ready-for-human`: post an agent brief-style summary and explain why it needs human work.
-   - `needs-info`: ask specific reporter questions and summarize what is already established.
+   - `ready-for-agent`: post an agent brief (see [references/AGENT-BRIEF.md](references/AGENT-BRIEF.md));
+     promote to a private work item via `operate-execution`.
+   - `ready-for-human`: post a brief-style summary and explain why it needs human work.
+   - `needs-info`: ask specific reporter questions; summarize what is already established.
    - `wontfix` bug: explain and close.
-   - `wontfix` enhancement: write/update `.out-of-scope/`, link it from the public issue, close.
-   - `needs-triage`: apply the state label, with a comment only if useful.
+   - `wontfix` enhancement: write/update `.out-of-scope/` (see
+     [references/OUT-OF-SCOPE.md](references/OUT-OF-SCOPE.md)), link it from the issue, close.
+   - `needs-triage`: apply the state, with a comment only if useful.
 
-## Quick Override
+## Quick override
 
 If the maintainer says to move an issue to a state, trust them. Confirm public mutations, apply the
-labels, and ask only whether they want an agent brief or private beads work created.
+roles, and ask only whether they want an agent brief or private work item created.
 
-## Needs-Info Template
+## Needs-info template
 
 ```markdown
 ## Triage Notes
 
 **What we've established so far:**
-
 - point 1
 
 **What we still need from you (@reporter):**
-
 - question 1
 ```
 

@@ -1,13 +1,33 @@
 # Operating beads: the native model
 
-How to model, author, and resume work in beads' own fields, and why that beats inventing a label
+The beads engine reference for `operate-execution`, loaded when `execution-engine: beads`. Covers
+how to model, author, and resume work in beads' own fields, and why that beats inventing a label
 vocabulary on top. This is the opinion layer; for the version-current command list and flags, run
-`bd prime` and do not duplicate it here.
+`bd prime` — it is authoritative, so do not reproduce the full reference here.
 
 The one rule everything below serves: **beads is a typed, prioritized dependency graph. Express
 work in the native fields the graph already has; reach for labels only for a dimension the graph
 has no field for.** Every time you re-encode a native concept as a label, you create a second
 source of truth that drifts.
+
+## Command quick reference
+
+Run from the repo root or control root; use `bd -C <repo-or-control-root> ...` from elsewhere. The
+store lives in the control root's `.beads/`. `bd prime` reloads the session protocol and the
+current command set.
+
+```bash
+bd ready                                   # claimable work: open, no open blockers
+bd list --status open                      # survey
+bd show <id> --long                        # full item detail
+bd create "Title" --type task --description "..."
+bd create "Epic title" --type epic
+bd create "Child" --parent <epic-id> --type task
+bd dep add <blocked-id> <blocker-id>       # "<blocked> depends on <blocker>"
+bd update <id> --claim                     # sets in_progress + ownership
+bd close <id> --reason "..."
+bd dolt pull   /   bd dolt push            # sync the shared store
+```
 
 ## Choose `--type` deliberately
 

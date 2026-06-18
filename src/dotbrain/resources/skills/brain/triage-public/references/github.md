@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Public issues live as GitHub issues. Used by `triage-public` when `public-tracker: gh` is set in
+Public issues live as GitHub issues. Loaded by `triage-public` when `public-tracker: gh` is set in
 `project.yaml`. Use the `gh` CLI for all operations. `gh` infers the repo from the adopter remote
 when run inside a clone; use `public-tracker-id` (`<org>/<repo>`) from `project.yaml` only when it
 is explicitly set.
@@ -15,17 +15,31 @@ is explicitly set.
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`.
 - **Close**: `gh issue close <number> --comment "..."`.
 
+## Triage roles as labels
+
+The SKILL's roles are realized as GitHub labels. Each triaged issue carries exactly one category
+and one state label:
+
+- Category: `bug`, `enhancement`
+- State: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`
+
+Apply and swap them with `gh issue edit --add-label` / `--remove-label`. These labels live on the
+**public** issue only. Private work uses the engine's native fields — when `operate-execution`
+promotes an issue inward, it maps the role to a field, not a beads label (`bug`/`enhancement` →
+`--type`, readiness → the dependency graph, `wontfix` → a close reason). See
+[operate-execution/references/beads.md](../../operate-execution/references/beads.md).
+
 ## Triage loop
 
 1. List open issues to survey.
-2. Classify each: bug / feature / question / duplicate / wontfix.
+2. Classify each: category (`bug` / `enhancement`) plus state.
 3. Apply labels and milestones via `gh issue edit`.
-4. For anything that needs execution tracking, record it into the private engine and link it
-   (`operate-execution`): create a work item, then `bd update <id> --external-ref gh-<number>`.
+4. For work that needs execution tracking, `operate-execution` records it into the private engine
+   and sets an external reference back to `gh-<number>`.
 5. Comment on the issue when acknowledgement is warranted.
 
 The public/private link is one-directional: the private work item holds the `gh-<number>`
-reference. A PR `Closes #N` closes the public issue only; the private work item still needs
+reference. A PR `Closes #N` closes the public issue only; the private work item still needs an
 explicit close. Project linking discipline lives in `.brain/agents/issue-tracker.md`.
 
 ## Skill-phrase mappings

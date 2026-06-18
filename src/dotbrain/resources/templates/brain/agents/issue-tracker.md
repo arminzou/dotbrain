@@ -1,18 +1,25 @@
-# Issue Tracker
+# Issue tracker conventions
 
-Read by `operate-execution` and `triage-public` at session start. Declares project conventions for
-both private execution and public intake. See `project.yaml` for which tools are active.
+Read at session start by `operate-execution` (private execution engine) and `triage-public`
+(public tracker). Holds the **project-specific** conventions that span both layers; the generic
+workflow lives in those skills. Record deviations and additions only — empty sections mean pure
+defaults. Active tools are selected in `project.yaml` (`execution-engine:`, `public-tracker:`).
 
 ## Linking
 
-- Public issues feed the private engine — they do not replace it.
-- Inward: create a private work item and link it with `--external-ref <tracker>-<N>` when a public
-  issue is accepted for execution.
-- Outward: derive a public-safe description when promoting private work; update the private work
-  item with the public reference once created.
-- A PR `Closes #N` closes the public issue only. Close the private work item explicitly.
+Project conventions for linking public issues to private work items, beyond the skills' default
+(the private item holds an external reference; a PR `Closes #N` closes only the public issue).
 
-## Project conventions
+## Decisions
 
-(Record project-specific deviations and additions here. Empty means pure defaults — do not
-restate the generic workflow above.)
+When a work item must pair with an ADR, and where those ADRs live. Default: none.
+
+## Priority
+
+Project priority conventions, including any public-severity to private-priority mapping. Default:
+the engine's native priorities, unmapped.
+
+## Labels
+
+Public-label to native-field mappings, or a facet label vocabulary, live in `agents/labels.md`
+(owned by `operate-execution`, created on demand). Absent means pure native fields.
