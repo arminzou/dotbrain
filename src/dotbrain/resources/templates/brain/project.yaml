@@ -1,29 +1,22 @@
-# Per-project identity.  Values below are the active defaults; edit as needed.
-# The tool reads this file; dotbrain refresh may overwrite comments.
+# Per-project identity. Values below are active defaults; edit as needed.
+# The tool reads this file; dotbrain refresh may overwrite shared sections.
 
-beads:
-  # Execution store backend.  One of: embedded, server, none.
-  # Default: server when a shared sql-server is set in ~/dotbrain/config.yaml,
-  # otherwise embedded.  Uncomment only to pin a mode for this project (e.g. to
-  # opt this project out of the shared server):
-  #   embedded — local Dolt store in this control root (optionally synced to a remote)
-  #   server   — shared Dolt sql-server from ~/dotbrain/config.yaml
-  #   none     — no execution store (e.g. when this project uses tracker: gh)
-  # mode: embedded
+execution-engine: beads
 
-  # Dolt remote URL to sync the embedded store to.  Optional.
-  # remote: https://doltremoteapi.dolthub.com/owner/repo
+agents:
+  - claude
 
-  # Dolt database name.  Defaults to the project name; uncomment to override.
-  # database: custom_name
+# Public-facing issue tracker for intake. One of: none, gh, linear.
+# Set public-tracker-id when activating a tracker (e.g. "owner/repo" for gh).
+public-tracker: none
+# public-tracker-id: ""
 
-# Issue tracker.  One of: beads, gh (GitHub Issues).
-tracker: beads
-
-# Primary coding agent.  One of: claude, codex.
-agent: claude
+# beads: deviations from global defaults only — uncomment the keys you need.
+#   mode: embedded     # one of: embedded, server, none
+#   remote: https://doltremoteapi.dolthub.com/owner/repo
+#   database: custom_name
 
 # Extra skills linked into this project's agent workspaces, on top of the
-# brain-coupled required core (which is always wired).  Operator-owned.
+# brain-coupled required core (which is always wired). Operator-owned.
 # skills:
 #   - some-collection/some-skill

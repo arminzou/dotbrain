@@ -89,7 +89,7 @@ Do not create a per-project brain git repo. The control root is versioned as par
    `dotbrain wire` seeds `agents/` from `templates/brain/`: a `skills.yaml` baseline plus
    an `issue-tracker.md` stub. `--github <org>/<repo>` sets the `GitHub intake:` key in that stub.
    This skill provisions the containers; it does not hand-write `agents/` content.
-   - `agents/labels.md` is **not** seeded — `operate-beads` / `triage-public` create it the first
+   - `agents/labels.md` is **not** seeded — `operate-execution` / `triage-public` create it the first
      time a label convention is actually decided. An absent file means the canonical triage defaults.
    - Brain `AGENTS.md` guidance (read `CONTEXT.md`, use the glossary, flag ADR conflicts) ships in
      the template stub, not a per-project `domain.md`.

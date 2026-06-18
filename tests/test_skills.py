@@ -27,7 +27,7 @@ def test_discover_skills_finds_all(dotbrain_root: Path):
         "brain/build-context",
         "brain/enter-main-agent",
         "brain/grill-decisions",
-        "brain/operate-beads",
+        "brain/operate-execution",
         "brain/review-architecture",
         "brain/triage-public",
         "brain/wire-brain",
@@ -56,7 +56,7 @@ def test_load_global_config_parses_current_schema(tmp_path: Path):
         "global_baseline:\n"
         "  - brain/wire-brain\n"
         "project_baseline:\n"
-        "  - brain/operate-beads\n"
+        "  - brain/operate-execution\n"
         "global_extra:\n"
         "  - misc/x\n",
     )
@@ -96,7 +96,7 @@ def test_reconcile_global_config_writes_current_key_names(tmp_path: Path):
         "baseline:\n"
         "  - wrong/skill\n"
         "project_baseline:\n"
-        "  - brain/operate-beads\n"
+        "  - brain/operate-execution\n"
         "extra:\n"
         "  - misc/x\n",
     )
@@ -123,7 +123,7 @@ def test_render_global_config_empty_global_extra():
 
 def test_required_core_comes_from_packaged_resource():
     assert skills.GLOBAL_BASELINE == ("brain/wire-brain",)
-    assert "brain/operate-beads" in skills.PROJECT_BASELINE
+    assert "brain/operate-execution" in skills.PROJECT_BASELINE
     assert skills.project_baseline() == skills.PROJECT_BASELINE
 
 
@@ -133,7 +133,7 @@ def test_project_link_set_prepends_required_core():
 
 def test_project_link_set_drops_required_from_extras_and_dedups():
     # An operator can't re-add a required skill, and duplicates collapse.
-    assert skills.project_link_set(["brain/operate-beads", "misc/x", "misc/x"]) == BASE + ("misc/x",)
+    assert skills.project_link_set(["brain/operate-execution", "misc/x", "misc/x"]) == BASE + ("misc/x",)
 
 
 def test_project_link_set_empty_extras_is_required_core():
@@ -145,7 +145,7 @@ def test_project_link_set_empty_extras_is_required_core():
 # ---------------------------------------------------------------------------
 
 _SKILL_PATH = {
-    "operate-beads": "brain/operate-beads",
+    "operate-execution": "brain/operate-execution",
     "enter-main-agent": "brain/enter-main-agent",
     "triage-public": "brain/triage-public",
     "discovery-test": "misc/discovery-test",
@@ -179,10 +179,10 @@ def test_prunes_stale(dotbrain_root: Path, control_root: Path):
 def test_collision_moved_not_deleted(dotbrain_root: Path, control_root: Path):
     skills_dir = control_root / ".claude" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
-    real = skills_dir / "operate-beads"
+    real = skills_dir / "operate-execution"
     real.write_text("real file, do not delete")
-    result = skills.link_project(dotbrain_root, control_root, (".claude",), ("brain/operate-beads",))
-    assert (skills_dir / "operate-beads").is_symlink()
+    result = skills.link_project(dotbrain_root, control_root, (".claude",), ("brain/operate-execution",))
+    assert (skills_dir / "operate-execution").is_symlink()
     assert result.stashed
     moved = result.stashed[0]
     assert moved.parent.name == ".tmp"

@@ -1,24 +1,35 @@
 ---
-name: operate-beads
-description: Operate the private beads execution graph for a project control root. Use when the user wants to shape work, inspect ready work, claim/update/close beads, split or discover follow-up work, or connect private execution to public issues.
+name: operate-execution
+description: Operate the private execution engine for a project control root. Use when the user wants to shape work, inspect ready work, claim/update/close work items, split or discover follow-up work, or connect private execution to public issues.
 ---
 
-# Operate Beads
+# Operate Execution
 
-Operate the control root's private execution layer through beads (`bd`).
+Operate the control root's private execution layer. The engine is declared in `project.yaml`
+(`execution-engine:`); currently beads (`bd`).
 
-The beads dependency graph is the concurrency contract: what is `bd ready`
-(unblocked) is the set safe to run in parallel across workers; blocked edges
-are the serialization. There is no separate coordination mechanism.
+The execution graph is the concurrency contract: what is `bd ready` (unblocked) is the set safe to
+run in parallel across workers; blocked edges are the serialization. There is no separate
+coordination mechanism.
 
 - **Public issue tracker**: handled by `triage-public`.
-- **Private execution graph**: beads issues in the control root's `.beads/`.
+- **Private execution graph**: work items in the engine's store (`.beads/` for beads).
 - **Knowledge layer**: `.brain/CONTEXT.md`, `.brain/adr/`, and `.brain/AGENTS.md`; written by their
   owning skills.
 
-Beads is the source of truth for private execution. Do not recreate task state in markdown docs.
-Use `bd prime` for the version-current command reference. See
-[references/operating-beads.md](references/operating-beads.md) for the native modeling rules.
+The execution engine is the source of truth for private work. Do not recreate work state in
+markdown docs. Use `bd prime` for the version-current command reference. See
+[references/beads.md](references/beads.md) for the native modeling rules.
+
+## Context files
+
+Read at session start, before inspecting the graph:
+
+1. **`.brain/agents/issue-tracker.md`** — project conventions that apply to both private execution
+   and public intake: linking rules, ADR policy, priority deviations, and any project-specific
+   workflow notes. Lives in the Brain (per-project). Empty means pure defaults.
+2. **[references/beads.md](references/beads.md)** — beads CLI mechanics, shipped with this skill.
+   Use `bd prime` as the authoritative fallback.
 
 ## What this skill owns
 
@@ -65,8 +76,9 @@ next step.
 
 ## Basic operating loop
 
-1. Read project Brain context and relevant ADRs.
-2. Inspect the current graph with `bd ready`, `bd list`, and `bd show`.
+1. Read `.brain/agents/issue-tracker.md` and `references/beads.md` (context files above).
+2. Read project Brain context and relevant ADRs.
+3. Inspect the current graph with `bd ready`, `bd list`, and `bd show`.
 3. Decide whether the work needs new beads, a re-slice, dependency changes, or only status updates.
 4. Recommend the next ready item and its execution mode.
 5. If work proceeds, claim or update the relevant bead and record any context another agent would
@@ -142,7 +154,7 @@ bead still needs explicit `bd close`.
 ## Labels
 
 Beads work is modeled with native fields: `--type`, `--priority`, status, and dependencies, not a
-private label vocabulary. See [references/operating-beads.md](references/operating-beads.md) for
+private label vocabulary. See [references/beads.md](references/beads.md) for
 the detailed rules.
 
 Record a label convention in `.brain/agents/labels.md` only when a project actually adopts one:

@@ -269,7 +269,7 @@ def test_skills_link_project_native(
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
-    assert (control_root / ".claude" / "skills" / "operate-beads").is_symlink()
+    assert (control_root / ".claude" / "skills" / "operate-execution").is_symlink()
     assert (control_root / ".codex" / "skills" / "triage-public").is_symlink()
 
 
@@ -320,7 +320,7 @@ def test_skills_link_project_filter_isolates_one_control_root(
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert (control_root / ".claude" / "skills" / "operate-beads").is_symlink()  # named project linked
+    assert (control_root / ".claude" / "skills" / "operate-execution").is_symlink()  # named project linked
     assert not (other / ".claude" / "skills").exists()                          # others untouched
 
 

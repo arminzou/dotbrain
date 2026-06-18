@@ -44,7 +44,7 @@ def dotbrain_root(tmp_path: Path) -> Path:
     for sub in ("projects", "skills"):
         (root / sub).mkdir(parents=True)
     for skill in (
-        "brain/operate-beads",
+        "brain/operate-execution",
         "brain/enter-main-agent",
         "brain/triage-public",
         "brain/build-context",

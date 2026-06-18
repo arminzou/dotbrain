@@ -266,7 +266,7 @@ def test_load_project_skills_reads_list(tmp_path: Path):
 
 
 def test_load_project_skills_excludes_required_core(tmp_path: Path):
-    _project_yaml(tmp_path, "p", "skills:\n  - brain/operate-beads\n  - misc/x\n")
+    _project_yaml(tmp_path, "p", "skills:\n  - brain/operate-execution\n  - misc/x\n")
     assert config.load_project_skills(tmp_path, "p") == ("misc/x",)
 
 

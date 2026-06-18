@@ -16,7 +16,7 @@ This skill is **coordination only**.
 - It reviews, lands, cleans up, and closes completed work.
 
 It does **not** decide the execution graph, ready frontier, or worktree-isolation policy. Those
-belong to `operate-beads` (the current implementation of the agreed `operate-beads` role).
+belong to `operate-execution` (the current implementation of the agreed `operate-execution` role).
 
 ## Model
 
@@ -63,7 +63,7 @@ bd blocked
 
 ## Dispatch a worker
 
-Use this only after `operate-beads` has already:
+Use this only after `operate-execution` has already:
 
 - chosen the ready bead
 - recommended worktree execution
@@ -132,7 +132,7 @@ separate ordinary single-agent session outside this protocol.
 
 - Do not enter this skill from a worker worktree or non-`main` branch.
 - Do not do feature work in the main checkout while this mode is active.
-- Do not absorb execution-graph policy that belongs to `operate-beads`.
+- Do not absorb execution-graph policy that belongs to `operate-execution`.
 - Do not run broad cleanup from inside an unrelated slice.
 - Do not delete another agent's worktree.
 - If the branch cannot fast-forward, resolve from the worktree before landing.

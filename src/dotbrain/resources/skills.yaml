@@ -15,7 +15,7 @@ global_required:
   - brain/wire-brain
 
 project_required:
-  - brain/operate-beads
+  - brain/operate-execution
   - brain/enter-main-agent
   - brain/triage-public
   - brain/build-context
