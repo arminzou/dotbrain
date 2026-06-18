@@ -46,8 +46,9 @@ def test_wire_all_creates_symlinks(dotbrain_root: Path, control_root: Path,
     )
 
     assert any("example" in log for log in result.logs)
-    for link_name in paths.CONTROL_LINKS:
+    for link_name in (".brain", ".beads", ".claude"):
         assert (repo / link_name).is_symlink()
+    assert not (repo / ".codex").exists()
 
 
 def test_wire_all_warns_when_repo_missing(dotbrain_root: Path, control_root: Path,
@@ -160,5 +161,6 @@ def test_wire_all_skips_beads_link_silently_for_mode_none(
 
     assert not any(".beads is missing" in w for w in result.warnings)
     assert not (repo / ".beads").exists()
-    for link_name in (".brain", ".claude", ".codex"):
+    for link_name in (".brain", ".claude"):
         assert (repo / link_name).is_symlink()
+    assert not (repo / ".codex").exists()

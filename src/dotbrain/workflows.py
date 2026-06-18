@@ -111,6 +111,7 @@ def wire_project(
     control_roots.ensure_control_gitignore(control)
     control_roots.seed_brain(control, dotbrain_root)
     config.migrate_legacy_skill_manifest(dotbrain_root, project)
+    active_workspaces = control_roots.active_agent_workspaces(control, dotbrain_root)
     result.warnings += control_roots.seed_agent_workspaces(control, dotbrain_root, home)
     if install_global_hook:
         bootstrap.install_global_claude_hook(dotbrain_root, home=home)
@@ -145,10 +146,17 @@ def wire_project(
         return result
 
     assert resolved_repo is not None
-    result.warnings += adopter_repos.wire_repo(resolved_repo, control, dotbrain_root, run)
+    result.warnings += adopter_repos.wire_repo(
+        resolved_repo, control, dotbrain_root, run, workspace_links=active_workspaces
+    )
     if paths.INJECT_ADOPTER_POINTER:
         result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
-    result.warnings += adopter_repos.verify_wiring(resolved_repo, run)
+    expected_links = (".brain", *active_workspaces)
+    if (control / ".beads").exists():
+        expected_links += (".beads",)
+    result.warnings += adopter_repos.verify_wiring(
+        resolved_repo, run, expected_links=expected_links
+    )
     result.logs.append(f"wired {project}")
     return result
 
@@ -169,6 +177,7 @@ def _repair_adopter_repo_links(
         dotbrain_root,
         run,
         skip_beads_link=skip_beads_link,
+        workspace_links=control_roots.active_agent_workspaces(control, dotbrain_root),
     )
     return [f"wired {control.name} -> {repo}"], warnings
 
@@ -269,7 +278,9 @@ def refresh_projects(
             result.logs.append(migrate_log)
         extras = config.load_project_skills(dotbrain_root, control.name)
         skill_paths = skills.project_link_set(extras)
-        link_result = skills.link_project(dotbrain_root, control, workspaces, skill_paths)
+        declared_workspaces = control_roots.active_agent_workspaces(control, dotbrain_root)
+        active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
+        link_result = skills.link_project(dotbrain_root, control, active_workspaces, skill_paths)
         result.logs += [f"pruned skill {entry}" for entry in link_result.pruned]
         result.logs += [f"stashed collision {path}" for path in link_result.stashed]
         result.warnings += link_result.warnings

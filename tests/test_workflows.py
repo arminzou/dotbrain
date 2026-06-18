@@ -339,6 +339,7 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     repo = _make_wired_repo(tmp_path, dotbrain_root, "refreshme")
     control = paths.control_root(dotbrain_root, "refreshme")
     (control / ".repo").write_text(f"{repo}\n")
+    (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     (repo / ".codex").unlink()
     loaded: dict[str, object] = {}
 
@@ -365,13 +366,102 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
     assert "beads warning" in result.warnings
-    # skill links are idempotent steady-state, not a delta: no per-skill log noise,
-    # just a count folded into the per-project summary line.
     assert not any(line.startswith("linked skill ") for line in result.logs)
     linked_count = len(skills.project_baseline(dotbrain_root)) * 2  # .claude + .codex
     assert f"refreshed refreshme ({linked_count} skills linked)" in result.logs
 
 
+def test_refresh_project_honors_declared_agent_workspaces(
+    tmp_path: Path, dotbrain_root: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = tmp_path / "claude-only"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+
+    control = paths.control_root(dotbrain_root, "claude-only")
+    claude_link = repo / ".claude"
+    claude_link.unlink()
+    captured: dict[str, tuple[str, ...]] = {}
+
+    def fake_link_project(dotbrain_root_arg, control_root_arg, workspaces, skill_paths):
+        captured["workspaces"] = tuple(workspaces)
+        return skills.LinkResult()
+
+    monkeypatch.setattr(workflows.skills, "link_project", fake_link_project)
+    monkeypatch.setattr(
+        workflows.beads,
+        "pull_beads_for_all",
+        lambda dotbrain_root_arg, *, run, projects: beads.BootstrapResult(logs=[], warnings=[]),
+    )
+
+    result = workflows.refresh_project(dotbrain_root, "claude-only", repo_base=tmp_path, home=fake_home)
+
+    assert result.refreshed == ["claude-only"]
+    assert captured["workspaces"] == (".claude",)
+    assert claude_link.is_symlink()
+    assert not (repo / ".codex").exists()
+    assert (control / ".claude").is_dir()
+    assert not (control / ".codex").exists()
+
+
+def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
+    tmp_path: Path, dotbrain_root: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    repo = tmp_path / "refresh-downgraded"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+    control = paths.control_root(dotbrain_root, "refresh-downgraded")
+    (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+    assert (repo / ".codex").is_symlink()
+
+    (control / "project.yaml").write_text("agents:\n  - claude\n")
+    (repo / ".codex").unlink()
+    captured: dict[str, tuple[str, ...]] = {}
+
+    def fake_link_project(dotbrain_root_arg, control_root_arg, workspaces, skill_paths):
+        captured["workspaces"] = tuple(workspaces)
+        return skills.LinkResult()
+
+    monkeypatch.setattr(workflows.skills, "link_project", fake_link_project)
+    monkeypatch.setattr(
+        workflows.beads,
+        "pull_beads_for_all",
+        lambda dotbrain_root_arg, *, run, projects: beads.BootstrapResult(logs=[], warnings=[]),
+    )
+
+    result = workflows.refresh_project(dotbrain_root, "refresh-downgraded", repo_base=tmp_path, home=fake_home)
+
+    assert result.refreshed == ["refresh-downgraded"]
+    assert captured["workspaces"] == (".claude",)
+    assert (control / ".codex").is_dir()
+    assert not (repo / ".codex").exists()
 def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):

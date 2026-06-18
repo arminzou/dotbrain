@@ -274,10 +274,12 @@ def test_wire_project_wires_fixture_repo(dotbrain_root: Path, fake_home: Path, t
     assert (control / ".gitignore").is_file()
     assert (control / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created control/.beads
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain", ".claude"):
         assert (repo / name).is_symlink()
         assert (repo / name).resolve() == (control / name).resolve()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
+    assert not (repo / ".codex").exists()
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
@@ -378,9 +380,11 @@ def test_wire_project_greenfield_empty_repo(dotbrain_root: Path, fake_home: Path
     if paths.INJECT_ADOPTER_POINTER:
         assert agents.is_file()
         assert paths.ADOPTER_POINTER in agents.read_text()
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain", ".claude"):
         assert (repo / name).is_symlink()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
+    assert not (repo / ".codex").exists()
 
 
 def test_wire_project_repair_idempotency(dotbrain_root: Path, fake_home: Path, tmp_path: Path):
@@ -476,3 +480,69 @@ def test_wire_project_records_custom_database(dotbrain_root: Path, fake_home: Pa
     beads = config.load_project_config(dotbrain_root, "renamed")
     assert beads.mode == "server"
     assert beads.database == "legacy_name"
+
+
+def test_wire_project_honors_declared_agent_workspaces(dotbrain_root: Path, fake_home: Path, tmp_path: Path):
+    repo = tmp_path / "claude-only"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+
+    control = dotbrain_root / "projects" / "claude-only"
+    assert (control / ".claude").is_dir()
+    assert not (control / ".codex").exists()
+    assert (repo / ".claude").is_symlink()
+    assert not (repo / ".codex").exists()
+
+
+def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
+    dotbrain_root: Path, fake_home: Path, tmp_path: Path
+):
+    repo = tmp_path / "downgraded-project"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+    control = dotbrain_root / "projects" / "downgraded-project"
+
+    (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+    assert (repo / ".codex").is_symlink()
+    assert (control / ".codex").is_dir()
+
+    (control / "project.yaml").write_text("agents:\n  - claude\n")
+    (repo / ".codex").unlink()
+    result = workflows.wire_project(
+        dotbrain_root=dotbrain_root,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+
+    assert (control / ".codex").is_dir()
+    assert not (repo / ".codex").exists()
+    assert not any(".codex is not wired" in warning for warning in result.warnings)

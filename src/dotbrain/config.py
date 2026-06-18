@@ -36,6 +36,9 @@ class ProjectBeads:
     database: str = ""
 
 
+DEFAULT_PROJECT_AGENTS: tuple[str, ...] = ("claude", "codex")
+
+
 @dataclass
 class DotbrainConfig:
     """Parsed representation of config.yaml (schema v3)."""
@@ -181,6 +184,38 @@ def load_project_skills(dotbrain_root: Path, name: str) -> tuple[str, ...]:
     if not isinstance(data, dict):
         return ()
     return skills._clean(data.get("skills"), exclude=skills.project_baseline())
+
+
+def load_project_agents(dotbrain_root: Path, name: str) -> tuple[str, ...]:
+    """Read declared agent workspaces from ``projects/<name>/project.yaml``.
+
+    Missing ``agents`` preserves legacy behavior by enabling both packaged agent
+    workspaces. An explicit empty list disables agent workspace seeding.
+    """
+    import yaml
+
+    path = _project_config_path(dotbrain_root, name)
+    if not path.is_file():
+        return DEFAULT_PROJECT_AGENTS
+
+    data = yaml.safe_load(path.read_text()) or {}
+    if not isinstance(data, dict):
+        return DEFAULT_PROJECT_AGENTS
+
+    raw_agents = data.get("agents")
+    if raw_agents is None:
+        return DEFAULT_PROJECT_AGENTS
+
+    entries = raw_agents if isinstance(raw_agents, list) else [raw_agents]
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for entry in entries:
+        agent = str(entry).strip().lower()
+        if not agent or agent in seen:
+            continue
+        seen.add(agent)
+        cleaned.append(agent)
+    return tuple(cleaned)
 
 
 def write_project_config(dotbrain_root: Path, name: str, beads: ProjectBeads) -> str | None:

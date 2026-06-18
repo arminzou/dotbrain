@@ -358,17 +358,17 @@ def wire_repo(
     run: Runner = _default_run,
     *,
     skip_beads_link: bool = False,
+    workspace_links: Sequence[str] = (".claude", ".codex"),
 ) -> list[str]:
-    """Link the four control links into ``repo`` and (for adopters) add local excludes."""
+    """Link active control-root symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)
     ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_root)
     use_local_excludes = not is_dotbrain_repo(repo, dotbrain_root)
     warnings: list[str] = []
-    targets = {
-        name: Path(control) / name
-        for name in paths.CONTROL_LINKS
-        if not (skip_beads_link and name == ".beads")
-    }
+    active_links: tuple[str, ...] = (".brain", *(workspace_links or ()))
+    if not skip_beads_link:
+        active_links += (".beads",)
+    targets = {name: Path(control) / name for name in active_links}
     result = reconcile(repo, targets)
     for name in result.skipped:
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")
@@ -383,10 +383,10 @@ def wire_repo(
     return warnings
 
 
-def verify_wiring(repo: Path, run: Runner = _default_run) -> list[str]:
+def verify_wiring(repo: Path, run: Runner = _default_run, *, expected_links: Sequence[str] = paths.CONTROL_LINKS) -> list[str]:
     repo = Path(repo)
     warnings: list[str] = []
-    for name in paths.CONTROL_LINKS:
+    for name in expected_links:
         link = repo / name
         if not link.is_symlink():
             warnings.append(f"{repo}/{name} is not wired")

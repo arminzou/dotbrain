@@ -90,6 +90,24 @@ def test_load_project_config_reads_project_yaml(tmp_path: Path):
     assert beads.database == "fork"  # default
 
 
+def test_load_project_agents_defaults_to_legacy_workspaces(tmp_path: Path):
+    assert config.load_project_agents(tmp_path, "acme") == ("claude", "codex")
+
+
+def test_load_project_agents_reads_project_yaml(tmp_path: Path):
+    project_dir = tmp_path / "projects" / "acme"
+    project_dir.mkdir(parents=True)
+    (project_dir / "project.yaml").write_text(textwrap.dedent("""\
+        agents:
+          - claude
+          - CODex
+          - claude
+          - custom
+    """))
+
+    assert config.load_project_agents(tmp_path, "acme") == ("claude", "codex", "custom")
+
+
 def test_load_project_config_custom_database(tmp_path: Path):
     project_dir = tmp_path / "projects" / "renamed"
     project_dir.mkdir(parents=True)

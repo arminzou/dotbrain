@@ -146,8 +146,7 @@ def test_skills_link_project_creates_symlinks_after_wire(
         name = Path(skill).name
         assert (control / ".claude" / "skills" / name).is_symlink(), \
             f"expected .claude/skills/{name} to be linked"
-        assert (control / ".codex" / "skills" / name).is_symlink(), \
-            f"expected .codex/skills/{name} to be linked"
+    assert not (control / ".codex").exists()
 
 
 def test_skills_link_project_prunes_stale_after_baseline_change(

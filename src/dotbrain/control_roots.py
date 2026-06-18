@@ -21,9 +21,7 @@ import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from dotbrain import resource_loader
-
-from dotbrain import paths
+from dotbrain import config, paths, resource_loader
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -179,18 +177,43 @@ def _merge_hooks_from_template(template_resource: str, dest: Path) -> None:
                     )
 
 
-def seed_agent_workspaces(control: Path, dotbrain_root: Path, home: Path | None = None) -> list[str]:
-    """Seed Claude/Codex hooks from packaged templates.
+_AGENT_WORKSPACE_TEMPLATES: dict[str, str] = {
+    "claude": "claude/settings.json",
+    "codex": "codex/hooks.json",
+}
 
-    Merges hook entries into any existing agent config — user-owned settings
-    are never overwritten.
+
+def active_agent_workspaces(control: Path, dotbrain_root: Path) -> tuple[str, ...]:
+    """Return the declared, known workspace directory names for a project."""
+    agents = config.load_project_agents(dotbrain_root, Path(control).name)
+    return tuple(f".{agent}" for agent in agents if agent in _AGENT_WORKSPACE_TEMPLATES)
+
+
+def seed_agent_workspaces(control: Path, dotbrain_root: Path, home: Path | None = None) -> list[str]:
+    """Seed declared agent workspaces from packaged templates.
+
+    Only listed workspaces are created or repaired. Existing undeclared
+    workspaces are left in place.
     """
     control = Path(control)
-    _merge_hooks_from_template("claude/settings.json", control / ".claude" / "settings.json")
-    _merge_hooks_from_template("codex/hooks.json", control / ".codex" / "hooks.json")
+    warnings: list[str] = []
 
-    warning = ensure_codex_config(control / ".codex" / "config.toml")
-    return [warning] if warning else []
+    for agent in config.load_project_agents(dotbrain_root, control.name):
+        template = _AGENT_WORKSPACE_TEMPLATES.get(agent)
+        if template is None:
+            warnings.append(f"ignored unknown agent workspace in {control / 'project.yaml'}: {agent}")
+            continue
+
+        workspace = control / f".{agent}"
+        config_file = "settings.json" if agent == "claude" else "hooks.json"
+        _merge_hooks_from_template(template, workspace / config_file)
+
+        if agent == "codex":
+            warning = ensure_codex_config(workspace / "config.toml")
+            if warning:
+                warnings.append(warning)
+
+    return warnings
 
 
 # --------------------------------------------------------------------------- offboarding

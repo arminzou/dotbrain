@@ -94,6 +94,28 @@ def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path
     assert "hooks = true" in (control / ".codex" / "config.toml").read_text()
 
 
+def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
+    dotbrain_root: Path, fake_home: Path
+):
+    control = dotbrain_root / "projects" / "claude-only"
+    control.mkdir(parents=True)
+    (control / "project.yaml").write_text(
+        "agents:\n"
+        "  - claude\n"
+        "  - custom\n"
+    )
+    existing_codex = control / ".codex" / "keep.txt"
+    existing_codex.parent.mkdir(parents=True)
+    existing_codex.write_text("keep\n")
+
+    warnings = control_roots.seed_agent_workspaces(control, dotbrain_root, fake_home)
+
+    assert (control / ".claude" / "settings.json").is_file()
+    assert not (control / ".codex" / "hooks.json").exists()
+    assert existing_codex.read_text() == "keep\n"
+    assert warnings == [f"ignored unknown agent workspace in {control / 'project.yaml'}: custom"]
+
+
 def test_sessionstart_bootstrap_script_does_not_invoke_bd(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()

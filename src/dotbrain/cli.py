@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, migrate, paths, resource_loader, skills, workflows, worktrees
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, control_roots, migrate, paths, resource_loader, skills, workflows, worktrees
 
 app = typer.Typer(
     help="dotbrain control-plane CLI (migration scaffold; scripts still own some behavior).",
@@ -571,7 +571,9 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
         config.migrate_legacy_skill_manifest(root, control.name)
         extras = config.load_project_skills(root, control.name)
         skill_paths = skills.project_link_set(extras)
-        result = skills.link_project(root, control, workspaces, skill_paths)
+        declared_workspaces = control_roots.active_agent_workspaces(control, root)
+        active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
+        result = skills.link_project(root, control, active_workspaces, skill_paths)
         for warning in result.warnings:
             typer.echo(f"skill-link: warning: {warning} (project {control.name})", err=True)
         for pruned in result.pruned:
