@@ -43,6 +43,7 @@ def dotbrain_root(tmp_path: Path) -> Path:
     root = tmp_path / "dotbrain"
     for sub in ("projects", "skills"):
         (root / sub).mkdir(parents=True)
+    bundled_skills_root = _REPO_ROOT / "src" / "dotbrain" / "resources" / "skills"
     for skill in (
         "brain/operate-execution",
         "brain/enter-main-agent",
@@ -51,11 +52,12 @@ def dotbrain_root(tmp_path: Path) -> Path:
         "brain/review-architecture",
         "brain/grill-decisions",
         "brain/wire-brain",
-        "misc/discovery-test",
     ):
-        skill_dir = root / "skills" / skill
-        skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text(f"# {Path(skill).name}\n")
+        shutil.copytree(bundled_skills_root / skill, root / "skills" / skill)
+
+    skill_dir = root / "skills" / "misc" / "discovery-test"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("# discovery-test\n")
     # Keep a legacy data-root templates dir around for migration-oriented tests.
     shutil.copytree(
         _REPO_ROOT / "src" / "dotbrain" / "resources" / "templates" / "brain",
