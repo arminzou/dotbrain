@@ -86,11 +86,15 @@ sure its blockers are closed; if it should not, add the dependency. Let `bd read
 - Resolve with a reason, not a label: `bd close <id> --reason="wontfix: ..."`. The close reason is
   the durable record; a live `wontfix` label on a closed issue is redundant.
 
-## Human gate
+## Human gate: the autonomy boundary
 
-When an issue needs a person's decision before an agent can proceed, flag it with `bd human <id>`
-rather than inventing a `ready-for-human` label. It is queryable (`bd human list`) and is the
-mechanism other tooling already understands.
+Flag `bd human <id>` when an issue needs a person's decision before an agent can proceed. This
+is the **gate**: the agent picks up unflagged items autonomously and only stops for flagged ones.
+
+- Flag it when the item has: scope ambiguity, design trade-offs, cross-cutting impact, or anything
+  you want to inspect before work starts.
+- Leave it unflagged for small, routine, well-scoped work the agent can finish without input.
+- Queryable: `bd human list` shows all gated items. The agent checks this before each new item.
 
 ## Authoring issues: design vs acceptance
 

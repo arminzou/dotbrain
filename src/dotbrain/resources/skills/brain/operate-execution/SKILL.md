@@ -27,6 +27,8 @@ Read at session start, before inspecting the graph:
    rules, ADR policy, priority deviations. Lives in the Brain. Empty means pure defaults.
 2. **[references/beads.md](references/beads.md)** — engine mechanics and native-modeling rules:
    commands, types, dependencies, status, labels. Swap for the active engine's reference if it changes.
+3. **[references/work-intake.md](references/work-intake.md)** — work intake pipeline: when to create a
+   bead directly vs when to suggest a PRD + epic. Read to decide how new work enters the graph.
 
 ## What this skill owns
 
@@ -46,27 +48,44 @@ recommends mode, and maintains the graph. A worker may claim, update, split, cre
 related items as discoveries emerge. Worker autonomy is intentional: stay anchored to the assigned
 item or epic, but do not freeze when work reveals missing scope.
 
+## Human gate
+
+Items flagged `bd human <id>` need a person's decision before an agent proceeds. The agent checks
+`bd human list` before each new item and treats only flagged items as gated.
+
+Unflagged items are **autonomous**: the agent may pick them up, work them, and close them without
+stopping for sign-off. This is the default because most items are small enough that the check-in
+adds friction without value. The `bd human` marker is the intentional exception.
+
+Flag an item `bd human` when it genuinely needs a decision — scope ambiguity, design trade-offs,
+cross-cutting impact, or anything you want to see before work starts. Leave everything else
+unflagged so the agent can flow through the ready frontier.
+
 ## Execution-mode recommendation
 
-When a ready item is under consideration, recommend one of:
+When a human-gated ready item is under consideration, recommend one of:
 
 - **Current session** — small, local, low-contention work.
 - **Worktree** — substantial work, likely discoveries, Brain-plus-code changes, or isolated review.
+- **Skip** — the item needs a decision you want to make; leave it for later triage.
 
-Advisory, not a gate; always include a one-line reason. **Stop after the recommendation** — do not
-claim, branch, or implement until the user responds. A prior green light covers the agreed step
-only; still pause before expanding scope or starting the next.
+Advisory, not a gate; always include a one-line reason. Stop after the recommendation and wait for
+the user to respond. Skip means the item stays in the human queue.
+
+Autonomous (unflagged) items do not need a mode recommendation — claim and work them directly.
 
 ## Operating loop
 
 1. Read the context files above, then project Brain context and relevant ADRs.
 2. Inspect the graph: ready frontier, list, and item detail (commands in `references/beads.md`).
-3. Decide what the work needs: new items, a re-slice, dependency changes, or only status updates.
-   Prefer thin, independently verifiable slices; use real dependencies for blockers, not prose.
-4. Recommend the next ready item and its execution mode, then stop for sign-off.
-5. If work proceeds, claim or update the item and record context another agent would otherwise lose.
+3. Check `bd human list` for gated items among the ready set.
+4. Select the next ready item:
+   - **Human-gated** — recommend mode and stop for sign-off before claiming.
+   - **Autonomous** — claim directly and proceed.
+5. Implement, update notes, and close when acceptance criteria are satisfied.
 6. If discoveries change reality, update the graph instead of forcing stale plans to stand.
-7. Close items explicitly when their acceptance criteria are actually satisfied.
+7. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
+   whose decision you're not present to make.
 
 ## Discoveries and re-slicing
 
@@ -91,8 +110,8 @@ needs an explicit close. Mechanics live in [references/beads.md](references/bead
 
 ## Pitfalls
 
-- **Do not jump from recommendation to execution.** Stop and wait for confirmation — the most common
-  failure mode.
+- **Do not jump from recommendation to execution for human-gated items.** Stop and wait for confirmation from the user. Autonomous (unflagged) items flow through without a stop — the gate handles separation.
+- **Do not skip `bd human list` at the start of the loop.** Check it every iteration — the set may change as other items close or as new items are created.
 - **Check for existing branches first.** Run `git branch -a | grep -i <topic>`; if one exists, ask
   whether to use it or start fresh.
 - **Do not close an item without presenting what was done.** Summarize and confirm first, unless the
