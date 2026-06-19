@@ -9,10 +9,10 @@ from typing import Optional
 import typer
 
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, control_roots, migrate, paths, resource_loader, skills, workflows, worktrees
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, workflows, worktrees
 
 app = typer.Typer(
-    help="dotbrain CLI for wiring project control roots and skills into coding agents.",
+    help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
     no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
@@ -154,9 +154,9 @@ def doctor() -> None:
 
 @app.command()
 def wire(
-    all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its control root (brain seeding, symlinks, hooks)."),  # noqa: A002
+    all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its Brainspace (brain seeding, symlinks, hooks)."),  # noqa: A002
     repo: Optional[str] = typer.Option(None, "--repo", help="Repo to wire. Defaults to the current git repo."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/control-root name. Defaults to repo dir name."),
+    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name. Defaults to repo dir name."),
     dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
     skip_beads: bool = typer.Option(False, "--skip-beads", help="Do not initialize .beads when missing."),
     install_global_hook: bool = typer.Option(False, "--install-global-hook", help="Also install the global Claude SessionStart hook. Prefer `dotbrain bootstrap` for machine setup."),
@@ -166,12 +166,12 @@ def wire(
     server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
     server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user in config.yaml."),
     database: str = typer.Option("", "--beads-database", help="Dolt database name. Defaults to project name."),
-    no_repo: bool = typer.Option(False, "--no-repo", help="Create a brain-only control root (no code repo). Requires --name."),
+    no_repo: bool = typer.Option(False, "--no-repo", help="Create a brain-only Brainspace (no code repo). Requires --name."),
     repo_base: Optional[Path] = typer.Option(None, "--repo-base", help="Base directory for adopter repos (default: ~/repos/projects)."),
 ) -> None:
-    """Create or repair a project control root and wire an adopter repo.
+    """Create or repair a project Brainspace and wire an adopter repo.
 
-    Without --all: wire one project. With --all: reconcile every control root.
+    Without --all: wire one project. With --all: reconcile every Brainspace.
     """
     root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
     if all:
@@ -215,7 +215,7 @@ def wire(
 @app.command()
 def refresh(
     all: bool = typer.Option(False, "--all", help="Refresh every project workspace."),  # noqa: A002
-    name: Optional[str] = typer.Option(None, "--name", help="Refresh one project by control-root name."),
+    name: Optional[str] = typer.Option(None, "--name", help="Refresh one project by Brainspace name."),
     repo_base: Optional[Path] = typer.Option(None, "--repo-base", help="Base directory for repo discovery."),
 ) -> None:
     """Refresh Brain/workspace files, repo links, beads state, and project skills."""
@@ -242,17 +242,17 @@ def refresh(
 
 @app.command()
 def unwire(
-    all: bool = typer.Option(False, "--all", help="Unwire every project control root (keep only; see per-project --archive/--delete for destructive offboard)."),  # noqa: A002
+    all: bool = typer.Option(False, "--all", help="Unwire every project Brainspace (keep only; see per-project --archive/--delete for destructive offboard)."),  # noqa: A002
     repo: Optional[Path] = typer.Option(None, "--repo", help="Adopter repo path; defaults to cwd"),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/control-root name"),
-    no_repo: bool = typer.Option(False, "--no-repo", help="Only offboard the named control root; do not edit an adopter repo."),
-    archive: bool = typer.Option(False, "--archive", help="Move control root to projects/.archive/"),
-    delete: bool = typer.Option(False, "--delete", help="Remove the control root (destructive)"),
+    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name"),
+    no_repo: bool = typer.Option(False, "--no-repo", help="Only offboard the named Brainspace; do not edit an adopter repo."),
+    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to projects/.archive/"),
+    delete: bool = typer.Option(False, "--delete", help="Remove the Brainspace (destructive)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview the offboard without performing it."),
 ) -> None:
-    """Disconnect an adopter repo from its control root.
+    """Disconnect an adopter repo from its Brainspace.
 
-    Offboards the control root only (keep/archive/delete). To drop a server-backend project's
+    Offboards the Brainspace only (keep/archive/delete). To drop a server-backend project's
     remote beads database, use `dotbrain beads drop-db` separately.
     """
     if all:
@@ -360,8 +360,8 @@ def list_beads_db(
 @beads_app.command("migrate")
 def migrate_beads(
     repo: Optional[str] = typer.Option(None, "--repo", help="Wired repo path; project name is its dir name."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/control-root name to migrate."),
-    all_projects: bool = typer.Option(False, "--all", help="Migrate every embedded control root."),
+    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to migrate."),
+    all_projects: bool = typer.Option(False, "--all", help="Migrate every embedded Brainspace."),
     dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
     server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Target Dolt sql-server host. Defaults to beads.server.host in config.yaml."),
     server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
@@ -422,9 +422,9 @@ def migrate_beads(
 
 @beads_app.command("load")
 def beads_load(
-    all: bool = typer.Option(False, "--all", help="Load tracker state for every control root."),  # noqa: A002
-    repo: Optional[str] = typer.Option(None, "--repo", help="Repo whose control root to load. Defaults to the current git repo."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/control-root name to load."),
+    all: bool = typer.Option(False, "--all", help="Load tracker state for every Brainspace."),  # noqa: A002
+    repo: Optional[str] = typer.Option(None, "--repo", help="Repo whose Brainspace to load. Defaults to the current git repo."),
+    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to load."),
     dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview what would be hydrated/pulled without mutating anything."),
 ) -> None:
@@ -463,7 +463,7 @@ app.add_typer(worktrees_app, name="worktrees", hidden=True)
 def worktrees_wire(
     path: Optional[str] = typer.Argument(None, help="Worktree path (defaults to cwd)"),
 ) -> None:
-    """Reconcile control links inside a git worktree."""
+    """Reconcile Brainspace links inside a git worktree."""
     target = Path(path) if path else Path.cwd()
     result = adopter_repos.reconcile_worktree(target)
     for name in result.created:
@@ -534,7 +534,7 @@ def skills_link(
     target: str = typer.Option("all", "--target", help="claude-code | codex | all"),
     scope: str = typer.Option("all", "--scope", help="global | project | all"),
     project: Optional[str] = typer.Option(
-        None, "--project", help="limit project scope to one control root by name"
+        None, "--project", help="limit project scope to one Brainspace by name"
     ),
 ) -> None:
     """Link skills into agent runtimes.
@@ -561,17 +561,17 @@ def skills_link(
 def _link_projects_native(root: Path, target: str, project: Optional[str]) -> None:
     workspaces = _AGENT_WORKSPACES[target]
     if project:
-        control = paths.control_root(root, project)
+        control = paths.brainspace(root, project)
         if not control.is_dir():
-            raise typer.BadParameter(f"no control root: projects/{project}")
+            raise typer.BadParameter(f"no Brainspace: projects/{project}")
         controls = [control]
     else:
-        controls = paths.control_roots(root)
+        controls = paths.brainspaces(root)
     for control in controls:
         config.migrate_legacy_skill_manifest(root, control.name)
         extras = config.load_project_skills(root, control.name)
         skill_paths = skills.project_link_set(extras)
-        declared_workspaces = control_roots.active_agent_workspaces(control, root)
+        declared_workspaces = brainspaces.active_agent_workspaces(control, root)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
         result = skills.link_project(root, control, active_workspaces, skill_paths)
         for warning in result.warnings:

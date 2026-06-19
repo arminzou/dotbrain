@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import control_roots, resource_loader, skills
+from dotbrain import brainspaces, resource_loader, skills
 
 # --------------------------------------------------------------------------- data-root seeding
 
@@ -92,7 +92,7 @@ def install_global_claude_hook(
 ) -> None:
     h = Path(home) if home is not None else Path.home()
     target = Path(settings) if settings is not None else h / ".claude" / "settings.json"
-    control_roots.ensure_json_hook(
+    brainspaces.ensure_json_hook(
         target,
         "SessionStart",
         _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_root, h),
@@ -107,7 +107,7 @@ def install_global_codex_hook(
 ) -> None:
     h = Path(home) if home is not None else Path.home()
     target = Path(hooks) if hooks is not None else h / ".codex" / "hooks.json"
-    control_roots.ensure_json_hook(
+    brainspaces.ensure_json_hook(
         target,
         "SessionStart",
         _global_hook_command("codex-worktree-bootstrap.sh", dotbrain_root, h),

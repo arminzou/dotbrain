@@ -14,7 +14,7 @@ from pathlib import Path
 
 from dotbrain import config, paths, resource_loader
 from dotbrain.adopter_repos import is_dotbrain_repo
-from dotbrain.control_roots import _hook_command_present
+from dotbrain.brainspaces import _hook_command_present
 from dotbrain.bootstrap import _global_hook_command
 
 # Same shape as bootstrap.Runner; injected so tests can record without real subprocess calls.
@@ -146,7 +146,7 @@ def _check_repo_file(control: Path) -> tuple[Finding | None, Path | None]:
 
 def _check_control_links(repo: Path, control: Path) -> list[Finding]:
     findings: list[Finding] = []
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         link = repo / name
         if not link.is_symlink():
             findings.append(Finding("warn", f"{repo}/{name} not wired",
@@ -281,9 +281,9 @@ def run_doctor(
         machine=_check_machine(root, home),
     )
 
-    controls = paths.control_roots(root)
+    controls = paths.brainspaces(root)
     if not controls:
-        report.machine.append(Finding("warn", "no control roots in projects/",
+        report.machine.append(Finding("warn", "no Brainspaces in projects/",
                                        "create a project with 'dotbrain wire'"))
         return report
 

@@ -70,7 +70,7 @@ def test_check_templates_ignores_data_root_templates(tmp_path: Path):
 
 
 def test_check_global_hook_installed(dotbrain_root: Path, fake_home: Path):
-    from dotbrain.control_roots import ensure_json_hook
+    from dotbrain.brainspaces import ensure_json_hook
     from dotbrain.bootstrap import _global_hook_command
 
     target = fake_home / ".claude" / "settings.json"
@@ -92,26 +92,26 @@ def test_check_global_hook_missing(dotbrain_root: Path, fake_home: Path):
 # --------------------------------------------------------------------------- project wiring
 
 
-def test_check_repo_file_brain_only(control_root: Path):
-    (control_root / ".repo").write_text("(brain-only)\n")
-    f, resolved = doctor._check_repo_file(control_root)
+def test_check_repo_file_brain_only(brainspace: Path):
+    (brainspace / ".repo").write_text("(brain-only)\n")
+    f, resolved = doctor._check_repo_file(brainspace)
     assert f is not None
     assert f.status == "ok"
     assert "brain-only" in f.message
     assert resolved is None
 
 
-def test_check_repo_file_missing(control_root: Path):
-    f, resolved = doctor._check_repo_file(control_root)
+def test_check_repo_file_missing(brainspace: Path):
+    f, resolved = doctor._check_repo_file(brainspace)
     assert f is not None
     assert f.status == "error"
     assert ".repo" in f.message
     assert resolved is None
 
 
-def test_check_repo_file_bad_target(control_root: Path):
-    (control_root / ".repo").write_text("/nonexistent/path/x\n")
-    f, resolved = doctor._check_repo_file(control_root)
+def test_check_repo_file_bad_target(brainspace: Path):
+    (brainspace / ".repo").write_text("/nonexistent/path/x\n")
+    f, resolved = doctor._check_repo_file(brainspace)
     assert f is not None
     assert f.status == "error"
     assert resolved is None
@@ -136,7 +136,7 @@ def test_check_control_links_all_ok(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     control = dotbrain_root / "projects" / "myrepo"
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(control / link)
     findings = doctor._check_control_links(repo, control)
@@ -151,10 +151,10 @@ def test_check_control_links_missing(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     control = dotbrain_root / "projects" / "bare"
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
     findings = doctor._check_control_links(repo, control)
-    assert len(findings) == len(paths.CONTROL_LINKS)
+    assert len(findings) == len(paths.BRAINSPACE_LINKS)
     assert all(f.status == "warn" for f in findings)
 
 
@@ -167,7 +167,7 @@ def test_check_control_links_broken(
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     control = dotbrain_root / "projects" / "brokenlinks"
     control.mkdir(parents=True, exist_ok=True)
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(control / link)
     # Break one
@@ -357,7 +357,7 @@ def test_run_doctor_no_projects(dotbrain_root: Path, monkeypatch: pytest.MonkeyP
         if d.is_dir() and not d.name.startswith("."):
             shutil.rmtree(d)
     report = doctor.run_doctor(dotbrain_root)
-    has_warn = any(f.status == "warn" and "no control roots" in f.message
+    has_warn = any(f.status == "warn" and "no Brainspaces" in f.message
                    for f in report.machine)
     assert has_warn
 
@@ -375,7 +375,7 @@ def test_run_doctor_with_wired_project(
     control = dotbrain_root / "projects" / "proj"
     control.mkdir(parents=True, exist_ok=True)
     (control / ".repo").write_text(f"{repo}\n")
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(control / link)
 

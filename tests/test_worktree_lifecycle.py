@@ -19,13 +19,13 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def _make_wired_repo(tmp_path: Path) -> Path:
-    """Create a git repo whose root has the real control-link directories."""
+    """Create a git repo whose root has the real Brainspace link directories."""
     repo = tmp_path / "main-repo"
     repo.mkdir()
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "config", "user.email", "t@t")
     _git(repo, "config", "user.name", "t")
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         (repo / name).mkdir()
     (repo / "README.md").write_text("# main\n")
     _git(repo, "add", "README.md")
@@ -45,11 +45,11 @@ def test_reconcile_worktree_creates_control_links(tmp_path: Path) -> None:
 
     result = adopter_repos.reconcile_worktree(worktree)
 
-    assert set(result.created) == set(paths.CONTROL_LINKS)
+    assert set(result.created) == set(paths.BRAINSPACE_LINKS)
     assert result.repaired == []
     assert result.skipped == []
     assert result.collisions == []
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         assert (worktree / name).is_symlink()
         assert (worktree / name).resolve() == (repo / name).resolve()
 

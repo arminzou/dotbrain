@@ -117,7 +117,7 @@ def test_load_name_unknown_warns(
     result = _invoke(dotbrain_root, "beads", "load", "--name", "ghost", "--dry-run")
 
     assert result.exit_code == 0, result.output
-    assert "no control root: projects/ghost" in result.output
+    assert "no Brainspace: projects/ghost" in result.output
 
 
 def test_load_all_with_name_is_rejected(dotbrain_root: Path):

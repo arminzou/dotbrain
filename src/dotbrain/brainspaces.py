@@ -1,6 +1,6 @@
-"""Control-root lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
+"""Brainspace lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
 
-A control root is the private project control plane under ``projects/<name>/``. This module owns
+A Brainspace is the private project control plane under ``projects/<name>/``. This module owns
 its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
 (``wiring``/``beads``):
 
@@ -26,7 +26,7 @@ from dotbrain import config, paths, resource_loader
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
-# Lines seeded into a control root's tracked .gitignore (mirrors wire-project.sh).
+# Lines seeded into a Brainspace's tracked .gitignore (mirrors wire-project.sh).
 CONTROL_GITIGNORE_LINES: tuple[str, ...] = (
     ".dolt/",
     "*.db",
@@ -37,7 +37,7 @@ CONTROL_GITIGNORE_LINES: tuple[str, ...] = (
     ".beads/dolt-config.log",
     ".claude/skills/",
     ".codex/skills/",
-    ".repo.local",  # machine-local repo-path override; never travels with the synced control root
+    ".repo.local",  # machine-local repo-path override; never travels with the synced Brainspace
 )
 
 
@@ -81,7 +81,7 @@ def seed_brain(control: Path, dotbrain_root: Path) -> None:
 
     for rel, src in resource_loader.iter_resource_files("templates/brain"):
         if src.name == "project.yaml":
-            # Control-root-level, not inside .brain/; project-owned, seed once.
+            # Brainspace-level, not inside .brain/; project-owned, seed once.
             dest = control / "project.yaml"
             dest.parent.mkdir(parents=True, exist_ok=True)
             if not dest.exists():
@@ -221,7 +221,7 @@ def seed_agent_workspaces(control: Path, dotbrain_root: Path, home: Path | None 
 
 
 def _strip_control_byproducts(dotbrain_root: Path, project: str, run: Runner) -> None:
-    """Remove the control root's gitignored runtime/wiring litter (beads runtime state,
+    """Remove the Brainspace's gitignored runtime/wiring litter (beads runtime state,
     .claude/.codex skill symlinks). ``git rm``/``git mv`` only handle tracked files, so
     without this an offboard strands these byproducts on disk. ``-X`` removes *only* ignored
     files, so an uncommitted (untracked) brain is left intact; ``-ff`` clears nested git/dolt dirs."""
@@ -229,13 +229,13 @@ def _strip_control_byproducts(dotbrain_root: Path, project: str, run: Runner) ->
 
 
 def _is_tracked(dotbrain_root: Path, project: str, run: Runner) -> bool:
-    """True if the control root has any git-tracked files (wire no longer commits, so a
+    """True if the Brainspace has any git-tracked files (wire no longer commits, so a
     freshly-wired root is untracked and git rm/mv would fail)."""
     out = run(["git", "-C", str(dotbrain_root), "ls-files", "--", f"projects/{project}"], check=False)
     return bool((out.stdout or "").strip())
 
 
-def offboard_control_root(
+def offboard_brainspace(
     dotbrain_root: Path,
     project: str,
     mode: str,
@@ -243,17 +243,17 @@ def offboard_control_root(
     dry_run: bool = False,
     run: Runner = _default_run,
 ) -> list[str]:
-    """keep | archive | delete the control root. Returns log lines."""
-    control = paths.control_root(dotbrain_root, project)
+    """keep | archive | delete the Brainspace. Returns log lines."""
+    control = paths.brainspace(dotbrain_root, project)
     if not control.is_dir():
-        return [f"warning: control root {control} not found; nothing to offboard"]
+        return [f"warning: Brainspace {control} not found; nothing to offboard"]
 
     if mode == "keep":
-        return [f"kept control root: {control} (disconnected; re-wire later with dotbrain wire)"]
+        return [f"kept Brainspace: {control} (disconnected; re-wire later with dotbrain wire)"]
 
     if mode == "archive":
         if dry_run:
-            return [f"would archive control root projects/{project} -> projects/.archive/{project} "
+            return [f"would archive Brainspace projects/{project} -> projects/.archive/{project} "
                     "(stripping runtime byproducts first)"]
         _strip_control_byproducts(dotbrain_root, project, run)
         archive_dir = dotbrain_root / "projects" / ".archive"
@@ -267,13 +267,13 @@ def offboard_control_root(
             shutil.move(str(control), str(dest))
             staged = " (uncommitted)"
         return [
-            f"archived control root -> projects/.archive/{project}{staged}",
-            f"suggested commit: chore(brain): archive {project} control root",
+            f"archived Brainspace -> projects/.archive/{project}{staged}",
+            f"suggested commit: chore(brain): archive {project} Brainspace",
         ]
 
     if mode == "delete":
         if dry_run:
-            return [f"would remove control root projects/{project} (tracked files + runtime byproducts)"]
+            return [f"would remove Brainspace projects/{project} (tracked files + runtime byproducts)"]
         _strip_control_byproducts(dotbrain_root, project, run)
         # -f: delete is a deliberate full removal, so force past locally-modified tracked files
         # (e.g. beads backup-state). --ignore-unmatch: a freshly-wired root is untracked.
@@ -282,8 +282,8 @@ def offboard_control_root(
         if control.exists():
             shutil.rmtree(control)
         return [
-            f"removed control root projects/{project}",
-            f"suggested commit: chore(brain): remove {project} control root",
+            f"removed Brainspace projects/{project}",
+            f"suggested commit: chore(brain): remove {project} Brainspace",
         ]
 
     raise ValueError(f"unknown offboard mode: {mode!r}")

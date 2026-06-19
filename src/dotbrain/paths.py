@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# The four control links an adopter repo symlinks into its root, in convention order.
-CONTROL_LINKS: tuple[str, ...] = (".brain", ".beads", ".claude", ".codex")
+# The four Brainspace links an adopter repo symlinks into its root, in convention order.
+BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads", ".claude", ".codex")
 
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads", "/.claude", "/.codex")
@@ -44,13 +44,13 @@ def resolve_dotbrain_root() -> Path:
     return Path.home() / "dotbrain"
 
 
-def control_root(dotbrain_root: Path, name: str) -> Path:
-    """Return the control-root path for a project: ``<dotbrain_root>/projects/<name>``."""
+def brainspace(dotbrain_root: Path, name: str) -> Path:
+    """Return the Brainspace path for a project: ``<dotbrain_root>/projects/<name>``."""
     return Path(dotbrain_root) / "projects" / name
 
 
-def control_roots(dotbrain_root: Path) -> list[Path]:
-    """Sorted project control roots under ``<dotbrain_root>/projects/``.
+def brainspaces(dotbrain_root: Path) -> list[Path]:
+    """Sorted project Brainspaces under ``<dotbrain_root>/projects/``.
 
     Excludes ``.archive/`` and any other dot-prefixed directories.
     """
@@ -61,15 +61,15 @@ def control_roots(dotbrain_root: Path) -> list[Path]:
 
 
 def control_link_targets(dotbrain_root: Path, name: str) -> dict[str, Path]:
-    """Map each control-link name to its target inside the project's control root."""
-    root = control_root(dotbrain_root, name)
-    return {link: root / link for link in CONTROL_LINKS}
+    """Map each Brainspace link name to its target inside the project's Brainspace."""
+    root = brainspace(dotbrain_root, name)
+    return {link: root / link for link in BRAINSPACE_LINKS}
 
 
 def is_wired(repo: Path) -> bool:
-    """True when ``repo`` has all four control links present as symlinks."""
+    """True when ``repo`` has all four Brainspace links present as symlinks."""
     repo = Path(repo)
-    return all((repo / link).is_symlink() for link in CONTROL_LINKS)
+    return all((repo / link).is_symlink() for link in BRAINSPACE_LINKS)
 
 
 def exclude_entries(repo: Path) -> set[str]:

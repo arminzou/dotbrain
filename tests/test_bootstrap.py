@@ -141,7 +141,7 @@ def test_skills_link_project_creates_symlinks_after_wire(
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
 
-    control = paths.control_root(dotbrain_root, "skilltest")
+    control = paths.brainspace(dotbrain_root, "skilltest")
     for skill in skills.project_baseline(dotbrain_root):
         name = Path(skill).name
         assert (control / ".claude" / "skills" / name).is_symlink(), \
@@ -161,7 +161,7 @@ def test_skills_link_project_prunes_stale_after_baseline_change(
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 
     # Plant a stale symlink pointing into skills/ (simulates a removed baseline entry)
-    control = paths.control_root(dotbrain_root, "prunetest")
+    control = paths.brainspace(dotbrain_root, "prunetest")
     skills_dir = control / ".claude" / "skills"
     stale = skills_dir / "old-skill"
     stale.symlink_to((dotbrain_root / "skills" / "brain" / "wire-brain").resolve())

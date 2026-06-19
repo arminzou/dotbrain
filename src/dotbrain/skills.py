@@ -313,14 +313,14 @@ def link_into(
 
 def link_project(
     dotbrain_root: Path,
-    control_root: Path,
+    brainspace: Path,
     workspaces: Sequence[str],
     skill_paths: Sequence[str],
 ) -> LinkResult:
-    control_root = Path(control_root)
+    brainspace = Path(brainspace)
     result = LinkResult()
     for workspace in workspaces:
-        skills_dir = control_root / workspace / "skills"
+        skills_dir = brainspace / workspace / "skills"
         ws_result = link_into(dotbrain_root, skills_dir, skill_paths, label=workspace)
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned

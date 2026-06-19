@@ -103,7 +103,7 @@ def test_migrate_beads_exits_nonzero_when_unverified(
     assert result.exit_code == 1
 
 
-def test_wire_brain_only_creates_control_root(
+def test_wire_brain_only_creates_brainspace(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
@@ -183,7 +183,7 @@ def test_bootstrap_only_claude_hook_writes_settings(
 
 
 def test_bootstrap_only_skills_links_global_only(
-    dotbrain_root: Path, control_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """--only skills links global skills only; project skills belong to refresh."""
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
@@ -228,7 +228,7 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
     control = dotbrain_root / "projects" / "myprojrepo"
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True)
         (repo / link).symlink_to(control / link)
 
@@ -242,7 +242,7 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     result = runner.invoke(app, ["unwire", "--repo", str(repo)])
 
     assert result.exit_code == 0, result.output
-    for link in paths.CONTROL_LINKS:
+    for link in paths.BRAINSPACE_LINKS:
         assert not (repo / link).exists()
     assert paths.ADOPTER_POINTER not in agents.read_text()
     for entry in paths.EXCLUDE_ENTRIES:
@@ -264,13 +264,13 @@ def test_bootstrap_hook_command_uses_home_literal(dotbrain_root: Path, fake_home
 
 
 def test_skills_link_project_native(
-    dotbrain_root: Path, control_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
-    assert (control_root / ".claude" / "skills" / "operate-execution").is_symlink()
-    assert (control_root / ".codex" / "skills" / "triage-public").is_symlink()
+    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()
+    assert (brainspace / ".codex" / "skills" / "triage-public").is_symlink()
 
 
 def test_skills_link_rejects_invalid_scope():
@@ -311,8 +311,8 @@ def test_skills_link_global_uses_default_targets(
     assert (fake_home / ".claude" / "skills" / "wire-brain").is_symlink()
 
 
-def test_skills_link_project_filter_isolates_one_control_root(
-    dotbrain_root: Path, control_root: Path, monkeypatch: pytest.MonkeyPatch
+def test_skills_link_project_filter_isolates_one_brainspace(
+    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
     other = dotbrain_root / "projects" / "other"
     (other / ".brain" / "agents").mkdir(parents=True)
@@ -320,7 +320,7 @@ def test_skills_link_project_filter_isolates_one_control_root(
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert (control_root / ".claude" / "skills" / "operate-execution").is_symlink()  # named project linked
+    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()  # named project linked
     assert not (other / ".claude" / "skills").exists()                          # others untouched
 
 

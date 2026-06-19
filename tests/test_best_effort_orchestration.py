@@ -41,8 +41,8 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     _write_server_defaults(dotbrain_root, "myproject")
-    # Hydration targets the control root directly, not an adopter repo.
-    control = paths.control_root(dotbrain_root, "myproject")
+    # Hydration targets the Brainspace directly, not an adopter repo.
+    control = paths.brainspace(dotbrain_root, "myproject")
     beads = control / ".beads"
     beads.mkdir(parents=True)
 
@@ -74,12 +74,12 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
     assert (beads / "dolt-server.port").read_text() == "3307\n"
 
 
-def test_pull_beads_hydrates_repo_less_control_root(
+def test_pull_beads_hydrates_repo_less_brainspace(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    # Regression (dotbrain-o71): a control root with no wired code repo must still be hydrated.
+    # Regression (dotbrain-o71): a Brainspace with no wired code repo must still be hydrated.
     _write_server_defaults(dotbrain_root, "brain-only")
-    control = paths.control_root(dotbrain_root, "brain-only")
+    control = paths.brainspace(dotbrain_root, "brain-only")
     beads = control / ".beads"
     beads.mkdir(parents=True)
 
@@ -102,9 +102,9 @@ def test_pull_beads_creates_missing_beads_dir(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     # .beads is never tracked, so a fresh clone has no directory at all;
-    # hydration must create it instead of skipping the control root.
+    # hydration must create it instead of skipping the Brainspace.
     _write_server_defaults(dotbrain_root, "freshclone")
-    control = paths.control_root(dotbrain_root, "freshclone")
+    control = paths.brainspace(dotbrain_root, "freshclone")
     control.mkdir(parents=True)
     assert not (control / ".beads").exists()
 
@@ -136,7 +136,7 @@ def test_pull_beads_skips_mode_none_project(
         "    beads:\n"
         "      mode: none\n"
     )
-    control = paths.control_root(dotbrain_root, "notracker")
+    control = paths.brainspace(dotbrain_root, "notracker")
     control.mkdir(parents=True)
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
@@ -165,7 +165,7 @@ def test_pull_beads_uses_declared_database_name(
         "      mode: server\n"
         "      database: legacy_name\n"
     )
-    control = paths.control_root(dotbrain_root, "renamed")
+    control = paths.brainspace(dotbrain_root, "renamed")
     control.mkdir(parents=True)
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
@@ -194,8 +194,8 @@ def test_pull_beads_hydrates_declared_embedded_project(
         "    beads:\n"
         "      mode: embedded\n"
     )
-    fork = paths.control_root(dotbrain_root, "fork")
-    empty_fork = paths.control_root(dotbrain_root, "empty-fork")
+    fork = paths.brainspace(dotbrain_root, "fork")
+    empty_fork = paths.brainspace(dotbrain_root, "empty-fork")
     fork.mkdir(parents=True)
     empty_fork.mkdir(parents=True)
 
@@ -223,8 +223,8 @@ def test_pull_beads_hydrates_declared_embedded_project(
 
 
 def test_migrate_all_continues_after_project_failure(dotbrain_root: Path):
-    bad = paths.control_root(dotbrain_root, "bad")
-    good = paths.control_root(dotbrain_root, "good")
+    bad = paths.brainspace(dotbrain_root, "bad")
+    good = paths.brainspace(dotbrain_root, "good")
     _seed_beads(bad, "embedded")
     _seed_beads(good, "embedded")
 

@@ -11,7 +11,7 @@ import pytest
 from dotbrain import beads as beads_mod, bootstrap as bs, paths, workflows
 
 
-# --------------------------------------------------------------------------- wire_all_control_roots
+# --------------------------------------------------------------------------- wire_all_brainspaces
 
 
 def _git_runner(calls=None):
@@ -34,10 +34,10 @@ def _make_adopter_repo(path: Path) -> Path:
     return path
 
 
-def test_wire_all_creates_symlinks(dotbrain_root: Path, control_root: Path,
+def test_wire_all_creates_symlinks(dotbrain_root: Path, brainspace: Path,
                                    fake_home: Path, tmp_path: Path):
     repo = _make_adopter_repo(tmp_path / "example")
-    (paths.control_root(dotbrain_root, "example") / ".repo").write_text(
+    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(
         f"{repo}\n"
     )
 
@@ -51,7 +51,7 @@ def test_wire_all_creates_symlinks(dotbrain_root: Path, control_root: Path,
     assert not (repo / ".codex").exists()
 
 
-def test_wire_all_warns_when_repo_missing(dotbrain_root: Path, control_root: Path,
+def test_wire_all_warns_when_repo_missing(dotbrain_root: Path, brainspace: Path,
                                           fake_home: Path, tmp_path: Path):
     result = workflows.wire_all_projects(
         dotbrain_root, repo_base=tmp_path / "nonexistent", home=fake_home, run=_git_runner()
@@ -59,11 +59,11 @@ def test_wire_all_warns_when_repo_missing(dotbrain_root: Path, control_root: Pat
     assert any("no repo found" in w or "not a git repo" in w for w in result.warnings)
 
 
-def test_wire_all_warns_non_git_repo(dotbrain_root: Path, control_root: Path,
+def test_wire_all_warns_non_git_repo(dotbrain_root: Path, brainspace: Path,
                                      fake_home: Path, tmp_path: Path):
     repo = tmp_path / "not-a-repo"
     repo.mkdir()
-    (paths.control_root(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
+    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
 
     result = workflows.wire_all_projects(
         dotbrain_root, repo_base=tmp_path, home=fake_home, run=_git_runner()
@@ -145,15 +145,15 @@ def test_ensure_server_beads_metadata_writes_server_metadata(tmp_path: Path):
 
 
 def test_wire_all_skips_beads_link_silently_for_mode_none(
-    dotbrain_root: Path, control_root: Path, fake_home: Path, tmp_path: Path
+    dotbrain_root: Path, brainspace: Path, fake_home: Path, tmp_path: Path
 ):
-    # A declared no-beads project never has a control-root .beads; the repos stage
+    # A declared no-beads project never has a Brainspace .beads; the repos stage
     # must neither warn about it nor create a dangling link.
     (dotbrain_root / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  example:\n    beads:\n      mode: none\n"
     )
     repo = _make_adopter_repo(tmp_path / "example")
-    (paths.control_root(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
+    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
 
     result = workflows.wire_all_projects(
         dotbrain_root, repo_base=tmp_path, home=fake_home, run=_git_runner()

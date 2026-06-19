@@ -2,9 +2,9 @@
 
 Everything that drives the ``bd`` CLI and the ``.beads`` workspace, in three bands:
 
-- **init**: ``bd init --stealth`` in a control root, server-mode metadata
+- **init**: ``bd init --stealth`` in a Brainspace, server-mode metadata
   (write/normalize/attach), and the project-#0 root-``.beads`` hijack guard.
-- **load/hydrate**: bring a control root's ``.beads`` into existence from ``config.yaml`` and pull
+- **load/hydrate**: bring a Brainspace's ``.beads`` into existence from ``config.yaml`` and pull
   remote state, plus the dry-run preview.
 - **remote admin**: list/drop databases on the shared Dolt sql-server.
 
@@ -136,7 +136,7 @@ def init_beads(
     database: str = "",
     run: Runner = _default_run,
 ) -> str | None:
-    """Run ``bd init --stealth`` in the control root. Returns a log line or None.
+    """Run ``bd init --stealth`` in the Brainspace. Returns a log line or None.
 
     bd runs in stealth mode so it never commits into the dotbrain monorepo; dotbrain owns all git
     writes here. ``_hide_root_beads`` / ``_restore_root_beads`` still guard bd's repo-root ``.beads``
@@ -215,7 +215,7 @@ def _beads_env(control: Path) -> dict:
 
 
 def _hide_root_beads(control: Path, dotbrain_root: Path) -> Path | None:
-    """bd init runs in the control root but git sees dotbrain; hide the root .beads symlink first."""
+    """bd init runs in the Brainspace but git sees dotbrain; hide the root .beads symlink first."""
     root_beads = Path(dotbrain_root) / ".beads"
     if control == Path(dotbrain_root) / "projects" / "dotbrain":
         return None
@@ -298,7 +298,7 @@ def ensure_embedded_beads(
     remote: str = "",
     run: Runner = _default_run,
 ) -> tuple[str | None, str | None]:
-    """Hydrate a declared-embedded control root via ``bd init --stealth``. Returns (log, warning).
+    """Hydrate a declared-embedded Brainspace via ``bd init --stealth``. Returns (log, warning).
 
     With a declared remote the tracker is cloned from it; without one only an empty tracker can
     be created, since embedded data was never recoverable from git.
@@ -315,7 +315,7 @@ def ensure_embedded_beads(
 
 
 def _preview_load(control: Path, beads_cfg, cfg) -> list[str]:
-    """Pure dry-run preview of what :func:`pull_beads_for_all` would do for one control root.
+    """Pure dry-run preview of what :func:`pull_beads_for_all` would do for one Brainspace.
 
     Mirrors the live branch selection (embedded vs server, already-hydrated skip) without touching
     the filesystem or invoking ``bd``, then always notes the pull. Keeping this free of mutators is
@@ -348,14 +348,14 @@ def pull_beads_for_all(
     projects: Sequence[str] | None = None,
     dry_run: bool = False,
 ) -> BootstrapResult:
-    """Hydrate and pull beads state for control roots declared to use beads.
+    """Hydrate and pull beads state for Brainspaces declared to use beads.
 
     Drives off the resolved config.yaml config, not an existing ``.beads`` directory: control
     roots' ``.beads`` are never git-tracked, so on a fresh clone hydration creates them. Targets
-    each control root directly, so repo-less projects are hydrated too.
+    each Brainspace directly, so repo-less projects are hydrated too.
 
-    ``projects`` restricts the run to the named control roots (``None`` = all); a requested name
-    with no control root yields a warning. ``dry_run`` only previews via :func:`_preview_load`,
+    ``projects`` restricts the run to the named Brainspaces (``None`` = all); a requested name
+    with no Brainspace yields a warning. ``dry_run`` only previews via :func:`_preview_load`,
     reaching no filesystem or ``bd`` write by construction.
     """
     dotbrain_root = Path(dotbrain_root).resolve()
@@ -366,14 +366,14 @@ def pull_beads_for_all(
         result.warnings.append("bd is not installed; skipping beads pulls")
         return result
 
-    controls = paths.control_roots(dotbrain_root)
+    controls = paths.brainspaces(dotbrain_root)
     if projects is not None:
         by_name = {c.name: c for c in controls}
         controls = []
         for name in projects:
             control = by_name.get(name)
             if control is None:
-                result.warnings.append(f"no control root: projects/{name}")
+                result.warnings.append(f"no Brainspace: projects/{name}")
                 continue
             controls.append(control)
 

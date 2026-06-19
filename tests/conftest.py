@@ -73,10 +73,10 @@ def dotbrain_root(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def control_root(dotbrain_root: Path) -> Path:
-    """An existing control root at projects/example/ with agent workspace dirs and a brain agents/ dir."""
-    root = paths.control_root(dotbrain_root, "example")
-    for link in paths.CONTROL_LINKS:
+def brainspace(dotbrain_root: Path) -> Path:
+    """An existing Brainspace at projects/example/ with agent workspace dirs and a brain agents/ dir."""
+    root = paths.brainspace(dotbrain_root, "example")
+    for link in paths.BRAINSPACE_LINKS:
         (root / link).mkdir(parents=True)
     (root / ".brain" / "agents").mkdir(parents=True, exist_ok=True)
     return root

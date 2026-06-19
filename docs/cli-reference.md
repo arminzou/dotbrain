@@ -8,7 +8,7 @@ Reference for the public `dotbrain` CLI.
                                                                                 
  Usage: dotbrain [OPTIONS] COMMAND [ARGS]...                                    
                                                                                 
- dotbrain CLI for wiring project control roots and skills into coding agents.   
+ dotbrain CLI for wiring project Brainspaces and skills into coding agents.     
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --install-completion            Install completion for the current shell.    │
@@ -21,10 +21,10 @@ Reference for the public `dotbrain` CLI.
 │            links.                                                            │
 │ doctor     Read-only health check: machine readiness, project wiring, beads  │
 │            state drift.                                                      │
-│ wire       Create or repair a project control root and wire an adopter repo. │
+│ wire       Create or repair a project Brainspace and wire an adopter repo.   │
 │ refresh    Refresh Brain/workspace files, repo links, beads state, and       │
 │            project skills.                                                   │
-│ unwire     Disconnect an adopter repo from its control root.                 │
+│ unwire     Disconnect an adopter repo from its Brainspace.                   │
 │ codex      Create or reuse a dotbrain-wired git worktree and start Codex     │
 │            there.                                                            │
 │ skills     Link dotbrain skills into agent runtimes.                         │
@@ -122,10 +122,10 @@ Reference for the public `dotbrain` CLI.
  root declared to use beads.                                                    
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --all                     Load tracker state for every control root.         │
-│ --repo              TEXT  Repo whose control root to load. Defaults to the   │
+│ --all                     Load tracker state for every Brainspace.           │
+│ --repo              TEXT  Repo whose Brainspace to load. Defaults to the     │
 │                           current git repo.                                  │
-│ --name              TEXT  Project/control-root name to load.                 │
+│ --name              TEXT  Project/Brainspace name to load.                   │
 │ --dotbrain          TEXT  dotbrain checkout. Defaults to                     │
 │                           $DOTBRAIN_ROOT/inferred.                           │
 │ --dry-run                 Preview what would be hydrated/pulled without      │
@@ -146,8 +146,8 @@ Reference for the public `dotbrain` CLI.
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --repo                       TEXT  Wired repo path; project name is its dir  │
 │                                    name.                                     │
-│ --name                       TEXT  Project/control-root name to migrate.     │
-│ --all                              Migrate every embedded control root.      │
+│ --name                       TEXT  Project/Brainspace name to migrate.       │
+│ --all                              Migrate every embedded Brainspace.        │
 │ --dotbrain                   TEXT  dotbrain checkout. Defaults to            │
 │                                    $DOTBRAIN_ROOT/inferred.                  │
 │ --beads-server-host          TEXT  Target Dolt sql-server host. Defaults to  │
@@ -292,7 +292,7 @@ Reference for the public `dotbrain` CLI.
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                      Refresh every project workspace.                  │
-│ --name               TEXT  Refresh one project by control-root name.         │
+│ --name               TEXT  Refresh one project by Brainspace name.           │
 │ --repo-base          PATH  Base directory for repo discovery.                │
 │ --help       -h            Show this message and exit.                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -330,7 +330,7 @@ Reference for the public `dotbrain` CLI.
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --target           TEXT  claude-code | codex | all [default: all]            │
 │ --scope            TEXT  global | project | all [default: all]               │
-│ --project          TEXT  limit project scope to one control root by name     │
+│ --project          TEXT  limit project scope to one Brainspace by name       │
 │ --help     -h            Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -341,22 +341,22 @@ Reference for the public `dotbrain` CLI.
                                                                                 
  Usage: dotbrain unwire [OPTIONS]                                               
                                                                                 
- Disconnect an adopter repo from its control root.                              
+ Disconnect an adopter repo from its Brainspace.                                
                                                                                 
- Offboards the control root only (keep/archive/delete). To drop a               
- server-backend project's                                                       
+ Offboards the Brainspace only (keep/archive/delete). To drop a server-backend  
+ project's                                                                      
  remote beads database, use `dotbrain beads drop-db` separately.                
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --all                    Unwire every project control root (keep only; see   │
+│ --all                    Unwire every project Brainspace (keep only; see     │
 │                          per-project --archive/--delete for destructive      │
 │                          offboard).                                          │
 │ --repo             PATH  Adopter repo path; defaults to cwd                  │
-│ --name             TEXT  Project/control-root name                           │
-│ --no-repo                Only offboard the named control root; do not edit   │
-│                          an adopter repo.                                    │
-│ --archive                Move control root to projects/.archive/             │
-│ --delete                 Remove the control root (destructive)               │
+│ --name             TEXT  Project/Brainspace name                             │
+│ --no-repo                Only offboard the named Brainspace; do not edit an  │
+│                          adopter repo.                                       │
+│ --archive                Move Brainspace to projects/.archive/               │
+│ --delete                 Remove the Brainspace (destructive)                 │
 │ --dry-run                Preview the offboard without performing it.         │
 │ --help     -h            Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -368,16 +368,17 @@ Reference for the public `dotbrain` CLI.
                                                                                 
  Usage: dotbrain wire [OPTIONS]                                                 
                                                                                 
- Create or repair a project control root and wire an adopter repo.              
+ Create or repair a project Brainspace and wire an adopter repo.                
                                                                                 
- Without --all: wire one project. With --all: reconcile every control root.     
+ Without --all: wire one project. With --all: reconcile every Brainspace.       
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --all                                Wire every adopter repo to its control  │
-│                                      root (brain seeding, symlinks, hooks).  │
+│ --all                                Wire every adopter repo to its          │
+│                                      Brainspace (brain seeding, symlinks,    │
+│                                      hooks).                                 │
 │ --repo                         TEXT  Repo to wire. Defaults to the current   │
 │                                      git repo.                               │
-│ --name                         TEXT  Project/control-root name. Defaults to  │
+│ --name                         TEXT  Project/Brainspace name. Defaults to    │
 │                                      repo dir name.                          │
 │ --dotbrain                     TEXT  dotbrain checkout. Defaults to          │
 │                                      $DOTBRAIN_ROOT/inferred.                │
@@ -395,8 +396,8 @@ Reference for the public `dotbrain` CLI.
 │                                      beads.server.user in config.yaml.       │
 │ --beads-database               TEXT  Dolt database name. Defaults to project │
 │                                      name.                                   │
-│ --no-repo                            Create a brain-only control root (no    │
-│                                      code repo). Requires --name.            │
+│ --no-repo                            Create a brain-only Brainspace (no code │
+│                                      repo). Requires --name.                 │
 │ --repo-base                    PATH  Base directory for adopter repos        │
 │                                      (default: ~/repos/projects).            │
 │ --help                 -h            Show this message and exit.             │

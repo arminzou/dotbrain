@@ -2,7 +2,7 @@
 
 These are the bodies behind ``dotbrain wire``, ``wire --all``, ``unwire``, and ``unwire --all``:
 cross-concept orchestration that stitches together ``adopter_repos`` (repo links),
-``control_roots`` (Brain/workspace seeding, offboarding), ``beads`` (tracker init), ``skills``
+``brainspaces`` (Brain/workspace seeding, offboarding), ``beads`` (tracker init), ``skills``
 (skill manifest), and ``wiring`` (global hooks). ``cli.py`` stays a thin Typer parsing/rendering
 layer over these.
 
@@ -17,10 +17,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import adopter_repos, beads, bootstrap, config, control_roots, paths, skills
-from dotbrain.adopter_repos import UnwireResult, repo_for_control_root, unwire_repo
+from dotbrain import adopter_repos, beads, bootstrap, config, brainspaces, paths, skills
+from dotbrain.adopter_repos import UnwireResult, repo_for_brainspace, unwire_repo
 from dotbrain.beads import BootstrapResult
-from dotbrain.control_roots import offboard_control_root
+from dotbrain.brainspaces import offboard_brainspace
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -73,7 +73,7 @@ def wire_project(
     install_global_hook: bool = True,
     run: Runner = _default_run,
 ) -> WireResult:
-    """Create/repair a control root and wire an adopter repo. Mirrors wire-project.sh's main()."""
+    """Create/repair a Brainspace and wire an adopter repo. Mirrors wire-project.sh's main()."""
     dotbrain_root = Path(dotbrain_root).resolve()
     if not (dotbrain_root / ".git").exists():
         raise RuntimeError(f"{dotbrain_root} is not a dotbrain git checkout")
@@ -90,7 +90,7 @@ def wire_project(
     if resolved_repo is not None:
         adopter_repos.ensure_not_wired_to_foreign_dotbrain(resolved_repo, dotbrain_root)
 
-    control = paths.control_root(dotbrain_root, project)
+    control = paths.brainspace(dotbrain_root, project)
     archive = dotbrain_root / "projects" / ".archive" / project
     unarchived = False
     if archive.is_dir() and not control.is_dir():
@@ -108,11 +108,11 @@ def wire_project(
     if unarchived:
         result.logs.append(f"unarchived {project} from projects/.archive/{project}")
 
-    control_roots.ensure_control_gitignore(control)
-    control_roots.seed_brain(control, dotbrain_root)
+    brainspaces.ensure_control_gitignore(control)
+    brainspaces.seed_brain(control, dotbrain_root)
     config.migrate_legacy_skill_manifest(dotbrain_root, project)
-    active_workspaces = control_roots.active_agent_workspaces(control, dotbrain_root)
-    result.warnings += control_roots.seed_agent_workspaces(control, dotbrain_root, home)
+    active_workspaces = brainspaces.active_agent_workspaces(control, dotbrain_root)
+    result.warnings += brainspaces.seed_agent_workspaces(control, dotbrain_root, home)
     if install_global_hook:
         bootstrap.install_global_claude_hook(dotbrain_root, home=home)
     beads_log = beads.init_beads(
@@ -137,12 +137,12 @@ def wire_project(
         if record_log:
             result.logs.append(record_log)
     result.logs.append(
-        f"control root ready at projects/{project} (not committed); "
+        f"Brainspace ready at projects/{project} (not committed); "
         f"review and commit (suggested: feat(brain): wire {project})"
     )
 
     if no_repo:
-        result.logs.append(f"created brain-only control root: {control}")
+        result.logs.append(f"created brain-only Brainspace: {control}")
         return result
 
     assert resolved_repo is not None
@@ -177,7 +177,7 @@ def _repair_adopter_repo_links(
         dotbrain_root,
         run,
         skip_beads_link=skip_beads_link,
-        workspace_links=control_roots.active_agent_workspaces(control, dotbrain_root),
+        workspace_links=brainspaces.active_agent_workspaces(control, dotbrain_root),
     )
     return [f"wired {control.name} -> {repo}"], warnings
 
@@ -189,25 +189,25 @@ def wire_all_projects(
     run: Runner = _default_run,
 ) -> BootstrapResult:
     """Re-seed brains from templates and repair agent workspace symlinks and hooks for every
-    wired control root.  Dotbrain-owned files (DOTBRAIN.md, README.md) are always
+    wired Brainspace.  Dotbrain-owned files (DOTBRAIN.md, README.md) are always
     overwritten so template changes propagate.
 
-    Mirrors bootstrap.sh wire_control_roots.
+    Mirrors bootstrap.sh wire_brainspaces.
     """
     dotbrain_root = Path(dotbrain_root).resolve()
     rb = repo_base or (Path.home() / "repos" / "projects")
     result = BootstrapResult()
     cfg = config.load_config(dotbrain_root)
 
-    for control in paths.control_roots(dotbrain_root):
-        control_roots.seed_brain(control, dotbrain_root)
-        # repair per-control-root agent workspace hooks and configs
-        result.warnings += control_roots.seed_agent_workspaces(control, dotbrain_root, home)
+    for control in paths.brainspaces(dotbrain_root):
+        brainspaces.seed_brain(control, dotbrain_root)
+        # repair per-Brainspace agent workspace hooks and configs
+        result.warnings += brainspaces.seed_agent_workspaces(control, dotbrain_root, home)
 
-        repo = adopter_repos.repo_for_control_root(control, dotbrain_root, rb, home)
+        repo = adopter_repos.repo_for_brainspace(control, dotbrain_root, rb, home)
         if repo is None:
             result.warnings.append(
-                f"no repo found for control root {control.name}; "
+                f"no repo found for Brainspace {control.name}; "
                 f"add {control}/.repo or create {rb}/{control.name}"
             )
             continue
@@ -229,7 +229,7 @@ def wire_all_projects(
 
 
 def _controls_for_refresh(dotbrain_root: Path, projects: Sequence[str] | None) -> list[Path]:
-    controls = paths.control_roots(dotbrain_root)
+    controls = paths.brainspaces(dotbrain_root)
     if projects is None:
         return controls
 
@@ -243,7 +243,7 @@ def _controls_for_refresh(dotbrain_root: Path, projects: Sequence[str] | None) -
         else:
             selected.append(control)
     if missing:
-        raise ValueError(f"no control root: {', '.join(missing)}")
+        raise ValueError(f"no Brainspace: {', '.join(missing)}")
     return selected
 
 
@@ -256,7 +256,7 @@ def refresh_projects(
     workspaces: Sequence[str] = (".claude", ".codex"),
     run: Runner = _default_run,
 ) -> RefreshResult:
-    """Refresh project control roots without creating or offboarding projects.
+    """Refresh project Brainspaces without creating or offboarding projects.
 
     Composes the existing concept owners: Brain/workspace seeding, adopter-repo link repair,
     beads load/hydration, and project skill linking.
@@ -271,25 +271,25 @@ def refresh_projects(
     rb = repo_base or (Path.home() / "repos" / "projects")
 
     for control in controls:
-        control_roots.seed_brain(control, dotbrain_root)
-        result.warnings += control_roots.seed_agent_workspaces(control, dotbrain_root, home)
+        brainspaces.seed_brain(control, dotbrain_root)
+        result.warnings += brainspaces.seed_agent_workspaces(control, dotbrain_root, home)
         migrate_log = config.migrate_legacy_skill_manifest(dotbrain_root, control.name)
         if migrate_log:
             result.logs.append(migrate_log)
         extras = config.load_project_skills(dotbrain_root, control.name)
         skill_paths = skills.project_link_set(extras)
-        declared_workspaces = control_roots.active_agent_workspaces(control, dotbrain_root)
+        declared_workspaces = brainspaces.active_agent_workspaces(control, dotbrain_root)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
         link_result = skills.link_project(dotbrain_root, control, active_workspaces, skill_paths)
         result.logs += [f"pruned skill {entry}" for entry in link_result.pruned]
         result.logs += [f"stashed collision {path}" for path in link_result.stashed]
         result.warnings += link_result.warnings
 
-        repo = repo_for_control_root(control, dotbrain_root, rb, home)
+        repo = repo_for_brainspace(control, dotbrain_root, rb, home)
         if repo is None:
             if not _is_brain_only_control(control):
                 result.warnings.append(
-                    f"no repo found for control root {control.name}; "
+                    f"no repo found for Brainspace {control.name}; "
                     f"add {control}/.repo or create {rb}/{control.name}"
                 )
         else:
@@ -325,7 +325,7 @@ def refresh_project(
     workspaces: Sequence[str] = (".claude", ".codex"),
     run: Runner = _default_run,
 ) -> RefreshResult:
-    """Refresh one project control root without creating or offboarding it."""
+    """Refresh one project Brainspace without creating or offboarding it."""
     return refresh_projects(
         dotbrain_root,
         projects=[project],
@@ -368,7 +368,7 @@ def unwire_project(
     dry_run: bool = False,
     run: Runner = _default_run,
 ) -> UnwireResult:
-    """Disconnect an adopter repo from its dotbrain control root and offboard the control root.
+    """Disconnect an adopter repo from its dotbrain Brainspace and offboard the Brainspace.
 
     Dropping a server-backend project's remote beads database is a separate, explicit step
     (``beads.drop_remote_beads_database`` / the ``beads drop-db`` command).
@@ -387,9 +387,9 @@ def unwire_project(
         project = _resolve_project(resolved_repo, project)
         result = unwire_repo(resolved_repo, dry_run=dry_run)
         result.project = project
-    result.logs += offboard_control_root(dotbrain_root, project, offboard, dry_run=dry_run, run=run)
+    result.logs += offboard_brainspace(dotbrain_root, project, offboard, dry_run=dry_run, run=run)
     if offboard in {"archive", "delete"} and not dry_run:
-        # the control root is gone from projects/; a leftover entry would make
+        # the Brainspace is gone from projects/; a leftover entry would make
         # bootstrap try to hydrate a non-existent project
         removed = config.remove_project_beads(dotbrain_root, project)
         if removed:
@@ -407,24 +407,24 @@ def unwire_all_projects(
     dry_run: bool = False,
     run: Runner = _default_run,
 ) -> list[UnwireResult]:
-    """Unwire every project control root. Continues on per-project failure.
+    """Unwire every project Brainspace. Continues on per-project failure.
 
-    ``offboard`` defaults to ``keep`` (control roots are not destroyed in batch
+    ``offboard`` defaults to ``keep`` (Brainspaces are not destroyed in batch
     mode). Mutually exclusive with ``--archive``/``--delete`` — use per-project
     ``unwire`` for destructive offboard.
     """
     dotbrain_root = Path(dotbrain_root).resolve()
     results: list[UnwireResult] = []
-    for control in paths.control_roots(dotbrain_root):
+    for control in paths.brainspaces(dotbrain_root):
         project = control.name
         try:
-            repo = repo_for_control_root(control, dotbrain_root)
+            repo = repo_for_brainspace(control, dotbrain_root)
             if repo and repo.is_dir():
                 result = unwire_repo(repo, dry_run=dry_run)
             else:
                 result = UnwireResult(project=project, repo=None)
             result.project = project
-            result.logs += offboard_control_root(
+            result.logs += offboard_brainspace(
                 dotbrain_root, project, offboard, dry_run=dry_run, run=run,
             )
             if offboard in {"archive", "delete"} and not dry_run:

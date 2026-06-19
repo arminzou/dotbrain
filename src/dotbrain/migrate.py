@@ -47,7 +47,7 @@ def destroy_token(project: str) -> str:
 
 
 def backup_dir_for(control: Path) -> Path:
-    """Backup destination, kept outside tracked project control roots."""
+    """Backup destination, kept outside tracked project Brainspaces."""
     control = Path(control)
     return control.parent.parent / "backups" / "beads" / control.name
 
@@ -61,7 +61,7 @@ def parse_total_issues(stdout: str) -> int | None:
 
 
 def beads_mode(control: Path) -> str:
-    """Classify a control root's beads backend: ``embedded`` | ``server`` | ``none`` | ``unknown``.
+    """Classify a Brainspace's beads backend: ``embedded`` | ``server`` | ``none`` | ``unknown``.
 
     Reads ``.beads/metadata.json`` directly (the same file bootstrap inspects); avoids shelling out.
     """
@@ -153,7 +153,7 @@ def migrate_project(
     run: Runner = _default_run,
 ) -> MigrationResult:
     dotbrain_root = Path(dotbrain_root)
-    control = paths.control_root(dotbrain_root, project)
+    control = paths.brainspace(dotbrain_root, project)
     result = MigrationResult(project=project, control=control)
 
     mode = beads_mode(control)
@@ -265,7 +265,7 @@ def safe_migrate_project(**kwargs) -> MigrationResult:
     try:
         return migrate_project(**kwargs)
     except Exception as exc:
-        control = paths.control_root(Path(kwargs["dotbrain_root"]), project) if project else None
+        control = paths.brainspace(Path(kwargs["dotbrain_root"]), project) if project else None
         detail = str(exc)
         stderr = (getattr(exc, "stderr", "") or "").strip()
         if stderr:
@@ -288,7 +288,7 @@ def migrate_all(
     dry_run: bool = False,
     run: Runner = _default_run,
 ) -> list[MigrationResult]:
-    """Migrate every embedded control root; skip server/none ones; never abort the whole sweep."""
+    """Migrate every embedded Brainspace; skip server/none ones; never abort the whole sweep."""
     dotbrain_root = Path(dotbrain_root)
     return [
         safe_migrate_project(
@@ -300,5 +300,5 @@ def migrate_all(
             dry_run=dry_run,
             run=run,
         )
-        for control in paths.control_roots(dotbrain_root)
+        for control in paths.brainspaces(dotbrain_root)
     ]

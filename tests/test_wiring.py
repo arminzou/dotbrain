@@ -30,19 +30,19 @@ def make_runner(calls: list[list[str]]):
 # --------------------------------------------------------------------------- subprocess seams
 
 
-def test_init_beads_skips_when_disabled(dotbrain_root: Path, control_root: Path):
+def test_init_beads_skips_when_disabled(dotbrain_root: Path, brainspace: Path):
     calls: list[list[str]] = []
     assert (
-        beads.init_beads(control_root, "example", dotbrain_root, run_beads=False, run=make_runner(calls))
+        beads.init_beads(brainspace, "example", dotbrain_root, run_beads=False, run=make_runner(calls))
         is None
     )
     assert calls == []
 
 
-def test_init_beads_skips_when_already_present(dotbrain_root: Path, control_root: Path):
-    # the control_root fixture already has a .beads dir
+def test_init_beads_skips_when_already_present(dotbrain_root: Path, brainspace: Path):
+    # the brainspace fixture already has a .beads dir
     calls: list[list[str]] = []
-    assert beads.init_beads(control_root, "example", dotbrain_root, run=make_runner(calls)) is None
+    assert beads.init_beads(brainspace, "example", dotbrain_root, run=make_runner(calls)) is None
     assert calls == []
 
 
@@ -205,7 +205,7 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_control_mutation(
     (foreign_root / "templates" / ".brain").mkdir(parents=True)
     (foreign_root / "templates" / ".brain" / "AGENTS.md").write_text("# foreign\n")
     foreign_control = foreign_root / "projects" / "adopter"
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         (foreign_control / name).mkdir(parents=True, exist_ok=True)
 
     (repo / ".brain").symlink_to(foreign_control / ".brain")
@@ -309,7 +309,7 @@ def test_wire_project_unarchives_automatically(dotbrain_root: Path, fake_home: P
     subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
-    # Simulate an archived control root
+    # Simulate an archived Brainspace
     archive = dotbrain_root / "projects" / ".archive" / "archived-proj"
     archive.mkdir(parents=True)
     (archive / ".brain").mkdir()
@@ -349,7 +349,7 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_root: Path, fake_ho
     )
 
     from dotbrain import config, skills
-    control = paths.control_root(dotbrain_root, "with-manifest")
+    control = paths.brainspace(dotbrain_root, "with-manifest")
     assert not (control / ".brain" / "agents" / "skills.yaml").exists()
     # The link set is the brain-coupled required core plus project.yaml extras (none here).
     extras = config.load_project_skills(dotbrain_root, "with-manifest")

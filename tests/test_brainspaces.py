@@ -1,4 +1,4 @@
-"""Tests for control_roots.py: Brain seeding, agent-workspace seeding, and offboarding helpers."""
+"""Tests for brainspaces.py: Brain seeding, agent-workspace seeding, and offboarding helpers."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import control_roots, resource_loader
+from dotbrain import brainspaces, resource_loader
 
 
 # --------------------------------------------------------------------------- pure helpers
@@ -20,18 +20,18 @@ from dotbrain import control_roots, resource_loader
 
 
 def test_ensure_control_gitignore_seeds_and_is_idempotent(tmp_path: Path):
-    control_roots.ensure_control_gitignore(tmp_path)
+    brainspaces.ensure_control_gitignore(tmp_path)
     lines = (tmp_path / ".gitignore").read_text().splitlines()
-    for expected in control_roots.CONTROL_GITIGNORE_LINES:
+    for expected in brainspaces.CONTROL_GITIGNORE_LINES:
         assert expected in lines
-    control_roots.ensure_control_gitignore(tmp_path)
+    brainspaces.ensure_control_gitignore(tmp_path)
     assert (tmp_path / ".gitignore").read_text().splitlines() == lines
 
 
 def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
     control = tmp_path / "control"
     control.mkdir()
-    control_roots.seed_brain(control, dotbrain_root)
+    brainspaces.seed_brain(control, dotbrain_root)
     brain = control / ".brain"
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
@@ -49,15 +49,15 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_root: Path, tmp_path: P
     control = tmp_path / "control"
     control.mkdir()
     shutil.rmtree(dotbrain_root / "templates")
-    control_roots.seed_brain(control, dotbrain_root)
+    brainspaces.seed_brain(control, dotbrain_root)
     assert (control / ".brain" / "AGENTS.md").is_file()
 
 
 def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
     file = tmp_path / "settings.json"
-    control_roots.ensure_json_hook(file, "SessionStart", "do-thing")
-    control_roots.ensure_json_hook(file, "SessionStart", "do-thing")  # idempotent on command
-    control_roots.ensure_json_hook(file, "SessionStart", "other", "startup", "msg")
+    brainspaces.ensure_json_hook(file, "SessionStart", "do-thing")
+    brainspaces.ensure_json_hook(file, "SessionStart", "do-thing")  # idempotent on command
+    brainspaces.ensure_json_hook(file, "SessionStart", "other", "startup", "msg")
     data = json.loads(file.read_text())
     entries = data["hooks"]["SessionStart"]
     commands = [h["command"] for e in entries for h in e["hooks"]]
@@ -68,19 +68,19 @@ def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
 
 def test_ensure_codex_config(tmp_path: Path):
     created = tmp_path / "config.toml"
-    assert control_roots.ensure_codex_config(created) is None
+    assert brainspaces.ensure_codex_config(created) is None
     assert "hooks = true" in created.read_text()
 
     disabled = tmp_path / "disabled.toml"
     disabled.write_text("[features]\n")
-    assert "does not explicitly enable hooks" in control_roots.ensure_codex_config(disabled)
+    assert "does not explicitly enable hooks" in brainspaces.ensure_codex_config(disabled)
 
 
 def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path, tmp_path: Path):
     control = tmp_path / "control"
     control.mkdir()
-    warnings = control_roots.seed_agent_workspaces(control, dotbrain_root, fake_home)
-    warnings_again = control_roots.seed_agent_workspaces(control, dotbrain_root, fake_home)
+    warnings = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
+    warnings_again = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
     assert warnings == []
     assert warnings_again == []
     bootstrap = "dotbrain hook session-start"
@@ -108,7 +108,7 @@ def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unli
     existing_codex.parent.mkdir(parents=True)
     existing_codex.write_text("keep\n")
 
-    warnings = control_roots.seed_agent_workspaces(control, dotbrain_root, fake_home)
+    warnings = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
 
     assert (control / ".claude" / "settings.json").is_file()
     assert not (control / ".codex" / "hooks.json").exists()

@@ -1,10 +1,10 @@
-"""Adopter repo attachment, detachment, and control-root link reconciliation.
+"""Adopter repo attachment, detachment, and Brainspace link reconciliation.
 
-A control root is the private project control plane; an adopter repo is an external checkout wired
+A Brainspace is the private project control plane; an adopter repo is an external checkout wired
 into it. This module owns everything repo-facing:
 
-- control-root link reconciliation (the symlink primitive shared by repo and worktree wiring);
-- repo path resolution for a control root (``repo_for_control_root``);
+- Brainspace link reconciliation (the symlink primitive shared by repo and worktree wiring);
+- repo path resolution for a Brainspace (``repo_for_brainspace``);
 - the foreign-dotbrain guards that refuse to hijack a repo already wired elsewhere;
 - ``.git/info/exclude`` and agent-context pointer (AGENTS.md/CLAUDE.md) management;
 - repo attachment (``wire_repo``), verification, and detachment (``unwire_repo``).
@@ -39,7 +39,7 @@ def _default_run(
     )
 
 
-# --------------------------------------------------------------------------- control-root links
+# --------------------------------------------------------------------------- Brainspace links
 
 
 @dataclass
@@ -51,7 +51,7 @@ class ReconcileResult:
 
 
 def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
-    """Reconcile a control-link mapping into one directory."""
+    """Reconcile a Brainspace link mapping into one directory."""
     directory = Path(directory)
     result = ReconcileResult()
 
@@ -83,7 +83,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
 
 
 def reconcile_worktree(worktree_root: Path, run: Runner = subprocess.run) -> ReconcileResult:
-    """Repair a worktree's control links so they point at the main checkout."""
+    """Repair a worktree's Brainspace links so they point at the main checkout."""
     worktree_root = Path(worktree_root).resolve()
     if not (worktree_root / ".git").is_file():
         return ReconcileResult()
@@ -106,7 +106,7 @@ def reconcile_worktree(worktree_root: Path, run: Runner = subprocess.run) -> Rec
         else (worktree_root / common_dir_raw).resolve()
     )
     main_root = common_dir.parent
-    targets = {name: main_root / name for name in paths.CONTROL_LINKS}
+    targets = {name: main_root / name for name in paths.BRAINSPACE_LINKS}
     return reconcile(worktree_root, targets)
 
 
@@ -126,13 +126,13 @@ def expand_path(raw: str, home: Path | None = None) -> Path:
     return Path(raw)
 
 
-def repo_for_control_root(
+def repo_for_brainspace(
     control: Path,
     dotbrain_root: Path,
     repo_base: Path | None = None,
     home: Path | None = None,
 ) -> Path | None:
-    """Resolve the adopter repo path for a control root. Mirrors bootstrap.sh repo_for_control_root.
+    """Resolve the adopter repo path for a Brainspace. Mirrors bootstrap.sh repo_for_brainspace.
 
     Resolution order:
     1. <control>/.repo.local (machine-local override)
@@ -217,16 +217,16 @@ def foreign_dotbrain_root_for_symlink(path: Path, link_name: str, dotbrain_root:
         return None
     if not is_dotbrain_checkout(inferred_root):
         return None
-    if target != paths.control_root(inferred_root, project_dir.name) / link_name:
+    if target != paths.brainspace(inferred_root, project_dir.name) / link_name:
         return None
     return inferred_root
 
 
 def ensure_not_wired_to_foreign_dotbrain(repo: Path, dotbrain_root: Path) -> None:
-    """Refuse rewiring when an adopter control link already resolves into another dotbrain checkout."""
+    """Refuse rewiring when an adopter Brainspace link already resolves into another dotbrain checkout."""
     repo = Path(repo)
     current_root = Path(dotbrain_root).resolve()
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         link = repo / name
         foreign_root = foreign_dotbrain_root_for_symlink(link, name, current_root)
         if foreign_root is None:
@@ -360,7 +360,7 @@ def wire_repo(
     skip_beads_link: bool = False,
     workspace_links: Sequence[str] = (".claude", ".codex"),
 ) -> list[str]:
-    """Link active control-root symlinks into ``repo`` and add local excludes."""
+    """Link active Brainspace symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)
     ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_root)
     use_local_excludes = not is_dotbrain_repo(repo, dotbrain_root)
@@ -383,7 +383,7 @@ def wire_repo(
     return warnings
 
 
-def verify_wiring(repo: Path, run: Runner = _default_run, *, expected_links: Sequence[str] = paths.CONTROL_LINKS) -> list[str]:
+def verify_wiring(repo: Path, run: Runner = _default_run, *, expected_links: Sequence[str] = paths.BRAINSPACE_LINKS) -> list[str]:
     repo = Path(repo)
     warnings: list[str] = []
     for name in expected_links:
@@ -435,7 +435,7 @@ def unwire_repo(repo: Path, dry_run: bool = False) -> UnwireResult:
     result = UnwireResult(repo=repo)
     verb = "would remove" if dry_run else "removed"
 
-    for name in paths.CONTROL_LINKS:
+    for name in paths.BRAINSPACE_LINKS:
         link = repo / name
         if link.is_symlink():
             if not dry_run:
@@ -449,7 +449,7 @@ def unwire_repo(repo: Path, dry_run: bool = False) -> UnwireResult:
         if len(filtered) < len(lines):
             if not dry_run:
                 exclude.write_text("".join(filtered))
-            result.logs.append(f"{verb} control-root ignore rules from .git/info/exclude")
+            result.logs.append(f"{verb} Brainspace ignore rules from .git/info/exclude")
 
     for fname in ("AGENTS.md", "CLAUDE.md"):
         f = repo / fname

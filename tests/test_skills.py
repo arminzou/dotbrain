@@ -152,36 +152,36 @@ _SKILL_PATH = {
 }
 
 
-def test_links_baseline_and_extra(dotbrain_root: Path, control_root: Path):
+def test_links_baseline_and_extra(dotbrain_root: Path, brainspace: Path):
     skill_paths = skills.project_baseline(dotbrain_root) + ("misc/discovery-test",)
-    result = skills.link_project(dotbrain_root, control_root, (".claude", ".codex"), skill_paths)
+    result = skills.link_project(dotbrain_root, brainspace, (".claude", ".codex"), skill_paths)
     assert not result.warnings
     for workspace in (".claude", ".codex"):
-        skills_dir = control_root / workspace / "skills"
+        skills_dir = brainspace / workspace / "skills"
         for name, path in _SKILL_PATH.items():
             link = skills_dir / name
             assert link.is_symlink()
             assert link.resolve() == (dotbrain_root / "skills" / path).resolve()
 
 
-def test_prunes_stale(dotbrain_root: Path, control_root: Path):
-    skills_dir = control_root / ".claude" / "skills"
+def test_prunes_stale(dotbrain_root: Path, brainspace: Path):
+    skills_dir = brainspace / ".claude" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     stale = skills_dir / "old-skill"
     stale.symlink_to("../nowhere")
     result = skills.link_project(
-        dotbrain_root, control_root, (".claude",), skills.project_baseline(dotbrain_root)
+        dotbrain_root, brainspace, (".claude",), skills.project_baseline(dotbrain_root)
     )
     assert not stale.is_symlink()
     assert ".claude/old-skill" in result.pruned
 
 
-def test_collision_moved_not_deleted(dotbrain_root: Path, control_root: Path):
-    skills_dir = control_root / ".claude" / "skills"
+def test_collision_moved_not_deleted(dotbrain_root: Path, brainspace: Path):
+    skills_dir = brainspace / ".claude" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     real = skills_dir / "operate-execution"
     real.write_text("real file, do not delete")
-    result = skills.link_project(dotbrain_root, control_root, (".claude",), ("brain/operate-execution",))
+    result = skills.link_project(dotbrain_root, brainspace, (".claude",), ("brain/operate-execution",))
     assert (skills_dir / "operate-execution").is_symlink()
     assert result.stashed
     moved = result.stashed[0]
@@ -189,12 +189,12 @@ def test_collision_moved_not_deleted(dotbrain_root: Path, control_root: Path):
     assert moved.read_text() == "real file, do not delete"
 
 
-def test_missing_skill_warns(dotbrain_root: Path, control_root: Path):
+def test_missing_skill_warns(dotbrain_root: Path, brainspace: Path):
     result = skills.link_project(
-        dotbrain_root, control_root, (".claude",), ("brain/does-not-exist",)
+        dotbrain_root, brainspace, (".claude",), ("brain/does-not-exist",)
     )
     assert any("does-not-exist" in w for w in result.warnings)
-    assert not (control_root / ".claude" / "skills" / "does-not-exist").exists()
+    assert not (brainspace / ".claude" / "skills" / "does-not-exist").exists()
 
 
 def test_link_into_links_an_include_list(dotbrain_root: Path, tmp_path: Path):
