@@ -12,7 +12,7 @@ from dotbrain import doctor as doctor_mod
 from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, control_roots, migrate, paths, resource_loader, skills, workflows, worktrees
 
 app = typer.Typer(
-    help="dotbrain control-plane CLI (migration scaffold; scripts still own some behavior).",
+    help="dotbrain CLI for wiring project control roots and skills into coding agents.",
     no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )

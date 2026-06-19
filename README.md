@@ -15,7 +15,7 @@ repo is public.
 ## Install
 
 ```bash
-git clone <your-remote>/dotbrain.git
+git clone https://github.com/arminzou/dotbrain.git
 cd dotbrain
 ./install.sh        # installs uv, Beads (bd), and the dotbrain CLI
 dotbrain bootstrap        # install agent hooks and link global skills

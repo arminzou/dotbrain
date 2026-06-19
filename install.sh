@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-DOTBRAIN_ROOT="${DOTBRAIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)}"
+DOTBRAIN_ROOT="${DOTBRAIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}"
 
 log() { printf '[install] %s\n' "$*"; }
 warn() { printf '[install] warning: %s\n' "$*" >&2; }

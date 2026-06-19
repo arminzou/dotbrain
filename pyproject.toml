@@ -1,12 +1,31 @@
 [project]
 name = "dotbrain"
 version = "0.1.0"
-description = "Testable CLI for the dotbrain control plane (wire, skills link, bootstrap, unwire)."
+description = "Agent-native control plane for wiring project control roots and skills into coding agents."
 requires-python = ">=3.11"
-dependencies = [
-    "typer>=0.12",
-    "pyyaml>=6",
+license = "MIT"
+authors = [
+  { name = "Armin Zou" },
 ]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "typer>=0.12",
+  "pyyaml>=6",
+]
+
+[project.urls]
+Homepage = "https://github.com/arminzou/dotbrain"
+Repository = "https://github.com/arminzou/dotbrain"
+Issues = "https://github.com/arminzou/dotbrain/issues"
 
 [project.scripts]
 dotbrain = "dotbrain.cli:app"
@@ -25,9 +44,11 @@ packages = ["src/dotbrain"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/src",
-    "/README.md",
-    "/pyproject.toml",
+  "/LICENSE",
+  "/docs",
+  "/src",
+  "/README.md",
+  "/pyproject.toml",
 ]
 
 [tool.pytest.ini_options]
