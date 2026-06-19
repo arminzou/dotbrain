@@ -17,7 +17,7 @@ Read the existing Brain context for this project:
 
 1. `.brain/CONTEXT.md` — domain vocabulary; use it throughout the PRD
 2. `.brain/adr/` — relevant decisions in the area you're touching
-3. Existing `.brain/docs/prd/` — check for related PRDs
+3. Existing `.brain/prd/` — check for related PRDs
 
 ### 2. Explore the codebase
 
@@ -29,7 +29,7 @@ Present the module sketch to the user and confirm expectations before proceeding
 
 ### 3. Write the PRD
 
-Save the PRD to `.brain/docs/prd/<feature-slug>.md`. Use a short kebab-case slug that captures the initiative (e.g., `workflow-automation.md`, `api-rate-limiting.md`).
+Save the PRD to `.brain/prd/<feature-slug>.md`. Use a short kebab-case slug that captures the initiative (e.g., `workflow-automation.md`, `api-rate-limiting.md`).
 
 <prd-template>
 
@@ -64,7 +64,7 @@ Any additional context, risks, or open questions.
 Create an epic bead for this initiative:
 
 ```bash
-bd create "<PRD title>" --type epic --description "See .brain/docs/prd/<slug>.md" --spec-id prd:<slug>
+bd create "<PRD title>" --type epic --description "See .brain/prd/<slug>.md" --spec-id prd:<slug>
 ```
 
 The `--spec-id` link points from beads to the spec document. If a public issue tracker is configured, also create a tracking issue there with a `needs-triage` label and link it via `--external-ref`.

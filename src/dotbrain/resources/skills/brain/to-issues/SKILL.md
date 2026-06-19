@@ -11,10 +11,10 @@ Take a PRD and decompose it into bead tasks under the epic. Each task is a thin,
 
 ### 1. Find the PRD
 
-If the user passes a PRD path or name, use that. Otherwise, find the latest PRD in `.brain/docs/prd/`:
+If the user passes a PRD path or name, use that. Otherwise, find the latest PRD in `.brain/prd/`:
 
 ```bash
-ls -t .brain/docs/prd/*.md | head -1
+ls -t .brain/prd/*.md | head -1
 ```
 
 Read the full PRD — problem statement, solution, user stories, and out-of-scope.
