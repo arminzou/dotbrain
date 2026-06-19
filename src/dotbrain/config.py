@@ -1,7 +1,7 @@
-"""Config store: global ``config.yaml`` + per-project ``project.yaml`` (ADR-0030).
+"""Config store: global ``config.yaml`` + per-project ``project.yaml``.
 
 ``config.yaml`` (data root, version 3) holds global infrastructure defaults
-(``beads.server``).  ``projects/<name>/project.yaml`` (version 1) holds
+(``beads.server``).  ``brainspaces/<name>/project.yaml`` (version 1) holds
 per-project identity (beads mode, database, remote).  The old
 ``dotbrain.yaml`` is read transparently as a fallback when ``config.yaml``
 is absent.
@@ -13,6 +13,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from dotbrain import paths
 
 
 # ---------------------------------------------------------------------------
@@ -102,11 +104,11 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
 
 
 # ---------------------------------------------------------------------------
-# Per-project config (projects/<name>/project.yaml)
+# Per-project config (<data-dir>/<name>/project.yaml)
 # ---------------------------------------------------------------------------
 
 def _project_config_path(dotbrain_root: Path, name: str) -> Path:
-    return Path(dotbrain_root) / "projects" / name / "project.yaml"
+    return paths.brainspace(dotbrain_root, name) / "project.yaml"
 
 
 def default_beads_mode(dotbrain_root: Path) -> str:
@@ -121,7 +123,7 @@ def default_beads_mode(dotbrain_root: Path) -> str:
 
 
 def load_project_config(dotbrain_root: Path, name: str) -> ProjectBeads:
-    """Read ``projects/<name>/project.yaml``, resolving defaults.
+    """Read ``brainspaces/<name>/project.yaml``, resolving defaults.
 
     The default mode follows :func:`default_beads_mode` (server when a shared
     server is configured, else embedded); database defaults to the project name.
@@ -187,7 +189,7 @@ def load_project_skills(dotbrain_root: Path, name: str) -> tuple[str, ...]:
 
 
 def load_project_agents(dotbrain_root: Path, name: str) -> tuple[str, ...]:
-    """Read declared agent workspaces from ``projects/<name>/project.yaml``.
+    """Read declared agent workspaces from ``brainspaces/<name>/project.yaml``.
 
     Missing ``agents`` preserves legacy behavior by enabling both packaged agent
     workspaces. An explicit empty list disables agent workspace seeding.
@@ -219,7 +221,7 @@ def load_project_agents(dotbrain_root: Path, name: str) -> tuple[str, ...]:
 
 
 def write_project_config(dotbrain_root: Path, name: str, beads: ProjectBeads) -> str | None:
-    """Write ``projects/<name>/project.yaml``. Returns a log line or None if unchanged."""
+    """Write ``brainspaces/<name>/project.yaml``. Returns a log line or None if unchanged."""
     import yaml
 
     path = _project_config_path(dotbrain_root, name)
@@ -281,7 +283,7 @@ def migrate_legacy_skill_manifest(dotbrain_root: Path, name: str) -> str | None:
 
     from dotbrain import skills
 
-    legacy = Path(dotbrain_root) / "projects" / name / ".brain" / "agents" / "skills.yaml"
+    legacy = paths.brainspace(dotbrain_root, name) / ".brain" / "agents" / "skills.yaml"
     if not legacy.is_file():
         return None
 

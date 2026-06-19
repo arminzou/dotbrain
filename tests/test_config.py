@@ -1,4 +1,4 @@
-"""Tests for config.yaml + project.yaml config store (ADR-0030)."""
+"""Tests for config.yaml + project.yaml config store."""
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ def test_load_project_config_defaults(tmp_path: Path):
 
 
 def test_load_project_config_reads_project_yaml(tmp_path: Path):
-    project_dir = tmp_path / "projects" / "fork"
+    project_dir = tmp_path / "brainspaces" / "fork"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         beads:
@@ -95,7 +95,7 @@ def test_load_project_agents_defaults_to_legacy_workspaces(tmp_path: Path):
 
 
 def test_load_project_agents_reads_project_yaml(tmp_path: Path):
-    project_dir = tmp_path / "projects" / "acme"
+    project_dir = tmp_path / "brainspaces" / "acme"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         agents:
@@ -109,7 +109,7 @@ def test_load_project_agents_reads_project_yaml(tmp_path: Path):
 
 
 def test_load_project_config_custom_database(tmp_path: Path):
-    project_dir = tmp_path / "projects" / "renamed"
+    project_dir = tmp_path / "brainspaces" / "renamed"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         beads:
@@ -173,7 +173,7 @@ def test_record_skips_when_mode_matches_server_default(tmp_path: Path):
     _config_yaml(tmp_path, "10.0.0.1")
     # server is the default here, so recording server is not a deviation -> no file.
     assert config.record_project_beads(tmp_path, "acme", config.ProjectBeads(mode="server")) is None
-    assert not (tmp_path / "projects" / "acme" / "project.yaml").exists()
+    assert not (tmp_path / "brainspaces" / "acme" / "project.yaml").exists()
 
 
 def test_record_writes_embedded_optout_against_server_default(tmp_path: Path):
@@ -192,7 +192,7 @@ def test_write_project_config_creates_file(tmp_path: Path):
         config.ProjectBeads(mode="embedded", remote="https://example.com/fork"),
     )
     assert log is not None
-    path = tmp_path / "projects" / "fork" / "project.yaml"
+    path = tmp_path / "brainspaces" / "fork" / "project.yaml"
     assert path.is_file()
     text = path.read_text()
     assert "mode: embedded" in text
@@ -226,7 +226,7 @@ def test_record_project_beads_delegates_to_project_yaml(tmp_path: Path):
         config.ProjectBeads(mode="embedded", remote="https://example.com/fork"),
     )
     assert log is not None
-    assert (tmp_path / "projects" / "fork" / "project.yaml").is_file()
+    assert (tmp_path / "brainspaces" / "fork" / "project.yaml").is_file()
 
 
 def test_record_project_beads_skips_non_deviations(tmp_path: Path):
@@ -234,7 +234,7 @@ def test_record_project_beads_skips_non_deviations(tmp_path: Path):
     assert config.record_project_beads(
         tmp_path, "plain", config.ProjectBeads(database="plain")
     ) is None
-    assert not (tmp_path / "projects" / "plain" / "project.yaml").exists()
+    assert not (tmp_path / "brainspaces" / "plain" / "project.yaml").exists()
 
 
 def test_record_project_beads_does_not_retract_manual_declaration(tmp_path: Path):
@@ -253,7 +253,7 @@ def test_remove_project_beads_deletes_file(tmp_path: Path):
     )
     log = config.remove_project_beads(tmp_path, "fork")
     assert log is not None
-    assert not (tmp_path / "projects" / "fork" / "project.yaml").exists()
+    assert not (tmp_path / "brainspaces" / "fork" / "project.yaml").exists()
     assert config.remove_project_beads(tmp_path, "fork") is None  # already gone
 
 
@@ -261,14 +261,14 @@ def test_remove_project_beads_deletes_file(tmp_path: Path):
 
 
 def _project_yaml(tmp_path: Path, name: str, body: str) -> Path:
-    path = tmp_path / "projects" / name / "project.yaml"
+    path = tmp_path / "brainspaces" / name / "project.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body)
     return path
 
 
 def _legacy_manifest(tmp_path: Path, name: str, body: str) -> Path:
-    path = tmp_path / "projects" / name / ".brain" / "agents" / "skills.yaml"
+    path = tmp_path / "brainspaces" / name / ".brain" / "agents" / "skills.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body)
     return path

@@ -3,7 +3,7 @@
 dotbrain has two user-edited config files:
 
 - `~/dotbrain/config.yaml` for machine-wide defaults
-- `~/dotbrain/projects/<name>/project.yaml` for per-project settings
+- `~/dotbrain/brainspaces/<name>/project.yaml` for per-project settings
 
 `dotbrain bootstrap` seeds `config.yaml`. `dotbrain wire` seeds each project's `project.yaml`.
 

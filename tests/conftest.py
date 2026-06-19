@@ -36,12 +36,12 @@ def fake_home(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def dotbrain_root(tmp_path: Path) -> Path:
-    """A minimal dotbrain checkout skeleton: projects/, skills/, a git repo.
+    """A minimal dotbrain checkout skeleton: brainspaces/, skills/, a git repo.
 
     Seeds the operating-baseline skill dirs plus one extra skill so the linker has real targets.
     """
     root = tmp_path / "dotbrain"
-    for sub in ("projects", "skills"):
+    for sub in ("brainspaces", "skills"):
         (root / sub).mkdir(parents=True)
     bundled_skills_root = _REPO_ROOT / "src" / "dotbrain" / "resources" / "skills"
     for skill in (
@@ -74,7 +74,7 @@ def dotbrain_root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def brainspace(dotbrain_root: Path) -> Path:
-    """An existing Brainspace at projects/example/ with agent workspace dirs and a brain agents/ dir."""
+    """An existing Brainspace at brainspaces/example/ with agent workspace dirs and a brain agents/ dir."""
     root = paths.brainspace(dotbrain_root, "example")
     for link in paths.BRAINSPACE_LINKS:
         (root / link).mkdir(parents=True)

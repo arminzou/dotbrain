@@ -20,7 +20,7 @@ runner = CliRunner()
 
 
 def _control(dotbrain_root: Path, name: str) -> Path:
-    control = dotbrain_root / "projects" / name
+    control = dotbrain_root / "brainspaces" / name
     control.mkdir(parents=True, exist_ok=True)
     return control
 
@@ -62,8 +62,8 @@ def test_load_all_dry_run_makes_no_mutation(
     assert "would pull beads for alpha" in result.output
     assert "would pull beads for beta" in result.output
     # No .beads dir created anywhere, and the pull subprocess never ran.
-    assert not (dotbrain_root / "projects" / "alpha" / ".beads").exists()
-    assert not (dotbrain_root / "projects" / "beta" / ".beads").exists()
+    assert not (dotbrain_root / "brainspaces" / "alpha" / ".beads").exists()
+    assert not (dotbrain_root / "brainspaces" / "beta" / ".beads").exists()
     assert sub_calls == []
     # The injected Runner default would explode if reached; prove it wasn't by re-running engine.
     res = beads_mod.pull_beads_for_all(dotbrain_root, run=forbidden, dry_run=True)
@@ -103,7 +103,7 @@ def test_engine_projects_filter_pulls_only_target(
 
     result = beads_mod.pull_beads_for_all(dotbrain_root, projects=["alpha"])
 
-    alpha = str(dotbrain_root / "projects" / "alpha")
+    alpha = str(dotbrain_root / "brainspaces" / "alpha")
     assert pulled_dirs == [alpha]
     assert result.pulled == [alpha]
 
@@ -117,7 +117,7 @@ def test_load_name_unknown_warns(
     result = _invoke(dotbrain_root, "beads", "load", "--name", "ghost", "--dry-run")
 
     assert result.exit_code == 0, result.output
-    assert "no Brainspace: projects/ghost" in result.output
+    assert "no Brainspace: brainspaces/ghost" in result.output
 
 
 def test_load_all_with_name_is_rejected(dotbrain_root: Path):

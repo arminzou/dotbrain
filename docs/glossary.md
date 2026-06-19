@@ -9,7 +9,7 @@ without moving that private state into the repo.
 
 ### Brainspace
 
-The private per-project home under `~/dotbrain/projects/<name>/`. A Brainspace contains the
+The private per-project home under `~/dotbrain/brainspaces/<name>/`. A Brainspace contains the
 project's Brain plus agent/runtime adapters such as `.beads`, `.claude`, and `.codex`.
 
 ### Brainspace links
@@ -34,7 +34,7 @@ defaults such as shared beads server settings.
 
 ### project.yaml
 
-The per-project config file at `~/dotbrain/projects/<name>/project.yaml`. It declares project-level
+The per-project config file at `~/dotbrain/brainspaces/<name>/project.yaml`. It declares project-level
 settings such as execution engine choice, public tracker choice, seeded agent workspaces, beads
 deviations, and extra skills.
 

@@ -1,4 +1,4 @@
-"""Generator for ``docs/cli-reference.md`` (ADR-0034: reference docs are generated).
+"""Generator for ``docs/cli-reference.md``.
 
 The committed page is a fixed-width (80-col) snapshot of ``dotbrain <cmd> --help`` for
 every non-hidden command. ``test_cli_reference.py`` regenerates and diffs against the

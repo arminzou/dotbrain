@@ -118,7 +118,7 @@ def test_check_repo_file_bad_target(brainspace: Path):
 
 
 def test_check_repo_file_valid_repo(dotbrain_root: Path, tmp_path: Path):
-    control = dotbrain_root / "projects" / "demo"
+    control = dotbrain_root / "brainspaces" / "demo"
     control.mkdir(parents=True)
     repo = tmp_path / "demo"
     repo.mkdir()
@@ -135,7 +135,7 @@ def test_check_control_links_all_ok(
     repo = tmp_path / "myrepo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "projects" / "myrepo"
+    control = dotbrain_root / "brainspaces" / "myrepo"
     for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(control / link)
@@ -150,7 +150,7 @@ def test_check_control_links_missing(
     repo = tmp_path / "bare"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "projects" / "bare"
+    control = dotbrain_root / "brainspaces" / "bare"
     for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
     findings = doctor._check_control_links(repo, control)
@@ -165,7 +165,7 @@ def test_check_control_links_broken(
     repo = tmp_path / "brokenlinks"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "projects" / "brokenlinks"
+    control = dotbrain_root / "brainspaces" / "brokenlinks"
     control.mkdir(parents=True, exist_ok=True)
     for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True, exist_ok=True)
@@ -243,7 +243,7 @@ def test_check_agent_pointer_missing(
 
 def test_dotbrain_repo_skipped_in_wiring(dotbrain_root: Path):
     """The dotbrain repo itself is not an adopter — wiring checks skip it."""
-    control = dotbrain_root / "projects" / "dotbrain"
+    control = dotbrain_root / "brainspaces" / "dotbrain"
     control.mkdir(parents=True, exist_ok=True)
     (control / ".repo").write_text(f"{dotbrain_root}\n")
     findings = doctor._check_project_wiring(control, dotbrain_root)
@@ -257,14 +257,14 @@ def test_dotbrain_repo_skipped_in_wiring(dotbrain_root: Path):
 
 def test_check_beads_state_none_mode(dotbrain_root: Path):
     config.write_project_config(dotbrain_root, "demo", config.ProjectBeads(mode="none"))
-    findings = doctor._check_beads_state(dotbrain_root / "projects" / "demo", "demo", dotbrain_root)
+    findings = doctor._check_beads_state(dotbrain_root / "brainspaces" / "demo", "demo", dotbrain_root)
     assert len(findings) == 1
     assert findings[0].status == "ok"
     assert "disabled" in findings[0].message
 
 
 def test_check_beads_state_missing_dir(dotbrain_root: Path):
-    findings = doctor._check_beads_state(dotbrain_root / "projects" / "demo", "demo", dotbrain_root)
+    findings = doctor._check_beads_state(dotbrain_root / "brainspaces" / "demo", "demo", dotbrain_root)
     assert any(f.status == "warn" and "not initialized" in f.message for f in findings)
 
 
@@ -294,7 +294,7 @@ def _recording_run_fails(exit_code: int, stderr: str):
 
 def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_root: Path):
     """With a metadata.json present, server-mode projects run 'bd dolt test'."""
-    control = dotbrain_root / "projects" / "demo"
+    control = dotbrain_root / "brainspaces" / "demo"
     control.mkdir(parents=True, exist_ok=True)
     beads = control / ".beads"
     beads.mkdir()
@@ -311,7 +311,7 @@ def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_root: Path):
 
 def test_beads_no_mutating_commands(dotbrain_root: Path):
     """Doctor must never issue mutating commands — no bd init, bd dolt set, git, rm, mkdir."""
-    control = dotbrain_root / "projects" / "demo"
+    control = dotbrain_root / "brainspaces" / "demo"
     control.mkdir(parents=True, exist_ok=True)
     beads = control / ".beads"
     beads.mkdir()
@@ -330,7 +330,7 @@ def test_beads_no_mutating_commands(dotbrain_root: Path):
 
 def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
     """When bd dolt test fails, doctor reports it as an error."""
-    control = dotbrain_root / "projects" / "demo"
+    control = dotbrain_root / "brainspaces" / "demo"
     control.mkdir(parents=True, exist_ok=True)
     beads = control / ".beads"
     beads.mkdir()
@@ -352,7 +352,7 @@ def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
 def test_run_doctor_no_projects(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     import shutil
-    projects = dotbrain_root / "projects"
+    projects = dotbrain_root / "brainspaces"
     for d in list(projects.iterdir()):
         if d.is_dir() and not d.name.startswith("."):
             shutil.rmtree(d)
@@ -372,7 +372,7 @@ def test_run_doctor_with_wired_project(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
 
-    control = dotbrain_root / "projects" / "proj"
+    control = dotbrain_root / "brainspaces" / "proj"
     control.mkdir(parents=True, exist_ok=True)
     (control / ".repo").write_text(f"{repo}\n")
     for link in paths.BRAINSPACE_LINKS:

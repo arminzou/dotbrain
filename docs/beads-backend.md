@@ -44,7 +44,7 @@ config examples.
 There are two layers of configuration:
 
 - `~/dotbrain/config.yaml` for machine-wide server defaults
-- `~/dotbrain/projects/<name>/project.yaml` for per-project backend choice and overrides
+- `~/dotbrain/brainspaces/<name>/project.yaml` for per-project backend choice and overrides
 
 In practice:
 

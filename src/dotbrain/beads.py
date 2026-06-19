@@ -217,7 +217,7 @@ def _beads_env(control: Path) -> dict:
 def _hide_root_beads(control: Path, dotbrain_root: Path) -> Path | None:
     """bd init runs in the Brainspace but git sees dotbrain; hide the root .beads symlink first."""
     root_beads = Path(dotbrain_root) / ".beads"
-    if control == Path(dotbrain_root) / "projects" / "dotbrain":
+    if control == paths.brainspace(dotbrain_root, "dotbrain"):
         return None
     if not root_beads.is_symlink():
         return None
@@ -373,7 +373,7 @@ def pull_beads_for_all(
         for name in projects:
             control = by_name.get(name)
             if control is None:
-                result.warnings.append(f"no Brainspace: projects/{name}")
+                result.warnings.append(f"no Brainspace: {paths.data_dir(dotbrain_root).name}/{name}")
                 continue
             controls.append(control)
 

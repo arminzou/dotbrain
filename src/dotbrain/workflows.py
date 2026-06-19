@@ -91,11 +91,12 @@ def wire_project(
         adopter_repos.ensure_not_wired_to_foreign_dotbrain(resolved_repo, dotbrain_root)
 
     control = paths.brainspace(dotbrain_root, project)
-    archive = dotbrain_root / "projects" / ".archive" / project
+    rel = paths.data_dir(dotbrain_root).name
+    archive = paths.data_dir(dotbrain_root) / ".archive" / project
     unarchived = False
     if archive.is_dir() and not control.is_dir():
         run(["git", "-C", str(dotbrain_root), "mv",
-             f"projects/.archive/{project}", f"projects/{project}"])
+             f"{rel}/.archive/{project}", f"{rel}/{project}"])
         unarchived = True
     control.mkdir(parents=True, exist_ok=True)
     if no_repo:
@@ -106,7 +107,7 @@ def wire_project(
 
     result = WireResult(control=control, repo=resolved_repo, project=project)
     if unarchived:
-        result.logs.append(f"unarchived {project} from projects/.archive/{project}")
+        result.logs.append(f"unarchived {project} from {rel}/.archive/{project}")
 
     brainspaces.ensure_control_gitignore(control)
     brainspaces.seed_brain(control, dotbrain_root)
@@ -137,7 +138,7 @@ def wire_project(
         if record_log:
             result.logs.append(record_log)
     result.logs.append(
-        f"Brainspace ready at projects/{project} (not committed); "
+        f"Brainspace ready at {rel}/{project} (not committed); "
         f"review and commit (suggested: feat(brain): wire {project})"
     )
 

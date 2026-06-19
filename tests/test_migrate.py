@@ -55,7 +55,7 @@ def test_destroy_token():
 
 
 def test_backup_dir_outside_beads(tmp_path: Path):
-    control = tmp_path / "projects" / "demo"
+    control = tmp_path / "brainspaces" / "demo"
     assert migrate.backup_dir_for(control) == tmp_path / "backups" / "beads" / "demo"
 
 
@@ -241,7 +241,7 @@ def test_migrate_skips_unknown_mode(dotbrain_root: Path):
 
 def test_migrate_non_dotbrain_project_hides_root_beads(dotbrain_root: Path):
     # A repo-root .beads symlink that must be hidden while bd runs in a non-dotbrain Brainspace.
-    real = dotbrain_root / "projects" / "example" / ".beads"
+    real = dotbrain_root / "brainspaces" / "example" / ".beads"
     control = paths.brainspace(dotbrain_root, "example")
     _seed_beads(control, "embedded")
     (dotbrain_root / ".beads").symlink_to(real)
@@ -338,7 +338,7 @@ def test_migrate_removes_embedded_entry_from_config(dotbrain_root: Path):
         run=make_migrate_runner([], pre_total=3, post_total=3),
     )
 
-    assert not (dotbrain_root / "projects" / "example" / "project.yaml").exists()
+    assert not (dotbrain_root / "brainspaces" / "example" / "project.yaml").exists()
 
 
 def test_migrate_records_custom_database_deviation(dotbrain_root: Path):

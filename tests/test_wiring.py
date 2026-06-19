@@ -65,12 +65,12 @@ def test_normalize_server_beads_metadata_drops_port_key_keeps_identity(tmp_path:
 
 def test_init_beads_preserves_repo_root_beads_symlink(dotbrain_root: Path):
     # project #0's repo-root .beads is gitignored local wiring pointing at projects/dotbrain/.beads
-    proj0_beads = dotbrain_root / "projects" / "dotbrain" / ".beads"
+    proj0_beads = dotbrain_root / "brainspaces" / "dotbrain" / ".beads"
     proj0_beads.mkdir(parents=True)
     root_beads = dotbrain_root / ".beads"
-    root_beads.symlink_to("projects/dotbrain/.beads")
+    root_beads.symlink_to("brainspaces/dotbrain/.beads")
 
-    control = dotbrain_root / "projects" / "example"
+    control = dotbrain_root / "brainspaces" / "example"
     control.mkdir(parents=True)
 
     def run(argv, *, cwd=None, env=None, check=True, **kwargs):
@@ -79,7 +79,7 @@ def test_init_beads_preserves_repo_root_beads_symlink(dotbrain_root: Path):
             # the wired project — the hijack that restore must undo.
             (control / ".beads").mkdir(exist_ok=True)
             if not (dotbrain_root / ".beads").exists():
-                (dotbrain_root / ".beads").symlink_to("projects/example/.beads")
+                (dotbrain_root / ".beads").symlink_to("brainspaces/example/.beads")
             return subprocess.CompletedProcess(list(argv), 0, "", "")
         if argv[0] == "git":
             return subprocess.run(list(argv), cwd=cwd, env=env, check=check, capture_output=True, text=True)
@@ -93,7 +93,7 @@ def test_init_beads_preserves_repo_root_beads_symlink(dotbrain_root: Path):
 
 
 def test_init_beads_rejects_conflicting_backends(dotbrain_root: Path, tmp_path: Path):
-    control = dotbrain_root / "projects" / "fresh"
+    control = dotbrain_root / "brainspaces" / "fresh"
     control.mkdir(parents=True)
     with pytest.raises(ValueError):
         beads.init_beads(
@@ -120,7 +120,7 @@ def _runner_failing_bd_init(calls: list[list[str]], stderr: str):
 
 def test_init_beads_attaches_to_existing_server_db(dotbrain_root: Path):
     # bd init reports the server DB already exists -> attach via metadata hydration.
-    control = dotbrain_root / "projects" / "fresh"
+    control = dotbrain_root / "brainspaces" / "fresh"
     control.mkdir(parents=True)
     calls: list[list[str]] = []
     run = _runner_failing_bd_init(calls, "can't create database fresh; database exists")
@@ -144,7 +144,7 @@ def test_init_beads_attaches_to_existing_server_db(dotbrain_root: Path):
 def test_init_beads_surfaces_clean_error_on_other_failure(dotbrain_root: Path):
     # Any non-"exists" bd init failure becomes a RuntimeError carrying bd stderr (no attach, no
     # raw traceback).
-    control = dotbrain_root / "projects" / "fresh"
+    control = dotbrain_root / "brainspaces" / "fresh"
     control.mkdir(parents=True)
     calls: list[list[str]] = []
     run = _runner_failing_bd_init(calls, "dial tcp db.local:3307: connection refused")
@@ -204,7 +204,7 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_control_mutation(
     subprocess.run(["git", "init", "-q"], cwd=foreign_root, check=True)
     (foreign_root / "templates" / ".brain").mkdir(parents=True)
     (foreign_root / "templates" / ".brain" / "AGENTS.md").write_text("# foreign\n")
-    foreign_control = foreign_root / "projects" / "adopter"
+    foreign_control = foreign_root / "brainspaces" / "adopter"
     for name in paths.BRAINSPACE_LINKS:
         (foreign_control / name).mkdir(parents=True, exist_ok=True)
 
@@ -220,7 +220,7 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_control_mutation(
             run=make_runner([]),
         )
 
-    assert not (dotbrain_root / "projects" / "adopter").exists()
+    assert not (dotbrain_root / "brainspaces" / "adopter").exists()
 
 
 def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
@@ -230,7 +230,7 @@ def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
 
-    custom_target = tmp_path / "srv" / "projects" / "custom-shaped" / ".brain"
+    custom_target = tmp_path / "srv" / "brainspaces" / "custom-shaped" / ".brain"
     custom_target.mkdir(parents=True)
     (repo / ".brain").symlink_to(custom_target)
 
@@ -243,7 +243,7 @@ def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
         run=make_runner([]),
     )
 
-    control = dotbrain_root / "projects" / "custom-shaped"
+    control = dotbrain_root / "brainspaces" / "custom-shaped"
     assert result.control == control
     assert (repo / ".brain").is_symlink()
     assert (repo / ".brain").resolve() == (control / ".brain").resolve()
@@ -269,7 +269,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_root: Path, fake_home: Path, t
         run=make_runner([]),
     )
 
-    control = dotbrain_root / "projects" / "adopter"
+    control = dotbrain_root / "brainspaces" / "adopter"
     assert result.control == control
     assert (control / ".gitignore").is_file()
     assert (control / ".brain" / "AGENTS.md").is_file()
@@ -295,7 +295,7 @@ def test_wire_project_brain_only(dotbrain_root: Path, fake_home: Path):
         home=fake_home,
         run=make_runner([]),
     )
-    control = dotbrain_root / "projects" / "brainonly"
+    control = dotbrain_root / "brainspaces" / "brainonly"
     assert result.repo is None
     assert (control / ".repo").read_text() == "(brain-only)\n"
     assert (control / ".brain" / "AGENTS.md").is_file()
@@ -310,12 +310,12 @@ def test_wire_project_unarchives_automatically(dotbrain_root: Path, fake_home: P
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
     # Simulate an archived Brainspace
-    archive = dotbrain_root / "projects" / ".archive" / "archived-proj"
+    archive = dotbrain_root / "brainspaces" / ".archive" / "archived-proj"
     archive.mkdir(parents=True)
     (archive / ".brain").mkdir()
     (archive / ".brain" / "AGENTS.md").write_text("# archived\n")
     subprocess.run(
-        ["git", "-C", str(dotbrain_root), "add", "projects/.archive/archived-proj"],
+        ["git", "-C", str(dotbrain_root), "add", "brainspaces/.archive/archived-proj"],
         check=True, capture_output=True,
     )
     subprocess.run(
@@ -328,7 +328,7 @@ def test_wire_project_unarchives_automatically(dotbrain_root: Path, fake_home: P
         install_global_hook=False, home=fake_home, run=make_runner([]),
     )
 
-    control = dotbrain_root / "projects" / "archived-proj"
+    control = dotbrain_root / "brainspaces" / "archived-proj"
     assert control.is_dir()
     assert not archive.exists()
     assert any("unarchived" in l for l in result.logs)
@@ -374,7 +374,7 @@ def test_wire_project_greenfield_empty_repo(dotbrain_root: Path, fake_home: Path
         run=make_runner([]),
     )
 
-    control = dotbrain_root / "projects" / "greenfield"
+    control = dotbrain_root / "brainspaces" / "greenfield"
     assert result.control == control
     agents = repo / "AGENTS.md"
     if paths.INJECT_ADOPTER_POINTER:
@@ -409,7 +409,7 @@ def test_wire_project_repair_idempotency(dotbrain_root: Path, fake_home: Path, t
     # repair
     workflows.wire_project(**kwargs)
     assert (repo / ".brain").is_symlink()
-    control = dotbrain_root / "projects" / "repairme"
+    control = dotbrain_root / "brainspaces" / "repairme"
     assert (repo / ".brain").resolve() == (control / ".brain").resolve()
 
     # pointer must not be duplicated in AGENTS.md
@@ -450,7 +450,7 @@ def _runner_creating_beads(control: Path):
 def test_wire_project_server_host_records_server_mode(
     dotbrain_root: Path, fake_home: Path
 ):
-    control = dotbrain_root / "projects" / "plain"
+    control = dotbrain_root / "brainspaces" / "plain"
     workflows.wire_project(
         dotbrain_root=dotbrain_root,
         project="plain",
@@ -461,12 +461,12 @@ def test_wire_project_server_host_records_server_mode(
         run=_runner_creating_beads(control),
     )
     # embedded is the default; an explicit server_host deviates and is recorded in project.yaml.
-    assert (dotbrain_root / "projects" / "plain" / "project.yaml").exists()
+    assert (dotbrain_root / "brainspaces" / "plain" / "project.yaml").exists()
     assert config.load_project_config(dotbrain_root, "plain").mode == "server"
 
 
 def test_wire_project_records_custom_database(dotbrain_root: Path, fake_home: Path):
-    control = dotbrain_root / "projects" / "renamed"
+    control = dotbrain_root / "brainspaces" / "renamed"
     workflows.wire_project(
         dotbrain_root=dotbrain_root,
         project="renamed",
@@ -497,7 +497,7 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_root: Path, fake
         home=fake_home,
     )
 
-    control = dotbrain_root / "projects" / "claude-only"
+    control = dotbrain_root / "brainspaces" / "claude-only"
     assert (control / ".claude").is_dir()
     assert not (control / ".codex").exists()
     assert (repo / ".claude").is_symlink()
@@ -520,7 +520,7 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         install_global_hook=False,
         home=fake_home,
     )
-    control = dotbrain_root / "projects" / "downgraded-project"
+    control = dotbrain_root / "brainspaces" / "downgraded-project"
 
     (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     workflows.wire_project(

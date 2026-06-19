@@ -97,7 +97,7 @@ def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path
 def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
     dotbrain_root: Path, fake_home: Path
 ):
-    control = dotbrain_root / "projects" / "claude-only"
+    control = dotbrain_root / "brainspaces" / "claude-only"
     control.mkdir(parents=True)
     (control / "project.yaml").write_text(
         "agents:\n"

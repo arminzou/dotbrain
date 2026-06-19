@@ -192,7 +192,7 @@ def is_dotbrain_checkout(root: Path) -> bool:
     root = Path(root).resolve()
     return (
         (root / ".git").exists()
-        and (root / "projects").is_dir()
+        and any((root / d).is_dir() for d in paths.DATA_DIRS)
         and (root / "templates" / ".brain" / "AGENTS.md").is_file()
     )
 
@@ -209,10 +209,10 @@ def foreign_dotbrain_root_for_symlink(path: Path, link_name: str, dotbrain_root:
     if target.name != link_name:
         return None
     project_dir = target.parent
-    projects_dir = project_dir.parent
-    if projects_dir.name != "projects":
+    data_dir = project_dir.parent
+    if data_dir.name not in paths.DATA_DIRS:
         return None
-    inferred_root = projects_dir.parent.resolve()
+    inferred_root = data_dir.parent.resolve()
     if inferred_root == Path(dotbrain_root).resolve():
         return None
     if not is_dotbrain_checkout(inferred_root):

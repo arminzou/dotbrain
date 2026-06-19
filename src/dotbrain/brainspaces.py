@@ -1,6 +1,6 @@
 """Brainspace lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
 
-A Brainspace is the private project control plane under ``projects/<name>/``. This module owns
+A Brainspace is the private project control plane under ``brainspaces/<name>/``. This module owns
 its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
 (``wiring``/``beads``):
 
@@ -225,13 +225,15 @@ def _strip_control_byproducts(dotbrain_root: Path, project: str, run: Runner) ->
     .claude/.codex skill symlinks). ``git rm``/``git mv`` only handle tracked files, so
     without this an offboard strands these byproducts on disk. ``-X`` removes *only* ignored
     files, so an uncommitted (untracked) brain is left intact; ``-ff`` clears nested git/dolt dirs."""
-    run(["git", "-C", str(dotbrain_root), "clean", "-ffdXq", "--", f"projects/{project}"])
+    rel = paths.data_dir(dotbrain_root).name
+    run(["git", "-C", str(dotbrain_root), "clean", "-ffdXq", "--", f"{rel}/{project}"])
 
 
 def _is_tracked(dotbrain_root: Path, project: str, run: Runner) -> bool:
     """True if the Brainspace has any git-tracked files (wire no longer commits, so a
     freshly-wired root is untracked and git rm/mv would fail)."""
-    out = run(["git", "-C", str(dotbrain_root), "ls-files", "--", f"projects/{project}"], check=False)
+    rel = paths.data_dir(dotbrain_root).name
+    out = run(["git", "-C", str(dotbrain_root), "ls-files", "--", f"{rel}/{project}"], check=False)
     return bool((out.stdout or "").strip())
 
 
@@ -245,6 +247,7 @@ def offboard_brainspace(
 ) -> list[str]:
     """keep | archive | delete the Brainspace. Returns log lines."""
     control = paths.brainspace(dotbrain_root, project)
+    rel = paths.data_dir(dotbrain_root).name
     if not control.is_dir():
         return [f"warning: Brainspace {control} not found; nothing to offboard"]
 
@@ -253,36 +256,36 @@ def offboard_brainspace(
 
     if mode == "archive":
         if dry_run:
-            return [f"would archive Brainspace projects/{project} -> projects/.archive/{project} "
+            return [f"would archive Brainspace {rel}/{project} -> {rel}/.archive/{project} "
                     "(stripping runtime byproducts first)"]
         _strip_control_byproducts(dotbrain_root, project, run)
-        archive_dir = dotbrain_root / "projects" / ".archive"
+        archive_dir = paths.data_dir(dotbrain_root) / ".archive"
         archive_dir.mkdir(exist_ok=True)
         dest = archive_dir / project
         if _is_tracked(dotbrain_root, project, run):
             run(["git", "-C", str(dotbrain_root), "mv",
-                 f"projects/{project}", f"projects/.archive/{project}"])
+                 f"{rel}/{project}", f"{rel}/.archive/{project}"])
             staged = " (staged)"
         else:
             shutil.move(str(control), str(dest))
             staged = " (uncommitted)"
         return [
-            f"archived Brainspace -> projects/.archive/{project}{staged}",
+            f"archived Brainspace -> {rel}/.archive/{project}{staged}",
             f"suggested commit: chore(brain): archive {project} Brainspace",
         ]
 
     if mode == "delete":
         if dry_run:
-            return [f"would remove Brainspace projects/{project} (tracked files + runtime byproducts)"]
+            return [f"would remove Brainspace {rel}/{project} (tracked files + runtime byproducts)"]
         _strip_control_byproducts(dotbrain_root, project, run)
         # -f: delete is a deliberate full removal, so force past locally-modified tracked files
         # (e.g. beads backup-state). --ignore-unmatch: a freshly-wired root is untracked.
         run(["git", "-C", str(dotbrain_root), "rm", "-r", "-q", "-f", "--ignore-unmatch",
-             f"projects/{project}"])
+             f"{rel}/{project}"])
         if control.exists():
             shutil.rmtree(control)
         return [
-            f"removed Brainspace projects/{project}",
+            f"removed Brainspace {rel}/{project}",
             f"suggested commit: chore(brain): remove {project} Brainspace",
         ]
 

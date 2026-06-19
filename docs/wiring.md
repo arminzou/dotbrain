@@ -17,7 +17,9 @@ The repo gets local, gitignored links such as:
 - `.claude`
 - `.codex`
 
-Those links point at the private Brainspace, typically under `~/dotbrain/projects/<name>/`.
+Those links point at the private Brainspace, typically under `~/dotbrain/brainspaces/<name>/`.
+An existing `~/dotbrain/projects/<name>/` layout (the pre-rename name) is still recognized; new
+Brainspaces are created under `brainspaces/`.
 
 The important boundary is:
 

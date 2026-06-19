@@ -16,10 +16,23 @@ def test_contract_constants_stay_in_lockstep():
 
 
 def test_brainspace_and_control_link_targets(dotbrain_root: Path):
-    assert paths.brainspace(dotbrain_root, "example") == dotbrain_root / "projects" / "example"
+    assert paths.brainspace(dotbrain_root, "example") == dotbrain_root / "brainspaces" / "example"
     targets = paths.control_link_targets(dotbrain_root, "example")
     assert set(targets) == set(paths.BRAINSPACE_LINKS)
-    assert targets[".brain"] == dotbrain_root / "projects" / "example" / ".brain"
+    assert targets[".brain"] == dotbrain_root / "brainspaces" / "example" / ".brain"
+
+
+def test_data_dir_prefers_brainspaces_with_legacy_fallback(tmp_path: Path):
+    root = tmp_path / "dotbrain"
+    # Fresh root with neither dir defaults to brainspaces/.
+    assert paths.data_dir(root) == root / "brainspaces"
+    # Legacy-only root resolves to projects/ for back-compat.
+    (root / "projects").mkdir(parents=True)
+    assert paths.data_dir(root) == root / "projects"
+    assert paths.brainspace(root, "p") == root / "projects" / "p"
+    # When both exist (mid-migration), brainspaces/ wins.
+    (root / "brainspaces").mkdir()
+    assert paths.data_dir(root) == root / "brainspaces"
 
 
 def test_disconnected_repo_is_not_wired(disconnected_adopter_repo: Path):

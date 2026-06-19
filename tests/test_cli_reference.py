@@ -1,4 +1,4 @@
-"""Drift guard for docs/cli-reference.md (ADR-0034).
+"""Drift guard for docs/cli-reference.md.
 
 Regenerates the reference from the live Typer app and diffs against the committed
 file. Adding or changing a CLI command/flag/help string without regenerating the

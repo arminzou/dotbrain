@@ -283,7 +283,7 @@ def run_doctor(
 
     controls = paths.brainspaces(root)
     if not controls:
-        report.machine.append(Finding("warn", "no Brainspaces in projects/",
+        report.machine.append(Finding("warn", f"no Brainspaces in {paths.data_dir(root).name}/",
                                        "create a project with 'dotbrain wire'"))
         return report
 

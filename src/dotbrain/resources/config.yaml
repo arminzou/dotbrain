@@ -1,6 +1,6 @@
 # dotbrain global settings
 # Seeded into ~/dotbrain/config.yaml by ``dotbrain bootstrap``.
-# Per-project identity (including beads mode) lives in projects/<name>/project.yaml.
+# Per-project identity (including beads mode) lives in brainspaces/<name>/project.yaml.
 # Never put credentials (passwords, tokens) here — those belong in your secrets store.
 
 # Beads execution store. Each project picks a mode in its project.yaml:

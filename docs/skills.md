@@ -8,7 +8,7 @@ Skills are layered:
 
 - dotbrain-managed required skills ship with the tool
 - operator-owned skills live in the user's private dotbrain data root
-- per-project skills are declared in `projects/<name>/project.yaml` under `skills:`
+- per-project skills are declared in `brainspaces/<name>/project.yaml` under `skills:`
 
 dotbrain keeps the required core wired in place and layers operator/project skills on top.
 
@@ -53,7 +53,7 @@ tracker-specific mechanics.
 There are two places where skills are configured:
 
 - Global required skills are declared in `src/dotbrain/resources/skills.yaml`.
-- Project-specific extra skills are declared in `projects/<name>/project.yaml` under `skills:`.
+- Project-specific extra skills are declared in `brainspaces/<name>/project.yaml` under `skills:`.
 
 Per-project `agents/` files do not choose skills. They only hold conventions shared by the skills,
 such as `issue-tracker.md`.

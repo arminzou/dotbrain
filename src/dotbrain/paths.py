@@ -13,6 +13,10 @@ from pathlib import Path
 # The four Brainspace links an adopter repo symlinks into its root, in convention order.
 BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads", ".claude", ".codex")
 
+# Data-root directory holding the project Brainspaces, in preference order. ``brainspaces`` is
+# the current name; ``projects`` is the legacy name still accepted for back-compat.
+DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
+
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads", "/.claude", "/.codex")
 
@@ -39,25 +43,38 @@ def resolve_dotbrain_root() -> Path:
     if env:
         return Path(env)
     inferred = Path(__file__).resolve().parents[2]
-    if (inferred / ".git").exists() and (inferred / "projects").is_dir():
+    if (inferred / ".git").exists() and any((inferred / d).is_dir() for d in DATA_DIRS):
         return inferred
     return Path.home() / "dotbrain"
 
 
+def data_dir(dotbrain_root: Path) -> Path:
+    """The data-root directory holding Brainspaces.
+
+    Prefers ``brainspaces/`` and falls back to a legacy ``projects/`` when only that exists; a
+    fresh root with neither defaults to ``brainspaces/``.
+    """
+    root = Path(dotbrain_root)
+    for name in DATA_DIRS:
+        if (root / name).is_dir():
+            return root / name
+    return root / DATA_DIRS[0]
+
+
 def brainspace(dotbrain_root: Path, name: str) -> Path:
-    """Return the Brainspace path for a project: ``<dotbrain_root>/projects/<name>``."""
-    return Path(dotbrain_root) / "projects" / name
+    """Return the Brainspace path for a project: ``<dotbrain_root>/<data-dir>/<name>``."""
+    return data_dir(dotbrain_root) / name
 
 
 def brainspaces(dotbrain_root: Path) -> list[Path]:
-    """Sorted project Brainspaces under ``<dotbrain_root>/projects/``.
+    """Sorted project Brainspaces under the data-root directory.
 
     Excludes ``.archive/`` and any other dot-prefixed directories.
     """
-    projects = Path(dotbrain_root) / "projects"
-    if not projects.is_dir():
+    base = data_dir(dotbrain_root)
+    if not base.is_dir():
         return []
-    return sorted(p for p in projects.iterdir() if p.is_dir() and not p.name.startswith("."))
+    return sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("."))
 
 
 def control_link_targets(dotbrain_root: Path, name: str) -> dict[str, Path]:

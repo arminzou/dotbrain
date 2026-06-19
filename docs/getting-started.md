@@ -76,7 +76,7 @@ dotbrain doctor
 At this point you should have:
 
 - a seeded `~/dotbrain/config.yaml`
-- a project Brainspace under `~/dotbrain/projects/<name>/`
+- a project Brainspace under `~/dotbrain/brainspaces/<name>/`
 - local wiring in the repo that points at that Brainspace
 
 ## 5. Edit Config Only When Needed

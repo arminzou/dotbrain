@@ -5,7 +5,7 @@ version: 1
 # the Brain machinery depends on them. Operators layer their OWN skills on top
 # at two scopes:
 #   - global:      ~/dotbrain/skills/skills.yaml  (global_extra)
-#   - per-project: projects/<name>/project.yaml   (skills:)
+#   - per-project: brainspaces/<name>/project.yaml   (skills:)
 #
 # This file is packaged, never seeded into a data root, and read fresh on every
 # run, so adding a required skill in a new release reaches every adopter with no

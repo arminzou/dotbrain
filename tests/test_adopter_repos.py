@@ -3,6 +3,7 @@ repo attachment primitives (excludes, symlinks, pointers, wire_repo)."""
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -299,3 +300,30 @@ def test_wire_repo_can_skip_beads_link(dotbrain_root: Path, brainspace: Path, tm
     assert (repo / ".claude").is_symlink()
     assert (repo / ".codex").is_symlink()
     assert "/.beads" not in paths.exclude_entries(repo)
+
+
+def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
+    """The documented migration `mv projects brainspaces && dotbrain wire --all`:
+    after renaming the data dir, reconcile re-points the now-dangling repo links."""
+    root = tmp_path / "dotbrain"
+    legacy = root / "projects" / "example"
+    for link in paths.BRAINSPACE_LINKS:
+        (legacy / link).mkdir(parents=True)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for link in paths.BRAINSPACE_LINKS:
+        (repo / link).symlink_to(legacy / link)
+
+    # Legacy layout resolves to projects/.
+    assert paths.data_dir(root) == root / "projects"
+
+    # Migrate: rename the data dir. Links now dangle (point at the old projects/ path).
+    (root / "projects").rename(root / "brainspaces")
+    assert paths.data_dir(root) == root / "brainspaces"
+    assert not (repo / ".brain").resolve().exists()
+
+    # Reconcile (what `wire --all` does) re-points every link to the new Brainspace.
+    result = adopter_repos.reconcile(repo, paths.control_link_targets(root, "example"))
+    assert set(result.repaired) == set(paths.BRAINSPACE_LINKS)
+    assert os.readlink(repo / ".brain") == str(root / "brainspaces" / "example" / ".brain")
+    assert (repo / ".brain").resolve().is_dir()

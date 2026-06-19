@@ -246,7 +246,7 @@ def unwire(
     repo: Optional[Path] = typer.Option(None, "--repo", help="Adopter repo path; defaults to cwd"),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name"),
     no_repo: bool = typer.Option(False, "--no-repo", help="Only offboard the named Brainspace; do not edit an adopter repo."),
-    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to projects/.archive/"),
+    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to <data-dir>/.archive/"),
     delete: bool = typer.Option(False, "--delete", help="Remove the Brainspace (destructive)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview the offboard without performing it."),
 ) -> None:
@@ -563,7 +563,7 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
     if project:
         control = paths.brainspace(root, project)
         if not control.is_dir():
-            raise typer.BadParameter(f"no Brainspace: projects/{project}")
+            raise typer.BadParameter(f"no Brainspace: {paths.data_dir(root).name}/{project}")
         controls = [control]
     else:
         controls = paths.brainspaces(root)

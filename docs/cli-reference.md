@@ -355,7 +355,7 @@ Reference for the public `dotbrain` CLI.
 │ --name             TEXT  Project/Brainspace name                             │
 │ --no-repo                Only offboard the named Brainspace; do not edit an  │
 │                          adopter repo.                                       │
-│ --archive                Move Brainspace to projects/.archive/               │
+│ --archive                Move Brainspace to <data-dir>/.archive/             │
 │ --delete                 Remove the Brainspace (destructive)                 │
 │ --dry-run                Preview the offboard without performing it.         │
 │ --help     -h            Show this message and exit.                         │

@@ -46,7 +46,7 @@ def test_migrate_beads_dry_run_prints_plan(
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     import json
 
-    beads = dotbrain_root / "projects" / "demo" / ".beads"
+    beads = dotbrain_root / "brainspaces" / "demo" / ".beads"
     beads.mkdir(parents=True)
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "embedded"}))
 
@@ -112,7 +112,7 @@ def test_wire_brain_only_creates_brainspace(
     )
     assert result.exit_code == 0, result.output
     assert "run `dotbrain bootstrap --only claude-hook` if needed" in result.output
-    control = dotbrain_root / "projects" / "demo"
+    control = dotbrain_root / "brainspaces" / "demo"
     assert (control / ".repo").read_text() == "(brain-only)\n"
     assert (control / ".brain" / "AGENTS.md").is_file()
 
@@ -227,7 +227,7 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
-    control = dotbrain_root / "projects" / "myprojrepo"
+    control = dotbrain_root / "brainspaces" / "myprojrepo"
     for link in paths.BRAINSPACE_LINKS:
         (control / link).mkdir(parents=True)
         (repo / link).symlink_to(control / link)
@@ -314,7 +314,7 @@ def test_skills_link_global_uses_default_targets(
 def test_skills_link_project_filter_isolates_one_brainspace(
     dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    other = dotbrain_root / "projects" / "other"
+    other = dotbrain_root / "brainspaces" / "other"
     (other / ".brain" / "agents").mkdir(parents=True)
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
 

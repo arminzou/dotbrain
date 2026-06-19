@@ -38,7 +38,7 @@ repair edge cases, or make explicit follow-up changes after the user approves th
 
 ## Brainspace Layout
 
-Create or update `~/dotbrain/projects/<name>/`:
+Create or update `~/dotbrain/brainspaces/<name>/`:
 
 ```text
 .brain/
@@ -66,7 +66,7 @@ Do not create a per-project brain git repo. The Brainspace is versioned as part 
 2. **Initialize beads for the Brainspace.**
    - Use the current bootstrap policy for `.beads/config.yaml` and the named database.
    - Verify with `bd -C <repo> ready` after the repo symlink is wired, or
-     `bd -C ~/dotbrain/projects/<name> ready` while operating directly in dotbrain.
+     `bd -C ~/dotbrain/brainspaces/<name> ready` while operating directly in dotbrain.
    - Dolt/runtime state stays ignored. `dotbrain wire` owns the commit: it undoes beads' own
      `bd init` commit and lands the whole Brainspace as one `feat(brain): wire <name>` commit in
      dotbrain (wire-project owns Brainspace writes). Do not hand-commit the
@@ -74,10 +74,10 @@ Do not create a per-project brain git repo. The Brainspace is versioned as part 
 
 3. **Wire the repo symlinks.**
    ```bash
-   ln -s ~/dotbrain/projects/<name>/.brain  <repo>/.brain
-   ln -s ~/dotbrain/projects/<name>/.beads  <repo>/.beads
-   ln -s ~/dotbrain/projects/<name>/.claude <repo>/.claude
-   ln -s ~/dotbrain/projects/<name>/.codex  <repo>/.codex
+   ln -s ~/dotbrain/brainspaces/<name>/.brain  <repo>/.brain
+   ln -s ~/dotbrain/brainspaces/<name>/.beads  <repo>/.beads
+   ln -s ~/dotbrain/brainspaces/<name>/.claude <repo>/.claude
+   ln -s ~/dotbrain/brainspaces/<name>/.codex  <repo>/.codex
    ```
    Add `/.brain`, `/.beads`, `/.claude`, and `/.codex` to `<repo>/.git/info/exclude` with leading
    slashes and no trailing slashes. Any symlink whose target is outside the containing git repo is
@@ -102,10 +102,10 @@ Do not create a per-project brain git repo. The Brainspace is versioned as part 
 
 ## Done When
 
-- `<repo>/.brain` resolves to `~/dotbrain/projects/<name>/.brain`.
-- `<repo>/.beads` resolves to `~/dotbrain/projects/<name>/.beads`.
-- `<repo>/.claude` resolves to `~/dotbrain/projects/<name>/.claude`.
-- `<repo>/.codex` resolves to `~/dotbrain/projects/<name>/.codex`.
+- `<repo>/.brain` resolves to `~/dotbrain/brainspaces/<name>/.brain`.
+- `<repo>/.beads` resolves to `~/dotbrain/brainspaces/<name>/.beads`.
+- `<repo>/.claude` resolves to `~/dotbrain/brainspaces/<name>/.claude`.
+- `<repo>/.codex` resolves to `~/dotbrain/brainspaces/<name>/.codex`.
 - `<repo>/.git/info/exclude` ignores `/.brain`, `/.beads`, `/.claude`, and `/.codex`.
 - No symlink pointing outside `<repo>` is tracked by git.
 - `bd -C <repo> ready` works or reports a valid empty database.

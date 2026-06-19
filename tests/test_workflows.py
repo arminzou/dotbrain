@@ -65,7 +65,7 @@ def _commit_brainspace(dotbrain_root: Path, name: str) -> None:
     (control / ".brain").mkdir(parents=True, exist_ok=True)
     (control / ".brain" / "AGENTS.md").write_text(f"# {name}\n")
     subprocess.run(
-        ["git", "-C", str(dotbrain_root), "add", f"projects/{name}"],
+        ["git", "-C", str(dotbrain_root), "add", f"brainspaces/{name}"],
         check=True, capture_output=True,
     )
     subprocess.run(
@@ -90,19 +90,19 @@ def _seed_byproducts(control: Path) -> list[Path]:
 
 def test_offboard_archive_strips_byproducts_and_stages_git_mv(dotbrain_root: Path):
     _commit_brainspace(dotbrain_root, "proj-archive")
-    byproducts = _seed_byproducts(dotbrain_root / "projects" / "proj-archive")
+    byproducts = _seed_byproducts(dotbrain_root / "brainspaces" / "proj-archive")
 
     logs = workflows.offboard_brainspace(
         dotbrain_root, "proj-archive", "archive", run=_git_runner(dotbrain_root)
     )
 
-    archive = dotbrain_root / "projects" / ".archive" / "proj-archive"
+    archive = dotbrain_root / "brainspaces" / ".archive" / "proj-archive"
     assert archive.is_dir()
     assert (archive / ".brain" / "AGENTS.md").exists()  # tracked content moved
     assert not (archive / ".beads" / "metadata.json").exists()  # litter not dragged along
     assert not (archive / ".claude" / "skills" / "build-context").exists()
     assert any("archived" in l for l in logs)
-    assert not (dotbrain_root / "projects" / "proj-archive").exists()
+    assert not (dotbrain_root / "brainspaces" / "proj-archive").exists()
 
 
 # --------------------------------------------------------------------------- delete
@@ -110,14 +110,14 @@ def test_offboard_archive_strips_byproducts_and_stages_git_mv(dotbrain_root: Pat
 
 def test_offboard_delete_strips_byproducts_and_leaves_no_dir(dotbrain_root: Path):
     _commit_brainspace(dotbrain_root, "proj-delete")
-    _seed_byproducts(dotbrain_root / "projects" / "proj-delete")
+    _seed_byproducts(dotbrain_root / "brainspaces" / "proj-delete")
 
     logs = workflows.offboard_brainspace(
         dotbrain_root, "proj-delete", "delete", run=_git_runner(dotbrain_root)
     )
 
     # no orphan directory left behind by the gitignored byproducts
-    assert not (dotbrain_root / "projects" / "proj-delete").exists()
+    assert not (dotbrain_root / "brainspaces" / "proj-delete").exists()
     assert any("removed" in l for l in logs)
 
 
@@ -228,7 +228,7 @@ def test_drop_remote_beads_database_rejects_unsafe_names():
 def test_unwire_no_repo_delete_committed_root(dotbrain_root: Path):
     _commit_brainspace(dotbrain_root, "brain-only")
     # a tracked file with local modifications must not block delete (git rm needs -f)
-    (dotbrain_root / "projects" / "brain-only" / ".brain" / "AGENTS.md").write_text("# changed\n")
+    (dotbrain_root / "brainspaces" / "brain-only" / ".brain" / "AGENTS.md").write_text("# changed\n")
     calls: list[list[str]] = []
 
     def run(argv, *, cwd=None, env=None, check=True, **kwargs):
@@ -243,7 +243,7 @@ def test_unwire_no_repo_delete_committed_root(dotbrain_root: Path):
         run=run,
     )
 
-    assert not (dotbrain_root / "projects" / "brain-only").exists()
+    assert not (dotbrain_root / "brainspaces" / "brain-only").exists()
     assert any("removed Brainspace" in line for line in result.logs)
     assert not any(call[0] == "ssh" for call in calls)  # DB drop is no longer coupled to unwire
 
@@ -275,7 +275,7 @@ def test_unwire_no_repo_archive_uncommitted_root(dotbrain_root: Path):
         run=_git_runner(dotbrain_root),
     )
 
-    archived = dotbrain_root / "projects" / ".archive" / "fresh"
+    archived = dotbrain_root / "brainspaces" / ".archive" / "fresh"
     assert (archived / ".brain" / "AGENTS.md").exists()  # brain survives the move
     assert not control.exists()
     assert any("uncommitted" in line for line in result.logs)
@@ -294,8 +294,8 @@ def test_unwire_no_repo_delete_dry_run_keeps_root(dotbrain_root: Path):
         dry_run=True, run=run,
     )
 
-    assert (dotbrain_root / "projects" / "brain-only").exists()
-    assert any("would remove Brainspace projects/brain-only" in line for line in result.logs)
+    assert (dotbrain_root / "brainspaces" / "brain-only").exists()
+    assert any("would remove Brainspace brainspaces/brain-only" in line for line in result.logs)
     assert not any(call[0] == "ssh" for call in calls)
 
 
@@ -311,7 +311,7 @@ def test_unwire_delete_removes_projects_entry(dotbrain_root: Path):
         run=_git_runner(dotbrain_root),
     )
 
-    assert not (dotbrain_root / "projects" / "fresh" / "project.yaml").exists()
+    assert not (dotbrain_root / "brainspaces" / "fresh" / "project.yaml").exists()
     assert any("removed" in line for line in result.logs)
 
 
