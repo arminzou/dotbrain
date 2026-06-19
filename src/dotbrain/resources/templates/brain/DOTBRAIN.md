@@ -34,6 +34,8 @@ Brain template propagate to every brain.
 
 - `CONTEXT.md` — domain vocabulary for this project
 - `adr/` — Architecture Decision Records, one file per decision
+- `prd/` — Product Requirements Documents, one initiative per file. Authored by `to-prd`,
+  decomposed into bead epics by `to-issues`
 - `agents/` — project-specific skill config. Skills are cross-project; the Brain only
   configures them
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —

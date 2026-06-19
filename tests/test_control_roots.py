@@ -36,7 +36,7 @@ def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
-    for sub in ("adr", "agents", "docs"):
+    for sub in ("adr", "prd", "agents", "docs"):
         assert (brain / sub).is_dir()
         assert (brain / sub / "README.md").is_file(), \
             f"dotbrain-owned README.md not hydrated to .brain/{sub}/"
