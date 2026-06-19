@@ -37,6 +37,7 @@ CONTROL_GITIGNORE_LINES: tuple[str, ...] = (
     ".beads/dolt-config.log",
     ".claude/skills/",
     ".codex/skills/",
+    ".repo.local",  # machine-local repo-path override; never travels with the synced control root
 )
 
 
