@@ -1,7 +1,7 @@
 [project]
 name = "dotbrain"
 version = "0.1.0"
-description = "Agent-native control plane for wiring project control roots and skills into coding agents."
+description = "Agent-native control plane for wiring project Brainspaces and skills into coding agents."
 requires-python = ">=3.11"
 license = "MIT"
 authors = [

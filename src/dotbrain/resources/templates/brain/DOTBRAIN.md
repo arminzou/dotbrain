@@ -9,7 +9,7 @@ Brain template propagate to every brain.
 - This Brain lives in the private dotbrain orchestration layer at
   `~/dotbrain/projects/<name>/.brain`, not in the code repo.
 - Repo-root `.brain`, `.beads`, `.claude`, and `.codex` are gitignored symlinks into that
-  control root. They are local machine wiring: never commit them to the code repo.
+  Brainspace. They are local machine wiring: never commit them to the code repo.
 - Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
 - Worktrees reach this same Brain through the same symlinks; never copy it per worktree.
 - If the symlinks are missing or dangling, run `dotbrain wire` from the repo root.

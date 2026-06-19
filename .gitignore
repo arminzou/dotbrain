@@ -1,6 +1,6 @@
 .DS_Store
 
-# This repo is wired into a private dotbrain control root as an adopter:
+# This repo is wired into a private dotbrain Brainspace as an adopter:
 # repo-root .brain/.beads/.claude/.codex are local gitignored symlinks, never tracked.
 /.brain
 /.beads

@@ -18,7 +18,7 @@ The packaged baseline comes from
 [src/dotbrain/resources/skills.yaml](/home/armin/repos/projects/dotbrain/src/dotbrain/resources/skills.yaml:1).
 
 - `brain/wire-brain`
-  Provisions or repairs the control-root wiring between a repo and its private Brain.
+  Provisions or repairs the Brainspace wiring between a repo and its private Brain.
 - `brain/operate-execution`
   Operates the private execution graph and recommends the next ready work item.
 - `brain/enter-main-agent`

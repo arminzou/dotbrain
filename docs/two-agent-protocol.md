@@ -39,7 +39,7 @@ slice is coordinated.
 
 The worker runs in a git worktree, but it does not get a separate Brain or separate execution store.
 
-Main checkout and worker worktrees share the same private control-root wiring:
+Main checkout and worker worktrees share the same private Brainspace wiring:
 
 - `.brain`
 - `.beads`

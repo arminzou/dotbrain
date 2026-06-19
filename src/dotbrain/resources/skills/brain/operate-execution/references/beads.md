@@ -12,8 +12,8 @@ source of truth that drifts.
 
 ## Command quick reference
 
-Run from the repo root or control root; use `bd -C <repo-or-control-root> ...` from elsewhere. The
-store lives in the control root's `.beads/`. `bd prime` reloads the session protocol and the
+Run from the repo root or Brainspace; use `bd -C <repo-or-Brainspace> ...` from elsewhere. The
+store lives in the Brainspace's `.beads/`. `bd prime` reloads the session protocol and the
 current command set.
 
 ```bash

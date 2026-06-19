@@ -8,7 +8,7 @@ For the first-run setup, start with
 
 ## What Wiring Means
 
-Wiring connects a code repo to a private control root under your dotbrain data root.
+Wiring connects a code repo to a private Brainspace under your dotbrain data root.
 
 The repo gets local, gitignored links such as:
 
@@ -17,7 +17,7 @@ The repo gets local, gitignored links such as:
 - `.claude`
 - `.codex`
 
-Those links point at the private control root, typically under `~/dotbrain/projects/<name>/`.
+Those links point at the private Brainspace, typically under `~/dotbrain/projects/<name>/`.
 
 The important boundary is:
 
@@ -27,7 +27,7 @@ The important boundary is:
 ## What `dotbrain wire` Does
 
 Use `dotbrain wire` when you are connecting a repo to dotbrain for the first time, or when the
-repo and control root should be reconciled again from the source of truth.
+repo and Brainspace should be reconciled again from the source of truth.
 
 Typical usage:
 
@@ -37,7 +37,7 @@ dotbrain wire <repo>
 
 This creates or repairs:
 
-- the private control root
+- the private Brainspace
 - the repo-root wiring links
 - seeded project config such as `project.yaml`
 - local agent workspace wiring for supported agents
@@ -67,7 +67,7 @@ Rule of thumb:
 
 ## What `dotbrain unwire` Does
 
-Use `dotbrain unwire` when a repo should no longer point at a control root.
+Use `dotbrain unwire` when a repo should no longer point at a Brainspace.
 
 Typical usage:
 
@@ -75,12 +75,12 @@ Typical usage:
 dotbrain unwire
 ```
 
-`unwire` disconnects the adopter repo from its control root. Depending on the flags you choose, the
-control root can be kept, archived, or deleted.
+`unwire` disconnects the adopter repo from its Brainspace. Depending on the flags you choose, the
+Brainspace can be kept, archived, or deleted.
 
 Important detail:
 
-- `unwire` is about repo/control-root disconnection
+- `unwire` is about repo/Brainspace disconnection
 - remote beads database cleanup is separate
 
 If a project uses a server beads backend, dropping that remote database is a separate operation.
@@ -89,7 +89,7 @@ If a project uses a server beads backend, dropping that remote database is a sep
 
 Worktrees do not get separate Brains or separate execution stores.
 
-They reuse the same control-root wiring model as the main checkout, so a worktree still points back
+They reuse the same Brainspace wiring model as the main checkout, so a worktree still points back
 to the same:
 
 - `.brain`
@@ -104,7 +104,7 @@ That is why worktree sessions still see the same Brain context and live executio
 Common wiring problems are usually one of these:
 
 - missing local links
-- links pointing at the wrong control root
+- links pointing at the wrong Brainspace
 - a repo that was cloned fresh and never wired
 - a worktree that was created without reconciling dotbrain wiring
 
@@ -120,7 +120,7 @@ Then, if the repo should already be wired, run:
 dotbrain refresh
 ```
 
-If the project was never wired correctly or the repo/control-root relationship changed, run:
+If the project was never wired correctly or the repo/Brainspace relationship changed, run:
 
 ```bash
 dotbrain wire <repo>

@@ -8,7 +8,7 @@ backend lifecycle fits into `load`, `migrate`, and cleanup commands.
 Per project, beads can run in one of two practical modes:
 
 - `embedded`
-  Local beads state lives in the project's private control root.
+  Local beads state lives in the project's private Brainspace.
 - `server`
   The project uses a shared Dolt sql-server backend.
 
@@ -22,7 +22,7 @@ Use embedded mode when:
 - you do not need a shared sql-server backend
 - you want the smallest operational footprint
 
-In embedded mode, the control root carries the local beads state and dotbrain can hydrate it
+In embedded mode, the Brainspace carries the local beads state and dotbrain can hydrate it
 locally when needed.
 
 ## Server Mode
@@ -85,7 +85,7 @@ repo wiring and separate from `dotbrain unwire`.
 
 Rule of thumb:
 
-- `unwire` disconnects a repo from its control root
+- `unwire` disconnects a repo from its Brainspace
 - `drop-db` removes a server backend database
 
 Those are different operations on purpose.

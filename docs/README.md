@@ -7,7 +7,7 @@ Start here if you want the shape of the material before diving into a specific p
 ## Start Here
 
 - [architecture.md](/home/armin/repos/projects/dotbrain/docs/architecture.md)
-  The design narrative: control roots, the Brain/execution split, skills, and the public/private boundary.
+  The design narrative: Brainspaces, the Brain/execution split, skills, and the public/private boundary.
 - [getting-started.md](/home/armin/repos/projects/dotbrain/docs/getting-started.md)
   The first-run path: install, bootstrap, wire a repo, and verify the result.
 

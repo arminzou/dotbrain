@@ -4,23 +4,23 @@
 
 ### dotbrain
 
-The tool itself. dotbrain wires a private control root and skill/runtime setup into a code repo
+The tool itself. dotbrain wires a private Brainspace and skill/runtime setup into a code repo
 without moving that private state into the repo.
 
-### control root
+### Brainspace
 
-The private per-project home under `~/dotbrain/projects/<name>/`. A control root contains the
+The private per-project home under `~/dotbrain/projects/<name>/`. A Brainspace contains the
 project's Brain plus agent/runtime adapters such as `.beads`, `.claude`, and `.codex`.
 
-### control-root links
+### Brainspace links
 
-The gitignored links placed in a repo or worktree that point back to the private control root.
+The gitignored links placed in a repo or worktree that point back to the private Brainspace.
 Typical links are `.brain`, `.beads`, `.claude`, and `.codex`.
 
 ### Brain
 
 The durable knowledge layer for a project. The Brain holds project context, decisions, and
-agent-facing conventions. In dotbrain terms, the Brain is narrower than the full control root.
+agent-facing conventions. In dotbrain terms, the Brain is narrower than the full Brainspace.
 
 ### Brain-only project
 
@@ -65,7 +65,7 @@ private execution graph, not treated as the source of truth for execution.
 ### worktree
 
 A git worktree that shares the same repo history but has its own working directory. In dotbrain, a
-worktree can be wired to the same control root as the main checkout.
+worktree can be wired to the same Brainspace as the main checkout.
 
 ### bootstrap
 
@@ -83,7 +83,7 @@ core of these skills as part of its operating model.
 
 ### adopter repo
 
-A normal code repo that dotbrain wires to a private control root. The adopter repo stays focused on
+A normal code repo that dotbrain wires to a private Brainspace. The adopter repo stays focused on
 the code; the Brain and execution state live outside it.
 
 ### derive

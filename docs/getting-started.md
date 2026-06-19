@@ -4,7 +4,7 @@ This guide walks through the first local setup:
 
 1. Install dotbrain and its machine prerequisites.
 2. Bootstrap your global dotbrain home.
-3. Wire one code repo to a private control root.
+3. Wire one code repo to a private Brainspace.
 4. Verify the wiring and inspect the seeded config.
 
 ## Before You Start
@@ -56,7 +56,7 @@ Example:
 dotbrain wire ~/repos/projects/my-app
 ```
 
-Wiring creates or repairs a private control root for that project and connects the repo to it
+Wiring creates or repairs a private Brainspace for that project and connects the repo to it
 through gitignored local links such as `.brain`, `.beads`, `.claude`, and `.codex`.
 
 ## 4. Verify the Result
@@ -76,8 +76,8 @@ dotbrain doctor
 At this point you should have:
 
 - a seeded `~/dotbrain/config.yaml`
-- a project control root under `~/dotbrain/projects/<name>/`
-- local wiring in the repo that points at that control root
+- a project Brainspace under `~/dotbrain/projects/<name>/`
+- local wiring in the repo that points at that Brainspace
 
 ## 5. Edit Config Only When Needed
 
@@ -91,5 +91,5 @@ When you do need configuration:
 
 ## Next
 
-- [architecture.md](/home/armin/repos/projects/dotbrain/docs/architecture.md) explains the control-root model.
+- [architecture.md](/home/armin/repos/projects/dotbrain/docs/architecture.md) explains the Brainspace model.
 - [cli-reference.md](/home/armin/repos/projects/dotbrain/docs/cli-reference.md) lists the public commands.

@@ -13,16 +13,16 @@ repo is awkward: much of it is private, it is not really *code*, and it drifts.
 dotbrain's premise: give every project a structured context store that lives *outside* the code
 repo, and wire it into the agent so each session starts warm.
 
-## Control roots
+## Brainspaces
 
-The unit of organization is a **control root** — one directory per project that holds everything an
+The unit of organization is a **Brainspace** — one directory per project that holds everything an
 agent needs that is not the code itself:
 
 - `.brain/` — the project's knowledge (see below)
 - `.beads/` — the execution store (issues, dependencies, plans)
 - `.claude/`, `.codex/` — agent workspaces (settings, worktrees)
 
-Control roots live together in a single repository. A code repo connects to its control root through
+Brainspaces live together in a single repository. A code repo connects to its Brainspace through
 **gitignored symlinks** at the repo root (`.brain`, `.beads`, `.claude`, `.codex`). Because the
 symlink targets are outside the code repo, they are never tracked there — they are local machine
 wiring. The code repo stays clean and the context stays private, while the agent sees both as one
@@ -62,7 +62,7 @@ product skills coexist safely with an operator's own private skills on the same 
 
 ## Wiring and session start
 
-Connecting a repo is one command: `dotbrain wire` creates or repairs the control root, writes the
+Connecting a repo is one command: `dotbrain wire` creates or repairs the Brainspace, writes the
 four symlinks, and records the ignore rules that keep them out of the code repo. A one-time
 `dotbrain bootstrap` installs the agent hooks for the machine.
 
@@ -74,7 +74,7 @@ per-worktree copy.
 ## Public / private boundary
 
 The decision that shapes everything: **the tool is public; your data is private.** This repository is
-the tool — CLI, bundled skills, templates, scripts. Your control roots and Brains live in a separate,
+the tool — CLI, bundled skills, templates, scripts. Your Brainspaces and Brains live in a separate,
 private data root that the installed tool operates on. The tool never contains project data, and a
 Brain is never mirrored into a public code repo. When something genuinely needs to be public, you
 *derive* a fresh, audience-specific document instead of exposing the private source.

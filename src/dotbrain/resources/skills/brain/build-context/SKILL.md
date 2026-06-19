@@ -53,7 +53,7 @@ For a public or potentially public adopter repo:
   tracker details, private roadmap, or private domain vocabulary paths.
 - Do not create tracked public replacement files for missing private dotbrain state.
 
-For private control roots or private repos, it is fine to document the private paths directly when
+For private Brainspaces or private repos, it is fine to document the private paths directly when
 they are part of the repo's durable operational context.
 
 ## Working Process

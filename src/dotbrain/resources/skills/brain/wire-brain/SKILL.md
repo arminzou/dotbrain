@@ -1,11 +1,11 @@
 ---
 name: wire-brain
-description: Wire a repo into dotbrain by creating or updating its control root, Brain, agent workspace symlinks, beads pointer, and repo agent instructions. Use when starting a new project under dotbrain, connecting an existing repo to a control root, repairing .brain/.beads/.claude/.codex wiring, or updating bootstrap expectations.
+description: Wire a repo into dotbrain by creating or updating its Brainspace, Brain, agent workspace symlinks, beads pointer, and repo agent instructions. Use when starting a new project under dotbrain, connecting an existing repo to a Brainspace, repairing .brain/.beads/.claude/.codex wiring, or updating bootstrap expectations.
 ---
 
 # Wire Brain
 
-Connect a code repo to its project control root in dotbrain.
+Connect a code repo to its project Brainspace in dotbrain.
 
 ## Preconditions
 
@@ -13,7 +13,7 @@ Connect a code repo to its project control root in dotbrain.
 - The target code repo path is known.
 - The project name defaults to the repo directory name unless the user specifies one.
 - `dotbrain bootstrap` performs machine-wide reconciliation later; this skill handles one target
-  repo/control root at a time.
+  repo/Brainspace at a time.
 - Wiring makes one minimal tracked adopter-repo change: a context pointer to
   `.brain/AGENTS.md`. Do not edit `.gitignore`, `README.md`, `dev/`, docs, source, or legacy
   context as part of wiring.
@@ -36,7 +36,7 @@ The script owns deterministic wiring and appends the `.brain/AGENTS.md` pointer 
 repo's `AGENTS.md` and, when distinct, `CLAUDE.md`. Use the rest of this skill to inspect results,
 repair edge cases, or make explicit follow-up changes after the user approves them.
 
-## Control Root Layout
+## Brainspace Layout
 
 Create or update `~/dotbrain/projects/<name>/`:
 
@@ -53,7 +53,7 @@ Create or update `~/dotbrain/projects/<name>/`:
 .codex/          # Codex workspace: brain + beads `bd codex-hook` hooks
 ```
 
-Do not create a per-project brain git repo. The control root is versioned as part of dotbrain.
+Do not create a per-project brain git repo. The Brainspace is versioned as part of dotbrain.
 
 ## Steps
 
@@ -63,13 +63,13 @@ Do not create a per-project brain git repo. The control root is versioned as par
      docs, `CONTEXT.md`, then ADRs.
    - Create `.brain/CONTEXT.md` and `.brain/adr/` only when there is real content.
 
-2. **Initialize beads for the control root.**
+2. **Initialize beads for the Brainspace.**
    - Use the current bootstrap policy for `.beads/config.yaml` and the named database.
    - Verify with `bd -C <repo> ready` after the repo symlink is wired, or
      `bd -C ~/dotbrain/projects/<name> ready` while operating directly in dotbrain.
    - Dolt/runtime state stays ignored. `dotbrain wire` owns the commit: it undoes beads' own
-     `bd init` commit and lands the whole control root as one `feat(brain): wire <name>` commit in
-     dotbrain (wire-project owns control-root writes). Do not hand-commit the
+     `bd init` commit and lands the whole Brainspace as one `feat(brain): wire <name>` commit in
+     dotbrain (wire-project owns Brainspace writes). Do not hand-commit the
      dotbrain side.
 
 3. **Wire the repo symlinks.**

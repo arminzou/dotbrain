@@ -1,11 +1,11 @@
 ---
 name: operate-execution
-description: Operate the private execution engine for a project control root. Use when the user wants to shape work, inspect ready work, claim/update/close work items, split or discover follow-up work, or connect private execution to public issues.
+description: Operate the private execution engine for a project Brainspace. Use when the user wants to shape work, inspect ready work, claim/update/close work items, split or discover follow-up work, or connect private execution to public issues.
 ---
 
 # Operate Execution
 
-Operate the control root's private execution layer: a typed, prioritized **dependency graph** of
+Operate the Brainspace's private execution layer: a typed, prioritized **dependency graph** of
 work items. The engine is declared in `project.yaml` (`execution-engine:`, today beads). This skill
 is engine-agnostic — it owns the model and workflow; the engine's CLI mechanics and native-modeling
 rules live in `references/<engine>.md` ([references/beads.md](references/beads.md) for beads).

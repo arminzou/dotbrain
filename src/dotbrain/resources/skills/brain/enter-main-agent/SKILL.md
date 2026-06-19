@@ -76,7 +76,7 @@ Choose the worker surface:
 
 Ensure the worktree exists or let the launcher create or reuse it. All worktrees must reach the
 same `.brain`, `.beads`, `.claude`, and `.codex` symlinks as the main checkout. Never copy the
-Brain or agent workspaces. All worktrees share the same control-root `.beads` symlink, so beads state is
+Brain or agent workspaces. All worktrees share the same Brainspace `.beads` symlink, so beads state is
 live and shared across sessions.
 
 Before handoff, claim or update the bead as needed and emit a concrete worker brief that includes:
