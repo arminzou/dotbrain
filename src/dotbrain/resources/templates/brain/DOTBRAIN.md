@@ -29,6 +29,10 @@ Brain template propagate to every brain.
 - Public-facing repo docs (README.md, repo-root AGENTS.md) must not expose private Brain
   paths or content. The only `.brain` reference allowed in the repo root is the one-line
   agent pointer to `.brain/AGENTS.md`.
+- Never reference private Brain context from code, tests, comments, commit messages, or
+  PR text: no ADR numbers, Brain paths, or decision-record identifiers in anything the
+  public repo carries. State the rationale in plain terms instead; the ADR linkage stays
+  in the Brain.
 
 ## Brain structure
 
