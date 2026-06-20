@@ -38,12 +38,12 @@ def _git(repo: Path, *args: str) -> str:
 def test_reconcile_creates_repairs_skips_and_preserves_real_paths(tmp_path: Path) -> None:
     directory = tmp_path / "repo"
     directory.mkdir()
-    control = tmp_path / "control"
-    control.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
 
-    (control / ".brain").mkdir()
-    (control / ".beads").mkdir()
-    (control / ".claude").mkdir()
+    (brainspace / ".brain").mkdir()
+    (brainspace / ".beads").mkdir()
+    (brainspace / ".claude").mkdir()
     wrong = tmp_path / "wrong"
     wrong.mkdir()
 
@@ -51,10 +51,10 @@ def test_reconcile_creates_repairs_skips_and_preserves_real_paths(tmp_path: Path
     (directory / ".codex").mkdir()
 
     targets = {
-        ".brain": control / ".brain",
-        ".beads": control / ".beads",
-        ".claude": control / ".claude",
-        ".codex": control / ".codex",
+        ".brain": brainspace / ".brain",
+        ".beads": brainspace / ".beads",
+        ".claude": brainspace / ".claude",
+        ".codex": brainspace / ".codex",
     }
 
     result = adopter_repos.reconcile(directory, targets)
@@ -63,20 +63,20 @@ def test_reconcile_creates_repairs_skips_and_preserves_real_paths(tmp_path: Path
     assert result.repaired == [".beads"]
     assert result.skipped == [".codex"]
     assert result.collisions == []
-    assert (directory / ".brain").resolve() == (control / ".brain").resolve()
-    assert (directory / ".beads").resolve() == (control / ".beads").resolve()
-    assert (directory / ".claude").resolve() == (control / ".claude").resolve()
+    assert (directory / ".brain").resolve() == (brainspace / ".brain").resolve()
+    assert (directory / ".beads").resolve() == (brainspace / ".beads").resolve()
+    assert (directory / ".claude").resolve() == (brainspace / ".claude").resolve()
 
 
 def test_reconcile_reports_real_path_collisions(tmp_path: Path) -> None:
     directory = tmp_path / "repo"
     directory.mkdir()
-    control = tmp_path / "control"
-    control.mkdir()
-    (control / ".brain").mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".brain").mkdir()
     (directory / ".brain").mkdir()
 
-    result = adopter_repos.reconcile(directory, {".brain": control / ".brain"})
+    result = adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
 
     assert result.created == []
     assert result.repaired == []
@@ -141,50 +141,50 @@ def test_expand_path_no_tilde(fake_home: Path):
 
 
 def test_repo_for_brainspace_reads_repo_file(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "myproject"
-    control.mkdir()
-    (control / ".repo").write_text("~/repos/myproject\n")
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, home=fake_home)
+    brainspace = tmp_path / "myproject"
+    brainspace.mkdir()
+    (brainspace / ".repo").write_text("~/repos/myproject\n")
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
     assert result == fake_home / "repos" / "myproject"
 
 
 def test_repo_for_brainspace_local_overrides_repo(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "myproject"
-    control.mkdir()
-    (control / ".repo").write_text("~/repos/myproject\n")
-    (control / ".repo.local").write_text("~/local/myproject\n")
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, home=fake_home)
+    brainspace = tmp_path / "myproject"
+    brainspace.mkdir()
+    (brainspace / ".repo").write_text("~/repos/myproject\n")
+    (brainspace / ".repo.local").write_text("~/local/myproject\n")
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
     assert result == fake_home / "local" / "myproject"
 
 
 def test_repo_for_brainspace_dotbrain_fallback(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "dotbrain"
-    control.mkdir()
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, home=fake_home)
+    brainspace = tmp_path / "dotbrain"
+    brainspace.mkdir()
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
     assert result == tmp_path
 
 
 def test_repo_for_brainspace_repo_base_fallback(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "myproj"
-    control.mkdir()
+    brainspace = tmp_path / "myproj"
+    brainspace.mkdir()
     repo_base = tmp_path / "repos"
     (repo_base / "myproj").mkdir(parents=True)
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, repo_base=repo_base, home=fake_home)
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, repo_base=repo_base, home=fake_home)
     assert result == repo_base / "myproj"
 
 
 def test_repo_for_brainspace_none_when_not_found(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "ghost"
-    control.mkdir()
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, home=fake_home)
+    brainspace = tmp_path / "ghost"
+    brainspace.mkdir()
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
     assert result is None
 
 
 def test_repo_for_brainspace_skips_comments(tmp_path: Path, fake_home: Path):
-    control = tmp_path / "myproject"
-    control.mkdir()
-    (control / ".repo").write_text("# comment\n\n~/repos/myproject\n")
-    result = adopter_repos.repo_for_brainspace(control, tmp_path, home=fake_home)
+    brainspace = tmp_path / "myproject"
+    brainspace.mkdir()
+    (brainspace / ".repo").write_text("# comment\n\n~/repos/myproject\n")
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
     assert result == fake_home / "repos" / "myproject"
 
 
@@ -323,7 +323,7 @@ def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
     assert not (repo / ".brain").resolve().exists()
 
     # Reconcile (what `wire --all` does) re-points every link to the new Brainspace.
-    result = adopter_repos.reconcile(repo, paths.control_link_targets(root, "example"))
+    result = adopter_repos.reconcile(repo, paths.brainspace_link_targets(root, "example"))
     assert set(result.repaired) == set(paths.BRAINSPACE_LINKS)
     assert os.readlink(repo / ".brain") == str(root / "brainspaces" / "example" / ".brain")
     assert (repo / ".brain").resolve().is_dir()

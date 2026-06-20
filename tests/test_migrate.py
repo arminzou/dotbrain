@@ -39,9 +39,9 @@ def make_migrate_runner(calls: list[list[str]], *, pre_total: int = 3, post_tota
     return run
 
 
-def _seed_beads(control: Path, mode: str | None) -> None:
+def _seed_beads(brainspace: Path, mode: str | None) -> None:
     """Give a Brainspace a ``.beads`` with the given dolt_mode (or no metadata when None)."""
-    beads = control / ".beads"
+    beads = brainspace / ".beads"
     beads.mkdir(parents=True, exist_ok=True)
     if mode is not None:
         (beads / "metadata.json").write_text(json.dumps({"dolt_mode": mode, "backend": "dolt"}))
@@ -55,8 +55,8 @@ def test_destroy_token():
 
 
 def test_backup_dir_outside_beads(tmp_path: Path):
-    control = tmp_path / "brainspaces" / "demo"
-    assert migrate.backup_dir_for(control) == tmp_path / "backups" / "beads" / "demo"
+    brainspace = tmp_path / "brainspaces" / "demo"
+    assert migrate.backup_dir_for(brainspace) == tmp_path / "backups" / "beads" / "demo"
 
 
 def test_parse_total_issues():
@@ -85,8 +85,8 @@ def test_beads_mode(dotbrain_root: Path):
 
 
 def test_migrate_embedded_happy_path_emits_full_argv_sequence(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
     result = migrate.migrate_project(
@@ -135,8 +135,8 @@ def test_backup_copy_skipped_for_local_host():
 
 
 def test_migrate_database_override(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
     migrate.migrate_project(
@@ -151,8 +151,8 @@ def test_migrate_database_override(dotbrain_root: Path):
 
 
 def test_migrate_dry_run_emits_no_bd_calls(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
     result = migrate.migrate_project(
@@ -171,8 +171,8 @@ def test_migrate_dry_run_emits_no_bd_calls(dotbrain_root: Path):
 
 
 def test_migrate_count_mismatch_aborts_project(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
     result = migrate.migrate_project(
@@ -190,8 +190,8 @@ def test_migrate_count_mismatch_aborts_project(dotbrain_root: Path):
 
 
 def test_migrate_unverified_when_stats_unparseable(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
     def run(argv, *, cwd=None, env=None, check=True):
@@ -211,8 +211,8 @@ def test_migrate_unverified_when_stats_unparseable(dotbrain_root: Path):
 
 
 def test_migrate_skips_server_mode_idempotent(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "server")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "server")
     calls: list[list[str]] = []
 
     result = migrate.migrate_project(
@@ -224,8 +224,8 @@ def test_migrate_skips_server_mode_idempotent(dotbrain_root: Path):
 
 
 def test_migrate_skips_unknown_mode(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, None)  # .beads dir but no metadata.json
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, None)  # .beads dir but no metadata.json
     calls: list[list[str]] = []
 
     result = migrate.migrate_project(
@@ -242,8 +242,8 @@ def test_migrate_skips_unknown_mode(dotbrain_root: Path):
 def test_migrate_non_dotbrain_project_hides_root_beads(dotbrain_root: Path):
     # A repo-root .beads symlink that must be hidden while bd runs in a non-dotbrain Brainspace.
     real = dotbrain_root / "brainspaces" / "example" / ".beads"
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
     (dotbrain_root / ".beads").symlink_to(real)
     calls: list[list[str]] = []
 
@@ -266,9 +266,9 @@ def test_migrate_non_dotbrain_project_hides_root_beads(dotbrain_root: Path):
 
 
 def test_migrate_dotbrain_project_does_not_hide_root_beads(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "dotbrain")
-    _seed_beads(control, "embedded")
-    real = control / ".beads"
+    brainspace = paths.brainspace(dotbrain_root, "dotbrain")
+    _seed_beads(brainspace, "embedded")
+    real = brainspace / ".beads"
     (dotbrain_root / ".beads").symlink_to(real)
     calls: list[list[str]] = []
 
@@ -328,8 +328,8 @@ def test_migrate_removes_embedded_entry_from_config(dotbrain_root: Path):
     (dotbrain_root / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  example:\n    beads:\n      mode: embedded\n"
     )
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
 
     migrate.migrate_project(
         dotbrain_root=dotbrain_root,
@@ -342,8 +342,8 @@ def test_migrate_removes_embedded_entry_from_config(dotbrain_root: Path):
 
 
 def test_migrate_records_custom_database_deviation(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
 
     migrate.migrate_project(
         dotbrain_root=dotbrain_root,
@@ -362,8 +362,8 @@ def test_migrate_abort_keeps_embedded_entry(dotbrain_root: Path):
     (dotbrain_root / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  example:\n    beads:\n      mode: embedded\n"
     )
-    control = paths.brainspace(dotbrain_root, "example")
-    _seed_beads(control, "embedded")
+    brainspace = paths.brainspace(dotbrain_root, "example")
+    _seed_beads(brainspace, "embedded")
 
     result = migrate.migrate_project(
         dotbrain_root=dotbrain_root,

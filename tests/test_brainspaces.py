@@ -19,20 +19,20 @@ from dotbrain import brainspaces, resource_loader
 # --------------------------------------------------------------------------- mutators
 
 
-def test_ensure_control_gitignore_seeds_and_is_idempotent(tmp_path: Path):
-    brainspaces.ensure_control_gitignore(tmp_path)
+def test_ensure_brainspace_gitignore_seeds_and_is_idempotent(tmp_path: Path):
+    brainspaces.ensure_brainspace_gitignore(tmp_path)
     lines = (tmp_path / ".gitignore").read_text().splitlines()
-    for expected in brainspaces.CONTROL_GITIGNORE_LINES:
+    for expected in brainspaces.BRAINSPACE_GITIGNORE_LINES:
         assert expected in lines
-    brainspaces.ensure_control_gitignore(tmp_path)
+    brainspaces.ensure_brainspace_gitignore(tmp_path)
     assert (tmp_path / ".gitignore").read_text().splitlines() == lines
 
 
 def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
-    control = tmp_path / "control"
-    control.mkdir()
-    brainspaces.seed_brain(control, dotbrain_root)
-    brain = control / ".brain"
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    brainspaces.seed_brain(brainspace, dotbrain_root)
+    brain = brainspace / ".brain"
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
@@ -46,11 +46,11 @@ def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
 
 
 def test_seed_brain_ignores_data_root_templates(dotbrain_root: Path, tmp_path: Path):
-    control = tmp_path / "control"
-    control.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
     shutil.rmtree(dotbrain_root / "templates")
-    brainspaces.seed_brain(control, dotbrain_root)
-    assert (control / ".brain" / "AGENTS.md").is_file()
+    brainspaces.seed_brain(brainspace, dotbrain_root)
+    assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
 def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
@@ -77,43 +77,43 @@ def test_ensure_codex_config(tmp_path: Path):
 
 
 def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path, tmp_path: Path):
-    control = tmp_path / "control"
-    control.mkdir()
-    warnings = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
-    warnings_again = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
+    warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
     assert warnings == []
     assert warnings_again == []
     bootstrap = "dotbrain hook session-start"
-    claude = json.loads((control / ".claude" / "settings.json").read_text())
+    claude = json.loads((brainspace / ".claude" / "settings.json").read_text())
     claude_commands = [h["command"] for e in claude["hooks"]["SessionStart"] for h in e["hooks"]]
     assert claude_commands == [bootstrap]
-    codex = json.loads((control / ".codex" / "hooks.json").read_text())
+    codex = json.loads((brainspace / ".codex" / "hooks.json").read_text())
     assert set(codex["hooks"]) == {"SessionStart"}
     codex_commands = [h["command"] for e in codex["hooks"]["SessionStart"] for h in e["hooks"]]
     assert codex_commands == [bootstrap]
-    assert "hooks = true" in (control / ".codex" / "config.toml").read_text()
+    assert "hooks = true" in (brainspace / ".codex" / "config.toml").read_text()
 
 
 def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
     dotbrain_root: Path, fake_home: Path
 ):
-    control = dotbrain_root / "brainspaces" / "claude-only"
-    control.mkdir(parents=True)
-    (control / "project.yaml").write_text(
+    brainspace = dotbrain_root / "brainspaces" / "claude-only"
+    brainspace.mkdir(parents=True)
+    (brainspace / "project.yaml").write_text(
         "agents:\n"
         "  - claude\n"
         "  - custom\n"
     )
-    existing_codex = control / ".codex" / "keep.txt"
+    existing_codex = brainspace / ".codex" / "keep.txt"
     existing_codex.parent.mkdir(parents=True)
     existing_codex.write_text("keep\n")
 
-    warnings = brainspaces.seed_agent_workspaces(control, dotbrain_root, fake_home)
+    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
 
-    assert (control / ".claude" / "settings.json").is_file()
-    assert not (control / ".codex" / "hooks.json").exists()
+    assert (brainspace / ".claude" / "settings.json").is_file()
+    assert not (brainspace / ".codex" / "hooks.json").exists()
     assert existing_codex.read_text() == "keep\n"
-    assert warnings == [f"ignored unknown agent workspace in {control / 'project.yaml'}: custom"]
+    assert warnings == [f"ignored unknown agent workspace in {brainspace / 'project.yaml'}: custom"]
 
 
 def test_sessionstart_bootstrap_script_does_not_invoke_bd(tmp_path: Path):

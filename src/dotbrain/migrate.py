@@ -5,7 +5,7 @@ Dolt engine. Moving an already-wired brain onto a shared sql-server has to prese
 Dolt commit graph, so this uses ``bd backup`` (Dolt-native, history-preserving) rather than the
 ``bd export`` JSONL path, which drops branches/history.
 
-Per-project sequence (all ``bd`` calls run with ``cwd=<control>`` and ``_beads_env(control)``):
+Per-project sequence (all ``bd`` calls run with ``cwd=<brainspace>`` and ``_beads_env(brainspace)``):
 
 1. ``bd stats --json``                     -> capture ``summary.total_issues`` (pre_count)
 2. ``bd backup init <backup-dir>``
@@ -46,10 +46,10 @@ def destroy_token(project: str) -> str:
     return f"DESTROY-{project}"
 
 
-def backup_dir_for(control: Path) -> Path:
+def backup_dir_for(brainspace: Path) -> Path:
     """Backup destination, kept outside tracked project Brainspaces."""
-    control = Path(control)
-    return control.parent.parent / "backups" / "beads" / control.name
+    brainspace = Path(brainspace)
+    return brainspace.parent.parent / "backups" / "beads" / brainspace.name
 
 
 def parse_total_issues(stdout: str) -> int | None:
@@ -60,13 +60,13 @@ def parse_total_issues(stdout: str) -> int | None:
         return None
 
 
-def beads_mode(control: Path) -> str:
+def beads_mode(brainspace: Path) -> str:
     """Classify a Brainspace's beads backend: ``embedded`` | ``server`` | ``none`` | ``unknown``.
 
     Reads ``.beads/metadata.json`` directly (the same file bootstrap inspects); avoids shelling out.
     """
-    metadata = Path(control) / ".beads" / "metadata.json"
-    if not (Path(control) / ".beads").is_dir():
+    metadata = Path(brainspace) / ".beads" / "metadata.json"
+    if not (Path(brainspace) / ".beads").is_dir():
         return "none"
     if not metadata.is_file():
         return "unknown"
@@ -88,7 +88,7 @@ def beads_mode(control: Path) -> str:
 @dataclass
 class MigrationResult:
     project: str = ""
-    control: Path | None = None
+    brainspace: Path | None = None
     status: str = ""  # migrated|migrated-unverified|skipped-server|skipped-no-beads|skipped-unknown|aborted-count-mismatch|dry-run|failed
     pre_count: int | None = None
     post_count: int | None = None
@@ -153,10 +153,10 @@ def migrate_project(
     run: Runner = _default_run,
 ) -> MigrationResult:
     dotbrain_root = Path(dotbrain_root)
-    control = paths.brainspace(dotbrain_root, project)
-    result = MigrationResult(project=project, control=control)
+    brainspace = paths.brainspace(dotbrain_root, project)
+    result = MigrationResult(project=project, brainspace=brainspace)
 
-    mode = beads_mode(control)
+    mode = beads_mode(brainspace)
     if mode == "server":
         result.status = "skipped-server"
         result.logs.append(f"{project}: already on a Dolt server; nothing to migrate")
@@ -174,7 +174,7 @@ def migrate_project(
         return result
 
     database = database or project
-    backup = backup_dir_for(control)
+    backup = backup_dir_for(brainspace)
     commands = _migration_argv(
         project, database, server_host, server_port, server_user, backup
     )
@@ -187,24 +187,24 @@ def migrate_project(
         result.logs.append(f"{project}: dry-run; {len(commands)} bd commands planned")
         return result
 
-    env = _beads_env(control)
-    hidden = _hide_root_beads(control, dotbrain_root)
+    env = _beads_env(brainspace)
+    hidden = _hide_root_beads(brainspace, dotbrain_root)
     try:
-        stats_pre = run(["bd", "stats", "--json"], cwd=control, env=env, check=True)
+        stats_pre = run(["bd", "stats", "--json"], cwd=brainspace, env=env, check=True)
         result.pre_count = parse_total_issues(stats_pre.stdout or "")
 
         backup.parent.mkdir(parents=True, exist_ok=True)
-        run(["bd", "backup", "init", str(backup)], cwd=control, env=env, check=True)
-        run(["bd", "backup", "sync"], cwd=control, env=env, check=True)
+        run(["bd", "backup", "init", str(backup)], cwd=brainspace, env=env, check=True)
+        run(["bd", "backup", "sync"], cwd=brainspace, env=env, check=True)
         for argv in backup_copy_commands:
-            run(argv, cwd=control, env=env, check=True)
-        run(init_args, cwd=control, env=env, check=True)  # bd init --server ... --reinit-local
-        run(["bd", "backup", "restore", "--force", str(backup)], cwd=control, env=env, check=True)
-        run(["bd", "dolt", "test"], cwd=control, env=env, check=True)
+            run(argv, cwd=brainspace, env=env, check=True)
+        run(init_args, cwd=brainspace, env=env, check=True)  # bd init --server ... --reinit-local
+        run(["bd", "backup", "restore", "--force", str(backup)], cwd=brainspace, env=env, check=True)
+        run(["bd", "dolt", "test"], cwd=brainspace, env=env, check=True)
         # bd writes the legacy dolt_server_port into metadata.json; make the port file primary.
-        normalize_server_beads_metadata(control / ".beads", server_port)
+        normalize_server_beads_metadata(brainspace / ".beads", server_port)
 
-        stats_post = run(["bd", "stats", "--json"], cwd=control, env=env, check=True)
+        stats_post = run(["bd", "stats", "--json"], cwd=brainspace, env=env, check=True)
         result.post_count = parse_total_issues(stats_post.stdout or "")
     finally:
         _restore_root_beads(hidden, dotbrain_root)
@@ -265,7 +265,7 @@ def safe_migrate_project(**kwargs) -> MigrationResult:
     try:
         return migrate_project(**kwargs)
     except Exception as exc:
-        control = paths.brainspace(Path(kwargs["dotbrain_root"]), project) if project else None
+        brainspace = paths.brainspace(Path(kwargs["dotbrain_root"]), project) if project else None
         detail = str(exc)
         stderr = (getattr(exc, "stderr", "") or "").strip()
         if stderr:
@@ -276,7 +276,7 @@ def safe_migrate_project(**kwargs) -> MigrationResult:
                 f"{project}: the Dolt server's SSH host key may be untrusted; trust it first "
                 "(e.g. `ssh-keyscan <host> >> ~/.ssh/known_hosts`) and retry"
             )
-        return MigrationResult(project=project, control=control, status="failed", warnings=warnings)
+        return MigrationResult(project=project, brainspace=brainspace, status="failed", warnings=warnings)
 
 
 def migrate_all(
@@ -293,12 +293,12 @@ def migrate_all(
     return [
         safe_migrate_project(
             dotbrain_root=dotbrain_root,
-            project=control.name,
+            project=brainspace.name,
             server_host=server_host,
             server_port=server_port,
             server_user=server_user,
             dry_run=dry_run,
             run=run,
         )
-        for control in paths.brainspaces(dotbrain_root)
+        for brainspace in paths.brainspaces(dotbrain_root)
     ]

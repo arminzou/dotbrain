@@ -77,7 +77,7 @@ def brainspaces(dotbrain_root: Path) -> list[Path]:
     return sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("."))
 
 
-def control_link_targets(dotbrain_root: Path, name: str) -> dict[str, Path]:
+def brainspace_link_targets(dotbrain_root: Path, name: str) -> dict[str, Path]:
     """Map each Brainspace link name to its target inside the project's Brainspace."""
     root = brainspace(dotbrain_root, name)
     return {link: root / link for link in BRAINSPACE_LINKS}

@@ -19,10 +19,10 @@ def _make_wired_repo(tmp_path: Path, dotbrain_root: Path, name: str) -> Path:
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
     (repo / "AGENTS.md").write_text(f"# {name}\n")
 
-    control = paths.brainspace(dotbrain_root, name)
+    brainspace = paths.brainspace(dotbrain_root, name)
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True)
-        (repo / link).symlink_to(control / link)
+        (brainspace / link).mkdir(parents=True)
+        (repo / link).symlink_to(brainspace / link)
 
     exclude = repo / ".git" / "info" / "exclude"
     exclude.parent.mkdir(exist_ok=True)
@@ -61,9 +61,9 @@ def test_unwire_keep_removes_symlinks_and_cleans_repo(tmp_path: Path, dotbrain_r
 
 def _commit_brainspace(dotbrain_root: Path, name: str) -> None:
     """Commit a Brainspace into the dotbrain git so git mv/rm work."""
-    control = paths.brainspace(dotbrain_root, name)
-    (control / ".brain").mkdir(parents=True, exist_ok=True)
-    (control / ".brain" / "AGENTS.md").write_text(f"# {name}\n")
+    brainspace = paths.brainspace(dotbrain_root, name)
+    (brainspace / ".brain").mkdir(parents=True, exist_ok=True)
+    (brainspace / ".brain" / "AGENTS.md").write_text(f"# {name}\n")
     subprocess.run(
         ["git", "-C", str(dotbrain_root), "add", f"brainspaces/{name}"],
         check=True, capture_output=True,
@@ -74,14 +74,14 @@ def _commit_brainspace(dotbrain_root: Path, name: str) -> None:
     )
 
 
-def _seed_byproducts(control: Path) -> list[Path]:
+def _seed_byproducts(brainspace: Path) -> list[Path]:
     """Drop in the gitignored runtime/wiring litter an offboard must strip, plus the Brainspace
     .gitignore that marks it ignored (so `git clean -X` recognises it)."""
-    (control / ".gitignore").write_text(".beads/metadata.json\n.claude/skills/\n")
-    runtime = control / ".beads" / "metadata.json"
+    (brainspace / ".gitignore").write_text(".beads/metadata.json\n.claude/skills/\n")
+    runtime = brainspace / ".beads" / "metadata.json"
     runtime.parent.mkdir(parents=True, exist_ok=True)
     runtime.write_text("{}")
-    skills = control / ".claude" / "skills"
+    skills = brainspace / ".claude" / "skills"
     skills.mkdir(parents=True, exist_ok=True)
     link = skills / "build-context"
     link.symlink_to("/tmp/build-context")
@@ -251,24 +251,24 @@ def test_unwire_no_repo_delete_committed_root(dotbrain_root: Path):
 def test_unwire_no_repo_delete_uncommitted_root(dotbrain_root: Path):
     # wire no longer commits, so a freshly-wired root is untracked: delete must not crash on
     # git rm, and git clean -X must not wipe the (untracked) brain before it is removed.
-    control = paths.brainspace(dotbrain_root, "fresh")
-    (control / ".brain").mkdir(parents=True)
-    (control / ".brain" / "AGENTS.md").write_text("# fresh\n")
-    _seed_byproducts(control)
+    brainspace = paths.brainspace(dotbrain_root, "fresh")
+    (brainspace / ".brain").mkdir(parents=True)
+    (brainspace / ".brain" / "AGENTS.md").write_text("# fresh\n")
+    _seed_byproducts(brainspace)
 
     result = workflows.unwire_project(
         dotbrain_root=dotbrain_root, project="fresh", no_repo=True, offboard="delete",
         run=_git_runner(dotbrain_root),
     )
 
-    assert not control.exists()
+    assert not brainspace.exists()
     assert any("removed Brainspace" in line for line in result.logs)
 
 
 def test_unwire_no_repo_archive_uncommitted_root(dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "fresh")
-    (control / ".brain").mkdir(parents=True)
-    (control / ".brain" / "AGENTS.md").write_text("# fresh\n")
+    brainspace = paths.brainspace(dotbrain_root, "fresh")
+    (brainspace / ".brain").mkdir(parents=True)
+    (brainspace / ".brain" / "AGENTS.md").write_text("# fresh\n")
 
     result = workflows.unwire_project(
         dotbrain_root=dotbrain_root, project="fresh", no_repo=True, offboard="archive",
@@ -277,7 +277,7 @@ def test_unwire_no_repo_archive_uncommitted_root(dotbrain_root: Path):
 
     archived = dotbrain_root / "brainspaces" / ".archive" / "fresh"
     assert (archived / ".brain" / "AGENTS.md").exists()  # brain survives the move
-    assert not control.exists()
+    assert not brainspace.exists()
     assert any("uncommitted" in line for line in result.logs)
 
 
@@ -303,8 +303,8 @@ def test_unwire_delete_removes_projects_entry(dotbrain_root: Path):
     (dotbrain_root / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  fresh:\n    beads:\n      mode: embedded\n"
     )
-    control = paths.brainspace(dotbrain_root, "fresh")
-    (control / ".brain").mkdir(parents=True)
+    brainspace = paths.brainspace(dotbrain_root, "fresh")
+    (brainspace / ".brain").mkdir(parents=True)
 
     result = workflows.unwire_project(
         dotbrain_root=dotbrain_root, project="fresh", no_repo=True, offboard="delete",
@@ -319,8 +319,8 @@ def test_unwire_keep_preserves_projects_entry(dotbrain_root: Path):
     (dotbrain_root / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  fresh:\n    beads:\n      mode: embedded\n"
     )
-    control = paths.brainspace(dotbrain_root, "fresh")
-    (control / ".brain").mkdir(parents=True)
+    brainspace = paths.brainspace(dotbrain_root, "fresh")
+    (brainspace / ".brain").mkdir(parents=True)
 
     workflows.unwire_project(
         dotbrain_root=dotbrain_root, project="fresh", no_repo=True, offboard="keep",
@@ -337,9 +337,9 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     tmp_path: Path, dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     repo = _make_wired_repo(tmp_path, dotbrain_root, "refreshme")
-    control = paths.brainspace(dotbrain_root, "refreshme")
-    (control / ".repo").write_text(f"{repo}\n")
-    (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    brainspace = paths.brainspace(dotbrain_root, "refreshme")
+    (brainspace / ".repo").write_text(f"{repo}\n")
+    (brainspace / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     (repo / ".codex").unlink()
     loaded: dict[str, object] = {}
 
@@ -361,8 +361,8 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     assert (repo / ".codex").is_symlink()
     for skill_path in skills.project_baseline(dotbrain_root):
         skill_name = Path(skill_path).name
-        assert (control / ".claude" / "skills" / skill_name).is_symlink()
-        assert (control / ".codex" / "skills" / skill_name).is_symlink()
+        assert (brainspace / ".claude" / "skills" / skill_name).is_symlink()
+        assert (brainspace / ".codex" / "skills" / skill_name).is_symlink()
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
     assert "beads warning" in result.warnings
@@ -388,7 +388,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
         home=fake_home,
     )
 
-    control = paths.brainspace(dotbrain_root, "claude-only")
+    brainspace = paths.brainspace(dotbrain_root, "claude-only")
     claude_link = repo / ".claude"
     claude_link.unlink()
     captured: dict[str, tuple[str, ...]] = {}
@@ -410,8 +410,8 @@ def test_refresh_project_honors_declared_agent_workspaces(
     assert captured["workspaces"] == (".claude",)
     assert claude_link.is_symlink()
     assert not (repo / ".codex").exists()
-    assert (control / ".claude").is_dir()
-    assert not (control / ".codex").exists()
+    assert (brainspace / ".claude").is_dir()
+    assert not (brainspace / ".codex").exists()
 
 
 def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
@@ -430,8 +430,8 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         install_global_hook=False,
         home=fake_home,
     )
-    control = paths.brainspace(dotbrain_root, "refresh-downgraded")
-    (control / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    brainspace = paths.brainspace(dotbrain_root, "refresh-downgraded")
+    (brainspace / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     workflows.wire_project(
         dotbrain_root=dotbrain_root,
         repo=repo,
@@ -441,7 +441,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
     )
     assert (repo / ".codex").is_symlink()
 
-    (control / "project.yaml").write_text("agents:\n  - claude\n")
+    (brainspace / "project.yaml").write_text("agents:\n  - claude\n")
     (repo / ".codex").unlink()
     captured: dict[str, tuple[str, ...]] = {}
 
@@ -460,16 +460,16 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
 
     assert result.refreshed == ["refresh-downgraded"]
     assert captured["workspaces"] == (".claude",)
-    assert (control / ".codex").is_dir()
+    assert (brainspace / ".codex").is_dir()
     assert not (repo / ".codex").exists()
 def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    control = paths.brainspace(dotbrain_root, "missing-repo")
-    (control / ".brain").mkdir(parents=True)
-    (control / ".claude").mkdir()
-    (control / ".codex").mkdir()
-    (control / ".repo").write_text("/does/not/exist\n")
+    brainspace = paths.brainspace(dotbrain_root, "missing-repo")
+    (brainspace / ".brain").mkdir(parents=True)
+    (brainspace / ".claude").mkdir()
+    (brainspace / ".codex").mkdir()
+    (brainspace / ".repo").write_text("/does/not/exist\n")
 
     monkeypatch.setattr(
         workflows.beads,
@@ -523,8 +523,8 @@ def test_unwire_all_dry_run_preserves_repos(tmp_path: Path, dotbrain_root: Path)
 
 
 def test_unwire_all_skips_brain_only_project(tmp_path: Path, dotbrain_root: Path):
-    control = paths.brainspace(dotbrain_root, "brain-only")
-    (control / ".brain").mkdir(parents=True)
+    brainspace = paths.brainspace(dotbrain_root, "brain-only")
+    (brainspace / ".brain").mkdir(parents=True)
 
     results = workflows.unwire_all_projects(
         dotbrain_root=dotbrain_root, run=_git_runner(dotbrain_root),

@@ -118,7 +118,7 @@ Reference for the public `dotbrain` CLI.
  touches symlinks or hooks.                                                     
                                                                                 
  Without --all: load one project (by --name, or the --repo/cwd repo). With      
- --all: every control                                                           
+ --all: every brainspace                                                        
  root declared to use beads.                                                    
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮

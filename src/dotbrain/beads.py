@@ -96,7 +96,7 @@ def _is_server_db_exists_error(exc: subprocess.CalledProcessError) -> bool:
 
 
 def attach_existing_server_beads(
-    control: Path,
+    brainspace: Path,
     project: str,
     *,
     host: str,
@@ -116,15 +116,15 @@ def attach_existing_server_beads(
     Dolt remote is configured, so a pull is a no-op, whereas ``test`` actually confirms the attach
     reaches the server and fails cleanly when it can't.
     """
-    beads = Path(control) / ".beads"
+    beads = Path(brainspace) / ".beads"
     beads.mkdir(parents=True, exist_ok=True)
     write_server_beads_metadata(beads, host=host, port=port, user=user, database=database)
-    run(["bd", "dolt", "test"], cwd=control, env=_beads_env(control), check=True)
+    run(["bd", "dolt", "test"], cwd=brainspace, env=_beads_env(brainspace), check=True)
     return f"attached to existing server beads DB {host}:{port}/{database} (hydrated metadata)"
 
 
 def init_beads(
-    control: Path,
+    brainspace: Path,
     project: str,
     dotbrain_root: Path,
     *,
@@ -146,23 +146,23 @@ def init_beads(
     case falls back to attaching via metadata hydration rather than a destructive
     re-init. Any other ``bd init`` failure surfaces as a clean ``RuntimeError`` carrying bd's stderr.
     """
-    control = Path(control)
+    brainspace = Path(brainspace)
     dotbrain_root = Path(dotbrain_root)
-    if not run_beads or (control / ".beads").is_dir():
+    if not run_beads or (brainspace / ".beads").is_dir():
         return None
     if remote and server_host:
         raise ValueError("--beads-remote and --beads-server-host are mutually exclusive")
 
-    hidden = _hide_root_beads(control, dotbrain_root)
+    hidden = _hide_root_beads(brainspace, dotbrain_root)
     try:
         try:
             run(_bd_init_args(project, remote, server_host, server_port,
                               server_user, database),
-                cwd=control, env=_beads_env(control), check=True)
+                cwd=brainspace, env=_beads_env(brainspace), check=True)
         except subprocess.CalledProcessError as exc:
             if server_host and _is_server_db_exists_error(exc):
                 return attach_existing_server_beads(
-                    control, project,
+                    brainspace, project,
                     host=server_host, port=server_port,
                     user=server_user, database=database or project,
                     run=run,
@@ -173,9 +173,9 @@ def init_beads(
         _restore_root_beads(hidden, dotbrain_root)
 
     if server_host:
-        _configure_dolt_server(control, server_host, server_port, server_user,
+        _configure_dolt_server(brainspace, server_host, server_port, server_user,
                                database or project, run)
-        normalize_server_beads_metadata(control / ".beads", server_port)
+        normalize_server_beads_metadata(brainspace / ".beads", server_port)
     return None
 
 
@@ -210,14 +210,14 @@ def _bd_init_args(
     return args
 
 
-def _beads_env(control: Path) -> dict:
-    return {**os.environ, "BEADS_DIR": str(Path(control) / ".beads"), "BD_NON_INTERACTIVE": "1"}
+def _beads_env(brainspace: Path) -> dict:
+    return {**os.environ, "BEADS_DIR": str(Path(brainspace) / ".beads"), "BD_NON_INTERACTIVE": "1"}
 
 
-def _hide_root_beads(control: Path, dotbrain_root: Path) -> Path | None:
+def _hide_root_beads(brainspace: Path, dotbrain_root: Path) -> Path | None:
     """bd init runs in the Brainspace but git sees dotbrain; hide the root .beads symlink first."""
     root_beads = Path(dotbrain_root) / ".beads"
-    if control == paths.brainspace(dotbrain_root, "dotbrain"):
+    if brainspace == paths.brainspace(dotbrain_root, "dotbrain"):
         return None
     if not root_beads.is_symlink():
         return None
@@ -244,11 +244,11 @@ def _restore_root_beads(hidden: Path | None, dotbrain_root: Path) -> None:
 
 
 def _configure_dolt_server(
-    control: Path, host: str, port: str, user: str, database: str, run: Runner
+    brainspace: Path, host: str, port: str, user: str, database: str, run: Runner
 ) -> None:
-    env = _beads_env(control)
+    env = _beads_env(brainspace)
     for key, value in (("host", host), ("port", port), ("user", user), ("database", database)):
-        run(["bd", "dolt", "set", key, value], cwd=control, env=env, check=True)
+        run(["bd", "dolt", "set", key, value], cwd=brainspace, env=env, check=True)
 
 
 # --------------------------------------------------------------------------- load / hydrate
@@ -292,7 +292,7 @@ def ensure_server_beads_metadata(
 
 
 def ensure_embedded_beads(
-    control: Path,
+    brainspace: Path,
     dotbrain_root: Path,
     *,
     remote: str = "",
@@ -303,33 +303,33 @@ def ensure_embedded_beads(
     With a declared remote the tracker is cloned from it; without one only an empty tracker can
     be created, since embedded data was never recoverable from git.
     """
-    if (control / ".beads").is_dir():
+    if (brainspace / ".beads").is_dir():
         return None, None
-    init_beads(control, control.name, dotbrain_root, remote=remote, run=run)
+    init_beads(brainspace, brainspace.name, dotbrain_root, remote=remote, run=run)
     if remote:
-        return f"hydrated embedded beads for {control.name} from {remote}", None
+        return f"hydrated embedded beads for {brainspace.name} from {remote}", None
     return (
-        f"initialized empty embedded beads for {control.name}",
-        f"{control.name}: declared embedded with no remote; tracker starts empty",
+        f"initialized empty embedded beads for {brainspace.name}",
+        f"{brainspace.name}: declared embedded with no remote; tracker starts empty",
     )
 
 
-def _preview_load(control: Path, beads_cfg, cfg) -> list[str]:
+def _preview_load(brainspace: Path, beads_cfg, cfg) -> list[str]:
     """Pure dry-run preview of what :func:`pull_beads_for_all` would do for one Brainspace.
 
     Mirrors the live branch selection (embedded vs server, already-hydrated skip) without touching
     the filesystem or invoking ``bd``, then always notes the pull. Keeping this free of mutators is
     what makes ``--dry-run`` provably side-effect-free (unwire-dry-run lesson, 9cfc44f).
     """
-    name = control.name
+    name = brainspace.name
     lines: list[str] = []
     if beads_cfg.mode == "embedded":
-        if not (control / ".beads").is_dir():
+        if not (brainspace / ".beads").is_dir():
             if beads_cfg.remote:
                 lines.append(f"would hydrate embedded beads for {name} from {beads_cfg.remote}")
             else:
                 lines.append(f"would initialize empty embedded beads for {name}")
-    elif not (control / ".beads" / "metadata.json").is_file() and cfg.beads_server.host:
+    elif not (brainspace / ".beads" / "metadata.json").is_file() and cfg.beads_server.host:
         database = beads_cfg.database or name
         port = cfg.beads_server.port or "3307"
         lines.append(
@@ -350,7 +350,7 @@ def pull_beads_for_all(
 ) -> BootstrapResult:
     """Hydrate and pull beads state for Brainspaces declared to use beads.
 
-    Drives off the resolved config.yaml config, not an existing ``.beads`` directory: control
+    Drives off the resolved config.yaml config, not an existing ``.beads`` directory: brainspace
     roots' ``.beads`` are never git-tracked, so on a fresh clone hydration creates them. Targets
     each Brainspace directly, so repo-less projects are hydrated too.
 
@@ -366,37 +366,37 @@ def pull_beads_for_all(
         result.warnings.append("bd is not installed; skipping beads pulls")
         return result
 
-    controls = paths.brainspaces(dotbrain_root)
+    brainspaces = paths.brainspaces(dotbrain_root)
     if projects is not None:
-        by_name = {c.name: c for c in controls}
-        controls = []
+        by_name = {c.name: c for c in brainspaces}
+        brainspaces = []
         for name in projects:
-            control = by_name.get(name)
-            if control is None:
+            brainspace = by_name.get(name)
+            if brainspace is None:
                 result.warnings.append(f"no Brainspace: {paths.data_dir(dotbrain_root).name}/{name}")
                 continue
-            controls.append(control)
+            brainspaces.append(brainspace)
 
-    for control in controls:
-        beads_cfg = config.load_project_config(dotbrain_root, control.name)
+    for brainspace in brainspaces:
+        beads_cfg = config.load_project_config(dotbrain_root, brainspace.name)
         if beads_cfg.mode == "none":
             continue
 
         if dry_run:
-            result.logs += _preview_load(control, beads_cfg, cfg)
+            result.logs += _preview_load(brainspace, beads_cfg, cfg)
             continue
 
         try:
             if beads_cfg.mode == "embedded":
                 log, warning = ensure_embedded_beads(
-                    control, dotbrain_root, remote=beads_cfg.remote, run=run
+                    brainspace, dotbrain_root, remote=beads_cfg.remote, run=run
                 )
                 if warning:
                     result.warnings.append(warning)
             else:
                 log = ensure_server_beads_metadata(
-                    control,
-                    control.name,
+                    brainspace,
+                    brainspace.name,
                     server_host=cfg.beads_server.host,
                     server_port=cfg.beads_server.port,
                     server_user=cfg.beads_server.user,
@@ -405,19 +405,19 @@ def pull_beads_for_all(
                 )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
                 OSError, RuntimeError) as exc:
-            result.warnings.append(f"failed to hydrate beads metadata for {control}: {exc}")
+            result.warnings.append(f"failed to hydrate beads metadata for {brainspace}: {exc}")
         else:
             if log:
                 result.logs.append(log)
 
         try:
             subprocess.run(
-                ["bd", "-C", str(control), "dolt", "pull"],
+                ["bd", "-C", str(brainspace), "dolt", "pull"],
                 check=True, capture_output=True, text=True, timeout=bd_timeout,
             )
-            result.pulled.append(str(control))
+            result.pulled.append(str(brainspace))
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            result.warnings.append(f"bd dolt pull failed for {control}")
+            result.warnings.append(f"bd dolt pull failed for {brainspace}")
 
     return result
 

@@ -112,9 +112,9 @@ def test_wire_brain_only_creates_brainspace(
     )
     assert result.exit_code == 0, result.output
     assert "run `dotbrain bootstrap --only claude-hook` if needed" in result.output
-    control = dotbrain_root / "brainspaces" / "demo"
-    assert (control / ".repo").read_text() == "(brain-only)\n"
-    assert (control / ".brain" / "AGENTS.md").is_file()
+    brainspace = dotbrain_root / "brainspaces" / "demo"
+    assert (brainspace / ".repo").read_text() == "(brain-only)\n"
+    assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_no_repo_requires_name(
@@ -227,10 +227,10 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
-    control = dotbrain_root / "brainspaces" / "myprojrepo"
+    brainspace = dotbrain_root / "brainspaces" / "myprojrepo"
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True)
-        (repo / link).symlink_to(control / link)
+        (brainspace / link).mkdir(parents=True)
+        (repo / link).symlink_to(brainspace / link)
 
     exclude = repo / ".git" / "info" / "exclude"
     exclude.parent.mkdir(exist_ok=True)

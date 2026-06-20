@@ -19,10 +19,10 @@ from dotbrain.cli import app
 runner = CliRunner()
 
 
-def _control(dotbrain_root: Path, name: str) -> Path:
-    control = dotbrain_root / "brainspaces" / name
-    control.mkdir(parents=True, exist_ok=True)
-    return control
+def _brainspace(dotbrain_root: Path, name: str) -> Path:
+    brainspace = dotbrain_root / "brainspaces" / name
+    brainspace.mkdir(parents=True, exist_ok=True)
+    return brainspace
 
 
 def _write_server_yaml(dotbrain_root: Path) -> None:
@@ -39,8 +39,8 @@ def test_load_all_dry_run_makes_no_mutation(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     _write_server_yaml(dotbrain_root)
-    _control(dotbrain_root, "alpha")
-    _control(dotbrain_root, "beta")
+    _brainspace(dotbrain_root, "alpha")
+    _brainspace(dotbrain_root, "beta")
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
@@ -74,8 +74,8 @@ def test_load_name_dry_run_previews_only_target(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     _write_server_yaml(dotbrain_root)
-    _control(dotbrain_root, "alpha")
-    _control(dotbrain_root, "beta")
+    _brainspace(dotbrain_root, "alpha")
+    _brainspace(dotbrain_root, "beta")
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
     result = _invoke(dotbrain_root, "beads", "load", "--name", "alpha", "--dry-run")
@@ -89,8 +89,8 @@ def test_engine_projects_filter_pulls_only_target(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
     # Already-hydrated embedded stores -> no init, just pulls. Keeps the assertion about pull scope clean.
-    (_control(dotbrain_root, "alpha") / ".beads").mkdir()
-    (_control(dotbrain_root, "beta") / ".beads").mkdir()
+    (_brainspace(dotbrain_root, "alpha") / ".beads").mkdir()
+    (_brainspace(dotbrain_root, "beta") / ".beads").mkdir()
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
     pulled_dirs: list[str] = []
@@ -111,7 +111,7 @@ def test_engine_projects_filter_pulls_only_target(
 def test_load_name_unknown_warns(
     dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    _control(dotbrain_root, "alpha")
+    _brainspace(dotbrain_root, "alpha")
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
     result = _invoke(dotbrain_root, "beads", "load", "--name", "ghost", "--dry-run")

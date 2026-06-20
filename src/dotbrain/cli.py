@@ -431,7 +431,7 @@ def beads_load(
     """Hydrate local beads state from tracked declarations: attach server trackers, init embedded
     ones, then pull. Pull-only reconcile: never pushes, never touches symlinks or hooks.
 
-    Without --all: load one project (by --name, or the --repo/cwd repo). With --all: every control
+    Without --all: load one project (by --name, or the --repo/cwd repo). With --all: every brainspace
     root declared to use beads.
     """
     root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
@@ -561,24 +561,24 @@ def skills_link(
 def _link_projects_native(root: Path, target: str, project: Optional[str]) -> None:
     workspaces = _AGENT_WORKSPACES[target]
     if project:
-        control = paths.brainspace(root, project)
-        if not control.is_dir():
+        brainspace = paths.brainspace(root, project)
+        if not brainspace.is_dir():
             raise typer.BadParameter(f"no Brainspace: {paths.data_dir(root).name}/{project}")
-        controls = [control]
+        brainspace_paths = [brainspace]
     else:
-        controls = paths.brainspaces(root)
-    for control in controls:
-        config.migrate_legacy_skill_manifest(root, control.name)
-        extras = config.load_project_skills(root, control.name)
+        brainspace_paths = paths.brainspaces(root)
+    for brainspace in brainspace_paths:
+        config.migrate_legacy_skill_manifest(root, brainspace.name)
+        extras = config.load_project_skills(root, brainspace.name)
         skill_paths = skills.project_link_set(extras)
-        declared_workspaces = brainspaces.active_agent_workspaces(control, root)
+        declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
-        result = skills.link_project(root, control, active_workspaces, skill_paths)
+        result = skills.link_project(root, brainspace, active_workspaces, skill_paths)
         for warning in result.warnings:
-            typer.echo(f"skill-link: warning: {warning} (project {control.name})", err=True)
+            typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
         for pruned in result.pruned:
-            typer.echo(f"  pruned stale {control.name}/{pruned}")
-        typer.echo(f"project: linked {len(skill_paths)} skill(s) into {control.name}")
+            typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
+        typer.echo(f"project: linked {len(skill_paths)} skill(s) into {brainspace.name}")
 
 
 def _render_global_skill_link(root: Path, target: str) -> None:

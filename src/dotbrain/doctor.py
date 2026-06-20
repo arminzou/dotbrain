@@ -122,15 +122,15 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
 # --------------------------------------------------------------------------- project wiring
 
 
-def _check_repo_file(control: Path) -> tuple[Finding | None, Path | None]:
+def _check_repo_file(brainspace: Path) -> tuple[Finding | None, Path | None]:
     """Returns (finding_or_None, resolved_repo_path_or_None).
 
     finding is None when the repo exists and is valid; the caller proceeds with wiring checks.
     resolved_repo_path is None for brain-only projects or when the target is missing.
     """
-    repo_file = control / ".repo"
+    repo_file = brainspace / ".repo"
     if not repo_file.is_file():
-        return (Finding("error", f".repo file missing in {control.name}",
+        return (Finding("error", f".repo file missing in {brainspace.name}",
                         "run 'dotbrain wire --repo <repo>' to wire a code repo"),
                 None)
     content = repo_file.read_text().strip()
@@ -139,12 +139,12 @@ def _check_repo_file(control: Path) -> tuple[Finding | None, Path | None]:
     resolved = Path(content).expanduser().resolve() if content else None
     if not resolved or not resolved.is_dir():
         return (Finding("error", f".repo target not found: {content}",
-                        f"update {control.name}/.repo or run 'dotbrain wire'"),
+                        f"update {brainspace.name}/.repo or run 'dotbrain wire'"),
                 None)
     return (None, resolved)  # repo exists; wiring checks follow
 
 
-def _check_control_links(repo: Path, control: Path) -> list[Finding]:
+def _check_brainspace_links(repo: Path, brainspace: Path) -> list[Finding]:
     findings: list[Finding] = []
     for name in paths.BRAINSPACE_LINKS:
         link = repo / name
@@ -196,10 +196,10 @@ def _check_agent_pointer(repo: Path) -> list[Finding]:
     return findings
 
 
-def _check_project_wiring(control: Path, dotbrain_root: Path) -> list[Finding]:
+def _check_project_wiring(brainspace: Path, dotbrain_root: Path) -> list[Finding]:
     findings: list[Finding] = []
 
-    repo_finding, resolved = _check_repo_file(control)
+    repo_finding, resolved = _check_repo_file(brainspace)
     if repo_finding is not None:
         findings.append(repo_finding)
         if repo_finding.status == "error":
@@ -211,7 +211,7 @@ def _check_project_wiring(control: Path, dotbrain_root: Path) -> list[Finding]:
     if is_dotbrain_repo(resolved, dotbrain_root):
         return [Finding("ok", "dotbrain repo (not an adopter)")]
 
-    findings += _check_control_links(resolved, control)
+    findings += _check_brainspace_links(resolved, brainspace)
     findings += _check_repo_excludes(resolved)
     if paths.INJECT_ADOPTER_POINTER:
         findings += _check_agent_pointer(resolved)
@@ -222,7 +222,7 @@ def _check_project_wiring(control: Path, dotbrain_root: Path) -> list[Finding]:
 
 
 def _check_beads_state(
-    control: Path, name: str, dotbrain_root: Path, *, run: Runner = _default_run,
+    brainspace: Path, name: str, dotbrain_root: Path, *, run: Runner = _default_run,
 ) -> list[Finding]:
     findings: list[Finding] = []
     beads_cfg = config.load_project_config(dotbrain_root, name)
@@ -230,14 +230,14 @@ def _check_beads_state(
     if beads_cfg.mode == "none":
         return [Finding("ok", "beads disabled (mode: none)")]
 
-    beads_dir = control / ".beads"
+    beads_dir = brainspace / ".beads"
     if not beads_dir.is_dir() or not (beads_dir / "metadata.json").is_file():
         return [Finding("warn", ".beads not initialized",
                         f"run 'dotbrain beads load --name {name}' or 'dotbrain wire --all'")]
 
     if beads_cfg.mode == "server":
         try:
-            run(["bd", "dolt", "test"], cwd=control, check=True, timeout=15)
+            run(["bd", "dolt", "test"], cwd=brainspace, check=True, timeout=15)
             findings.append(Finding("ok", "beads server reachable"))
         except subprocess.CalledProcessError as exc:
             detail = (exc.stderr or exc.stdout or "").strip().splitlines()
@@ -254,7 +254,7 @@ def _check_beads_state(
         findings.append(Finding("ok", f"beads mode: {beads_cfg.mode}"))
 
     try:
-        result = run(["bd", "-C", str(control), "ready"], cwd=control, check=False, timeout=15)
+        result = run(["bd", "-C", str(brainspace), "ready"], cwd=brainspace, check=False, timeout=15)
         if result.returncode != 0:
             msg = (result.stderr or "").strip().splitlines()
             snippet = msg[-1] if msg else "bd ready returned non-zero"
@@ -281,21 +281,21 @@ def run_doctor(
         machine=_check_machine(root, home),
     )
 
-    controls = paths.brainspaces(root)
-    if not controls:
+    brainspaces = paths.brainspaces(root)
+    if not brainspaces:
         report.machine.append(Finding("warn", f"no Brainspaces in {paths.data_dir(root).name}/",
                                        "create a project with 'dotbrain wire'"))
         return report
 
-    for control in controls:
-        name = control.name
+    for brainspace in brainspaces:
+        name = brainspace.name
         findings: list[Finding] = []
 
-        wiring_findings = _check_project_wiring(control, root)
+        wiring_findings = _check_project_wiring(brainspace, root)
         findings += wiring_findings
 
         if shutil.which("bd"):
-            findings += _check_beads_state(control, name, root, run=run)
+            findings += _check_beads_state(brainspace, name, root, run=run)
 
         if findings:
             report.projects[name] = findings

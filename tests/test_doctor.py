@@ -118,61 +118,61 @@ def test_check_repo_file_bad_target(brainspace: Path):
 
 
 def test_check_repo_file_valid_repo(dotbrain_root: Path, tmp_path: Path):
-    control = dotbrain_root / "brainspaces" / "demo"
-    control.mkdir(parents=True)
+    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace.mkdir(parents=True)
     repo = tmp_path / "demo"
     repo.mkdir()
-    (control / ".repo").write_text(f"{repo}\n")
-    f, resolved = doctor._check_repo_file(control)
+    (brainspace / ".repo").write_text(f"{repo}\n")
+    f, resolved = doctor._check_repo_file(brainspace)
     assert f is None
     assert resolved == repo
 
 
-def test_check_control_links_all_ok(
+def test_check_brainspace_links_all_ok(
     dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     repo = tmp_path / "myrepo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "brainspaces" / "myrepo"
+    brainspace = dotbrain_root / "brainspaces" / "myrepo"
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(control / link)
-    findings = doctor._check_control_links(repo, control)
+        (brainspace / link).mkdir(parents=True, exist_ok=True)
+        (repo / link).symlink_to(brainspace / link)
+    findings = doctor._check_brainspace_links(repo, brainspace)
     assert len(findings) == 0
 
 
-def test_check_control_links_missing(
+def test_check_brainspace_links_missing(
     dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     repo = tmp_path / "bare"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "brainspaces" / "bare"
+    brainspace = dotbrain_root / "brainspaces" / "bare"
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True, exist_ok=True)
-    findings = doctor._check_control_links(repo, control)
+        (brainspace / link).mkdir(parents=True, exist_ok=True)
+    findings = doctor._check_brainspace_links(repo, brainspace)
     assert len(findings) == len(paths.BRAINSPACE_LINKS)
     assert all(f.status == "warn" for f in findings)
 
 
-def test_check_control_links_broken(
+def test_check_brainspace_links_broken(
     dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
     repo = tmp_path / "brokenlinks"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    control = dotbrain_root / "brainspaces" / "brokenlinks"
-    control.mkdir(parents=True, exist_ok=True)
+    brainspace = dotbrain_root / "brainspaces" / "brokenlinks"
+    brainspace.mkdir(parents=True, exist_ok=True)
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(control / link)
+        (brainspace / link).mkdir(parents=True, exist_ok=True)
+        (repo / link).symlink_to(brainspace / link)
     # Break one
-    (control / ".brain").rmdir()
-    findings = doctor._check_control_links(repo, control)
+    (brainspace / ".brain").rmdir()
+    findings = doctor._check_brainspace_links(repo, brainspace)
     broken = [f for f in findings if f.status == "error"]
     assert len(broken) == 1
     assert "broken" in broken[0].message.lower()
@@ -243,10 +243,10 @@ def test_check_agent_pointer_missing(
 
 def test_dotbrain_repo_skipped_in_wiring(dotbrain_root: Path):
     """The dotbrain repo itself is not an adopter — wiring checks skip it."""
-    control = dotbrain_root / "brainspaces" / "dotbrain"
-    control.mkdir(parents=True, exist_ok=True)
-    (control / ".repo").write_text(f"{dotbrain_root}\n")
-    findings = doctor._check_project_wiring(control, dotbrain_root)
+    brainspace = dotbrain_root / "brainspaces" / "dotbrain"
+    brainspace.mkdir(parents=True, exist_ok=True)
+    (brainspace / ".repo").write_text(f"{dotbrain_root}\n")
+    findings = doctor._check_project_wiring(brainspace, dotbrain_root)
     assert len(findings) == 1
     assert findings[0].status == "ok"
     assert "not an adopter" in findings[0].message
@@ -294,31 +294,31 @@ def _recording_run_fails(exit_code: int, stderr: str):
 
 def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_root: Path):
     """With a metadata.json present, server-mode projects run 'bd dolt test'."""
-    control = dotbrain_root / "brainspaces" / "demo"
-    control.mkdir(parents=True, exist_ok=True)
-    beads = control / ".beads"
+    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace.mkdir(parents=True, exist_ok=True)
+    beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (control / "project.yaml").write_text("beads:\n  mode: server\n")
+    (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
 
     calls: list[dict[str, Any]] = []
-    findings = doctor._check_beads_state(control, "demo", dotbrain_root, run=_recording_run(calls))
+    findings = doctor._check_beads_state(brainspace, "demo", dotbrain_root, run=_recording_run(calls))
 
     dolt_test = [c for c in calls if "dolt" in c["argv"] and "test" in c["argv"]]
     assert len(dolt_test) == 1, f"expected bd dolt test call, got: {calls}"
-    assert dolt_test[0]["cwd"] == str(control)
+    assert dolt_test[0]["cwd"] == str(brainspace)
 
 
 def test_beads_no_mutating_commands(dotbrain_root: Path):
     """Doctor must never issue mutating commands — no bd init, bd dolt set, git, rm, mkdir."""
-    control = dotbrain_root / "brainspaces" / "demo"
-    control.mkdir(parents=True, exist_ok=True)
-    beads = control / ".beads"
+    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace.mkdir(parents=True, exist_ok=True)
+    beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
 
     calls: list[dict[str, Any]] = []
-    doctor._check_beads_state(control, "demo", dotbrain_root, run=_recording_run(calls))
+    doctor._check_beads_state(brainspace, "demo", dotbrain_root, run=_recording_run(calls))
 
     all_argv = [" ".join(c["argv"]) for c in calls]
     mutators = ["bd init", "bd dolt set", "git ", "rm ", "mkdir", "bd close",
@@ -330,15 +330,15 @@ def test_beads_no_mutating_commands(dotbrain_root: Path):
 
 def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
     """When bd dolt test fails, doctor reports it as an error."""
-    control = dotbrain_root / "brainspaces" / "demo"
-    control.mkdir(parents=True, exist_ok=True)
-    beads = control / ".beads"
+    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace.mkdir(parents=True, exist_ok=True)
+    beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (control / "project.yaml").write_text("beads:\n  mode: server\n")
+    (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
 
     findings = doctor._check_beads_state(
-        control, "demo", dotbrain_root,
+        brainspace, "demo", dotbrain_root,
         run=_recording_run_fails(1, "connection refused"),
     )
     errors = [f for f in findings if f.status == "error"]
@@ -372,12 +372,12 @@ def test_run_doctor_with_wired_project(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
 
-    control = dotbrain_root / "brainspaces" / "proj"
-    control.mkdir(parents=True, exist_ok=True)
-    (control / ".repo").write_text(f"{repo}\n")
+    brainspace = dotbrain_root / "brainspaces" / "proj"
+    brainspace.mkdir(parents=True, exist_ok=True)
+    (brainspace / ".repo").write_text(f"{repo}\n")
     for link in paths.BRAINSPACE_LINKS:
-        (control / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(control / link)
+        (brainspace / link).mkdir(parents=True, exist_ok=True)
+        (repo / link).symlink_to(brainspace / link)
 
     exclude = repo / ".git" / "info" / "exclude"
     exclude.parent.mkdir(parents=True, exist_ok=True)

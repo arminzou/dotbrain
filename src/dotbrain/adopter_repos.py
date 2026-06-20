@@ -127,7 +127,7 @@ def expand_path(raw: str, home: Path | None = None) -> Path:
 
 
 def repo_for_brainspace(
-    control: Path,
+    brainspace: Path,
     dotbrain_root: Path,
     repo_base: Path | None = None,
     home: Path | None = None,
@@ -135,13 +135,13 @@ def repo_for_brainspace(
     """Resolve the adopter repo path for a Brainspace. Mirrors bootstrap.sh repo_for_brainspace.
 
     Resolution order:
-    1. <control>/.repo.local (machine-local override)
-    2. <control>/.repo (committed canonical pointer)
-    3. dotbrain_root itself when control.name == "dotbrain"
-    4. repo_base/<control.name> when the directory exists
+    1. <brainspace>/.repo.local (machine-local override)
+    2. <brainspace>/.repo (committed canonical pointer)
+    3. dotbrain_root itself when brainspace.name == "dotbrain"
+    4. repo_base/<brainspace.name> when the directory exists
     """
     for pointer_name in (".repo.local", ".repo"):
-        pointer = control / pointer_name
+        pointer = brainspace / pointer_name
         if pointer.is_file():
             lines = [
                 l.strip() for l in pointer.read_text().splitlines()
@@ -149,10 +149,10 @@ def repo_for_brainspace(
             ]
             if lines:
                 return expand_path(lines[0], home)
-    if control.name == "dotbrain":
+    if brainspace.name == "dotbrain":
         return Path(dotbrain_root).resolve()
     if repo_base:
-        candidate = Path(repo_base) / control.name
+        candidate = Path(repo_base) / brainspace.name
         if candidate.is_dir():
             return candidate
     return None
@@ -353,7 +353,7 @@ def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTE
 
 def wire_repo(
     repo: Path,
-    control: Path,
+    brainspace: Path,
     dotbrain_root: Path,
     run: Runner = _default_run,
     *,
@@ -368,7 +368,7 @@ def wire_repo(
     active_links: tuple[str, ...] = (".brain", *(workspace_links or ()))
     if not skip_beads_link:
         active_links += (".beads",)
-    targets = {name: Path(control) / name for name in active_links}
+    targets = {name: Path(brainspace) / name for name in active_links}
     result = reconcile(repo, targets)
     for name in result.skipped:
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")

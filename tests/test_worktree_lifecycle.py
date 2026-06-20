@@ -39,7 +39,7 @@ def _create_worktree(repo: Path, name: str) -> Path:
     return worktree
 
 
-def test_reconcile_worktree_creates_control_links(tmp_path: Path) -> None:
+def test_reconcile_worktree_creates_brainspace_links(tmp_path: Path) -> None:
     repo = _make_wired_repo(tmp_path)
     worktree = _create_worktree(repo, "feature-x")
 

@@ -11,8 +11,8 @@ import pytest
 from dotbrain import beads as beads_mod, migrate, paths
 
 
-def _seed_beads(control: Path, mode: str) -> None:
-    beads = control / ".beads"
+def _seed_beads(brainspace: Path, mode: str) -> None:
+    beads = brainspace / ".beads"
     beads.mkdir(parents=True)
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": mode, "backend": "dolt"}))
 
@@ -42,8 +42,8 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
 ):
     _write_server_defaults(dotbrain_root, "myproject")
     # Hydration targets the Brainspace directly, not an adopter repo.
-    control = paths.brainspace(dotbrain_root, "myproject")
-    beads = control / ".beads"
+    brainspace = paths.brainspace(dotbrain_root, "myproject")
+    beads = brainspace / ".beads"
     beads.mkdir(parents=True)
 
     pull_calls: list[list[str]] = []
@@ -57,10 +57,10 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
 
     result = beads_mod.pull_beads_for_all(dotbrain_root)
 
-    assert result.pulled == [str(control)]
+    assert result.pulled == [str(brainspace)]
     assert pull_calls == [
-        ["bd", "-C", str(control), "dolt", "test"],
-        ["bd", "-C", str(control), "dolt", "pull"],
+        ["bd", "-C", str(brainspace), "dolt", "test"],
+        ["bd", "-C", str(brainspace), "dolt", "pull"],
     ]
     assert not result.warnings
     assert json.loads((beads / "metadata.json").read_text()) == {
@@ -79,8 +79,8 @@ def test_pull_beads_hydrates_repo_less_brainspace(
 ):
     # Regression (dotbrain-o71): a Brainspace with no wired code repo must still be hydrated.
     _write_server_defaults(dotbrain_root, "brain-only")
-    control = paths.brainspace(dotbrain_root, "brain-only")
-    beads = control / ".beads"
+    brainspace = paths.brainspace(dotbrain_root, "brain-only")
+    beads = brainspace / ".beads"
     beads.mkdir(parents=True)
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
@@ -91,7 +91,7 @@ def test_pull_beads_hydrates_repo_less_brainspace(
 
     result = beads_mod.pull_beads_for_all(dotbrain_root)
 
-    assert result.pulled == [str(control)]
+    assert result.pulled == [str(brainspace)]
     assert not result.warnings
     metadata = json.loads((beads / "metadata.json").read_text())
     assert metadata["dolt_mode"] == "server"
@@ -104,9 +104,9 @@ def test_pull_beads_creates_missing_beads_dir(
     # .beads is never tracked, so a fresh clone has no directory at all;
     # hydration must create it instead of skipping the Brainspace.
     _write_server_defaults(dotbrain_root, "freshclone")
-    control = paths.brainspace(dotbrain_root, "freshclone")
-    control.mkdir(parents=True)
-    assert not (control / ".beads").exists()
+    brainspace = paths.brainspace(dotbrain_root, "freshclone")
+    brainspace.mkdir(parents=True)
+    assert not (brainspace / ".beads").exists()
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
     monkeypatch.setattr(
@@ -116,9 +116,9 @@ def test_pull_beads_creates_missing_beads_dir(
 
     result = beads_mod.pull_beads_for_all(dotbrain_root)
 
-    assert result.pulled == [str(control)]
+    assert result.pulled == [str(brainspace)]
     assert not result.warnings
-    metadata = json.loads((control / ".beads" / "metadata.json").read_text())
+    metadata = json.loads((brainspace / ".beads" / "metadata.json").read_text())
     assert metadata["dolt_mode"] == "server"
     assert metadata["dolt_database"] == "freshclone"
 
@@ -136,8 +136,8 @@ def test_pull_beads_skips_mode_none_project(
         "    beads:\n"
         "      mode: none\n"
     )
-    control = paths.brainspace(dotbrain_root, "notracker")
-    control.mkdir(parents=True)
+    brainspace = paths.brainspace(dotbrain_root, "notracker")
+    brainspace.mkdir(parents=True)
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
     monkeypatch.setattr(
@@ -148,7 +148,7 @@ def test_pull_beads_skips_mode_none_project(
     result = beads_mod.pull_beads_for_all(dotbrain_root)
 
     assert result.pulled == []
-    assert not (control / ".beads").exists()
+    assert not (brainspace / ".beads").exists()
 
 
 def test_pull_beads_uses_declared_database_name(
@@ -165,8 +165,8 @@ def test_pull_beads_uses_declared_database_name(
         "      mode: server\n"
         "      database: legacy_name\n"
     )
-    control = paths.brainspace(dotbrain_root, "renamed")
-    control.mkdir(parents=True)
+    brainspace = paths.brainspace(dotbrain_root, "renamed")
+    brainspace.mkdir(parents=True)
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
     monkeypatch.setattr(
@@ -176,7 +176,7 @@ def test_pull_beads_uses_declared_database_name(
 
     beads_mod.pull_beads_for_all(dotbrain_root)
 
-    metadata = json.loads((control / ".beads" / "metadata.json").read_text())
+    metadata = json.loads((brainspace / ".beads" / "metadata.json").read_text())
     assert metadata["dolt_database"] == "legacy_name"
 
 
@@ -201,9 +201,9 @@ def test_pull_beads_hydrates_declared_embedded_project(
 
     init_calls: list[tuple[str, str]] = []
 
-    def fake_init_beads(control, project, root, *, remote="", run=None, **kwargs):
+    def fake_init_beads(brainspace, project, root, *, remote="", run=None, **kwargs):
         init_calls.append((project, remote))
-        (control / ".beads").mkdir(mode=0o700)
+        (brainspace / ".beads").mkdir(mode=0o700)
         return None
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda name: "/bin/bd")
