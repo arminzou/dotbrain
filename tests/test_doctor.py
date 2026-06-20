@@ -37,20 +37,20 @@ def test_check_binary_dolt_warns_not_errors():
         assert f.status == "warn", f"dolt missing should be warn, got {f.status}: {f.message}"
 
 
-def test_check_dotbrain_config_valid(dotbrain_root: Path):
-    f = doctor._check_dotbrain_config(dotbrain_root)
+def test_check_dotbrain_config_valid(dotbrain_home: Path):
+    f = doctor._check_dotbrain_config(dotbrain_home)
     assert f.status == "ok"
 
 
-def test_check_dotbrain_config_broken(dotbrain_root: Path):
-    (dotbrain_root / "dotbrain.yaml").write_text(": !!bad yaml [[")
-    f = doctor._check_dotbrain_config(dotbrain_root)
+def test_check_dotbrain_config_broken(dotbrain_home: Path):
+    (dotbrain_home / "dotbrain.yaml").write_text(": !!bad yaml [[")
+    f = doctor._check_dotbrain_config(dotbrain_home)
     assert f.status == "error"
 
 
-def test_check_global_skills_config_present(dotbrain_root: Path):
-    (dotbrain_root / "skills" / "skills.yaml").write_text("")
-    f = doctor._check_global_skills_config(dotbrain_root)
+def test_check_global_skills_config_present(dotbrain_home: Path):
+    (dotbrain_home / "skills" / "skills.yaml").write_text("")
+    f = doctor._check_global_skills_config(dotbrain_home)
     assert f.status == "ok"
 
 
@@ -59,8 +59,8 @@ def test_check_global_skills_config_missing(tmp_path: Path):
     assert f.status == "ok"
 
 
-def test_check_templates_present(dotbrain_root: Path):
-    f = doctor._check_templates(dotbrain_root)
+def test_check_templates_present(dotbrain_home: Path):
+    f = doctor._check_templates(dotbrain_home)
     assert f.status == "ok"
 
 
@@ -69,22 +69,22 @@ def test_check_templates_ignores_data_root_templates(tmp_path: Path):
     assert f.status == "ok"
 
 
-def test_check_global_hook_installed(dotbrain_root: Path, fake_home: Path):
+def test_check_global_hook_installed(dotbrain_home: Path, fake_home: Path):
     from dotbrain.brainspaces import ensure_json_hook
     from dotbrain.bootstrap import _global_hook_command
 
     target = fake_home / ".claude" / "settings.json"
-    cmd = _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_root, fake_home)
+    cmd = _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_home, fake_home)
     ensure_json_hook(target, "SessionStart", cmd)
 
     f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_root, "Claude")
+                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
     assert f.status == "ok"
 
 
-def test_check_global_hook_missing(dotbrain_root: Path, fake_home: Path):
+def test_check_global_hook_missing(dotbrain_home: Path, fake_home: Path):
     f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_root, "Claude")
+                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
     assert f.status == "warn"
     assert "not found" in f.message.lower()
 
@@ -117,8 +117,8 @@ def test_check_repo_file_bad_target(brainspace: Path):
     assert resolved is None
 
 
-def test_check_repo_file_valid_repo(dotbrain_root: Path, tmp_path: Path):
-    brainspace = dotbrain_root / "brainspaces" / "demo"
+def test_check_repo_file_valid_repo(dotbrain_home: Path, tmp_path: Path):
+    brainspace = dotbrain_home / "brainspaces" / "demo"
     brainspace.mkdir(parents=True)
     repo = tmp_path / "demo"
     repo.mkdir()
@@ -129,13 +129,13 @@ def test_check_repo_file_valid_repo(dotbrain_root: Path, tmp_path: Path):
 
 
 def test_check_brainspace_links_all_ok(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "myrepo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_root / "brainspaces" / "myrepo"
+    brainspace = dotbrain_home / "brainspaces" / "myrepo"
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(brainspace / link)
@@ -144,13 +144,13 @@ def test_check_brainspace_links_all_ok(
 
 
 def test_check_brainspace_links_missing(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "bare"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_root / "brainspaces" / "bare"
+    brainspace = dotbrain_home / "brainspaces" / "bare"
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
     findings = doctor._check_brainspace_links(repo, brainspace)
@@ -159,13 +159,13 @@ def test_check_brainspace_links_missing(
 
 
 def test_check_brainspace_links_broken(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "brokenlinks"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_root / "brainspaces" / "brokenlinks"
+    brainspace = dotbrain_home / "brainspaces" / "brokenlinks"
     brainspace.mkdir(parents=True, exist_ok=True)
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
@@ -179,9 +179,9 @@ def test_check_brainspace_links_broken(
 
 
 def test_check_repo_excludes_ok(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "with_excludes"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -193,9 +193,9 @@ def test_check_repo_excludes_ok(
 
 
 def test_check_repo_excludes_missing(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "no_excludes"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -204,10 +204,10 @@ def test_check_repo_excludes_missing(
 
 
 def test_check_agent_pointer_uses_wire_marker(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """Doctor uses wire's own idempotency marker: the '.brain/AGENTS.md' substring."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "with_pointer"
     repo.mkdir()
     # Wire's marker is the substring — the full ADOPTER_POINTER contains it.
@@ -217,10 +217,10 @@ def test_check_agent_pointer_uses_wire_marker(
 
 
 def test_check_agent_pointer_matches_wire_substring(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """A file with just '.brain/AGENTS.md' (wire's marker) passes — no false positive."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "dotbrain_style"
     repo.mkdir()
     # Simulates dotbrain's own AGENTS.md — has .brain/AGENTS.md but not the full pointer.
@@ -230,9 +230,9 @@ def test_check_agent_pointer_matches_wire_substring(
 
 
 def test_check_agent_pointer_missing(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = tmp_path / "no_pointer"
     repo.mkdir()
     (repo / "AGENTS.md").write_text("# Context\n\nNo pointer here.\n")
@@ -241,12 +241,12 @@ def test_check_agent_pointer_missing(
     assert findings[0].status == "warn"
 
 
-def test_dotbrain_repo_skipped_in_wiring(dotbrain_root: Path):
+def test_dotbrain_repo_skipped_in_wiring(dotbrain_home: Path):
     """The dotbrain repo itself is not an adopter — wiring checks skip it."""
-    brainspace = dotbrain_root / "brainspaces" / "dotbrain"
+    brainspace = dotbrain_home / "brainspaces" / "dotbrain"
     brainspace.mkdir(parents=True, exist_ok=True)
-    (brainspace / ".repo").write_text(f"{dotbrain_root}\n")
-    findings = doctor._check_project_wiring(brainspace, dotbrain_root)
+    (brainspace / ".repo").write_text(f"{dotbrain_home}\n")
+    findings = doctor._check_project_wiring(brainspace, dotbrain_home)
     assert len(findings) == 1
     assert findings[0].status == "ok"
     assert "not an adopter" in findings[0].message
@@ -255,16 +255,16 @@ def test_dotbrain_repo_skipped_in_wiring(dotbrain_root: Path):
 # --------------------------------------------------------------------------- beads state
 
 
-def test_check_beads_state_none_mode(dotbrain_root: Path):
-    config.write_project_config(dotbrain_root, "demo", config.ProjectBeads(mode="none"))
-    findings = doctor._check_beads_state(dotbrain_root / "brainspaces" / "demo", "demo", dotbrain_root)
+def test_check_beads_state_none_mode(dotbrain_home: Path):
+    config.write_project_config(dotbrain_home, "demo", config.ProjectBeads(mode="none"))
+    findings = doctor._check_beads_state(dotbrain_home / "brainspaces" / "demo", "demo", dotbrain_home)
     assert len(findings) == 1
     assert findings[0].status == "ok"
     assert "disabled" in findings[0].message
 
 
-def test_check_beads_state_missing_dir(dotbrain_root: Path):
-    findings = doctor._check_beads_state(dotbrain_root / "brainspaces" / "demo", "demo", dotbrain_root)
+def test_check_beads_state_missing_dir(dotbrain_home: Path):
+    findings = doctor._check_beads_state(dotbrain_home / "brainspaces" / "demo", "demo", dotbrain_home)
     assert any(f.status == "warn" and "not initialized" in f.message for f in findings)
 
 
@@ -292,9 +292,9 @@ def _recording_run_fails(exit_code: int, stderr: str):
     return _run
 
 
-def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_root: Path):
+def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_home: Path):
     """With a metadata.json present, server-mode projects run 'bd dolt test'."""
-    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace = dotbrain_home / "brainspaces" / "demo"
     brainspace.mkdir(parents=True, exist_ok=True)
     beads = brainspace / ".beads"
     beads.mkdir()
@@ -302,23 +302,23 @@ def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_root: Path):
     (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
 
     calls: list[dict[str, Any]] = []
-    findings = doctor._check_beads_state(brainspace, "demo", dotbrain_root, run=_recording_run(calls))
+    findings = doctor._check_beads_state(brainspace, "demo", dotbrain_home, run=_recording_run(calls))
 
     dolt_test = [c for c in calls if "dolt" in c["argv"] and "test" in c["argv"]]
     assert len(dolt_test) == 1, f"expected bd dolt test call, got: {calls}"
     assert dolt_test[0]["cwd"] == str(brainspace)
 
 
-def test_beads_no_mutating_commands(dotbrain_root: Path):
+def test_beads_no_mutating_commands(dotbrain_home: Path):
     """Doctor must never issue mutating commands — no bd init, bd dolt set, git, rm, mkdir."""
-    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace = dotbrain_home / "brainspaces" / "demo"
     brainspace.mkdir(parents=True, exist_ok=True)
     beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
 
     calls: list[dict[str, Any]] = []
-    doctor._check_beads_state(brainspace, "demo", dotbrain_root, run=_recording_run(calls))
+    doctor._check_beads_state(brainspace, "demo", dotbrain_home, run=_recording_run(calls))
 
     all_argv = [" ".join(c["argv"]) for c in calls]
     mutators = ["bd init", "bd dolt set", "git ", "rm ", "mkdir", "bd close",
@@ -328,9 +328,9 @@ def test_beads_no_mutating_commands(dotbrain_root: Path):
             assert m not in argv_line, f"mutating command found: {argv_line}"
 
 
-def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
+def test_beads_connectivity_failure_reports_error(dotbrain_home: Path):
     """When bd dolt test fails, doctor reports it as an error."""
-    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace = dotbrain_home / "brainspaces" / "demo"
     brainspace.mkdir(parents=True, exist_ok=True)
     beads = brainspace / ".beads"
     beads.mkdir()
@@ -338,7 +338,7 @@ def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
     (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
 
     findings = doctor._check_beads_state(
-        brainspace, "demo", dotbrain_root,
+        brainspace, "demo", dotbrain_home,
         run=_recording_run_fails(1, "connection refused"),
     )
     errors = [f for f in findings if f.status == "error"]
@@ -349,30 +349,30 @@ def test_beads_connectivity_failure_reports_error(dotbrain_root: Path):
 # --------------------------------------------------------------------------- orchestration
 
 
-def test_run_doctor_no_projects(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_run_doctor_no_projects(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     import shutil
-    projects = dotbrain_root / "brainspaces"
+    projects = dotbrain_home / "brainspaces"
     for d in list(projects.iterdir()):
         if d.is_dir() and not d.name.startswith("."):
             shutil.rmtree(d)
-    report = doctor.run_doctor(dotbrain_root)
+    report = doctor.run_doctor(dotbrain_home)
     has_warn = any(f.status == "warn" and "no Brainspaces" in f.message
                    for f in report.machine)
     assert has_warn
 
 
 def test_run_doctor_with_wired_project(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setenv("HOME", str(fake_home))
 
     repo = tmp_path / "proj"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
 
-    brainspace = dotbrain_root / "brainspaces" / "proj"
+    brainspace = dotbrain_home / "brainspaces" / "proj"
     brainspace.mkdir(parents=True, exist_ok=True)
     (brainspace / ".repo").write_text(f"{repo}\n")
     for link in paths.BRAINSPACE_LINKS:
@@ -385,7 +385,7 @@ def test_run_doctor_with_wired_project(
 
     (repo / "AGENTS.md").write_text(f"# Context\n\n{paths.ADOPTER_POINTER}\n")
 
-    report = doctor.run_doctor(dotbrain_root, home=fake_home)
+    report = doctor.run_doctor(dotbrain_home, home=fake_home)
     assert "proj" in report.projects
 
     proj_findings = report.projects["proj"]
@@ -394,10 +394,10 @@ def test_run_doctor_with_wired_project(
 
 
 def test_run_doctor_machine_always_runs(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
-    report = doctor.run_doctor(dotbrain_root)
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    report = doctor.run_doctor(dotbrain_home)
     assert len(report.machine) >= 5  # bd, dolt, config, skills, templates, 2 hooks
 
 
@@ -411,8 +411,8 @@ def test_doctor_cli_help():
     assert "read-only" in result.output.lower()
 
 
-def test_doctor_cli_runs(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_doctor_cli_runs(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["doctor"])
     # No errors expected on a fixture checkout (dolt is warn, hooks are warn)
     assert result.exit_code == 0, result.output
@@ -420,10 +420,10 @@ def test_doctor_cli_runs(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
     assert "ok" in result.output or "warn" in result.output or "error" in result.output
 
 
-def test_doctor_cli_exits_nonzero_on_errors(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
+def test_doctor_cli_exits_nonzero_on_errors(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
     """When doctor finds errors (not just warnings), exit code is 1."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
-    (dotbrain_root / "dotbrain.yaml").write_text("not: [valid")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    (dotbrain_home / "dotbrain.yaml").write_text("not: [valid")
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 1, result.output
     assert "Next: fix errors" in result.output

@@ -126,7 +126,7 @@ def attach_existing_server_beads(
 def init_beads(
     brainspace: Path,
     project: str,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     *,
     run_beads: bool = True,
     remote: str = "",
@@ -147,13 +147,13 @@ def init_beads(
     re-init. Any other ``bd init`` failure surfaces as a clean ``RuntimeError`` carrying bd's stderr.
     """
     brainspace = Path(brainspace)
-    dotbrain_root = Path(dotbrain_root)
+    dotbrain_home = Path(dotbrain_home)
     if not run_beads or (brainspace / ".beads").is_dir():
         return None
     if remote and server_host:
         raise ValueError("--beads-remote and --beads-server-host are mutually exclusive")
 
-    hidden = _hide_root_beads(brainspace, dotbrain_root)
+    hidden = _hide_root_beads(brainspace, dotbrain_home)
     try:
         try:
             run(_bd_init_args(project, remote, server_host, server_port,
@@ -170,7 +170,7 @@ def init_beads(
             stderr = (exc.stderr or "").strip()
             raise RuntimeError(f"bd init failed: {stderr}" if stderr else "bd init failed") from exc
     finally:
-        _restore_root_beads(hidden, dotbrain_root)
+        _restore_root_beads(hidden, dotbrain_home)
 
     if server_host:
         _configure_dolt_server(brainspace, server_host, server_port, server_user,
@@ -214,19 +214,19 @@ def _beads_env(brainspace: Path) -> dict:
     return {**os.environ, "BEADS_DIR": str(Path(brainspace) / ".beads"), "BD_NON_INTERACTIVE": "1"}
 
 
-def _hide_root_beads(brainspace: Path, dotbrain_root: Path) -> Path | None:
+def _hide_root_beads(brainspace: Path, dotbrain_home: Path) -> Path | None:
     """bd init runs in the Brainspace but git sees dotbrain; hide the root .beads symlink first."""
-    root_beads = Path(dotbrain_root) / ".beads"
-    if brainspace == paths.brainspace(dotbrain_root, "dotbrain"):
+    root_beads = Path(dotbrain_home) / ".beads"
+    if brainspace == paths.brainspace(dotbrain_home, "dotbrain"):
         return None
     if not root_beads.is_symlink():
         return None
-    hidden = Path(dotbrain_root) / f".beads.wire-project.{os.getpid()}"
+    hidden = Path(dotbrain_home) / f".beads.wire-project.{os.getpid()}"
     root_beads.rename(hidden)
     return hidden
 
 
-def _restore_root_beads(hidden: Path | None, dotbrain_root: Path) -> None:
+def _restore_root_beads(hidden: Path | None, dotbrain_home: Path) -> None:
     """Always put project #0's repo-root .beads symlink back.
 
     bd init runs with the git top-level still resolving to dotbrain, so it may recreate a .beads at
@@ -235,7 +235,7 @@ def _restore_root_beads(hidden: Path | None, dotbrain_root: Path) -> None:
     project hijack project #0's tracker."""
     if hidden is None or not hidden.exists():
         return
-    root_beads = Path(dotbrain_root) / ".beads"
+    root_beads = Path(dotbrain_home) / ".beads"
     if root_beads.is_symlink() or root_beads.is_file():
         root_beads.unlink()
     elif root_beads.is_dir():
@@ -293,7 +293,7 @@ def ensure_server_beads_metadata(
 
 def ensure_embedded_beads(
     brainspace: Path,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     *,
     remote: str = "",
     run: Runner = _default_run,
@@ -305,7 +305,7 @@ def ensure_embedded_beads(
     """
     if (brainspace / ".beads").is_dir():
         return None, None
-    init_beads(brainspace, brainspace.name, dotbrain_root, remote=remote, run=run)
+    init_beads(brainspace, brainspace.name, dotbrain_home, remote=remote, run=run)
     if remote:
         return f"hydrated embedded beads for {brainspace.name} from {remote}", None
     return (
@@ -341,7 +341,7 @@ def _preview_load(brainspace: Path, beads_cfg, cfg) -> list[str]:
 
 
 def pull_beads_for_all(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     run: Runner = _default_run,
     bd_timeout: int = 20,
     *,
@@ -358,27 +358,27 @@ def pull_beads_for_all(
     with no Brainspace yields a warning. ``dry_run`` only previews via :func:`_preview_load`,
     reaching no filesystem or ``bd`` write by construction.
     """
-    dotbrain_root = Path(dotbrain_root).resolve()
+    dotbrain_home = Path(dotbrain_home).resolve()
     result = BootstrapResult()
-    cfg = config.load_config(dotbrain_root)
+    cfg = config.load_config(dotbrain_home)
 
     if not shutil.which("bd"):
         result.warnings.append("bd is not installed; skipping beads pulls")
         return result
 
-    brainspaces = paths.brainspaces(dotbrain_root)
+    brainspaces = paths.brainspaces(dotbrain_home)
     if projects is not None:
         by_name = {c.name: c for c in brainspaces}
         brainspaces = []
         for name in projects:
             brainspace = by_name.get(name)
             if brainspace is None:
-                result.warnings.append(f"no Brainspace: {paths.data_dir(dotbrain_root).name}/{name}")
+                result.warnings.append(f"no Brainspace: {paths.data_dir(dotbrain_home).name}/{name}")
                 continue
             brainspaces.append(brainspace)
 
     for brainspace in brainspaces:
-        beads_cfg = config.load_project_config(dotbrain_root, brainspace.name)
+        beads_cfg = config.load_project_config(dotbrain_home, brainspace.name)
         if beads_cfg.mode == "none":
             continue
 
@@ -389,7 +389,7 @@ def pull_beads_for_all(
         try:
             if beads_cfg.mode == "embedded":
                 log, warning = ensure_embedded_beads(
-                    brainspace, dotbrain_root, remote=beads_cfg.remote, run=run
+                    brainspace, dotbrain_home, remote=beads_cfg.remote, run=run
                 )
                 if warning:
                     result.warnings.append(warning)

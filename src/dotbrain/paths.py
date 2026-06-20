@@ -33,13 +33,13 @@ ADOPTER_POINTER: str = (
 INJECT_ADOPTER_POINTER: bool = False
 
 
-def resolve_dotbrain_root() -> Path:
-    """The dotbrain checkout root: ``$DOTBRAIN_ROOT`` if set, else inferred from this file.
+def resolve_dotbrain_home() -> Path:
+    """The dotbrain home: ``$DOTBRAIN_HOME`` if set, else inferred from this file.
 
-    Mirrors the ``DOTBRAIN_ROOT`` override the shell scripts honor. Pure helpers still take an
-    explicit root so tests never depend on this.
+    Mirrors the ``$DOTBRAIN_HOME`` override the shell scripts honor. Pure helpers still take an
+    explicit home so tests never depend on this.
     """
-    env = os.environ.get("DOTBRAIN_ROOT")
+    env = os.environ.get("DOTBRAIN_HOME")
     if env:
         return Path(env)
     inferred = Path(__file__).resolve().parents[2]
@@ -48,38 +48,38 @@ def resolve_dotbrain_root() -> Path:
     return Path.home() / "dotbrain"
 
 
-def data_dir(dotbrain_root: Path) -> Path:
+def data_dir(dotbrain_home: Path) -> Path:
     """The data-root directory holding Brainspaces.
 
     Prefers ``brainspaces/`` and falls back to a legacy ``projects/`` when only that exists; a
     fresh root with neither defaults to ``brainspaces/``.
     """
-    root = Path(dotbrain_root)
+    root = Path(dotbrain_home)
     for name in DATA_DIRS:
         if (root / name).is_dir():
             return root / name
     return root / DATA_DIRS[0]
 
 
-def brainspace(dotbrain_root: Path, name: str) -> Path:
-    """Return the Brainspace path for a project: ``<dotbrain_root>/<data-dir>/<name>``."""
-    return data_dir(dotbrain_root) / name
+def brainspace(dotbrain_home: Path, name: str) -> Path:
+    """Return the Brainspace path for a project: ``<dotbrain_home>/<data-dir>/<name>``."""
+    return data_dir(dotbrain_home) / name
 
 
-def brainspaces(dotbrain_root: Path) -> list[Path]:
+def brainspaces(dotbrain_home: Path) -> list[Path]:
     """Sorted project Brainspaces under the data-root directory.
 
     Excludes ``.archive/`` and any other dot-prefixed directories.
     """
-    base = data_dir(dotbrain_root)
+    base = data_dir(dotbrain_home)
     if not base.is_dir():
         return []
     return sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("."))
 
 
-def brainspace_link_targets(dotbrain_root: Path, name: str) -> dict[str, Path]:
+def brainspace_link_targets(dotbrain_home: Path, name: str) -> dict[str, Path]:
     """Map each Brainspace link name to its target inside the project's Brainspace."""
-    root = brainspace(dotbrain_root, name)
+    root = brainspace(dotbrain_home, name)
     return {link: root / link for link in BRAINSPACE_LINKS}
 
 

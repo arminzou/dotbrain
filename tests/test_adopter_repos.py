@@ -197,9 +197,9 @@ def test_abbrev_home(fake_home: Path):
     assert adopter_repos.abbrev_home(Path("/etc/hosts"), fake_home) == "/etc/hosts"
 
 
-def test_is_dotbrain_repo(dotbrain_root: Path, tmp_path: Path):
-    assert adopter_repos.is_dotbrain_repo(dotbrain_root, dotbrain_root)
-    assert not adopter_repos.is_dotbrain_repo(tmp_path / "other", dotbrain_root)
+def test_is_dotbrain_repo(dotbrain_home: Path, tmp_path: Path):
+    assert adopter_repos.is_dotbrain_repo(dotbrain_home, dotbrain_home)
+    assert not adopter_repos.is_dotbrain_repo(tmp_path / "other", dotbrain_home)
 
 
 def test_target_is_outside_repo(tmp_path: Path):
@@ -268,12 +268,12 @@ def test_ensure_agent_context_pointer_dedupes_symlinked_claude(tmp_path: Path):
 # --------------------------------------------------------------------------- attach
 
 
-def test_wire_repo_excludes_external_symlinks(dotbrain_root: Path, brainspace: Path, tmp_path: Path):
+def test_wire_repo_excludes_external_symlinks(dotbrain_home: Path, brainspace: Path, tmp_path: Path):
     repo = tmp_path / "adopter"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     calls: list[list[str]] = []
-    warnings = adopter_repos.wire_repo(repo, brainspace, dotbrain_root, run=make_runner(calls))
+    warnings = adopter_repos.wire_repo(repo, brainspace, dotbrain_home, run=make_runner(calls))
     assert warnings == []
     for name in paths.BRAINSPACE_LINKS:
         assert (repo / name).is_symlink()
@@ -281,7 +281,7 @@ def test_wire_repo_excludes_external_symlinks(dotbrain_root: Path, brainspace: P
     assert {"/.brain", "/.beads", "/.claude", "/.codex"} <= excludes
 
 
-def test_wire_repo_can_skip_beads_link(dotbrain_root: Path, brainspace: Path, tmp_path: Path):
+def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tmp_path: Path):
     repo = tmp_path / "adopter"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -289,7 +289,7 @@ def test_wire_repo_can_skip_beads_link(dotbrain_root: Path, brainspace: Path, tm
     warnings = adopter_repos.wire_repo(
         repo,
         brainspace,
-        dotbrain_root,
+        dotbrain_home,
         run=make_runner([]),
         skip_beads_link=True,
     )

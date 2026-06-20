@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-DOTBRAIN_ROOT="${DOTBRAIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}"
+DOTBRAIN_HOME="${DOTBRAIN_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}"
 
 log() { printf '[install] %s\n' "$*"; }
 warn() { printf '[install] warning: %s\n' "$*" >&2; }
@@ -47,8 +47,8 @@ ensure_bd() {
 
 # Install or upgrade dotbrain CLI.
 install_dotbrain() {
-  log "installing/upgrading dotbrain CLI from $DOTBRAIN_ROOT"
-  uv tool install --editable --force "$DOTBRAIN_ROOT"
+  log "installing/upgrading dotbrain CLI from $DOTBRAIN_HOME"
+  uv tool install --editable --force "$DOTBRAIN_HOME"
   command -v dotbrain &>/dev/null || {
     warn "dotbrain not found in current PATH after uv tool install"
     warn "ensure uv's tool bin directory is on PATH, then run: dotbrain bootstrap"
@@ -58,7 +58,7 @@ install_dotbrain() {
 }
 
 main() {
-  log "dotbrain root: $DOTBRAIN_ROOT"
+  log "dotbrain root: $DOTBRAIN_HOME"
   ensure_uv
   ensure_bd
   install_dotbrain

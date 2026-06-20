@@ -15,11 +15,11 @@ def test_contract_constants_stay_in_lockstep():
     assert paths.ADOPTER_POINTER.startswith("@.brain/CLAUDE.md")
 
 
-def test_brainspace_and_brainspace_link_targets(dotbrain_root: Path):
-    assert paths.brainspace(dotbrain_root, "example") == dotbrain_root / "brainspaces" / "example"
-    targets = paths.brainspace_link_targets(dotbrain_root, "example")
+def test_brainspace_and_brainspace_link_targets(dotbrain_home: Path):
+    assert paths.brainspace(dotbrain_home, "example") == dotbrain_home / "brainspaces" / "example"
+    targets = paths.brainspace_link_targets(dotbrain_home, "example")
     assert set(targets) == set(paths.BRAINSPACE_LINKS)
-    assert targets[".brain"] == dotbrain_root / "brainspaces" / "example" / ".brain"
+    assert targets[".brain"] == dotbrain_home / "brainspaces" / "example" / ".brain"
 
 
 def test_data_dir_prefers_brainspaces_with_legacy_fallback(tmp_path: Path):

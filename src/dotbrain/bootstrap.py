@@ -26,12 +26,12 @@ class DataRootResult:
     logs: list[str] = field(default_factory=list)
 
 
-def ensure_data_root(dotbrain_root: Path) -> DataRootResult:
+def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     """Create the data root and seed ``config.yaml`` from the packaged template.
 
     Idempotent — if ``config.yaml`` already exists it is left untouched.
     """
-    root = Path(dotbrain_root)
+    root = Path(dotbrain_home)
     result = DataRootResult()
 
     if not root.exists():
@@ -76,7 +76,7 @@ def _default_run(
     return subprocess.run(list(argv), cwd=cwd, env=env, check=check, capture_output=True, text=True)
 
 
-def _global_hook_command(script_name: str, dotbrain_root: Path, home: Path | None = None) -> str:
+def _global_hook_command(script_name: str, dotbrain_home: Path, home: Path | None = None) -> str:
     command_by_script = {
         "claude-worktree-bootstrap.sh": "dotbrain hook claude-worktree-bootstrap",
         "codex-worktree-bootstrap.sh": "dotbrain hook codex-worktree-bootstrap",
@@ -85,7 +85,7 @@ def _global_hook_command(script_name: str, dotbrain_root: Path, home: Path | Non
 
 
 def install_global_claude_hook(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     *,
     settings: Path | None = None,
     home: Path | None = None,
@@ -95,12 +95,12 @@ def install_global_claude_hook(
     brainspaces.ensure_json_hook(
         target,
         "SessionStart",
-        _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_root, h),
+        _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_home, h),
     )
 
 
 def install_global_codex_hook(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     *,
     hooks: Path | None = None,
     home: Path | None = None,
@@ -110,14 +110,14 @@ def install_global_codex_hook(
     brainspaces.ensure_json_hook(
         target,
         "SessionStart",
-        _global_hook_command("codex-worktree-bootstrap.sh", dotbrain_root, h),
+        _global_hook_command("codex-worktree-bootstrap.sh", dotbrain_home, h),
         "startup|resume|clear",
         "Bootstrapping dotbrain worktree",
     )
 
 
-def link_global_skills(dotbrain_root: Path, target: str = "all") -> GlobalSkillBootstrapResult:
-    root = Path(dotbrain_root)
+def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillBootstrapResult:
+    root = Path(dotbrain_home)
     config_path = root / "skills" / "skills.yaml"
     result = GlobalSkillBootstrapResult()
     config = skills.reconcile_global_config(config_path)

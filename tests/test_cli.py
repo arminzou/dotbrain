@@ -41,12 +41,12 @@ def test_wire_help_makes_global_hook_install_opt_in():
 
 
 def test_migrate_beads_dry_run_prints_plan(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     import json
 
-    beads = dotbrain_root / "brainspaces" / "demo" / ".beads"
+    beads = dotbrain_home / "brainspaces" / "demo" / ".beads"
     beads.mkdir(parents=True)
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "embedded"}))
 
@@ -59,17 +59,17 @@ def test_migrate_beads_dry_run_prints_plan(
 
 
 def test_migrate_beads_requires_server_host(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["beads", "migrate", "--name", "demo", "--dry-run"])
     assert result.exit_code != 0
 
 
 def test_migrate_beads_exits_nonzero_on_verification_failure(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     def fake_migrate_project(**kwargs):
         return migrate.MigrationResult(
@@ -87,9 +87,9 @@ def test_migrate_beads_exits_nonzero_on_verification_failure(
 
 
 def test_migrate_beads_exits_nonzero_when_unverified(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     def fake_migrate_project(**kwargs):
         return migrate.MigrationResult(
@@ -104,32 +104,32 @@ def test_migrate_beads_exits_nonzero_when_unverified(
 
 
 def test_wire_brain_only_creates_brainspace(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(
         app, ["wire", "--no-repo", "--name", "demo", "--skip-beads"]
     )
     assert result.exit_code == 0, result.output
     assert "run `dotbrain bootstrap --only claude-hook` if needed" in result.output
-    brainspace = dotbrain_root / "brainspaces" / "demo"
+    brainspace = dotbrain_home / "brainspaces" / "demo"
     assert (brainspace / ".repo").read_text() == "(brain-only)\n"
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_no_repo_requires_name(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["wire", "--no-repo"])
     assert result.exit_code != 0
 
 
 def test_wire_uses_configured_beads_server(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
-    (dotbrain_root / "dotbrain.yaml").write_text(
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    (dotbrain_home / "dotbrain.yaml").write_text(
         "version: 2\nbeads:\n  server:\n    host: 10.0.0.9\n    port: 3308\n"
     )
     captured: dict[str, str] = {}
@@ -149,9 +149,9 @@ def test_wire_uses_configured_beads_server(
 
 
 def test_wire_passes_explicit_beads_remote(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     captured: dict[str, str] = {}
 
     def fake_wire_project(**kwargs):
@@ -171,22 +171,22 @@ def test_wire_passes_explicit_beads_remote(
 
 
 def test_bootstrap_only_claude_hook_writes_settings(
-    dotbrain_root: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """--only claude-hook writes the SessionStart hook to settings.json via Python."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setattr("dotbrain.bootstrap.Path.home", staticmethod(lambda: fake_home))
     result = runner.invoke(app, ["bootstrap", "--only", "claude-hook"],
-                           env={"DOTBRAIN_ROOT": str(dotbrain_root)})
+                           env={"DOTBRAIN_HOME": str(dotbrain_home)})
     assert result.exit_code == 0, result.output
     assert "[bootstrap] installed Claude" in result.output
 
 
 def test_bootstrap_only_skills_links_global_only(
-    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """--only skills links global skills only; project skills belong to refresh."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     calls: list[tuple[str, Path, str]] = []
 
     monkeypatch.setattr(
@@ -202,13 +202,13 @@ def test_bootstrap_only_skills_links_global_only(
 
     result = runner.invoke(app, ["bootstrap", "--only", "skills"])
     assert result.exit_code == 0, result.output
-    assert calls == [("global", dotbrain_root, "all")]
+    assert calls == [("global", dotbrain_home, "all")]
 
 
 def test_bootstrap_rejects_project_reconciliation_scopes(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     for scope in ("repos", "beads"):
         result = runner.invoke(app, ["bootstrap", "--only", scope])
@@ -216,9 +216,9 @@ def test_bootstrap_rejects_project_reconciliation_scopes(
         assert "invalid --only" in result.output
 
 def test_unwire_removes_symlinks_and_cleans_repo(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     # Set up a wired adopter repo.
     repo = tmp_path / "myprojrepo"
@@ -227,7 +227,7 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
-    brainspace = dotbrain_root / "brainspaces" / "myprojrepo"
+    brainspace = dotbrain_home / "brainspaces" / "myprojrepo"
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True)
         (repo / link).symlink_to(brainspace / link)
@@ -249,7 +249,7 @@ def test_unwire_removes_symlinks_and_cleans_repo(
         assert entry not in exclude.read_text()
 
 
-def test_bootstrap_hook_command_uses_home_literal(dotbrain_root: Path, fake_home: Path):
+def test_bootstrap_hook_command_uses_home_literal(dotbrain_home: Path, fake_home: Path):
     """_global_hook_command uses the literal $HOME form when root is the default location."""
     from dotbrain.bootstrap import _global_hook_command
     default_root = fake_home / "dotbrain"
@@ -264,9 +264,9 @@ def test_bootstrap_hook_command_uses_home_literal(dotbrain_root: Path, fake_home
 
 
 def test_skills_link_project_native(
-    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
     assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()
@@ -278,17 +278,17 @@ def test_skills_link_rejects_invalid_scope():
     assert result.exit_code != 0
 
 
-def _write_global_config(dotbrain_root: Path, body: str) -> None:
-    (dotbrain_root / "skills" / "skills.yaml").write_text(body)
+def _write_global_config(dotbrain_home: Path, body: str) -> None:
+    (dotbrain_home / "skills" / "skills.yaml").write_text(body)
 
 
 def test_skills_link_global_renders_bootstrap_result(
-    dotbrain_root: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setenv("HOME", str(fake_home))
     _write_global_config(
-        dotbrain_root,
+        dotbrain_home,
         "targets:\n  codex: ~/.codex/skills\nglobal_extra:\n  - misc/discovery-test\n",
     )
     result = runner.invoke(app, ["skills", "link", "--scope", "global", "--target", "codex"])
@@ -299,11 +299,11 @@ def test_skills_link_global_renders_bootstrap_result(
 
 
 def test_skills_link_global_uses_default_targets(
-    dotbrain_root: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setenv("HOME", str(fake_home))
-    _write_global_config(dotbrain_root, "targets:\n  codex: ~/.codex/skills\n")
+    _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n")
     result = runner.invoke(
         app, ["skills", "link", "--scope", "global", "--target", "claude-code"]
     )
@@ -312,11 +312,11 @@ def test_skills_link_global_uses_default_targets(
 
 
 def test_skills_link_project_filter_isolates_one_brainspace(
-    dotbrain_root: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    other = dotbrain_root / "brainspaces" / "other"
+    other = dotbrain_home / "brainspaces" / "other"
     (other / ".brain" / "agents").mkdir(parents=True)
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
@@ -325,9 +325,9 @@ def test_skills_link_project_filter_isolates_one_brainspace(
 
 
 def test_skills_link_project_filter_rejects_unknown(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "nope"])
     assert result.exit_code != 0
 
@@ -408,9 +408,9 @@ def test_drop_beads_db_requires_yes():
 
 
 def test_drop_beads_db_rejected_when_no_server_configured(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     result = runner.invoke(app, ["beads", "drop-db", "brain-only", "--yes"])
 
@@ -418,8 +418,8 @@ def test_drop_beads_db_rejected_when_no_server_configured(
     assert "no Dolt sql-server configured" in result.output
 
 
-def test_drop_beads_db_forwards_options(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_drop_beads_db_forwards_options(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     captured = {}
 
     def fake_drop(name, **kwargs):
@@ -449,8 +449,8 @@ def test_drop_beads_db_forwards_options(dotbrain_root: Path, monkeypatch: pytest
     assert captured["dry_run"] is False
 
 
-def test_list_beads_db_prints_rows(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_list_beads_db_prints_rows(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setattr(
         "dotbrain.cli.beads_mod.list_remote_beads_databases",
         lambda **kwargs: ["dotbrain", "example"],
@@ -463,8 +463,8 @@ def test_list_beads_db_prints_rows(dotbrain_root: Path, monkeypatch: pytest.Monk
     assert "example" in result.output
 
 
-def test_wire_all_delegates_and_echoes(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_wire_all_delegates_and_echoes(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     called = {}
 
     def fake_wire_all(root, **kwargs):
@@ -482,18 +482,18 @@ def test_wire_all_delegates_and_echoes(dotbrain_root: Path, monkeypatch: pytest.
 
 
 def test_wire_all_rejects_single_project_flags(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["wire", "--all", "--repo", "/tmp/x"])
     assert result.exit_code != 0
     assert "mutually exclusive" in result.output
 
 
 def test_refresh_delegates_and_echoes(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     called = {}
 
     def fake_refresh(root, project, **kwargs):
@@ -510,7 +510,7 @@ def test_refresh_delegates_and_echoes(
     )
 
     assert result.exit_code == 0, result.output
-    assert called["root"] == dotbrain_root
+    assert called["root"] == dotbrain_home
     assert called["project"] == "demo"
     assert called["repo_base"] == tmp_path
     assert "[refresh] refreshed demo" in result.output
@@ -518,9 +518,9 @@ def test_refresh_delegates_and_echoes(
 
 
 def test_refresh_all_delegates_to_projects(
-    dotbrain_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     called = {}
 
     def fake_refresh(root, **kwargs):
@@ -533,20 +533,20 @@ def test_refresh_all_delegates_to_projects(
     result = runner.invoke(app, ["refresh", "--all", "--repo-base", str(tmp_path)])
 
     assert result.exit_code == 0, result.output
-    assert called["root"] == dotbrain_root
+    assert called["root"] == dotbrain_home
     assert called["repo_base"] == tmp_path
     assert "[refresh] refreshed all" in result.output
 
 
-def test_refresh_requires_scope(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_refresh_requires_scope(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["refresh"])
     assert result.exit_code != 0
     assert "use --all or --name" in result.output
 
 
-def test_unwire_all_delegates_with_dry_run(dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+def test_unwire_all_delegates_with_dry_run(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     called = {}
 
     def fake_unwire_all(**kwargs):
@@ -563,9 +563,9 @@ def test_unwire_all_delegates_with_dry_run(dotbrain_root: Path, monkeypatch: pyt
 
 
 def test_unwire_all_rejects_destructive_flags(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["unwire", "--all", "--archive"])
     assert result.exit_code != 0
     assert "archive" in result.output.lower()

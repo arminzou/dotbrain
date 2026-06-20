@@ -30,9 +30,9 @@ def _make_runner(calls=None):
     return run
 
 
-def _wire(dotbrain_root, repo, fake_home):
+def _wire(dotbrain_home, repo, fake_home):
     workflows.wire_project(
-        dotbrain_root=dotbrain_root, repo=repo, run_beads=False,
+        dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
         install_global_hook=False, home=fake_home, run=_make_runner(),
     )
 
@@ -76,47 +76,47 @@ def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path
 
 
 def test_install_global_claude_hook_writes_settings_json(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
     """install_global_claude_hook writes the SessionStart hook to settings.json via Python."""
     import json
     settings = tmp_path / ".claude" / "settings.json"
-    bootstrap_mod.install_global_claude_hook(dotbrain_root, settings=settings, home=fake_home)
+    bootstrap_mod.install_global_claude_hook(dotbrain_home, settings=settings, home=fake_home)
     data = json.loads(settings.read_text())
     commands = [h["command"] for e in data["hooks"]["SessionStart"] for h in e["hooks"]]
     assert any("dotbrain hook claude-worktree-bootstrap" in c for c in commands)
 
 
-def test_link_global_skills_links_configured_target(dotbrain_root: Path, tmp_path: Path):
+def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path):
     dest = tmp_path / "codex-skills"
-    (dotbrain_root / "skills" / "skills.yaml").write_text(
+    (dotbrain_home / "skills" / "skills.yaml").write_text(
         "targets:\n"
         f"  codex: {dest}\n"
         "global_baseline:\n"
         "  - brain/wire-brain\n"
     )
 
-    result = bootstrap_mod.link_global_skills(dotbrain_root, "codex")
+    result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
 
     assert result.warnings == []
     assert (dest / "wire-brain").is_symlink()
     assert any("global: linked 1 skill(s)" in line for line in result.logs)
 
 
-def test_link_global_skills_warns_when_config_missing(dotbrain_root: Path):
-    result = bootstrap_mod.link_global_skills(dotbrain_root)
+def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path):
+    result = bootstrap_mod.link_global_skills(dotbrain_home)
 
     assert not result.warnings
 
 
 def test_wire_project_installs_hook_via_python(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
     """wire_project with install_global_hook=True writes the hook to settings.json directly."""
     import json
     repo = _fresh_repo(tmp_path, "hooktest")
     workflows.wire_project(
-        dotbrain_root=dotbrain_root, repo=repo, run_beads=False,
+        dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
         install_global_hook=True, home=fake_home, run=_make_runner(),
     )
     settings = fake_home / ".claude" / "settings.json"
@@ -130,19 +130,19 @@ def test_wire_project_installs_hook_via_python(
 
 
 def test_skills_link_project_creates_symlinks_after_wire(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path,
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
     """After wire_project, dotbrain skills link --scope project creates baseline skill symlinks."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = _fresh_repo(tmp_path, "skilltest")
-    _wire(dotbrain_root, repo, fake_home)
+    _wire(dotbrain_home, repo, fake_home)
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
 
-    brainspace = paths.brainspace(dotbrain_root, "skilltest")
-    for skill in skills.project_baseline(dotbrain_root):
+    brainspace = paths.brainspace(dotbrain_home, "skilltest")
+    for skill in skills.project_baseline(dotbrain_home):
         name = Path(skill).name
         assert (brainspace / ".claude" / "skills" / name).is_symlink(), \
             f"expected .claude/skills/{name} to be linked"
@@ -150,21 +150,21 @@ def test_skills_link_project_creates_symlinks_after_wire(
 
 
 def test_skills_link_project_prunes_stale_after_baseline_change(
-    dotbrain_root: Path, fake_home: Path, tmp_path: Path,
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
     """Re-running skills link after a baseline change removes stale symlinks."""
-    monkeypatch.setenv("DOTBRAIN_ROOT", str(dotbrain_root))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = _fresh_repo(tmp_path, "prunetest")
-    _wire(dotbrain_root, repo, fake_home)
+    _wire(dotbrain_home, repo, fake_home)
 
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 
     # Plant a stale symlink pointing into skills/ (simulates a removed baseline entry)
-    brainspace = paths.brainspace(dotbrain_root, "prunetest")
+    brainspace = paths.brainspace(dotbrain_home, "prunetest")
     skills_dir = brainspace / ".claude" / "skills"
     stale = skills_dir / "old-skill"
-    stale.symlink_to((dotbrain_root / "skills" / "brain" / "wire-brain").resolve())
+    stale.symlink_to((dotbrain_home / "skills" / "brain" / "wire-brain").resolve())
 
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 

@@ -197,7 +197,7 @@ def reconcile_global_config(path: Path) -> GlobalConfig:
     return config
 
 
-def project_baseline(dotbrain_root: Path | None = None) -> tuple[str, ...]:
+def project_baseline(dotbrain_home: Path | None = None) -> tuple[str, ...]:
     """Return code-owned project baseline skills."""
 
     return PROJECT_BASELINE
@@ -246,8 +246,8 @@ def _copy_resource_tree(resource_path: str, dest: Path) -> None:
         target.write_text(src.read_text())
 
 
-def _resolve_skill_source(dotbrain_root: Path, skill_path: str) -> Path | None:
-    private_src = dotbrain_root / "skills" / skill_path
+def _resolve_skill_source(dotbrain_home: Path, skill_path: str) -> Path | None:
+    private_src = dotbrain_home / "skills" / skill_path
     if private_src.is_dir():
         return private_src
 
@@ -258,13 +258,13 @@ def _resolve_skill_source(dotbrain_root: Path, skill_path: str) -> Path | None:
     if not resource_loader.resource(resource_path).is_dir():
         return None
 
-    cached = dotbrain_root / ".cache" / "skills" / skill_path
+    cached = dotbrain_home / ".cache" / "skills" / skill_path
     _copy_resource_tree(resource_path, cached)
     return cached
 
 
 def link_into(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     skills_dir: Path,
     skill_paths: Sequence[str],
     *,
@@ -273,18 +273,18 @@ def link_into(
 ) -> LinkResult:
     """Link skill paths into an agent runtime skills directory."""
 
-    dotbrain_root = Path(dotbrain_root)
+    dotbrain_home = Path(dotbrain_home)
     skills_dir = Path(skills_dir)
     skills_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = f"{label}/" if label else ""
     result = LinkResult()
     wanted: set[str] = set()
-    cache_root = (dotbrain_root / ".cache" / "skills").resolve()
-    private_root = (dotbrain_root / "skills").resolve()
+    cache_root = (dotbrain_home / ".cache" / "skills").resolve()
+    private_root = (dotbrain_home / "skills").resolve()
 
     for skill_path in skill_paths:
-        src = _resolve_skill_source(dotbrain_root, skill_path)
+        src = _resolve_skill_source(dotbrain_home, skill_path)
         if src is None or not src.is_dir():
             result.warnings.append(f"skill not found: {skill_path}")
             continue
@@ -312,7 +312,7 @@ def link_into(
 
 
 def link_project(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     brainspace: Path,
     workspaces: Sequence[str],
     skill_paths: Sequence[str],
@@ -321,7 +321,7 @@ def link_project(
     result = LinkResult()
     for workspace in workspaces:
         skills_dir = brainspace / workspace / "skills"
-        ws_result = link_into(dotbrain_root, skills_dir, skill_paths, label=workspace)
+        ws_result = link_into(dotbrain_home, skills_dir, skill_paths, label=workspace)
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
         result.stashed += ws_result.stashed

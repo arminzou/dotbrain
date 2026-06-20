@@ -65,7 +65,7 @@ def ensure_brainspace_gitignore(brainspace: Path) -> None:
     file.write_text(body + "\n".join(missing) + "\n")
 
 
-def seed_brain(brainspace: Path, dotbrain_root: Path) -> None:
+def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
     """Seed a brain skeleton from packaged dotbrain resources.
 
     ``DOTBRAIN.md`` and ``README.md`` files are dotbrain-owned and overwritten
@@ -184,13 +184,13 @@ _AGENT_WORKSPACE_TEMPLATES: dict[str, str] = {
 }
 
 
-def active_agent_workspaces(brainspace: Path, dotbrain_root: Path) -> tuple[str, ...]:
+def active_agent_workspaces(brainspace: Path, dotbrain_home: Path) -> tuple[str, ...]:
     """Return the declared, known workspace directory names for a project."""
-    agents = config.load_project_agents(dotbrain_root, Path(brainspace).name)
+    agents = config.load_project_agents(dotbrain_home, Path(brainspace).name)
     return tuple(f".{agent}" for agent in agents if agent in _AGENT_WORKSPACE_TEMPLATES)
 
 
-def seed_agent_workspaces(brainspace: Path, dotbrain_root: Path, home: Path | None = None) -> list[str]:
+def seed_agent_workspaces(brainspace: Path, dotbrain_home: Path, home: Path | None = None) -> list[str]:
     """Seed declared agent workspaces from packaged templates.
 
     Only listed workspaces are created or repaired. Existing undeclared
@@ -199,7 +199,7 @@ def seed_agent_workspaces(brainspace: Path, dotbrain_root: Path, home: Path | No
     brainspace = Path(brainspace)
     warnings: list[str] = []
 
-    for agent in config.load_project_agents(dotbrain_root, brainspace.name):
+    for agent in config.load_project_agents(dotbrain_home, brainspace.name):
         template = _AGENT_WORKSPACE_TEMPLATES.get(agent)
         if template is None:
             warnings.append(f"ignored unknown agent workspace in {brainspace / 'project.yaml'}: {agent}")
@@ -220,25 +220,25 @@ def seed_agent_workspaces(brainspace: Path, dotbrain_root: Path, home: Path | No
 # --------------------------------------------------------------------------- offboarding
 
 
-def _strip_brainspace_byproducts(dotbrain_root: Path, project: str, run: Runner) -> None:
+def _strip_brainspace_byproducts(dotbrain_home: Path, project: str, run: Runner) -> None:
     """Remove the Brainspace's gitignored runtime/wiring litter (beads runtime state,
     .claude/.codex skill symlinks). ``git rm``/``git mv`` only handle tracked files, so
     without this an offboard strands these byproducts on disk. ``-X`` removes *only* ignored
     files, so an uncommitted (untracked) brain is left intact; ``-ff`` clears nested git/dolt dirs."""
-    rel = paths.data_dir(dotbrain_root).name
-    run(["git", "-C", str(dotbrain_root), "clean", "-ffdXq", "--", f"{rel}/{project}"])
+    rel = paths.data_dir(dotbrain_home).name
+    run(["git", "-C", str(dotbrain_home), "clean", "-ffdXq", "--", f"{rel}/{project}"])
 
 
-def _is_tracked(dotbrain_root: Path, project: str, run: Runner) -> bool:
+def _is_tracked(dotbrain_home: Path, project: str, run: Runner) -> bool:
     """True if the Brainspace has any git-tracked files (wire no longer commits, so a
     freshly-wired root is untracked and git rm/mv would fail)."""
-    rel = paths.data_dir(dotbrain_root).name
-    out = run(["git", "-C", str(dotbrain_root), "ls-files", "--", f"{rel}/{project}"], check=False)
+    rel = paths.data_dir(dotbrain_home).name
+    out = run(["git", "-C", str(dotbrain_home), "ls-files", "--", f"{rel}/{project}"], check=False)
     return bool((out.stdout or "").strip())
 
 
 def offboard_brainspace(
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     project: str,
     mode: str,
     *,
@@ -246,8 +246,8 @@ def offboard_brainspace(
     run: Runner = _default_run,
 ) -> list[str]:
     """keep | archive | delete the Brainspace. Returns log lines."""
-    brainspace = paths.brainspace(dotbrain_root, project)
-    rel = paths.data_dir(dotbrain_root).name
+    brainspace = paths.brainspace(dotbrain_home, project)
+    rel = paths.data_dir(dotbrain_home).name
     if not brainspace.is_dir():
         return [f"warning: Brainspace {brainspace} not found; nothing to offboard"]
 
@@ -258,12 +258,12 @@ def offboard_brainspace(
         if dry_run:
             return [f"would archive Brainspace {rel}/{project} -> {rel}/.archive/{project} "
                     "(stripping runtime byproducts first)"]
-        _strip_brainspace_byproducts(dotbrain_root, project, run)
-        archive_dir = paths.data_dir(dotbrain_root) / ".archive"
+        _strip_brainspace_byproducts(dotbrain_home, project, run)
+        archive_dir = paths.data_dir(dotbrain_home) / ".archive"
         archive_dir.mkdir(exist_ok=True)
         dest = archive_dir / project
-        if _is_tracked(dotbrain_root, project, run):
-            run(["git", "-C", str(dotbrain_root), "mv",
+        if _is_tracked(dotbrain_home, project, run):
+            run(["git", "-C", str(dotbrain_home), "mv",
                  f"{rel}/{project}", f"{rel}/.archive/{project}"])
             staged = " (staged)"
         else:
@@ -277,10 +277,10 @@ def offboard_brainspace(
     if mode == "delete":
         if dry_run:
             return [f"would remove Brainspace {rel}/{project} (tracked files + runtime byproducts)"]
-        _strip_brainspace_byproducts(dotbrain_root, project, run)
+        _strip_brainspace_byproducts(dotbrain_home, project, run)
         # -f: delete is a deliberate full removal, so force past locally-modified tracked files
         # (e.g. beads backup-state). --ignore-unmatch: a freshly-wired root is untracked.
-        run(["git", "-C", str(dotbrain_root), "rm", "-r", "-q", "-f", "--ignore-unmatch",
+        run(["git", "-C", str(dotbrain_home), "rm", "-r", "-q", "-f", "--ignore-unmatch",
              f"{rel}/{project}"])
         if brainspace.exists():
             shutil.rmtree(brainspace)

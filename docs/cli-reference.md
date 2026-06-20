@@ -127,7 +127,7 @@ Reference for the public `dotbrain` CLI.
 │                           current git repo.                                  │
 │ --name              TEXT  Project/Brainspace name to load.                   │
 │ --dotbrain          TEXT  dotbrain checkout. Defaults to                     │
-│                           $DOTBRAIN_ROOT/inferred.                           │
+│                           $DOTBRAIN_HOME/inferred.                           │
 │ --dry-run                 Preview what would be hydrated/pulled without      │
 │                           mutating anything.                                 │
 │ --help      -h            Show this message and exit.                        │
@@ -149,7 +149,7 @@ Reference for the public `dotbrain` CLI.
 │ --name                       TEXT  Project/Brainspace name to migrate.       │
 │ --all                              Migrate every embedded Brainspace.        │
 │ --dotbrain                   TEXT  dotbrain checkout. Defaults to            │
-│                                    $DOTBRAIN_ROOT/inferred.                  │
+│                                    $DOTBRAIN_HOME/inferred.                  │
 │ --beads-server-host          TEXT  Target Dolt sql-server host. Defaults to  │
 │                                    beads.server.host in config.yaml.         │
 │ --beads-server-port          TEXT  Dolt sql-server port. Defaults to         │
@@ -381,7 +381,7 @@ Reference for the public `dotbrain` CLI.
 │ --name                         TEXT  Project/Brainspace name. Defaults to    │
 │                                      repo dir name.                          │
 │ --dotbrain                     TEXT  dotbrain checkout. Defaults to          │
-│                                      $DOTBRAIN_ROOT/inferred.                │
+│                                      $DOTBRAIN_HOME/inferred.                │
 │ --skip-beads                         Do not initialize .beads when missing.  │
 │ --install-global-hook                Also install the global Claude          │
 │                                      SessionStart hook. Prefer `dotbrain     │

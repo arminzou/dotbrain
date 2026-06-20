@@ -69,7 +69,7 @@ def bootstrap(
     if only and only not in {"claude-hook", "codex-hook", "skills"}:
         raise typer.BadParameter(f"invalid --only: {only}")
 
-    root = paths.resolve_dotbrain_root()
+    root = paths.resolve_dotbrain_home()
 
     # Seed data root (config.yaml, skills/skills.yaml) if missing.
     dr_result = bootstrap_mod.ensure_data_root(root)
@@ -147,7 +147,7 @@ def _render_doctor(report: doctor_mod.DoctorReport) -> None:
 @app.command()
 def doctor() -> None:
     """Read-only health check: machine readiness, project wiring, beads state drift."""
-    root = paths.resolve_dotbrain_root()
+    root = paths.resolve_dotbrain_home()
     report = doctor_mod.run_doctor(root)
     _render_doctor(report)
 
@@ -157,7 +157,7 @@ def wire(
     all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its Brainspace (brain seeding, symlinks, hooks)."),  # noqa: A002
     repo: Optional[str] = typer.Option(None, "--repo", help="Repo to wire. Defaults to the current git repo."),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name. Defaults to repo dir name."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
+    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
     skip_beads: bool = typer.Option(False, "--skip-beads", help="Do not initialize .beads when missing."),
     install_global_hook: bool = typer.Option(False, "--install-global-hook", help="Also install the global Claude SessionStart hook. Prefer `dotbrain bootstrap` for machine setup."),
     skip_global_hook: bool = typer.Option(False, "--skip-global-hook", help="Compatibility no-op; global hooks are no longer installed by default.", hidden=True),
@@ -173,7 +173,7 @@ def wire(
 
     Without --all: wire one project. With --all: reconcile every Brainspace.
     """
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
+    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
     if all:
         if repo or name or no_repo or remote:
             raise typer.BadParameter("--all is mutually exclusive with --repo, --name, --no-repo, and --beads-remote")
@@ -189,7 +189,7 @@ def wire(
     server_user = server_user if server_user is not None else cfg.beads_server.user
     try:
         result = workflows.wire_project(
-            dotbrain_root=root,
+            dotbrain_home=root,
             repo=Path(repo) if repo else None,
             project=name,
             no_repo=no_repo,
@@ -225,7 +225,7 @@ def refresh(
         raise typer.BadParameter("use --all or --name")
 
     try:
-        root = paths.resolve_dotbrain_root()
+        root = paths.resolve_dotbrain_home()
         if all:
             result = workflows.refresh_projects(root, repo_base=repo_base)
         else:
@@ -261,7 +261,7 @@ def unwire(
         if archive or delete:
             raise typer.BadParameter("--all does not support --archive or --delete; use per-project unwire for destructive offboard")
         results = workflows.unwire_all_projects(
-            dotbrain_root=paths.resolve_dotbrain_root(),
+            dotbrain_home=paths.resolve_dotbrain_home(),
             dry_run=dry_run,
         )
         for result in results:
@@ -279,7 +279,7 @@ def unwire(
         raise typer.BadParameter("--no-repo requires --name")
     offboard = "archive" if archive else "delete" if delete else "keep"
     result = workflows.unwire_project(
-        dotbrain_root=paths.resolve_dotbrain_root(),
+        dotbrain_home=paths.resolve_dotbrain_home(),
         repo=repo,
         project=name,
         no_repo=no_repo,
@@ -299,7 +299,7 @@ def _resolve_beads_server(
     ssh_host: Optional[str],
 ) -> tuple[str, str, str, str]:
     """Resolve sql-server connection from flags, falling back to config.yaml beads.server."""
-    cfg = config.load_config(paths.resolve_dotbrain_root())
+    cfg = config.load_config(paths.resolve_dotbrain_home())
     host = server_host if server_host is not None else cfg.beads_server.host
     port = server_port if server_port is not None else cfg.beads_server.port
     user = server_user if server_user is not None else cfg.beads_server.user
@@ -362,7 +362,7 @@ def migrate_beads(
     repo: Optional[str] = typer.Option(None, "--repo", help="Wired repo path; project name is its dir name."),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to migrate."),
     all_projects: bool = typer.Option(False, "--all", help="Migrate every embedded Brainspace."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
+    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
     server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Target Dolt sql-server host. Defaults to beads.server.host in config.yaml."),
     server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
     server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user in config.yaml."),
@@ -370,7 +370,7 @@ def migrate_beads(
     dry_run: bool = typer.Option(False, "--dry-run", help="Print the planned bd sequence without running it."),
 ) -> None:
     """Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server, history intact."""
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
+    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
     cfg = config.load_config(root)
     host = server_host if server_host is not None else cfg.beads_server.host
     port = server_port if server_port is not None else cfg.beads_server.port
@@ -382,7 +382,7 @@ def migrate_beads(
 
     if all_projects:
         results = migrate.migrate_all(
-            dotbrain_root=root,
+            dotbrain_home=root,
             server_host=host,
             server_port=port,
             server_user=user,
@@ -392,7 +392,7 @@ def migrate_beads(
         project = name or adopter_repos.repo_root(Path(repo) if repo else None).name
         results = [
             migrate.safe_migrate_project(
-                dotbrain_root=root,
+                dotbrain_home=root,
                 project=project,
                 server_host=host,
                 server_port=port,
@@ -425,7 +425,7 @@ def beads_load(
     all: bool = typer.Option(False, "--all", help="Load tracker state for every Brainspace."),  # noqa: A002
     repo: Optional[str] = typer.Option(None, "--repo", help="Repo whose Brainspace to load. Defaults to the current git repo."),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to load."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_ROOT/inferred."),
+    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview what would be hydrated/pulled without mutating anything."),
 ) -> None:
     """Hydrate local beads state from tracked declarations: attach server trackers, init embedded
@@ -434,7 +434,7 @@ def beads_load(
     Without --all: load one project (by --name, or the --repo/cwd repo). With --all: every brainspace
     root declared to use beads.
     """
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_root()
+    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
     if all:
         if repo or name:
             raise typer.BadParameter("--all is mutually exclusive with --repo and --name")
@@ -524,7 +524,7 @@ _AGENT_WORKSPACES = {
 @skills_app.command("list", hidden=True)
 def skills_list() -> None:
     """List all skills in the skills tree."""
-    root = paths.resolve_dotbrain_root()
+    root = paths.resolve_dotbrain_home()
     for skill in skills.discover_skills(root / "skills"):
         typer.echo(skill)
 
@@ -549,7 +549,7 @@ def skills_link(
     if scope not in {"global", "project", "all"}:
         raise typer.BadParameter(f"invalid --scope: {scope}")
 
-    root = paths.resolve_dotbrain_root()
+    root = paths.resolve_dotbrain_home()
     if scope in {"project", "all"}:
         _link_projects_native(root, target, project)
     if scope in {"global", "all"}:

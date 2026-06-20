@@ -19,28 +19,28 @@ from dotbrain.cli import app
 runner = CliRunner()
 
 
-def _brainspace(dotbrain_root: Path, name: str) -> Path:
-    brainspace = dotbrain_root / "brainspaces" / name
+def _brainspace(dotbrain_home: Path, name: str) -> Path:
+    brainspace = dotbrain_home / "brainspaces" / name
     brainspace.mkdir(parents=True, exist_ok=True)
     return brainspace
 
 
-def _write_server_yaml(dotbrain_root: Path) -> None:
-    (dotbrain_root / "dotbrain.yaml").write_text(
+def _write_server_yaml(dotbrain_home: Path) -> None:
+    (dotbrain_home / "dotbrain.yaml").write_text(
         "version: 2\nbeads:\n  server:\n    host: 10.0.0.9\n    port: 3308\n"
     )
 
 
-def _invoke(dotbrain_root: Path, *args: str):
-    return runner.invoke(app, list(args), env={"DOTBRAIN_ROOT": str(dotbrain_root)})
+def _invoke(dotbrain_home: Path, *args: str):
+    return runner.invoke(app, list(args), env={"DOTBRAIN_HOME": str(dotbrain_home)})
 
 
 def test_load_all_dry_run_makes_no_mutation(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    _write_server_yaml(dotbrain_root)
-    _brainspace(dotbrain_root, "alpha")
-    _brainspace(dotbrain_root, "beta")
+    _write_server_yaml(dotbrain_home)
+    _brainspace(dotbrain_home, "alpha")
+    _brainspace(dotbrain_home, "beta")
 
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
@@ -55,30 +55,30 @@ def test_load_all_dry_run_makes_no_mutation(
 
     result = runner.invoke(
         app, ["beads", "load", "--all", "--dry-run"],
-        env={"DOTBRAIN_ROOT": str(dotbrain_root)},
+        env={"DOTBRAIN_HOME": str(dotbrain_home)},
     )
 
     assert result.exit_code == 0, result.output
     assert "would pull beads for alpha" in result.output
     assert "would pull beads for beta" in result.output
     # No .beads dir created anywhere, and the pull subprocess never ran.
-    assert not (dotbrain_root / "brainspaces" / "alpha" / ".beads").exists()
-    assert not (dotbrain_root / "brainspaces" / "beta" / ".beads").exists()
+    assert not (dotbrain_home / "brainspaces" / "alpha" / ".beads").exists()
+    assert not (dotbrain_home / "brainspaces" / "beta" / ".beads").exists()
     assert sub_calls == []
     # The injected Runner default would explode if reached; prove it wasn't by re-running engine.
-    res = beads_mod.pull_beads_for_all(dotbrain_root, run=forbidden, dry_run=True)
+    res = beads_mod.pull_beads_for_all(dotbrain_home, run=forbidden, dry_run=True)
     assert any("would pull beads for alpha" in line for line in res.logs)
 
 
 def test_load_name_dry_run_previews_only_target(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    _write_server_yaml(dotbrain_root)
-    _brainspace(dotbrain_root, "alpha")
-    _brainspace(dotbrain_root, "beta")
+    _write_server_yaml(dotbrain_home)
+    _brainspace(dotbrain_home, "alpha")
+    _brainspace(dotbrain_home, "beta")
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
-    result = _invoke(dotbrain_root, "beads", "load", "--name", "alpha", "--dry-run")
+    result = _invoke(dotbrain_home, "beads", "load", "--name", "alpha", "--dry-run")
 
     assert result.exit_code == 0, result.output
     assert "would pull beads for alpha" in result.output
@@ -86,11 +86,11 @@ def test_load_name_dry_run_previews_only_target(
 
 
 def test_engine_projects_filter_pulls_only_target(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     # Already-hydrated embedded stores -> no init, just pulls. Keeps the assertion about pull scope clean.
-    (_brainspace(dotbrain_root, "alpha") / ".beads").mkdir()
-    (_brainspace(dotbrain_root, "beta") / ".beads").mkdir()
+    (_brainspace(dotbrain_home, "alpha") / ".beads").mkdir()
+    (_brainspace(dotbrain_home, "beta") / ".beads").mkdir()
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
     pulled_dirs: list[str] = []
@@ -101,25 +101,25 @@ def test_engine_projects_filter_pulls_only_target(
 
     monkeypatch.setattr(beads_mod.subprocess, "run", fake_run)
 
-    result = beads_mod.pull_beads_for_all(dotbrain_root, projects=["alpha"])
+    result = beads_mod.pull_beads_for_all(dotbrain_home, projects=["alpha"])
 
-    alpha = str(dotbrain_root / "brainspaces" / "alpha")
+    alpha = str(dotbrain_home / "brainspaces" / "alpha")
     assert pulled_dirs == [alpha]
     assert result.pulled == [alpha]
 
 
 def test_load_name_unknown_warns(
-    dotbrain_root: Path, monkeypatch: pytest.MonkeyPatch
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    _brainspace(dotbrain_root, "alpha")
+    _brainspace(dotbrain_home, "alpha")
     monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
 
-    result = _invoke(dotbrain_root, "beads", "load", "--name", "ghost", "--dry-run")
+    result = _invoke(dotbrain_home, "beads", "load", "--name", "ghost", "--dry-run")
 
     assert result.exit_code == 0, result.output
     assert "no Brainspace: brainspaces/ghost" in result.output
 
 
-def test_load_all_with_name_is_rejected(dotbrain_root: Path):
-    result = _invoke(dotbrain_root, "beads", "load", "--all", "--name", "alpha")
+def test_load_all_with_name_is_rejected(dotbrain_home: Path):
+    result = _invoke(dotbrain_home, "beads", "load", "--all", "--name", "alpha")
     assert result.exit_code == 2

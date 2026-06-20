@@ -34,15 +34,15 @@ def _make_adopter_repo(path: Path) -> Path:
     return path
 
 
-def test_wire_all_creates_symlinks(dotbrain_root: Path, brainspace: Path,
+def test_wire_all_creates_symlinks(dotbrain_home: Path, brainspace: Path,
                                    fake_home: Path, tmp_path: Path):
     repo = _make_adopter_repo(tmp_path / "example")
-    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(
+    (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(
         f"{repo}\n"
     )
 
     result = workflows.wire_all_projects(
-        dotbrain_root, repo_base=tmp_path, home=fake_home, run=_git_runner()
+        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
     )
 
     assert any("example" in log for log in result.logs)
@@ -51,22 +51,22 @@ def test_wire_all_creates_symlinks(dotbrain_root: Path, brainspace: Path,
     assert not (repo / ".codex").exists()
 
 
-def test_wire_all_warns_when_repo_missing(dotbrain_root: Path, brainspace: Path,
+def test_wire_all_warns_when_repo_missing(dotbrain_home: Path, brainspace: Path,
                                           fake_home: Path, tmp_path: Path):
     result = workflows.wire_all_projects(
-        dotbrain_root, repo_base=tmp_path / "nonexistent", home=fake_home, run=_git_runner()
+        dotbrain_home, repo_base=tmp_path / "nonexistent", home=fake_home, run=_git_runner()
     )
     assert any("no repo found" in w or "not a git repo" in w for w in result.warnings)
 
 
-def test_wire_all_warns_non_git_repo(dotbrain_root: Path, brainspace: Path,
+def test_wire_all_warns_non_git_repo(dotbrain_home: Path, brainspace: Path,
                                      fake_home: Path, tmp_path: Path):
     repo = tmp_path / "not-a-repo"
     repo.mkdir()
-    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
+    (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(f"{repo}\n")
 
     result = workflows.wire_all_projects(
-        dotbrain_root, repo_base=tmp_path, home=fake_home, run=_git_runner()
+        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
     )
     assert any("not a git repo" in w for w in result.warnings)
 
@@ -145,18 +145,18 @@ def test_ensure_server_beads_metadata_writes_server_metadata(tmp_path: Path):
 
 
 def test_wire_all_skips_beads_link_silently_for_mode_none(
-    dotbrain_root: Path, brainspace: Path, fake_home: Path, tmp_path: Path
+    dotbrain_home: Path, brainspace: Path, fake_home: Path, tmp_path: Path
 ):
     # A declared no-beads project never has a Brainspace .beads; the repos stage
     # must neither warn about it nor create a dangling link.
-    (dotbrain_root / "dotbrain.yaml").write_text(
+    (dotbrain_home / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  example:\n    beads:\n      mode: none\n"
     )
     repo = _make_adopter_repo(tmp_path / "example")
-    (paths.brainspace(dotbrain_root, "example") / ".repo").write_text(f"{repo}\n")
+    (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(f"{repo}\n")
 
     result = workflows.wire_all_projects(
-        dotbrain_root, repo_base=tmp_path, home=fake_home, run=_git_runner()
+        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
     )
 
     assert not any(".beads is missing" in w for w in result.warnings)

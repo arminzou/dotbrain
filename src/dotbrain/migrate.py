@@ -143,7 +143,7 @@ def _backup_server_copy_argv(host: str, backup: Path) -> list[list[str]]:
 
 def migrate_project(
     *,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     project: str,
     server_host: str,
     server_port: str = "3307",
@@ -152,8 +152,8 @@ def migrate_project(
     dry_run: bool = False,
     run: Runner = _default_run,
 ) -> MigrationResult:
-    dotbrain_root = Path(dotbrain_root)
-    brainspace = paths.brainspace(dotbrain_root, project)
+    dotbrain_home = Path(dotbrain_home)
+    brainspace = paths.brainspace(dotbrain_home, project)
     result = MigrationResult(project=project, brainspace=brainspace)
 
     mode = beads_mode(brainspace)
@@ -188,7 +188,7 @@ def migrate_project(
         return result
 
     env = _beads_env(brainspace)
-    hidden = _hide_root_beads(brainspace, dotbrain_root)
+    hidden = _hide_root_beads(brainspace, dotbrain_home)
     try:
         stats_pre = run(["bd", "stats", "--json"], cwd=brainspace, env=env, check=True)
         result.pre_count = parse_total_issues(stats_pre.stdout or "")
@@ -207,7 +207,7 @@ def migrate_project(
         stats_post = run(["bd", "stats", "--json"], cwd=brainspace, env=env, check=True)
         result.post_count = parse_total_issues(stats_post.stdout or "")
     finally:
-        _restore_root_beads(hidden, dotbrain_root)
+        _restore_root_beads(hidden, dotbrain_home)
 
     if result.pre_count is None or result.post_count is None:
         result.status = "migrated-unverified"
@@ -215,7 +215,7 @@ def migrate_project(
             f"{project}: migrated, but could not verify issue count from bd stats; verify history "
             "depth on the server before removing embedded data"
         )
-        _record_migrated_backend(dotbrain_root, project, database, result)
+        _record_migrated_backend(dotbrain_home, project, database, result)
         return result
     if result.post_count != result.pre_count:
         result.status = "aborted-count-mismatch"
@@ -230,20 +230,20 @@ def migrate_project(
         f"{project}: migrated to {server_host}:{server_port}/{database} "
         f"({result.post_count} issues); embedded data + backup kept for rollback"
     )
-    _record_migrated_backend(dotbrain_root, project, database, result)
+    _record_migrated_backend(dotbrain_home, project, database, result)
     return result
 
 
 def _record_migrated_backend(
-    dotbrain_root: Path, project: str, database: str, result: MigrationResult
+    dotbrain_home: Path, project: str, database: str, result: MigrationResult
 ) -> None:
     """The project is on the server now; its dotbrain.yaml entry must say so."""
     if database != project:
         log = config.record_project_beads(
-            dotbrain_root, project, config.ProjectBeads(mode="server", database=database)
+            dotbrain_home, project, config.ProjectBeads(mode="server", database=database)
         )
     else:
-        log = config.remove_project_beads(dotbrain_root, project)
+        log = config.remove_project_beads(dotbrain_home, project)
     if log:
         result.logs.append(log)
 
@@ -265,7 +265,7 @@ def safe_migrate_project(**kwargs) -> MigrationResult:
     try:
         return migrate_project(**kwargs)
     except Exception as exc:
-        brainspace = paths.brainspace(Path(kwargs["dotbrain_root"]), project) if project else None
+        brainspace = paths.brainspace(Path(kwargs["dotbrain_home"]), project) if project else None
         detail = str(exc)
         stderr = (getattr(exc, "stderr", "") or "").strip()
         if stderr:
@@ -281,7 +281,7 @@ def safe_migrate_project(**kwargs) -> MigrationResult:
 
 def migrate_all(
     *,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     server_host: str,
     server_port: str = "3307",
     server_user: str = "beads",
@@ -289,10 +289,10 @@ def migrate_all(
     run: Runner = _default_run,
 ) -> list[MigrationResult]:
     """Migrate every embedded Brainspace; skip server/none ones; never abort the whole sweep."""
-    dotbrain_root = Path(dotbrain_root)
+    dotbrain_home = Path(dotbrain_home)
     return [
         safe_migrate_project(
-            dotbrain_root=dotbrain_root,
+            dotbrain_home=dotbrain_home,
             project=brainspace.name,
             server_host=server_host,
             server_port=server_port,
@@ -300,5 +300,5 @@ def migrate_all(
             dry_run=dry_run,
             run=run,
         )
-        for brainspace in paths.brainspaces(dotbrain_root)
+        for brainspace in paths.brainspaces(dotbrain_home)
     ]

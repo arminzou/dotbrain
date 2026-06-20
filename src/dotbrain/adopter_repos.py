@@ -128,7 +128,7 @@ def expand_path(raw: str, home: Path | None = None) -> Path:
 
 def repo_for_brainspace(
     brainspace: Path,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     repo_base: Path | None = None,
     home: Path | None = None,
 ) -> Path | None:
@@ -137,7 +137,7 @@ def repo_for_brainspace(
     Resolution order:
     1. <brainspace>/.repo.local (machine-local override)
     2. <brainspace>/.repo (committed canonical pointer)
-    3. dotbrain_root itself when brainspace.name == "dotbrain"
+    3. dotbrain_home itself when brainspace.name == "dotbrain"
     4. repo_base/<brainspace.name> when the directory exists
     """
     for pointer_name in (".repo.local", ".repo"):
@@ -150,7 +150,7 @@ def repo_for_brainspace(
             if lines:
                 return expand_path(lines[0], home)
     if brainspace.name == "dotbrain":
-        return Path(dotbrain_root).resolve()
+        return Path(dotbrain_home).resolve()
     if repo_base:
         candidate = Path(repo_base) / brainspace.name
         if candidate.is_dir():
@@ -173,8 +173,8 @@ def abbrev_home(path: Path, home: Path | None = None) -> str:
         return str(path)
 
 
-def is_dotbrain_repo(repo: Path, dotbrain_root: Path) -> bool:
-    return Path(repo).resolve() == Path(dotbrain_root).resolve()
+def is_dotbrain_repo(repo: Path, dotbrain_home: Path) -> bool:
+    return Path(repo).resolve() == Path(dotbrain_home).resolve()
 
 
 def target_is_outside_repo(repo: Path, path: Path) -> bool:
@@ -197,7 +197,7 @@ def is_dotbrain_checkout(root: Path) -> bool:
     )
 
 
-def foreign_dotbrain_root_for_symlink(path: Path, link_name: str, dotbrain_root: Path) -> Path | None:
+def foreign_dotbrain_home_for_symlink(path: Path, link_name: str, dotbrain_home: Path) -> Path | None:
     """Return a foreign dotbrain root when ``path`` proves it already belongs to another checkout."""
     path = Path(path)
     if not path.is_symlink():
@@ -213,7 +213,7 @@ def foreign_dotbrain_root_for_symlink(path: Path, link_name: str, dotbrain_root:
     if data_dir.name not in paths.DATA_DIRS:
         return None
     inferred_root = data_dir.parent.resolve()
-    if inferred_root == Path(dotbrain_root).resolve():
+    if inferred_root == Path(dotbrain_home).resolve():
         return None
     if not is_dotbrain_checkout(inferred_root):
         return None
@@ -222,13 +222,13 @@ def foreign_dotbrain_root_for_symlink(path: Path, link_name: str, dotbrain_root:
     return inferred_root
 
 
-def ensure_not_wired_to_foreign_dotbrain(repo: Path, dotbrain_root: Path) -> None:
+def ensure_not_wired_to_foreign_dotbrain(repo: Path, dotbrain_home: Path) -> None:
     """Refuse rewiring when an adopter Brainspace link already resolves into another dotbrain checkout."""
     repo = Path(repo)
-    current_root = Path(dotbrain_root).resolve()
+    current_root = Path(dotbrain_home).resolve()
     for name in paths.BRAINSPACE_LINKS:
         link = repo / name
-        foreign_root = foreign_dotbrain_root_for_symlink(link, name, current_root)
+        foreign_root = foreign_dotbrain_home_for_symlink(link, name, current_root)
         if foreign_root is None:
             continue
         raise RuntimeError(
@@ -354,7 +354,7 @@ def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTE
 def wire_repo(
     repo: Path,
     brainspace: Path,
-    dotbrain_root: Path,
+    dotbrain_home: Path,
     run: Runner = _default_run,
     *,
     skip_beads_link: bool = False,
@@ -362,8 +362,8 @@ def wire_repo(
 ) -> list[str]:
     """Link active Brainspace symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)
-    ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_root)
-    use_local_excludes = not is_dotbrain_repo(repo, dotbrain_root)
+    ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_home)
+    use_local_excludes = not is_dotbrain_repo(repo, dotbrain_home)
     warnings: list[str] = []
     active_links: tuple[str, ...] = (".brain", *(workspace_links or ()))
     if not skip_beads_link:

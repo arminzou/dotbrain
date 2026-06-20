@@ -28,10 +28,10 @@ def test_ensure_brainspace_gitignore_seeds_and_is_idempotent(tmp_path: Path):
     assert (tmp_path / ".gitignore").read_text().splitlines() == lines
 
 
-def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
+def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()
-    brainspaces.seed_brain(brainspace, dotbrain_root)
+    brainspaces.seed_brain(brainspace, dotbrain_home)
     brain = brainspace / ".brain"
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
@@ -45,11 +45,11 @@ def test_seed_brain_creates_skeleton(dotbrain_root: Path, tmp_path: Path):
     assert not (brain / "agents" / "triage-labels.md").exists()
 
 
-def test_seed_brain_ignores_data_root_templates(dotbrain_root: Path, tmp_path: Path):
+def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: Path):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()
-    shutil.rmtree(dotbrain_root / "templates")
-    brainspaces.seed_brain(brainspace, dotbrain_root)
+    shutil.rmtree(dotbrain_home / "templates")
+    brainspaces.seed_brain(brainspace, dotbrain_home)
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
@@ -76,11 +76,11 @@ def test_ensure_codex_config(tmp_path: Path):
     assert "does not explicitly enable hooks" in brainspaces.ensure_codex_config(disabled)
 
 
-def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path, tmp_path: Path):
+def test_seed_agent_workspaces_writes_hooks(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()
-    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
-    warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
+    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
+    warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
     assert warnings == []
     assert warnings_again == []
     bootstrap = "dotbrain hook session-start"
@@ -95,9 +95,9 @@ def test_seed_agent_workspaces_writes_hooks(dotbrain_root: Path, fake_home: Path
 
 
 def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
-    dotbrain_root: Path, fake_home: Path
+    dotbrain_home: Path, fake_home: Path
 ):
-    brainspace = dotbrain_root / "brainspaces" / "claude-only"
+    brainspace = dotbrain_home / "brainspaces" / "claude-only"
     brainspace.mkdir(parents=True)
     (brainspace / "project.yaml").write_text(
         "agents:\n"
@@ -108,7 +108,7 @@ def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unli
     existing_codex.parent.mkdir(parents=True)
     existing_codex.write_text("keep\n")
 
-    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_root, fake_home)
+    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
 
     assert (brainspace / ".claude" / "settings.json").is_file()
     assert not (brainspace / ".codex" / "hooks.json").exists()

@@ -84,7 +84,7 @@ def _check_templates(root: Path) -> Finding:
 
 
 def _check_global_hook(home: Path, settings_rel: str, script_name: str,
-                       dotbrain_root: Path, label: str) -> Finding:
+                       dotbrain_home: Path, label: str) -> Finding:
     target = home / settings_rel
     if not target.is_file():
         return Finding("warn", f"{label} settings not found at {target}",
@@ -97,7 +97,7 @@ def _check_global_hook(home: Path, settings_rel: str, script_name: str,
     if not isinstance(data, dict):
         return Finding("warn", f"{label} settings malformed")
     entries = data.get("hooks", {}).get("SessionStart", [])
-    expected = _global_hook_command(script_name, dotbrain_root, home)
+    expected = _global_hook_command(script_name, dotbrain_home, home)
     if _hook_command_present(entries, expected):
         return Finding("ok", f"{label} SessionStart hook installed")
     return Finding("warn", f"{label} SessionStart hook missing",
@@ -196,7 +196,7 @@ def _check_agent_pointer(repo: Path) -> list[Finding]:
     return findings
 
 
-def _check_project_wiring(brainspace: Path, dotbrain_root: Path) -> list[Finding]:
+def _check_project_wiring(brainspace: Path, dotbrain_home: Path) -> list[Finding]:
     findings: list[Finding] = []
 
     repo_finding, resolved = _check_repo_file(brainspace)
@@ -208,7 +208,7 @@ def _check_project_wiring(brainspace: Path, dotbrain_root: Path) -> list[Finding
         return findings  # brain-only or repo target missing
 
     # The dotbrain repo itself isn't an adopter — skip wiring checks on it.
-    if is_dotbrain_repo(resolved, dotbrain_root):
+    if is_dotbrain_repo(resolved, dotbrain_home):
         return [Finding("ok", "dotbrain repo (not an adopter)")]
 
     findings += _check_brainspace_links(resolved, brainspace)
@@ -222,10 +222,10 @@ def _check_project_wiring(brainspace: Path, dotbrain_root: Path) -> list[Finding
 
 
 def _check_beads_state(
-    brainspace: Path, name: str, dotbrain_root: Path, *, run: Runner = _default_run,
+    brainspace: Path, name: str, dotbrain_home: Path, *, run: Runner = _default_run,
 ) -> list[Finding]:
     findings: list[Finding] = []
-    beads_cfg = config.load_project_config(dotbrain_root, name)
+    beads_cfg = config.load_project_config(dotbrain_home, name)
 
     if beads_cfg.mode == "none":
         return [Finding("ok", "beads disabled (mode: none)")]
@@ -272,10 +272,10 @@ def _check_beads_state(
 
 
 def run_doctor(
-    dotbrain_root: Path, home: Path | None = None, *, run: Runner = _default_run,
+    dotbrain_home: Path, home: Path | None = None, *, run: Runner = _default_run,
 ) -> DoctorReport:
     home = Path(home) if home is not None else Path.home()
-    root = dotbrain_root.resolve()
+    root = dotbrain_home.resolve()
 
     report = DoctorReport(
         machine=_check_machine(root, home),
