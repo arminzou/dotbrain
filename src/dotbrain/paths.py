@@ -36,8 +36,9 @@ INJECT_ADOPTER_POINTER: bool = False
 def resolve_dotbrain_home() -> Path:
     """The dotbrain home: ``$DOTBRAIN_HOME`` if set, else inferred from this file.
 
-    Mirrors the ``$DOTBRAIN_HOME`` override the shell scripts honor. Pure helpers still take an
-    explicit home so tests never depend on this.
+    ``$DOTBRAIN_HOME`` overrides the data home only; it does not point the installer at a tool
+    checkout (install.sh derives that from its own location). Pure helpers still take an explicit
+    home so tests never depend on this.
     """
     env = os.environ.get("DOTBRAIN_HOME")
     if env:
