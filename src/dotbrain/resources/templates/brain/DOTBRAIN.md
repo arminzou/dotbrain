@@ -1,7 +1,7 @@
 # DOTBRAIN.md
 
 Shared operating rules for all dotbrain brains. Owned by dotbrain; rehydrated by
-`dotbrain bootstrap`. Do not edit per project — changes to the packaged dotbrain
+`dotbrain refresh`. Do not edit per project — changes to the packaged dotbrain
 Brain template propagate to every brain.
 
 ## Wiring

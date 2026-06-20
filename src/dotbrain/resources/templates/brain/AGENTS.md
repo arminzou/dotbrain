@@ -6,7 +6,7 @@ and skill config — that stays private while the code repo may be public. Execu
 in beads (`bd`), not in here.
 
 `DOTBRAIN.md` carries the shared operating rules (wiring, conventions, public/private
-boundary) and is rehydrated by `dotbrain bootstrap`.
+boundary) and is rehydrated by `dotbrain refresh`.
 
 ## Read order
 
