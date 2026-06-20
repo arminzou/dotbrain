@@ -1,6 +1,6 @@
 # dotbrain
 
-An agent-native control plane. dotbrain keeps each project's durable context — domain
+Durable, private project context and skills, wired into whatever coding agent you use. dotbrain keeps each project's durable context — domain
 knowledge, decisions, and a live issue tracker — in a **Brainspace** outside the code repo,
 and wires it into your coding agent (Claude Code, Codex) through gitignored symlinks. Your code
 repo stays clean; your agent gets project memory and execution state for free.

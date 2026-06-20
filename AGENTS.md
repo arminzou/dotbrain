@@ -1,7 +1,7 @@
 # AGENTS.md
 
-`dotbrain` — an agent-native control plane: one tool that wires **project Brainspaces** and
-**skills** into whatever coding agent you use (Claude Code, Codex). Engineering-centered.
+`dotbrain` — one tool that wires **project Brainspaces** and **skills** into whatever coding
+agent you use (Claude Code, Codex). Engineering-centered.
 
 ## What this is
 

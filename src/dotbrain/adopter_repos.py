@@ -1,6 +1,6 @@
 """Adopter repo attachment, detachment, and Brainspace link reconciliation.
 
-A Brainspace is the private project control plane; an adopter repo is an external checkout wired
+A Brainspace is a project's private context store; an adopter repo is an external checkout wired
 into it. This module owns everything repo-facing:
 
 - Brainspace link reconciliation (the symlink primitive shared by repo and worktree wiring);

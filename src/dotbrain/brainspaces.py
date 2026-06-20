@@ -1,6 +1,6 @@
 """Brainspace lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
 
-A Brainspace is the private project control plane under ``brainspaces/<name>/``. This module owns
+A Brainspace is a project's private context store under ``brainspaces/<name>/``. This module owns
 its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
 (``wiring``/``beads``):
 

@@ -1,6 +1,6 @@
-"""Pure path and contract helpers for the dotbrain control-plane convention.
+"""Pure path and contract helpers for the dotbrain wiring convention.
 
-These encode the compatibility contracts of the control-plane convention as data
+These encode the compatibility contracts of the wiring convention as data
 and side-effect-free functions. No filesystem mutation happens here; the wiring
 mutators build on top of these.
 """

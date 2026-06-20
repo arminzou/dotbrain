@@ -1,4 +1,4 @@
-"""Shared fixtures modeling the control-plane wiring scenarios.
+"""Shared fixtures modeling the dotbrain wiring scenarios.
 
 All fixtures are tmp_path-based: tests never touch a real home directory or the
 live dotbrain checkout.
