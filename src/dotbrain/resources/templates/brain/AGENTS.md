@@ -8,14 +8,8 @@ in beads (`bd`), not in here.
 `DOTBRAIN.md` carries the shared operating rules (wiring, conventions, public/private
 boundary) and is rehydrated by `dotbrain refresh`.
 
-## Read order
-
-1. `DOTBRAIN.md` — shared operating rules, wiring, and conventions
-2. `bd ready` / `bd list` from the repo root — execution state (issues live in beads)
-3. `CONTEXT.md` — domain vocabulary
-4. `adr/` — decisions, one per file
-5. `agents/` — project-specific skill config and conventions; read when a skill directs you to
-
 ## Project
 
-(Add project-specific rules and conventions here.)
+Cross-cutting rules with no structured home: build and test commands, project-wide
+constraints, gotchas. Vocabulary goes in CONTEXT.md, decisions in adr/, skill config
+in agents/.
