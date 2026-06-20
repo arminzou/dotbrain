@@ -4,6 +4,9 @@ dotbrain ships a small set of Brain-coupled skills. These are the operating manu
 project: they tell an agent how to wire a repo, work with the private execution graph, triage
 public issues, and maintain Brain context.
 
+Several of these skills are inspired by and adapted from
+[mattpocock/skills](https://github.com/mattpocock/skills).
+
 Skills are layered:
 
 - dotbrain-managed required skills ship with the tool

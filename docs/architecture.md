@@ -1,17 +1,8 @@
 # Architecture
 
-dotbrain gives every project a durable context store that lives outside the code repo and wires it
-into your coding agent automatically. This document explains how it is put together and why.
-
-## The problem
-
-A coding agent starts every session cold. The context that makes it effective — a project's
-vocabulary, its architectural decisions, the rationale behind past choices, and what work is in
-flight — usually lives in someone's head or scattered across docs. Putting that material in the code
-repo is awkward: much of it is private, it is not really *code*, and it drifts.
-
-dotbrain's premise: give every project a structured context store that lives *outside* the code
-repo, and wire it into the agent so each session starts warm.
+This document explains dotbrain's design: Brainspaces, the Brain and execution split, skills, and
+the public/private boundary. For the problem dotbrain solves and how to get started, see the
+[README](../README.md).
 
 ## Brainspaces
 
