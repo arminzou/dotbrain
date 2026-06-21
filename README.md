@@ -1,25 +1,55 @@
+<p align="center">
+  <img src="docs/assets/banner.jpg" alt="Dotbrain" width="100%">
+</p>
+
 # Dotbrain
 
 > Dotbrain keeps your project's context private and your code repo clean, and makes that discipline effortless.
 
-Coding agents are only as good as the context they start with. Dotbrain stores each project's
-durable context (domain vocabulary, architectural decisions, operating rules, and a live issue
-tracker) in a private **Brainspace** outside the code repo, then wires it into your agent (Claude
-Code, Codex) through gitignored symlinks. The agent sees one tree, starts warm, and your repo
-never carries the private material.
+As an engineer, almost everything I build eventually crosses a public line. A side project I start
+in private gets shared or open-sourced later; the team and open-source repos I work in are public or
+shared from the start. The code can live in the open; the thinking behind it cannot: the half-formed
+decisions, the roadmap, the rationale I would not want published, or pasted by an agent into a commit
+message. For a while that thinking lived in my head, which meant re-explaining my own project to the
+agent every session. So I built Dotbrain.
 
-## The problem
+## Why not just keep private notes?
 
-A coding agent starts every session cold. The context that makes it effective (what the project's
-terms mean, why past decisions were made, what work is in flight) usually lives in someone's head
-or scattered across docs. You get two bad options for fixing that:
+A gitignored notes file is the obvious fix, but I wanted those notes versioned, so they became a
+separate private repo. That is what I did for a long time. It kept them private and tracked, but it
+sat off to the side of the project: when I spun up a git worktree to run a second agent in parallel,
+the notes did not come with it; when I cloned the project onto another machine, they were not there
+either. The context I needed most was the context that never followed the work.
 
-- **Put it in the code repo.** Now private thinking leaks into a public or shared repo, and the
-  material rots next to code it is not.
-- **Keep re-explaining it.** Every session starts from zero.
+Dotbrain keeps the Brain just as private and versioned, but wires it into the project from a single
+private home. A worktree picks it up automatically. A new machine is one clone and bootstrap away
+from having every project wired. The notes are there wherever you work the project, instead of
+sitting beside it.
 
-Dotbrain takes a third path: give the project a structured context store that lives outside the
-repo, and wire it in so each session starts warm with nothing leaking back.
+## "But my agent already remembers, and I have CLAUDE.md/AGENTS.md"
+
+**Agent session memory** carries context between sessions, but you cannot easily see, review, or
+correct what it holds, and it stays locked inside that one tool. Memory banks have the same shape:
+they accumulate scattered, durable facts about you, not the specifics of one project.
+
+**CLAUDE.md/AGENTS.md** is great for a handful of standing instructions, but it lives in the public
+repo and should not become the home for every decision and design note. Past a point it just bloats,
+and everything in it is public if the repo is.
+
+## Is this for you?
+
+**Use Dotbrain if:**
+
+- you run more than one coding agent (Claude Code, Codex), or many worktrees, on the same project
+- your work crosses a public line: private-first projects you later share, or team and open-source repos
+- you want your project's decisions and roadmap private but reviewable, not trapped inside one
+  tool's memory
+
+**Skip it if:**
+
+- all your repos are private and one agent's built-in memory already covers you
+- you only need a few standing instructions in the repo; `CLAUDE.md` is genuinely simpler
+- you are looking for a hosted team knowledge base
 
 ## How it works
 
@@ -31,7 +61,7 @@ flowchart LR
     code["your code"]
     links["gitignored symlinks"]
   end
-  subgraph home["Private Dotbrain Home (~/Dotbrain)"]
+  subgraph home["Private dotbrain home (~/dotbrain)"]
     direction TB
     brain["Brain: vocabulary, decisions, rules"]
     exec["Execution store: ready-work tracker"]
@@ -44,42 +74,25 @@ flowchart LR
 ```
 
 `dotbrain wire <repo>` creates the private Brainspace and drops gitignored symlinks at your repo
-root that point into it. A session-start hook loads the project's context into the agent
-automatically. The boundary then holds by construction:
+root that point into it: the Brain (vocabulary, decisions, rules), an execution store (a
+dependency-aware issue tracker, Beads by default), and the agent workspaces. A session-start hook
+loads the project's context into the agent automatically, so it starts warm. The boundary then
+holds by construction:
 
 - **Nothing leaks by accident.** The links are gitignored, so private state cannot be committed
   into the code repo.
 - **Public docs are derived, never mirrored.** When something needs to be public, you author a
-  fresh, audience-specific doc. You never sync a copy of the private source that can drift back
+  fresh, audience-specific doc, instead of syncing a copy of the private source that can drift back
   into a leak.
 
-## Inside a Brainspace
-
-- **Brain**: the durable knowledge. Domain vocabulary so language does not drift into synonyms,
-  architectural decisions with their rationale, and the operating rules an agent should follow.
-- **Execution store**: a dependency-aware issue tracker (Beads by default), so "what is ready to
-  work on" is a query, not a stale markdown checklist.
-- **Agent workspaces**: the per-project settings for the runtimes you wire, shared across git
-  worktrees through the same links rather than copied per worktree.
-
-## What Dotbrain is not
-
-Dotbrain does not try to win any one of these races. It wires capable tools together and keeps the
-boundary intact.
-
-- **Not a memory store.** It wires whatever context you author; it does not reinvent agent memory.
-- **Not a new tracker.** It uses a swappable execution engine; the value is the wiring and the
-  discipline, not the tracker.
-- **Not another rules file.** Warm context is table stakes it delegates to the agent runtime.
-
-The point is the boundary and the wiring: private brain, clean repo, warm agent, in one command.
+Worktrees reach the same Brain through the same symlinks, never a per-worktree copy.
 
 ## Install
 
 ```bash
 git clone https://github.com/arminzou/dotbrain.git
 cd dotbrain
-./install.sh        # installs uv, Beads (bd), and the Dotbrain CLI
+./install.sh        # installs uv, Beads (bd), and the dotbrain CLI
 dotbrain bootstrap  # install agent hooks and link global skills
 ```
 
