@@ -130,6 +130,43 @@ ready.
 When something needs to go public, you author a fresh, audience-specific doc rather than copying
 from the Brain, a private source that should never be mirrored into the code repo.
 
+## Workflow
+
+### Day-to-day
+
+Dotbrain ships a set of bundled Brain-coupled skills: the operating manual for a wired project. They load
+automatically at session start and are available as slash commands.
+
+- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
+- **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
+  back into the execution graph. This is the primary skill for driving daily work.
+- **`to-prd`** — formalize a multi-step initiative into a PRD, save it to the Brain, and create
+  an epic bead.
+- **`to-issues`** — decompose a PRD into independently-workable bead tasks with acceptance
+  criteria and dependencies.
+- **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
+  decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
+- **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
+  accepted work to private execution items.
+- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files.
+- **`review-architecture`** — review the codebase for deeper architectural opportunities and feed
+  findings back into the Brain.
+
+See [docs/skills.md](docs/skills.md) for the full set.
+
+### Worktree execution
+
+Single-agent execution is the default. Use the two-agent protocol when a slice is large enough
+that review and landing should stay separate from implementation.
+
+A main-agent session stays parked on `main`: it inspects ready work, describes the slice, and
+dispatches a worker into an isolated git worktree. The worker shares the same Brainspace, Brain,
+and execution state as the main checkout through the same symlinks, with no separate Brain and no
+re-wiring. When the worker finishes, the main-agent reviews and lands the result.
+
+Invoke `enter-main-agent` to start this mode. See
+[docs/two-agent-protocol.md](docs/two-agent-protocol.md) for the full protocol.
+
 ## Install
 
 ```bash

@@ -20,20 +20,25 @@ dotbrain keeps the required core wired in place and layers operator/project skil
 The packaged baseline comes from
 [src/dotbrain/resources/skills.yaml](/home/armin/repos/projects/dotbrain/src/dotbrain/resources/skills.yaml:1).
 
-- `brain/wire-brain`
+- `brain/wire-brain` *(global)*
   Provisions or repairs the Brainspace wiring between a repo and its private Brain.
-- `brain/operate-execution`
+- `brain/operate-execution` *(per-project)*
   Operates the private execution graph and recommends the next ready work item.
-- `brain/enter-main-agent`
+- `brain/enter-main-agent` *(per-project)*
   Coordinates the optional main-agent and worker-worktree workflow.
-- `brain/triage-public`
+- `brain/triage-public` *(per-project)*
   Runs public issue intake and links accepted public work to private execution items.
-- `brain/build-context`
+- `brain/build-context` *(per-project)*
   Drafts and normalizes `AGENTS.md` and related agent context files.
-- `brain/review-architecture`
+- `brain/review-architecture` *(per-project)*
   Reviews the codebase for deeper architectural opportunities and feeds findings back into the Brain.
-- `brain/grill-decisions`
+- `brain/grill-decisions` *(per-project)*
   Stress-tests plans and writes clarified decisions into `CONTEXT.md` and ADRs.
+
+- `brain/to-prd` *(per-project)*
+  Formalizes a multi-step initiative into a PRD, saves it to the Brain, and creates an epic bead.
+- `brain/to-issues` *(per-project)*
+  Decomposes a PRD into independently-workable bead tasks with acceptance criteria and dependencies.
 
 ## What Ships
 
@@ -45,6 +50,8 @@ The packaged skill set lives under
 - `grill-decisions`
 - `operate-execution`
 - `review-architecture`
+- `to-issues`
+- `to-prd`
 - `triage-public`
 - `wire-brain`
 
