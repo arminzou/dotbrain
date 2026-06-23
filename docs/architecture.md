@@ -21,13 +21,16 @@ tree.
 
 ## The Brain
 
-A Brain has four elements, each with a single clear purpose:
+A Brain has five elements, each with a single clear purpose:
 
 - **`CONTEXT.md`** — the project's domain vocabulary. Names for concepts that issues, plans, and code
   use consistently, so language does not drift into synonyms.
 - **`adr/`** — Architecture Decision Records, one file per decision. Each captures a choice that is
   hard to reverse, surprising without context, and the result of a real trade-off.
-- **`agents/`** — skill configuration: which skills a project uses and how they are set up.
+- **`prd/`** — Product Requirements Documents, one initiative per file. Authored by `to-prd`,
+  decomposed into bead epics by `to-issues`.
+- **`agents/`** — per-project agent operating conventions: linking rules, ADR policy, priority.
+  Skill selection lives in `project.yaml`, not here.
 - **`docs/`** — derived runbooks and reference material. Never authoritative; the elements above win.
 
 Brain writes are version-controlled, so every change is reviewable and revertable. Each element has
