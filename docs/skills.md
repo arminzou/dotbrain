@@ -1,8 +1,7 @@
 # Skills
 
-dotbrain ships a small set of Brain-coupled skills. These are the operating manual for a wired
-project: they tell an agent how to wire a repo, work with the private execution graph, triage
-public issues, and maintain Brain context.
+dotbrain ships nine Brain-coupled skills: the operating manual for a wired project. They cover
+wiring, planning, execution, triage, and Brain maintenance.
 
 Several of these skills are inspired by and adapted from
 [mattpocock/skills](https://github.com/mattpocock/skills).
@@ -15,48 +14,35 @@ Skills are layered:
 
 dotbrain keeps the required core wired in place and layers operator/project skills on top.
 
-## Required Core
+## Setup
 
-The packaged baseline comes from
-[src/dotbrain/resources/skills.yaml](/home/armin/repos/projects/dotbrain/src/dotbrain/resources/skills.yaml:1).
+- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
+  Run when starting a project, connecting an existing repo, or repairing dangling symlinks.
+- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files. Run when
+  bootstrapping a new project's agent instructions or repairing drift.
 
-- `brain/wire-brain` *(global)*
-  Provisions or repairs the Brainspace wiring between a repo and its private Brain.
-- `brain/operate-execution` *(per-project)*
-  Operates the private execution graph and recommends the next ready work item.
-- `brain/enter-main-agent` *(per-project)*
-  Coordinates the optional main-agent and worker-worktree workflow.
-- `brain/triage-public` *(per-project)*
-  Runs public issue intake and links accepted public work to private execution items.
-- `brain/build-context` *(per-project)*
-  Drafts and normalizes `AGENTS.md` and related agent context files.
-- `brain/review-architecture` *(per-project)*
-  Reviews the codebase for deeper architectural opportunities and feeds findings back into the Brain.
-- `brain/grill-decisions` *(per-project)*
-  Stress-tests plans and writes clarified decisions into `CONTEXT.md` and ADRs.
+## Planning
 
-- `brain/to-prd` *(per-project)*
-  Formalizes a multi-step initiative into a PRD, saves it to the Brain, and creates an epic bead.
-- `brain/to-issues` *(per-project)*
-  Decomposes a PRD into independently-workable bead tasks with acceptance criteria and dependencies.
+- **`to-prd`** — formalize a multi-step initiative into a PRD, save it to the Brain, and create
+  an epic bead. Run when an idea is ready to become structured work.
+- **`to-issues`** — decompose a PRD into independently-workable bead tasks with acceptance
+  criteria and dependencies. Run after `to-prd`.
+- **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
+  decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
 
-## What Ships
+## Execution
 
-The packaged skill set lives under
-[src/dotbrain/resources/skills/brain/](/home/armin/repos/projects/dotbrain/src/dotbrain/resources/skills/brain).
+- **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
+  back into the execution graph. The primary skill for driving daily work.
+- **`enter-main-agent`** — activate the two-agent protocol from the main checkout: stay parked
+  on `main`, dispatch worker slices, review and land results.
 
-- `build-context`
-- `enter-main-agent`
-- `grill-decisions`
-- `operate-execution`
-- `review-architecture`
-- `to-issues`
-- `to-prd`
-- `triage-public`
-- `wire-brain`
+## Triage and review
 
-Each skill ships with its own `SKILL.md`, and some ship additional references for engine- or
-tracker-specific mechanics.
+- **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
+  accepted work to private execution items.
+- **`review-architecture`** — review the codebase for deeper architectural opportunities and feed
+  findings back into the Brain.
 
 ## Configuration
 
@@ -65,8 +51,8 @@ There are two places where skills are configured:
 - Global required skills are declared in `src/dotbrain/resources/skills.yaml`.
 - Project-specific extra skills are declared in `brainspaces/<name>/project.yaml` under `skills:`.
 
-Per-project `agents/` files do not choose skills. They only hold conventions shared by the skills,
-such as `issue-tracker.md`.
+Per-project `agents/` files do not choose skills. They only hold conventions shared by the
+skills, such as `issue-tracker.md`.
 
 ## Rule Of Thumb
 

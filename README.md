@@ -132,25 +132,25 @@ from the Brain, a private source that should never be mirrored into the code rep
 
 ## Workflow
 
-### Day-to-day
-
 Dotbrain ships a set of bundled Brain-coupled skills: the operating manual for a wired project. They load
 automatically at session start and are available as slash commands.
 
 - **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
+- **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
+  decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
+- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files.
 - **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
   back into the execution graph. This is the primary skill for driving daily work.
 - **`to-prd`** — formalize a multi-step initiative into a PRD, save it to the Brain, and create
   an epic bead.
 - **`to-issues`** — decompose a PRD into independently-workable bead tasks with acceptance
   criteria and dependencies.
-- **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
-  decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
-- **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
-  accepted work to private execution items.
-- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files.
 - **`review-architecture`** — review the codebase for deeper architectural opportunities and feed
   findings back into the Brain.
+- **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
+  accepted work to private execution items.
+- **`enter-main-agent`** — activate the two-agent protocol from the main checkout: stay parked
+  on `main`, dispatch worker slices, review and land results.
 
 See [docs/skills.md](docs/skills.md) for the full set.
 
