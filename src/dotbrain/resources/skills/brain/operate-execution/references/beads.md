@@ -88,8 +88,12 @@ sure its blockers are closed; if it should not, add the dependency. Let `bd read
 
 ## Human gate: the autonomy boundary
 
-Flag `bd human <id>` when an issue needs a person's decision before an agent can proceed. This
-is the **gate**: the agent picks up unflagged items autonomously and only stops for flagged ones.
+Flag with `bd label add <id> human` when an issue needs a person's decision before an agent can
+proceed. This is the **gate**: the agent picks up unflagged items autonomously and only stops for
+flagged ones. (The `human` label *is* the native gate — `bd human list` filters on it; this is the
+one case where a label encodes a native concept by design. There is no `bd human <id>` flagging
+verb: `bd human` exposes only `list`/`respond`/`dismiss`/`stats`, and bare `bd human <id>` is a
+no-op that prints the help menu.)
 
 - Flag it when the item has: scope ambiguity, design trade-offs, cross-cutting impact, or anything
   you want to inspect before work starts.
@@ -159,7 +163,7 @@ type/readiness/resolution with labels; beads has real fields for each.
 | `needs-triage` | not yet refined | leave as a GitHub state; create the bead only once accepted |
 | `needs-info` | waiting on reporter | keep on GitHub; do not create private work yet |
 | `ready-for-agent` | accepted for agent work | create the bead; `bd ready` governs readiness thereafter |
-| `ready-for-human` | needs a person | `bd human <id>` after creating, or keep on GitHub |
+| `ready-for-human` | needs a person | `bd label add <id> human` after creating, or keep on GitHub |
 | `wontfix` | rejected | do not create a bead; resolve on GitHub |
 
 Always link the layers with `--external-ref gh-<number>` so the bead points back at its public
