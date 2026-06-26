@@ -48,8 +48,8 @@ For a public or potentially public adopter repo:
 - Add only one private-context pointer: if `.brain/AGENTS.md` exists locally, read it before
   substantial agent work for private project operations.
 - State that missing `.brain/AGENTS.md` is not an error on unwired checkouts.
-- Do not expose private dotbrain internals in the public file: no `.brain/agents/*`,
-  `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/docs/*`, `.beads`, `bd` workflow, private issue
+- Do not expose private dotbrain internals in the public file: no `.brain/CONTEXT.md`,
+  `.brain/adr/`, `.brain/docs/*`, `.brain/project.yaml`, `.beads`, `bd` workflow, private issue
   tracker details, private roadmap, or private domain vocabulary paths.
 - Do not create tracked public replacement files for missing private dotbrain state.
 
@@ -96,7 +96,7 @@ they are part of the repo's durable operational context.
    - Write or update `AGENTS.md`.
    - Before replacing an existing regular `CLAUDE.md`, make a backup such as `CLAUDE.md.bak`.
    - Replace `CLAUDE.md` with a symlink to `AGENTS.md`.
-   - If the repo already has an `## Agent skills` block that points at `.brain/agents/*`, verify those files actually exist afterward. If they were missing or accidentally deleted, restore or recreate them instead of leaving broken references.
+   - If the repo already has an `## Agent skills` block that points at private `.brain/` files, verify those files actually exist afterward. If they were missing or accidentally deleted, restore or recreate them instead of leaving broken references.
 
 7. Verify.
    - Confirm `CLAUDE.md` resolves to `AGENTS.md`.

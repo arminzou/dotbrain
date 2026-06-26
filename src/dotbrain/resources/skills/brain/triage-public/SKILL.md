@@ -29,8 +29,8 @@ Read at session start, before doing anything else:
    - `gh` — operate GitHub Issues; load [references/github.md](references/github.md) for CLI
      mechanics and labels. Infer the repo from the adopter remote; use `public-tracker-id` only
      when it is explicitly set.
-2. **`.brain/agents/issue-tracker.md`** — project conventions shared with `operate-execution`:
-   linking rules, ADR policy, priority deviations. Empty means pure defaults.
+2. **`.brain/AGENTS.md`** (Project section) — project tracker conventions shared with
+   `operate-execution`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
 
 ## Triage roles
 
@@ -43,7 +43,7 @@ These are the public layer's vocabulary, realized as the tracker's native mechan
 see [references/github.md](references/github.md)). Private work uses the engine's native fields
 instead: when promoting inward, `operate-execution` translates a role to the right field (type,
 status, close reason) rather than copying it as a label. A project records any mapping deviations
-in `.brain/agents/labels.md` (owned by `operate-execution`).
+in `.brain/docs/labels.md` (owned by `operate-execution`).
 
 ## Show what needs attention
 

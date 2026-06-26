@@ -23,8 +23,8 @@ is no separate coordination mechanism.
 
 Read at session start, before inspecting the graph:
 
-1. **`.brain/agents/issue-tracker.md`** — project conventions shared with `triage-public`: linking
-   rules, ADR policy, priority deviations. Lives in the Brain. Empty means pure defaults.
+1. **`.brain/AGENTS.md`** (Project section) — project tracker conventions shared with
+   `triage-public`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
 2. **[references/beads.md](references/beads.md)** — engine mechanics and native-modeling rules:
    commands, types, dependencies, status, labels. Swap for the active engine's reference if it changes.
 3. **[references/work-intake.md](references/work-intake.md)** — work intake pipeline: when to create a

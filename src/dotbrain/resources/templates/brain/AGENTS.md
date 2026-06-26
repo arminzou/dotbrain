@@ -6,4 +6,4 @@ Private agent context for this project. The repo-root `AGENTS.md` points here be
 
 ## Project
 
-Cross-cutting rules with no structured home: build and test commands, project-wide constraints, gotchas. Vocabulary goes in CONTEXT.md, decisions in adr/, skill config in agents/.
+Cross-cutting rules with no structured home: build and test commands, project-wide constraints, gotchas, and project tracker conventions (linking rules, ADR-pairing policy, priority deviations) read by `operate-execution` and `triage-public` — absent or empty means pure defaults. Vocabulary goes in CONTEXT.md, decisions in adr/, skill selection in project.yaml.

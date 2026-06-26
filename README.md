@@ -30,7 +30,7 @@ touches the code repo; the symlinks make sure it follows the project wherever yo
             │   ├── CONTEXT.md  # domain vocabulary
             │   ├── adr/        # architecture decisions
             │   ├── prd/        # product requirements
-            │   └── agents/     # per-project agent conventions
+            │   └── docs/       # derived reference material
             ├── .beads/     # execution store (issue tracker)
             ├── .claude/    # Claude Code workspace
             └── .codex/     # Codex workspace

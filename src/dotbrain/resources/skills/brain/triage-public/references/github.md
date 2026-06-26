@@ -40,7 +40,7 @@ promotes an issue inward, it maps the role to a field, not a beads label (`bug`/
 
 The public/private link is one-directional: the private work item holds the `gh-<number>`
 reference. A PR `Closes #N` closes the public issue only; the private work item still needs an
-explicit close. Project linking discipline lives in `.brain/agents/issue-tracker.md`.
+explicit close. Project linking discipline lives in the Brain's `AGENTS.md` (Project section).
 
 ## Skill-phrase mappings
 

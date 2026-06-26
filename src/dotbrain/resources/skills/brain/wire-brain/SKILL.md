@@ -46,8 +46,8 @@ Create or update `~/dotbrain/brainspaces/<name>/`:
   CLAUDE.md -> AGENTS.md
   CONTEXT.md     # domain vocabulary, created lazily when useful
   adr/           # decisions, created lazily
-  agents/        # skill config (skills.yaml) and issue-tracker.md, CLI-seeded from templates/brain/
-  docs/          # optional durable operational docs
+  docs/          # optional durable operational docs (e.g. labels.md, created on demand)
+  project.yaml   # skill selection and engine/tracker config, CLI-seeded from templates/brain/
 .beads/          # execution engine: thin beads pointer/config plus ignored runtime state
 .claude/         # Claude workspace: SessionStart hook (brain + `bd prime`)
 .codex/          # Codex workspace: brain + beads `bd codex-hook` hooks
@@ -85,14 +85,13 @@ Do not create a per-project brain git repo. The Brainspace is versioned as part 
    `.gitignore` as part of wiring. Exception: the dotbrain repo itself tracks its project #0
    symlink ignore policy in `.gitignore`.
 
-4. **Let the CLI scaffold `.brain/agents/`.**
-   `dotbrain wire` seeds `agents/` from `templates/brain/`: a `skills.yaml` baseline plus
-   an `issue-tracker.md` stub.
-   This skill provisions the containers; it does not hand-write `agents/` content.
-   - `agents/labels.md` is **not** seeded — `operate-execution` / `triage-public` create it the first
-     time a label convention is actually decided. An absent file means the canonical triage defaults.
-   - Brain `AGENTS.md` guidance (read `CONTEXT.md`, use the glossary, flag ADR conflicts) ships in
-     the template stub, not a per-project `domain.md`.
+4. **Let the CLI seed the Brain skeleton.**
+   `dotbrain wire` seeds `AGENTS.md`, `DOTBRAIN.md`, and `project.yaml` from `templates/brain/`.
+   This skill provisions the containers; it does not hand-write Brain content.
+   - Skill *selection* lives in `project.yaml` (`skills:`); project tracker conventions, when a
+     project deviates from defaults, go in `AGENTS.md` under Project.
+   - `.brain/docs/labels.md` is **not** seeded — `operate-execution` / `triage-public` create it the
+     first time a label convention is actually decided. An absent file means canonical triage defaults.
 
 5. **Add only the adopter repo context pointer.**
    Append the one-line `.brain/AGENTS.md` pointer to the repo's tracked `AGENTS.md` and, if it is a
@@ -109,7 +108,7 @@ Do not create a per-project brain git repo. The Brainspace is versioned as part 
 - `<repo>/.git/info/exclude` ignores `/.brain`, `/.beads`, `/.claude`, and `/.codex`.
 - No symlink pointing outside `<repo>` is tracked by git.
 - `bd -C <repo> ready` works or reports a valid empty database.
-- `.brain/agents/` carries the CLI-seeded `skills.yaml` baseline and `issue-tracker.md` stub.
+- `.brain/project.yaml` carries the CLI-seeded skill selection and engine/tracker config.
 - The repo's agent context has a one-line pointer to `.brain/AGENTS.md`.
 - `git -C <repo> status --short` shows no tracked-file changes other than that pointer.
 

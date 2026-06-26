@@ -76,11 +76,10 @@ def dotbrain_home(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def brainspace(dotbrain_home: Path) -> Path:
-    """An existing Brainspace at brainspaces/example/ with agent workspace dirs and a brain agents/ dir."""
+    """An existing Brainspace at brainspaces/example/ with agent workspace dirs."""
     root = paths.brainspace(dotbrain_home, "example")
     for link in paths.BRAINSPACE_LINKS:
         (root / link).mkdir(parents=True)
-    (root / ".brain" / "agents").mkdir(parents=True, exist_ok=True)
     return root
 
 

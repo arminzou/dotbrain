@@ -36,13 +36,12 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
-    for sub in ("adr", "prd", "agents", "docs"):
+    for sub in ("adr", "prd", "docs"):
         assert (brain / sub).is_dir()
         assert (brain / sub / "README.md").is_file(), \
             f"dotbrain-owned README.md not hydrated to .brain/{sub}/"
-    # domain.md and triage-labels.md are no longer seeded
-    assert not (brain / "agents" / "domain.md").exists()
-    assert not (brain / "agents" / "triage-labels.md").exists()
+    # the agents/ skill-config dir is retired and no longer seeded
+    assert not (brain / "agents").exists()
 
 
 def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: Path):

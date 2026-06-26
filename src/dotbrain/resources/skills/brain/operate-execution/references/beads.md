@@ -148,7 +148,7 @@ Rules:
   prevent.
 - Keep the facet vocabulary small and disjoint; avoid label proliferation.
 - A project records its adopted facets (and, when intake is connected, the GitHub mapping below) in
-  `.brain/agents/labels.md`. An absent file means no project labels: pure native fields.
+  `.brain/docs/labels.md`. An absent file means no project labels: pure native fields.
 
 ## Promoting a public issue inward
 
