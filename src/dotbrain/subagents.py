@@ -54,6 +54,19 @@ def _copy_resource_file(resource_path: str, dest: Path) -> None:
     dest.write_text(resource_loader.resource(resource_path).read_text())
 
 
+def seed_private_subagents(dotbrain_home: Path) -> list[Path]:
+    root = Path(dotbrain_home)
+    seeded: list[Path] = []
+    for rel, src in resource_loader.iter_resource_files("agents"):
+        dest = root / "agents" / rel
+        if dest.exists() or dest.is_symlink():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(src.read_text())
+        seeded.append(dest)
+    return seeded
+
+
 def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
     resolved: dict[str, Path] = {}
     root = Path(dotbrain_home)

@@ -66,6 +66,10 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
         agents_dest.write_text(subagents.render_global_subagents())
         result.agents_seeded = True
         result.logs.append(f"seeded agents/agents.yaml into {root}")
+    seeded_subagents = subagents.seed_private_subagents(root)
+    if seeded_subagents:
+        result.agents_seeded = True
+        result.logs += [f"seeded {path.relative_to(root)} into {root}" for path in seeded_subagents]
 
     return result
 

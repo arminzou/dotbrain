@@ -56,6 +56,47 @@ def test_load_global_config_rejects_invalid_targets(tmp_path: Path):
         raise AssertionError("expected invalid targets to raise ValueError")
 
 
+def test_seed_private_subagents_copies_bundled_examples_once(
+    dotbrain_home: Path, monkeypatch
+):
+    payloads = {
+        "agents/claude/code-review.md": "claude-example",
+        "agents/codex/code-review.toml": "codex-example",
+    }
+
+    class FakeResource:
+        def __init__(self, text: str):
+            self._text = text
+
+        def read_text(self) -> str:
+            return self._text
+
+    def fake_iter(path: str):
+        assert path == "agents"
+        for rel, text in (
+            (Path("claude/code-review.md"), payloads["agents/claude/code-review.md"]),
+            (Path("codex/code-review.toml"), payloads["agents/codex/code-review.toml"]),
+        ):
+            yield rel, FakeResource(text)
+
+    monkeypatch.setattr(subagents.resource_loader, "iter_resource_files", fake_iter)
+
+    seeded = subagents.seed_private_subagents(dotbrain_home)
+
+    assert [path.relative_to(dotbrain_home) for path in seeded] == [
+        Path("agents/claude/code-review.md"),
+        Path("agents/codex/code-review.toml"),
+    ]
+    assert (dotbrain_home / "agents" / "claude" / "code-review.md").read_text() == "claude-example"
+    assert (dotbrain_home / "agents" / "codex" / "code-review.toml").read_text() == "codex-example"
+
+    (dotbrain_home / "agents" / "claude" / "code-review.md").write_text("my override")
+    seeded = subagents.seed_private_subagents(dotbrain_home)
+
+    assert seeded == []
+    assert (dotbrain_home / "agents" / "claude" / "code-review.md").read_text() == "my override"
+
+
 def test_resolve_subagent_files_prefers_private(dotbrain_home: Path):
     _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude-private")
     _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex-private")

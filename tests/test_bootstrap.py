@@ -111,6 +111,9 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert "code-review" in (root / "agents" / "agents.yaml").read_text()
+    assert (root / "agents" / "claude" / "code-review.md").is_file()
+    assert (root / "agents" / "codex" / "code-review.toml").is_file()
+    assert any("seeded agents/claude/code-review.md" in line for line in result.logs)
     assert (Path("src/dotbrain/resources/agents/claude/code-review.md").read_text().startswith("---\n"))
 
 
