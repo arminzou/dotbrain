@@ -42,9 +42,13 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
         "# targets:",
         "#   claude-code: ~/.claude/agents",
         "#   codex: ~/.codex/agents",
-        "global:",
     ]
-    lines.extend(f"  - {name}" for name in skills._clean(names))
+    cleaned = skills._clean(names)
+    if not cleaned:
+        lines += ["# global:", "#   - some-shared-subagent"]
+        return "\n".join(lines) + "\n"
+    lines.append("global:")
+    lines.extend(f"  - {name}" for name in cleaned)
     return "\n".join(lines) + "\n"
 
 
