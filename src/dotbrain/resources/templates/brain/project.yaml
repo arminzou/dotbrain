@@ -20,3 +20,7 @@ public-tracker: none
 # brain-coupled required core (which is always wired). Operator-owned.
 # skills:
 #   - some-collection/some-skill
+#
+# Extra vendor-native subagents linked into this project's agent workspaces.
+# subagents:
+#   - some-shared-subagent

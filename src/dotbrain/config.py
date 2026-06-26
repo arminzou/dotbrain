@@ -188,6 +188,21 @@ def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     return skills._clean(data.get("skills"), exclude=skills.project_baseline())
 
 
+def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
+    """Read per-project subagent declarations from ``project.yaml``."""
+    import yaml
+
+    from dotbrain import skills
+
+    path = _project_config_path(dotbrain_home, name)
+    if not path.is_file():
+        return ()
+    data = yaml.safe_load(path.read_text()) or {}
+    if not isinstance(data, dict):
+        return ()
+    return skills._clean(data.get("subagents"))
+
+
 def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     """Read declared agent workspaces from ``brainspaces/<name>/project.yaml``.
 
@@ -249,6 +264,9 @@ def write_project_config(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
     existing_skills = load_project_skills(dotbrain_home, name)
     if existing_skills:
         doc["skills"] = list(existing_skills)
+    existing_subagents = load_project_subagents(dotbrain_home, name)
+    if existing_subagents:
+        doc["subagents"] = list(existing_subagents)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump(doc, default_flow_style=False, sort_keys=False))

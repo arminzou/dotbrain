@@ -288,6 +288,19 @@ def test_load_project_skills_excludes_required_core(tmp_path: Path):
     assert config.load_project_skills(tmp_path, "p") == ("misc/x",)
 
 
+def test_load_project_subagents_missing_file_is_empty(tmp_path: Path):
+    assert config.load_project_subagents(tmp_path, "ghost") == ()
+
+
+def test_load_project_subagents_reads_list(tmp_path: Path):
+    _project_yaml(
+        tmp_path,
+        "p",
+        "subagents:\n  - reviewer\n  - reviewer\n  - helper\n",
+    )
+    assert config.load_project_subagents(tmp_path, "p") == ("reviewer", "helper")
+
+
 def test_migrate_legacy_manifest_absent_is_noop(tmp_path: Path):
     assert config.migrate_legacy_skill_manifest(tmp_path, "p") is None
 
@@ -320,4 +333,11 @@ def test_write_project_config_preserves_skills(tmp_path: Path):
     _project_yaml(tmp_path, "p", "skills:\n  - misc/keep\n")
     config.write_project_config(tmp_path, "p", config.ProjectBeads(mode="embedded"))
     assert config.load_project_skills(tmp_path, "p") == ("misc/keep",)
+    assert config.load_project_config(tmp_path, "p").mode == "embedded"
+
+
+def test_write_project_config_preserves_subagents(tmp_path: Path):
+    _project_yaml(tmp_path, "p", "subagents:\n  - reviewer\n")
+    config.write_project_config(tmp_path, "p", config.ProjectBeads(mode="embedded"))
+    assert config.load_project_subagents(tmp_path, "p") == ("reviewer",)
     assert config.load_project_config(tmp_path, "p").mode == "embedded"
