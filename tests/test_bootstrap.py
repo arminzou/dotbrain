@@ -127,6 +127,18 @@ def test_link_global_subagents_links_configured_target(
     assert any(line.startswith("global: linked") for line in result.logs)
 
 
+def test_link_global_subagents_warns_once_for_missing_name(
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (dotbrain_home / "agents").mkdir(parents=True, exist_ok=True)
+    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - missing-agent\n")
+
+    result = bootstrap_mod.link_global_subagents(dotbrain_home, "all")
+
+    assert result.warnings == ["subagent not found: missing-agent"]
+
+
 def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path):
     result = bootstrap_mod.link_global_skills(dotbrain_home)
 

@@ -155,6 +155,8 @@ def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSki
     result = GlobalSkillBootstrapResult()
     names = subagents.load_global_subagents(root)
     resolved = {name: subagents._resolve_subagent_files(root, name) for name in names}
+    missing = [name for name, runtime_files in resolved.items() if not runtime_files]
+    result.warnings += [f"subagent not found: {name}" for name in missing]
 
     if target == "all":
         keys = list(subagents.AGENT_TARGETS)
@@ -167,8 +169,6 @@ def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSki
     for key in keys:
         dest = Path(subagents.AGENT_TARGETS[key]).expanduser()
         files = [runtime_files[key] for name, runtime_files in resolved.items() if key in runtime_files]
-        missing = [name for name, runtime_files in resolved.items() if not runtime_files]
-        result.warnings += [f"subagent not found: {name} (global {key})" for name in missing]
         link_result = subagents.link_files_into(
             root,
             dest,
