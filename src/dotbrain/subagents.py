@@ -24,6 +24,16 @@ WORKSPACE_RUNTIME: dict[str, str] = {
 }
 
 
+def render_global_subagents(names: Sequence[str] = ("code-review",)) -> str:
+    lines = [
+        "# Global vendor-native subagents linked into personal agent homes.",
+        "# Remove entries to prune dotbrain-managed links on the next relink.",
+        "global:",
+    ]
+    lines.extend(f"  - {name}" for name in skills._clean(names))
+    return "\n".join(lines) + "\n"
+
+
 def _copy_resource_file(resource_path: str, dest: Path) -> None:
     if dest.exists() or dest.is_symlink():
         dest.unlink()

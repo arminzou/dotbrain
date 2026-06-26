@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import brainspaces, resource_loader, skills
+from dotbrain import brainspaces, resource_loader, skills, subagents
 
 # --------------------------------------------------------------------------- data-root seeding
 
@@ -23,6 +23,7 @@ class DataRootResult:
     created: bool = False
     config_seeded: bool = False
     skills_seeded: bool = False
+    agents_seeded: bool = False
     logs: list[str] = field(default_factory=list)
 
 
@@ -56,6 +57,15 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
         skills_dest.write_text(skills.render_global_config(skills.DEFAULT_TARGETS, ()))
         result.skills_seeded = True
         result.logs.append(f"seeded skills/skills.yaml into {root}")
+
+    agents_root = root / "agents"
+    for subdir, _ext in subagents.RUNTIME_SPEC.values():
+        (agents_root / subdir).mkdir(parents=True, exist_ok=True)
+    agents_dest = agents_root / "agents.yaml"
+    if not agents_dest.exists():
+        agents_dest.write_text(subagents.render_global_subagents())
+        result.agents_seeded = True
+        result.logs.append(f"seeded agents/agents.yaml into {root}")
 
     return result
 
@@ -137,4 +147,36 @@ def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillB
         result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
         result.logs += [f"pruned stale {pruned}" for pruned in link_result.pruned]
         result.logs.append(f"global: linked {len(skill_paths)} skill(s) into {dest}")
+    return result
+
+
+def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSkillBootstrapResult:
+    root = Path(dotbrain_home)
+    names = subagents.load_global_subagents(root)
+    resolved = {name: subagents._resolve_subagent_files(root, name) for name in names}
+    result = GlobalSkillBootstrapResult()
+    result.warnings += [f"subagent not found: {name}" for name, files in resolved.items() if not files]
+
+    if target == "all":
+        keys = list(subagents.AGENT_TARGETS)
+    elif target in subagents.AGENT_TARGETS:
+        keys = [target]
+    else:
+        result.warnings.append(f"target '{target}' not configured; skipping")
+        return result
+
+    for key in keys:
+        dest = Path(subagents.AGENT_TARGETS[key]).expanduser()
+        files = [resolved[name][key] for name in names if key in resolved[name]]
+        link_result = subagents.link_files_into(
+            root,
+            dest,
+            files,
+            label=key,
+            prune_owned_only=True,
+        )
+        result.warnings += [f"{warning} (global {key})" for warning in link_result.warnings]
+        result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
+        result.logs += [f"pruned stale {pruned}" for pruned in link_result.pruned]
+        result.logs.append(f"global: linked {len(files)} subagent file(s) into {dest}")
     return result

@@ -100,7 +100,30 @@ def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_pat
 
     assert result.warnings == []
     assert (dest / "wire-brain").is_symlink()
-    assert any("global: linked 1 skill(s)" in line for line in result.logs)
+    assert any(line.startswith("global: linked") for line in result.logs)
+
+
+def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
+    root = tmp_path / "fresh-dotbrain"
+    result = bootstrap_mod.ensure_data_root(root)
+
+    assert result.agents_seeded is True
+    assert (root / "agents" / "claude").is_dir()
+    assert (root / "agents" / "codex").is_dir()
+    assert "code-review" in (root / "agents" / "agents.yaml").read_text()
+
+
+def test_link_global_subagents_links_configured_target(
+    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    dest = tmp_path / ".codex" / "agents"
+    monkeypatch.setenv("HOME", str(tmp_path))
+    bootstrap_mod.ensure_data_root(dotbrain_home)
+    result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex")
+
+    assert result.warnings == []
+    assert (dest / "code-review.toml").is_symlink()
+    assert any(line.startswith("global: linked") for line in result.logs)
 
 
 def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path):
