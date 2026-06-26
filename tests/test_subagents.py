@@ -88,6 +88,24 @@ def test_link_files_into_prunes_only_owned_links(dotbrain_home: Path, tmp_path: 
     assert result.pruned == ["claude-code/old.md"]
 
 
+def test_link_files_into_leaves_foreign_regular_file(dotbrain_home: Path, tmp_path: Path):
+    dest = tmp_path / "global-agents"
+    dest.mkdir()
+    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "reviewer")
+    (dest / "manual.md").write_text("keep me")
+
+    result = subagents.link_files_into(
+        dotbrain_home,
+        dest,
+        [dotbrain_home / "agents" / "claude" / "reviewer.md"],
+        label="claude-code",
+        prune_owned_only=True,
+    )
+
+    assert (dest / "manual.md").read_text() == "keep me"
+    assert result.pruned == []
+
+
 def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brainspace: Path):
     _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude")
     _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex")
@@ -102,3 +120,29 @@ def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brai
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
     assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
     assert result.linked == [".claude/reviewer.md", ".codex/reviewer.toml"]
+
+
+def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path, brainspace: Path):
+    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude")
+
+    result = subagents.link_project_subagents(
+        dotbrain_home,
+        brainspace,
+        (".claude", ".codex"),
+        ("reviewer",),
+    )
+
+    assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
+    assert not (brainspace / ".codex" / "agents" / "reviewer.toml").exists()
+    assert result.linked == [".claude/reviewer.md"]
+
+
+def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brainspace: Path):
+    result = subagents.link_project_subagents(
+        dotbrain_home,
+        brainspace,
+        (".claude", ".codex"),
+        ("missing",),
+    )
+
+    assert result.warnings == ["subagent not found: missing"]
