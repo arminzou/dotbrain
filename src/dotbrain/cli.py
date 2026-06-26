@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, workflows, worktrees
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, subagents, workflows, worktrees
 
 app = typer.Typer(
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
@@ -17,9 +17,11 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 skills_app = typer.Typer(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
+agents_app = typer.Typer(help="Link dotbrain vendor-native subagents into agent runtimes.", no_args_is_help=True)
 beads_app = typer.Typer(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = typer.Typer(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
+app.add_typer(agents_app, name="agents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
 
@@ -79,6 +81,8 @@ def bootstrap(
         typer.echo(f"[bootstrap] seeded config.yaml into {root}")
     if dr_result.skills_seeded:
         typer.echo(f"[bootstrap] seeded skills/skills.yaml into {root}")
+    if dr_result.agents_seeded:
+        typer.echo(f"[bootstrap] seeded agents/agents.yaml into {root}")
 
     run_claude = only == "claude-hook" or (only is None and not skip_claude_hook)
     run_codex = only == "codex-hook" or (only is None and not skip_codex_hook)
@@ -92,6 +96,7 @@ def bootstrap(
         typer.echo(f"[bootstrap] installed Codex global bootstrap hook in {Path.home() / '.codex' / 'hooks.json'}")
     if run_skills:
         _render_global_skill_link(root, "all")
+        _render_global_agent_link(root, "all")
 
 def _render_doctor(report: doctor_mod.DoctorReport) -> None:
     ok, warn, err = 0, 0, 0
@@ -585,5 +590,69 @@ def _render_global_skill_link(root: Path, target: str) -> None:
     result = bootstrap_mod.link_global_skills(root, target)
     for warning in result.warnings:
         typer.echo(f"skill-link: warning: {warning}", err=True)
+    for line in result.logs:
+        typer.echo(line if line.startswith("global:") else f"  {line}")
+
+
+@agents_app.command("list", hidden=True)
+def agents_list() -> None:
+    root = paths.resolve_dotbrain_home()
+    names: set[str] = set()
+    for subdir, ext in subagents.RUNTIME_SPEC.values():
+        runtime_dir = root / "agents" / subdir
+        if runtime_dir.is_dir():
+            for path in runtime_dir.glob(f"*{ext}"):
+                names.add(path.stem)
+        try:
+            resource_dir = resource_loader.resource(f"agents/{subdir}")
+        except FileNotFoundError:
+            continue
+        if resource_dir.is_dir():
+            for entry in resource_dir.iterdir():
+                if entry.is_file() and entry.name.endswith(ext):
+                    names.add(Path(entry.name).stem)
+    for name in sorted(names):
+        typer.echo(name)
+
+
+@agents_app.command("link")
+def agents_link(
+    target: str = typer.Option("all", "--target", help="claude-code | codex | all"),
+    scope: str = typer.Option("all", "--scope", help="global | project | all"),
+    project: Optional[str] = typer.Option(
+        None,
+        "--project",
+        help="Limit project linking to a single Brainspace by name.",
+    ),
+) -> None:
+    if target not in {"claude-code", "codex", "all"}:
+        raise typer.BadParameter(f"invalid --target: {target}")
+    if scope not in {"global", "project", "all"}:
+        raise typer.BadParameter(f"invalid --scope: {scope}")
+
+    root = paths.resolve_dotbrain_home()
+    if scope in {"project", "all"}:
+        brainspaces_to_link = [paths.brainspace(root, project)] if project else paths.brainspaces(root)
+        if project and not brainspaces_to_link[0].exists():
+            raise typer.BadParameter(f"unknown project: {project}")
+        for brainspace in brainspaces_to_link:
+            names = config.load_project_subagents(root, brainspace.name)
+            declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
+            active_workspaces = tuple(ws for ws in _AGENT_WORKSPACES[target] if ws in declared_workspaces)
+            result = subagents.link_project_subagents(root, brainspace, active_workspaces, names)
+            for warning in result.warnings:
+                typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
+            for pruned in result.pruned:
+                typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
+            typer.echo(f"project: linked {len(names)} subagent(s) into {brainspace.name}")
+
+    if scope in {"global", "all"}:
+        _render_global_agent_link(root, target)
+
+
+def _render_global_agent_link(root: Path, target: str) -> None:
+    result = bootstrap_mod.link_global_subagents(root, target)
+    for warning in result.warnings:
+        typer.echo(f"agent-link: warning: {warning}", err=True)
     for line in result.logs:
         typer.echo(line if line.startswith("global:") else f"  {line}")

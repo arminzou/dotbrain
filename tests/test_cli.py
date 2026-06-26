@@ -10,7 +10,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from dotbrain import migrate, paths
+from dotbrain import bootstrap as bootstrap_mod, migrate, paths
 from dotbrain import cli
 from dotbrain.cli import app
 
@@ -20,7 +20,7 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "codex", "skills"):
+    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "codex", "skills", "agents"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
@@ -28,6 +28,13 @@ def test_help_lists_command_tree():
 
 def test_skills_help_hides_low_value_discovery_command():
     result = runner.invoke(app, ["skills", "--help"])
+    assert result.exit_code == 0
+    assert "link" in result.output
+    assert "list" not in result.output
+
+
+def test_agents_help_hides_low_value_discovery_command():
+    result = runner.invoke(app, ["agents", "--help"])
     assert result.exit_code == 0
     assert "link" in result.output
     assert "list" not in result.output
@@ -271,6 +278,40 @@ def test_skills_link_project_native(
     assert result.exit_code == 0, result.output
     assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()
     assert (brainspace / ".codex" / "skills" / "triage-public").is_symlink()
+
+
+def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    (brainspace / "project.yaml").write_text(
+        "agents:\n"
+        "  - claude\n"
+        "  - codex\n"
+        "subagents:\n"
+        "  - code-review\n"
+    )
+
+    result = runner.invoke(app, ["agents", "link", "--scope", "project"])
+
+    assert result.exit_code == 0, result.output
+    assert (brainspace / ".claude" / "agents" / "code-review.md").is_symlink()
+    assert (brainspace / ".codex" / "agents" / "code-review.toml").is_symlink()
+
+
+def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    bootstrap_mod.ensure_data_root(dotbrain_home)
+
+    first = runner.invoke(app, ["agents", "link", "--scope", "global", "--target", "codex"])
+    assert first.exit_code == 0, first.output
+    agent_file = tmp_path / ".codex" / "agents" / "code-review.toml"
+    assert agent_file.is_symlink()
+
+    (dotbrain_home / "agents" / "agents.yaml").write_text("global: []\n")
+    second = runner.invoke(app, ["agents", "link", "--scope", "global", "--target", "codex"])
+
+    assert second.exit_code == 0, second.output
+    assert not agent_file.exists()
 
 
 def test_skills_link_rejects_invalid_scope():

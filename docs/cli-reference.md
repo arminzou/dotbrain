@@ -28,8 +28,40 @@ Reference for the public `dotbrain` CLI.
 │ codex      Create or reuse a dotbrain-wired git worktree and start Codex     │
 │            there.                                                            │
 │ skills     Link dotbrain skills into agent runtimes.                         │
+│ agents     Link dotbrain vendor-native subagents into agent runtimes.        │
 │ beads      Manage beads tracker state and backend.                           │
 │ hook       Run dotbrain hook entrypoints.                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+## `dotbrain agents`
+
+```text
+                                                                                
+ Usage: dotbrain agents [OPTIONS] COMMAND [ARGS]...                             
+                                                                                
+ Link dotbrain vendor-native subagents into agent runtimes.                     
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help  -h        Show this message and exit.                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ link                                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+## `dotbrain agents link`
+
+```text
+                                                                                
+ Usage: dotbrain agents link [OPTIONS]                                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --target           TEXT  claude-code | codex | all [default: all]            │
+│ --scope            TEXT  global | project | all [default: all]               │
+│ --project          TEXT  Limit project linking to a single Brainspace by     │
+│                          name.                                               │
+│ --help     -h            Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
