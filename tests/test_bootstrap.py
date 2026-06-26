@@ -111,6 +111,7 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert "code-review" in (root / "agents" / "agents.yaml").read_text()
+    assert (Path("src/dotbrain/resources/agents/claude/code-review.md").read_text().startswith("---\n"))
 
 
 def test_link_global_subagents_links_configured_target(

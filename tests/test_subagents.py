@@ -78,7 +78,6 @@ def test_link_files_into_prunes_only_owned_links(dotbrain_home: Path, tmp_path: 
         dest,
         files,
         label="claude-code",
-        prune_owned_only=True,
     )
 
     assert (dest / "reviewer.md").is_symlink()
@@ -99,7 +98,6 @@ def test_link_files_into_leaves_foreign_regular_file(dotbrain_home: Path, tmp_pa
         dest,
         [dotbrain_home / "agents" / "claude" / "reviewer.md"],
         label="claude-code",
-        prune_owned_only=True,
     )
 
     assert (dest / "manual.md").read_text() == "keep me"

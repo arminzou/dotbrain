@@ -203,13 +203,18 @@ def test_bootstrap_only_skills_links_global_only(
     )
     monkeypatch.setattr(
         cli,
+        "_render_global_agent_link",
+        lambda root, target: calls.append(("global-agent", root, target)),
+    )
+    monkeypatch.setattr(
+        cli,
         "_link_projects_native",
         lambda root, target, project: calls.append(("project", root, target)),
     )
 
     result = runner.invoke(app, ["bootstrap", "--only", "skills"])
     assert result.exit_code == 0, result.output
-    assert calls == [("global", dotbrain_home, "all")]
+    assert calls == [("global", dotbrain_home, "all"), ("global-agent", dotbrain_home, "all")]
 
 
 def test_bootstrap_rejects_project_reconciliation_scopes(

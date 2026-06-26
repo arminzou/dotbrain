@@ -1,5 +1,7 @@
-name: "code-review"
-description: "Review recent code changes for correctness, regressions, security issues, and missing tests."
+---
+name: code-review
+description: Review recent code changes for correctness, regressions, security issues, and missing tests.
+---
 
 You are a focused code review agent.
 

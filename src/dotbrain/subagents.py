@@ -70,7 +70,6 @@ def link_files_into(
     files: Sequence[Path],
     *,
     label: str,
-    prune_owned_only: bool = False,
 ) -> skills.LinkResult:
     target_dir = Path(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -96,9 +95,8 @@ def link_files_into(
         owned = skills._points_into(entry, private_root) or skills._points_into(entry, cache_root)
         if not owned:
             continue
-        if prune_owned_only or owned:
-            entry.unlink()
-            result.pruned.append(f"{prefix}{entry.name}")
+        entry.unlink()
+        result.pruned.append(f"{prefix}{entry.name}")
 
     return result
 
@@ -109,38 +107,6 @@ def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
         return ()
     data = skills._read_yaml_mapping(path)
     return skills._clean(data.get("global"))
-
-
-def link_global_subagents(dotbrain_home: Path, target: str = "all") -> skills.LinkResult:
-    root = Path(dotbrain_home)
-    names = load_global_subagents(root)
-    resolved = {name: _resolve_subagent_files(root, name) for name in names}
-    result = skills.LinkResult()
-
-    result.warnings += [f"subagent not found: {name}" for name, files in resolved.items() if not files]
-
-    if target == "all":
-        runtimes = list(AGENT_TARGETS)
-    elif target in AGENT_TARGETS:
-        runtimes = [target]
-    else:
-        result.warnings.append(f"target '{target}' not configured; skipping")
-        return result
-
-    for runtime in runtimes:
-        files = [resolved[name][runtime] for name in names if runtime in resolved[name]]
-        ws_result = link_files_into(
-            root,
-            Path(AGENT_TARGETS[runtime]).expanduser(),
-            files,
-            label=runtime,
-            prune_owned_only=True,
-        )
-        result.linked += ws_result.linked
-        result.pruned += ws_result.pruned
-        result.stashed += ws_result.stashed
-        result.warnings += ws_result.warnings
-    return result
 
 
 def link_project_subagents(
@@ -165,7 +131,6 @@ def link_project_subagents(
             Path(brainspace) / workspace / "agents",
             files,
             label=workspace,
-            prune_owned_only=True,
         )
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
