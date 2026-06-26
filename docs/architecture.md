@@ -29,8 +29,8 @@ A Brain has five elements, each with a single clear purpose:
   hard to reverse, surprising without context, and the result of a real trade-off.
 - **`prd/`** — Product Requirements Documents, one initiative per file. Authored by `to-prd`,
   decomposed into bead epics by `to-issues`.
-- **`agents/`** — per-project agent operating conventions: linking rules, ADR policy, priority.
-  Skill selection lives in `project.yaml`, not here.
+- **`AGENTS.md`** — per-project agent operating conventions: linking rules, ADR policy, priority.
+- **`project.yaml`** — per-project runtime selection plus skill and subagent selection.
 - **`docs/`** — derived runbooks and reference material. Never authoritative; the elements above win.
 
 Brain writes are version-controlled, so every change is reviewable and revertable. Each element has
@@ -58,11 +58,14 @@ product skills coexist safely with an operator's own private skills on the same 
 
 Connecting a repo is one command: `dotbrain wire` creates or repairs the Brainspace, writes the
 four symlinks, and records the ignore rules that keep them out of the code repo. A one-time
-`dotbrain bootstrap` installs the agent hooks for the machine.
+`dotbrain bootstrap` installs the agent hooks for the machine and links global skills and
+subagents.
 
 At the start of every agent session, a hook injects the shared operating rules and the project's own
 Brain context into the session, so the agent begins already knowing the project's conventions without
-anyone pasting them in. Worktrees reach the same Brain through the same symlinks — never a
+anyone pasting them in. Project-selected skills and vendor-native subagents are linked into the
+matching workspaces from the same Brainspace declarations. Worktrees reach the same Brain through
+the same symlinks — never a
 per-worktree copy.
 
 ## Public / private boundary

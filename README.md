@@ -109,14 +109,14 @@ flowchart LR
 ```
 
 `dotbrain wire <repo>` creates the Brainspace, drops gitignored symlinks at the repo root, and
-links skills into the agent workspaces. `dotbrain refresh` repairs wiring and relinks skills if
-anything drifts. `dotbrain bootstrap` runs once per machine to install session-start hooks and
-link global skills.
+links project skills and subagents into the agent workspaces. `dotbrain refresh` repairs wiring
+and relinks project skills and subagents if anything drifts. `dotbrain bootstrap` runs once per
+machine to install session-start hooks and link global skills and subagents.
 
 **Skills** are cross-project and live under `~/dotbrain/skills/`. Wiring links the relevant ones
 into each agent workspace (`.claude/`, `.codex/`) so any agent in the repo gets the same skill
-set without manual setup. The Brain's `agents/` directory holds per-project conventions those
-skills read at session start.
+set without manual setup. Per-project skill and subagent selection lives in `project.yaml`; the
+Brain's `AGENTS.md` holds the cross-cutting conventions those skills read at session start.
 
 **Beads** (`.beads/`) is the private execution store. Agents use the `bd` CLI to inspect ready
 work, claim issues, and close them. Because it lives in the Brainspace and is version-controlled,
