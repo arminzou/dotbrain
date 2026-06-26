@@ -292,25 +292,25 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
         "  - claude\n"
         "  - codex\n"
         "subagents:\n"
-        "  - code-review\n"
+        "  - code-reviewer\n"
     )
 
     result = runner.invoke(app, ["agents", "link", "--scope", "project"])
 
     assert result.exit_code == 0, result.output
-    assert (brainspace / ".claude" / "agents" / "code-review.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "code-review.toml").is_symlink()
+    assert (brainspace / ".claude" / "agents" / "code-reviewer.md").is_symlink()
+    assert (brainspace / ".codex" / "agents" / "code-reviewer.toml").is_symlink()
 
 
 def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setenv("HOME", str(tmp_path))
     bootstrap_mod.ensure_data_root(dotbrain_home)
-    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - code-review\n")
+    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - code-reviewer\n")
 
     first = runner.invoke(app, ["agents", "link", "--scope", "global", "--target", "codex"])
     assert first.exit_code == 0, first.output
-    agent_file = tmp_path / ".codex" / "agents" / "code-review.toml"
+    agent_file = tmp_path / ".codex" / "agents" / "code-reviewer.toml"
     assert agent_file.is_symlink()
 
     (dotbrain_home / "agents" / "agents.yaml").write_text("global: []\n")

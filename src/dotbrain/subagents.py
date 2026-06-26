@@ -37,7 +37,7 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
     lines = [
         "# Global vendor-native subagents linked into personal agent homes.",
         "# Remove entries to prune dotbrain-managed links on the next relink.",
-        "# Starter examples such as code-review are project-scoped by default.",
+        "# Starter examples such as code-reviewer are project-scoped by default.",
         "# Optional target overrides (defaults shown):",
         "# targets:",
         "#   claude-code: ~/.claude/agents",

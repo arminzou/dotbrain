@@ -380,7 +380,7 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
         "  - claude\n"
         "  - codex\n"
         "subagents:\n"
-        "  - code-review\n"
+        "  - code-reviewer\n"
     )
     fake_home = tmp_path / "home"
     fake_home.mkdir()
@@ -394,8 +394,8 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents", repo_base=tmp_path, home=fake_home)
 
     assert result.refreshed == ["refresh-subagents"]
-    assert (brainspace / ".claude" / "agents" / "code-review.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "code-review.toml").is_symlink()
+    assert (brainspace / ".claude" / "agents" / "code-reviewer.md").is_symlink()
+    assert (brainspace / ".codex" / "agents" / "code-reviewer.toml").is_symlink()
     assert "project: linked 1 subagent(s) into refresh-subagents" in result.logs
 
 

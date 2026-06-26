@@ -24,4 +24,4 @@ public-tracker: none
 # Starter example subagents linked into this project's agent workspaces by default.
 # Remove entries you do not want, or add more runtime-native subagents.
 subagents:
-  - code-review
+  - code-reviewer
