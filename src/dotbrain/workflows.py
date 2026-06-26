@@ -17,7 +17,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import adopter_repos, beads, bootstrap, config, brainspaces, paths, skills
+from dotbrain import adopter_repos, beads, bootstrap, config, brainspaces, paths, skills, subagents
 from dotbrain.adopter_repos import UnwireResult, repo_for_brainspace, unwire_repo
 from dotbrain.beads import BootstrapResult
 from dotbrain.brainspaces import offboard_brainspace
@@ -285,6 +285,18 @@ def refresh_projects(
         result.logs += [f"pruned skill {entry}" for entry in link_result.pruned]
         result.logs += [f"stashed collision {path}" for path in link_result.stashed]
         result.warnings += link_result.warnings
+        subagent_names = config.load_project_subagents(dotbrain_home, brainspace.name)
+        subagent_result = subagents.link_project_subagents(
+            dotbrain_home,
+            brainspace,
+            active_workspaces,
+            subagent_names,
+        )
+        result.logs += [f"pruned subagent {entry}" for entry in subagent_result.pruned]
+        result.logs += [f"stashed subagent collision {path}" for path in subagent_result.stashed]
+        result.warnings += subagent_result.warnings
+        if subagent_names:
+            result.logs.append(f"project: linked {len(subagent_names)} subagent(s) into {brainspace.name}")
 
         repo = repo_for_brainspace(brainspace, dotbrain_home, rb, home)
         if repo is None:

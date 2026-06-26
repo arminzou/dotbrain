@@ -371,6 +371,34 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     assert f"refreshed refreshme ({linked_count} skills linked)" in result.logs
 
 
+def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = _make_wired_repo(tmp_path, dotbrain_home, "refresh-subagents")
+    brainspace = paths.brainspace(dotbrain_home, "refresh-subagents")
+    (brainspace / ".repo").write_text(f"{repo}\n")
+    (brainspace / "project.yaml").write_text(
+        "agents:\n"
+        "  - claude\n"
+        "  - codex\n"
+        "subagents:\n"
+        "  - code-review\n"
+    )
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+
+    monkeypatch.setattr(
+        workflows.beads,
+        "pull_beads_for_all",
+        lambda dotbrain_home_arg, *, run, projects: beads.BootstrapResult(logs=[], warnings=[]),
+    )
+
+    result = workflows.refresh_project(dotbrain_home, "refresh-subagents", repo_base=tmp_path, home=fake_home)
+
+    assert result.refreshed == ["refresh-subagents"]
+    assert (brainspace / ".claude" / "agents" / "code-review.md").is_symlink()
+    assert (brainspace / ".codex" / "agents" / "code-review.toml").is_symlink()
+    assert "project: linked 1 subagent(s) into refresh-subagents" in result.logs
+
+
 def test_refresh_project_honors_declared_agent_workspaces(
     tmp_path: Path, dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
