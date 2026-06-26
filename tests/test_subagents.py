@@ -22,6 +22,40 @@ def test_load_global_subagents_reads_and_dedupes(tmp_path: Path):
     assert subagents.load_global_subagents(tmp_path) == ("reviewer", "helper")
 
 
+def test_load_global_config_merges_target_overrides_and_dedupes(tmp_path: Path):
+    _write(
+        tmp_path / "agents" / "agents.yaml",
+        "targets:\n"
+        "  claude-code: ~/.claude-work/agents\n"
+        "global:\n"
+        "  - reviewer\n"
+        "  - reviewer\n"
+        "  - helper\n",
+    )
+
+    config = subagents.load_global_config(tmp_path)
+
+    assert config.targets == {
+        "claude-code": "~/.claude-work/agents",
+        "codex": "~/.codex/agents",
+    }
+    assert config.global_names == ("reviewer", "helper")
+
+
+def test_load_global_config_rejects_invalid_targets(tmp_path: Path):
+    _write(
+        tmp_path / "agents" / "agents.yaml",
+        "targets:\n  - not-a-mapping\n",
+    )
+
+    try:
+        subagents.load_global_config(tmp_path)
+    except ValueError as exc:
+        assert "targets must be a mapping of runtime -> destination" in str(exc)
+    else:
+        raise AssertionError("expected invalid targets to raise ValueError")
+
+
 def test_resolve_subagent_files_prefers_private(dotbrain_home: Path):
     _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude-private")
     _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex-private")

@@ -120,6 +120,12 @@ def test_link_global_subagents_links_configured_target(
     dest = tmp_path / ".codex" / "agents"
     monkeypatch.setenv("HOME", str(tmp_path))
     bootstrap_mod.ensure_data_root(dotbrain_home)
+    (dotbrain_home / "agents" / "agents.yaml").write_text(
+        "targets:\n"
+        "  codex: ~/.codex/agents\n"
+        "global:\n"
+        "  - code-review\n"
+    )
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex")
 
     assert result.warnings == []

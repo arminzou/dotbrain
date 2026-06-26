@@ -153,21 +153,22 @@ def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillB
 def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSkillBootstrapResult:
     root = Path(dotbrain_home)
     result = GlobalSkillBootstrapResult()
-    names = subagents.load_global_subagents(root)
+    config = subagents.load_global_config(root)
+    names = config.global_names
     resolved = {name: subagents._resolve_subagent_files(root, name) for name in names}
     missing = [name for name, runtime_files in resolved.items() if not runtime_files]
     result.warnings += [f"subagent not found: {name}" for name in missing]
 
     if target == "all":
-        keys = list(subagents.AGENT_TARGETS)
-    elif target in subagents.AGENT_TARGETS:
+        keys = list(config.targets)
+    elif target in config.targets:
         keys = [target]
     else:
         result.warnings.append(f"target '{target}' not configured; skipping")
         return result
 
     for key in keys:
-        dest = Path(subagents.AGENT_TARGETS[key]).expanduser()
+        dest = Path(config.targets[key]).expanduser()
         files = [runtime_files[key] for name, runtime_files in resolved.items() if key in runtime_files]
         link_result = subagents.link_files_into(
             root,

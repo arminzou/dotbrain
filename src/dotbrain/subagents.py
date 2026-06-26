@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
@@ -24,10 +25,22 @@ WORKSPACE_RUNTIME: dict[str, str] = {
 }
 
 
+@dataclass
+class GlobalConfig:
+    """Operator-configurable global subagent-link settings."""
+
+    targets: dict[str, str] = field(default_factory=lambda: dict(AGENT_TARGETS))
+    global_names: tuple[str, ...] = ()
+
+
 def render_global_subagents(names: Sequence[str] = ("code-review",)) -> str:
     lines = [
         "# Global vendor-native subagents linked into personal agent homes.",
         "# Remove entries to prune dotbrain-managed links on the next relink.",
+        "# Optional target overrides (defaults shown):",
+        "# targets:",
+        "#   claude-code: ~/.claude/agents",
+        "#   codex: ~/.codex/agents",
         "global:",
     ]
     lines.extend(f"  - {name}" for name in skills._clean(names))
@@ -101,12 +114,26 @@ def link_files_into(
     return result
 
 
-def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
+def load_global_config(dotbrain_home: Path) -> GlobalConfig:
     path = Path(dotbrain_home) / "agents" / "agents.yaml"
     if not path.is_file():
-        return ()
+        return GlobalConfig()
     data = skills._read_yaml_mapping(path)
-    return skills._clean(data.get("global"))
+    targets = data.get("targets") or {}
+    if not isinstance(targets, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in targets.items()
+    ):
+        raise ValueError(f"{path}: targets must be a mapping of runtime -> destination")
+    merged_targets = dict(AGENT_TARGETS)
+    merged_targets.update(targets)
+    return GlobalConfig(
+        targets=merged_targets,
+        global_names=skills._clean(data.get("global")),
+    )
+
+
+def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
+    return load_global_config(dotbrain_home).global_names
 
 
 def link_project_subagents(
