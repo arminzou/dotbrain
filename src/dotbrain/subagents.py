@@ -1,0 +1,164 @@
+"""Vendor-native subagent config and symlink linking."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Sequence
+
+from dotbrain import resource_loader, skills
+
+AGENT_TARGETS: dict[str, str] = {
+    "claude-code": "~/.claude/agents",
+    "codex": "~/.codex/agents",
+}
+
+RUNTIME_SPEC: dict[str, tuple[str, str]] = {
+    "claude-code": ("claude", ".md"),
+    "codex": ("codex", ".toml"),
+}
+
+WORKSPACE_RUNTIME: dict[str, str] = {
+    ".claude": "claude-code",
+    ".codex": "codex",
+}
+
+
+def _copy_resource_file(resource_path: str, dest: Path) -> None:
+    if dest.exists() or dest.is_symlink():
+        dest.unlink()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(resource_loader.resource(resource_path).read_text())
+
+
+def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
+    resolved: dict[str, Path] = {}
+    root = Path(dotbrain_home)
+    for runtime, (subdir, ext) in RUNTIME_SPEC.items():
+        private_src = root / "agents" / subdir / f"{name}{ext}"
+        if private_src.is_file():
+            resolved[runtime] = private_src
+            continue
+
+        resource_path = f"agents/{subdir}/{name}{ext}"
+        try:
+            resource = resource_loader.resource(resource_path)
+        except FileNotFoundError:
+            continue
+        if not resource.is_file():
+            continue
+
+        cached = root / ".cache" / "agents" / subdir / f"{name}{ext}"
+        _copy_resource_file(resource_path, cached)
+        resolved[runtime] = cached
+    return resolved
+
+
+def link_files_into(
+    dotbrain_home: Path,
+    target_dir: Path,
+    files: Sequence[Path],
+    *,
+    label: str,
+    prune_owned_only: bool = False,
+) -> skills.LinkResult:
+    target_dir = Path(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    private_root = (Path(dotbrain_home) / "agents").resolve()
+    cache_root = (Path(dotbrain_home) / ".cache" / "agents").resolve()
+    result = skills.LinkResult()
+    wanted: set[str] = set()
+    prefix = f"{label}/" if label else ""
+
+    for src in files:
+        dest = target_dir / src.name
+        wanted.add(dest.name)
+        if dest.exists() and not dest.is_symlink():
+            result.stashed.append(skills.stash_collision(dest))
+        if dest.is_symlink() or dest.exists():
+            dest.unlink()
+        dest.symlink_to(os.path.relpath(src, target_dir))
+        result.linked.append(f"{prefix}{dest.name}")
+
+    for entry in sorted(target_dir.iterdir()):
+        if not entry.is_symlink() or entry.name in wanted:
+            continue
+        owned = skills._points_into(entry, private_root) or skills._points_into(entry, cache_root)
+        if not owned:
+            continue
+        if prune_owned_only or owned:
+            entry.unlink()
+            result.pruned.append(f"{prefix}{entry.name}")
+
+    return result
+
+
+def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
+    path = Path(dotbrain_home) / "agents" / "agents.yaml"
+    if not path.is_file():
+        return ()
+    data = skills._read_yaml_mapping(path)
+    return skills._clean(data.get("global"))
+
+
+def link_global_subagents(dotbrain_home: Path, target: str = "all") -> skills.LinkResult:
+    root = Path(dotbrain_home)
+    names = load_global_subagents(root)
+    resolved = {name: _resolve_subagent_files(root, name) for name in names}
+    result = skills.LinkResult()
+
+    result.warnings += [f"subagent not found: {name}" for name, files in resolved.items() if not files]
+
+    if target == "all":
+        runtimes = list(AGENT_TARGETS)
+    elif target in AGENT_TARGETS:
+        runtimes = [target]
+    else:
+        result.warnings.append(f"target '{target}' not configured; skipping")
+        return result
+
+    for runtime in runtimes:
+        files = [resolved[name][runtime] for name in names if runtime in resolved[name]]
+        ws_result = link_files_into(
+            root,
+            Path(AGENT_TARGETS[runtime]).expanduser(),
+            files,
+            label=runtime,
+            prune_owned_only=True,
+        )
+        result.linked += ws_result.linked
+        result.pruned += ws_result.pruned
+        result.stashed += ws_result.stashed
+        result.warnings += ws_result.warnings
+    return result
+
+
+def link_project_subagents(
+    dotbrain_home: Path,
+    brainspace: Path,
+    workspaces: Sequence[str],
+    names: Sequence[str],
+) -> skills.LinkResult:
+    root = Path(dotbrain_home)
+    resolved = {name: _resolve_subagent_files(root, name) for name in names}
+    result = skills.LinkResult()
+
+    result.warnings += [f"subagent not found: {name}" for name, files in resolved.items() if not files]
+
+    for workspace in workspaces:
+        runtime = WORKSPACE_RUNTIME.get(workspace)
+        if runtime is None:
+            continue
+        files = [resolved[name][runtime] for name in names if runtime in resolved[name]]
+        ws_result = link_files_into(
+            root,
+            Path(brainspace) / workspace / "agents",
+            files,
+            label=workspace,
+            prune_owned_only=True,
+        )
+        result.linked += ws_result.linked
+        result.pruned += ws_result.pruned
+        result.stashed += ws_result.stashed
+        result.warnings += ws_result.warnings
+    return result
