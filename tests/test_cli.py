@@ -306,6 +306,7 @@ def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_pat
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.setenv("HOME", str(tmp_path))
     bootstrap_mod.ensure_data_root(dotbrain_home)
+    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - code-review\n")
 
     first = runner.invoke(app, ["agents", "link", "--scope", "global", "--target", "codex"])
     assert first.exit_code == 0, first.output

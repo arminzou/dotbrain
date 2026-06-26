@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import bootstrap as bootstrap_mod, paths, skills, workflows
+from dotbrain import bootstrap as bootstrap_mod, config, paths, skills, subagents, workflows
 from dotbrain.cli import app
 
 runner = CliRunner()
@@ -110,11 +110,25 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert result.agents_seeded is True
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
-    assert "code-review" in (root / "agents" / "agents.yaml").read_text()
+    assert subagents.load_global_subagents(root) == ()
     assert (root / "agents" / "claude" / "code-review.md").is_file()
     assert (root / "agents" / "codex" / "code-review.toml").is_file()
     assert any("seeded agents/claude/code-review.md" in line for line in result.logs)
-    assert (Path("src/dotbrain/resources/agents/claude/code-review.md").read_text().startswith("---\n"))
+    assert (root / "agents" / "claude" / "code-review.md").read_text().startswith("---\n")
+
+
+def test_wire_project_seeds_code_review_as_project_default(
+    dotbrain_home: Path, tmp_path: Path, fake_home: Path
+):
+    bootstrap_mod.ensure_data_root(dotbrain_home)
+    repo = _fresh_repo(tmp_path, "project-default-subagent")
+
+    _wire(dotbrain_home, repo, fake_home)
+
+    assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ("code-review",)
+    project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / "project.yaml"
+    assert "subagents:" in project_yaml.read_text()
+    assert "  - code-review" in project_yaml.read_text()
 
 
 def test_link_global_subagents_links_configured_target(

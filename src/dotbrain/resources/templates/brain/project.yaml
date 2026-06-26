@@ -21,6 +21,7 @@ public-tracker: none
 # skills:
 #   - some-collection/some-skill
 #
-# Extra vendor-native subagents linked into this project's agent workspaces.
-# subagents:
-#   - some-shared-subagent
+# Starter example subagents linked into this project's agent workspaces by default.
+# Remove entries you do not want, or add more runtime-native subagents.
+subagents:
+  - code-review
