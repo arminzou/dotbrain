@@ -45,6 +45,53 @@ dotbrain wire <repo>      # connect a code repo to a Brainspace under your data 
 
 See [README.md](README.md) for more, and [docs/architecture.md](docs/architecture.md) for the model.
 
+## Development
+
+```bash
+uv sync                                  # create the venv and install deps
+uv run pytest                            # run the full suite
+uv run pytest tests/test_wiring.py       # one file
+uv run pytest -k worktree                # match by name
+uv run pytest tests/test_workflows.py::test_unwire_all_disconnects_every_repo  # one test
+uv tool install --editable --force .     # install the `dotbrain` CLI from this checkout
+```
+
+The package entrypoint is `dotbrain.cli:app` (Typer); `python -m dotbrain` is not wired.
+Tests are `tmp_path`-based — they never touch a real `$HOME` or the live data root. There is no
+configured linter; the stray `# noqa: A002` markers are advisory only.
+
+## Codebase architecture
+
+For the product model (Brainspaces, the Brain/execution split, the public/private boundary) read
+[docs/architecture.md](docs/architecture.md). For the *code*, the shape is a strict dependency
+layering under `src/dotbrain/`:
+
+- **`paths.py`** — the pure foundation. Encodes the wiring contracts (the four `BRAINSPACE_LINKS`,
+  exclude entries, the adopter pointer, data-root resolution) as side-effect-free functions. No
+  filesystem mutation here; everything else builds on it and depends *into* it, never the reverse.
+- **Concept modules**, each owning one concept and depending only on `paths` (and sometimes
+  `config`): `adopter_repos` (repo-facing symlinks, `.git/info/exclude`, AGENTS.md pointer),
+  `brainspaces` (Brain + agent-workspace seeding, offboarding), `beads` (the `bd` tracker),
+  `skills` and `subagents` (curated symlink linking), `bootstrap` (machine-global setup),
+  `migrate` (embedded→server beads, composing `beads` helpers), `doctor` (read-only health).
+- **`workflows.py`** — cross-concept orchestration; the bodies behind `wire`, `wire --all`,
+  `unwire`, `refresh`. It stitches the concept modules together.
+- **`cli.py`** — a thin Typer parsing/rendering layer over `workflows` and the modules. Keep logic
+  out of here.
+- **`resource_loader.py`** — the only accessor for packaged `dotbrain.resources` (skills,
+  templates, scripts) via `importlib.resources`.
+
+Two patterns to know before changing anything:
+
+- **Subprocess seam.** Modules that shell out to `bd`/`git` take an injected `run` callable
+  (`Runner`, same shape as `subprocess.run`). Tests pass a fake that records argv instead of
+  executing. Preserve this seam — assertions are on the recorded commands.
+- **Checkout vs. data root.** The *checkout* (this repo) is the tool source. The *data root*
+  (`$DOTBRAIN_HOME`, by convention `~/dotbrain`) holds `brainspaces/`, `skills/`, and the seeded
+  `config.yaml`; it is resolved by `paths.resolve_dotbrain_home()`. Config splits into a global
+  `config.yaml` (infra defaults like `beads.server`) and a per-project `brainspaces/<name>/project.yaml`
+  (beads mode, skill and subagent selection). Don't conflate the two roots.
+
 ## Conventions
 
 - `AGENTS.md` is canonical; `CLAUDE.md` is a symlink to it.
