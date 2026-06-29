@@ -1,12 +1,12 @@
 ---
 name: operate-execution
-description: Operate the private execution engine for a project Brainspace. Use when the user wants to shape work, inspect ready work, claim/update/close work items, split or discover follow-up work, or connect private execution to public issues.
+description: Create, claim, work on, and close issues in the project's private execution graph. Use when filing issues, creating work items, claiming tasks, inspecting the ready frontier, updating work status, or closing completed work — any interaction with the project issue tracker.
 ---
 
 # Operate Execution
 
 Operate the Brainspace's private execution layer: a typed, prioritized **dependency graph** of
-work items. The engine is declared in `project.yaml` (`execution-engine:`, today beads). This skill
+work items. The engine is declared in `project.yaml` (`execution-engine:`). This skill
 is engine-agnostic — it owns the model and workflow; the engine's CLI mechanics and native-modeling
 rules live in `references/<engine>.md` ([references/beads.md](references/beads.md) for beads).
 
@@ -28,7 +28,7 @@ Read at session start, before inspecting the graph:
 2. **[references/beads.md](references/beads.md)** — engine mechanics and native-modeling rules:
    commands, types, dependencies, status, labels. Swap for the active engine's reference if it changes.
 3. **[references/work-intake.md](references/work-intake.md)** — work intake pipeline: when to create a
-   bead directly vs when to suggest a PRD + epic. Read to decide how new work enters the graph.
+   issue directly vs when to suggest a PRD + epic. Read to decide how new work enters the graph.
 
 ## What this skill owns
 
@@ -50,16 +50,16 @@ item or epic, but do not freeze when work reveals missing scope.
 
 ## Human gate
 
-Items flagged `bd human <id>` need a person's decision before an agent proceeds. The agent checks
-`bd human list` before each new item and treats only flagged items as gated.
+Items flagged for human review need a person's decision before an agent proceeds. The agent
+checks for gated items before each new item and treats only flagged items as gated.
 
 Unflagged items are **autonomous**: the agent may pick them up, work them, and close them without
 stopping for sign-off. This is the default because most items are small enough that the check-in
-adds friction without value. The `bd human` marker is the intentional exception.
+adds friction without value. The human-review flag is the intentional exception.
 
-Flag an item `bd human` when it genuinely needs a decision — scope ambiguity, design trade-offs,
-cross-cutting impact, or anything you want to see before work starts. Leave everything else
-unflagged so the agent can flow through the ready frontier.
+Flag an item for human review when it genuinely needs a decision — scope ambiguity, design
+trade-offs, cross-cutting impact, or anything you want to see before work starts. Leave
+everything else unflagged so the agent can flow through the ready frontier.
 
 ## Execution-mode recommendation
 
@@ -78,7 +78,7 @@ Autonomous (unflagged) items do not need a mode recommendation — claim and wor
 
 1. Read the context files above, then project Brain context and relevant ADRs.
 2. Inspect the graph: ready frontier, list, and item detail (commands in `references/beads.md`).
-3. Check `bd human list` for gated items among the ready set.
+3. Check for human-gated items among the ready set (engine reference covers the command).
 4. Select the next ready item:
    - **Human-gated** — recommend mode and stop for sign-off before claiming.
    - **Autonomous** — claim directly and proceed.
@@ -99,7 +99,7 @@ is wrong. Put discoveries back into the graph, never into ad hoc todo files.
 When recommending worktree execution or handing work off, record enough that the worker can act
 without being spoon-fed: work-item ID, anchor epic (if any), branch/worktree name, intended scope,
 required checks, and review/landing expectations. Agent-created branches use the canonical name
-`<item-id>-<short-slug>` (the bead ID for beads), which supports SessionStart anchor inference.
+`<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart anchor inference.
 
 ## Public/private link
 
@@ -111,7 +111,7 @@ needs an explicit close. Mechanics live in [references/beads.md](references/bead
 ## Pitfalls
 
 - **Do not jump from recommendation to execution for human-gated items.** Stop and wait for confirmation from the user. Autonomous (unflagged) items flow through without a stop — the gate handles separation.
-- **Do not skip `bd human list` at the start of the loop.** Check it every iteration — the set may change as other items close or as new items are created.
+- **Do not skip the human-gate check at the start of the loop.** Check it every iteration — the set of gated items may change as other items close or as new items are created.
 - **Check for existing branches first.** Run `git branch -a | grep -i <topic>`; if one exists, ask
   whether to use it or start fresh.
 - **Do not close an item without presenting what was done.** Summarize and confirm first, unless the
