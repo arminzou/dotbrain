@@ -1,6 +1,6 @@
 # Agent Context
 
-This file is the local agent context for `<project-path>`.
+This file is the repo-level agent context for `<project-path>`.
 
 ## Scope
 

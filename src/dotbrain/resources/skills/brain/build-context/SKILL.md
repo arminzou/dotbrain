@@ -1,189 +1,233 @@
 ---
 name: build-context
-description: Draft, rewrite, and normalize AGENTS.md/CLAUDE.md context files for repos and workspace roots, including public repos wired to private dotbrain context. Use when setting agent instructions, defining root-vs-local context boundaries, making AGENTS.md canonical with CLAUDE.md symlinked to it, repairing agent instruction drift, or keeping public AGENTS.md files safe around private dotbrain wiring.
+description: Draft, rewrite, and normalize project-level AGENTS.md/CLAUDE.md context files at both the public repo and private .brain levels. Use when setting project agent instructions, making AGENTS.md canonical with CLAUDE.md symlinked to it at both levels, repairing context drift, bootstrapping .brain/CONTEXT.md, or keeping public AGENTS.md safe around private dotbrain wiring.
 ---
 
 # Agent Context
 
 ## Overview
 
-Use this skill when a user wants to set up or tune agent-facing context files such as `AGENTS.md` and `CLAUDE.md`.
+Use this skill when a user wants to set up or tune project-level agent-facing context files:
+the repo `AGENTS.md`/`CLAUDE.md` and the private brain `.brain/AGENTS.md`/`.brain/CLAUDE.md`.
 
-The goal is to make the context hierarchy legible and low-drift:
-- one canonical file per directory (`AGENTS.md`)
-- `CLAUDE.md` symlinked to it when both names are needed
-- root context kept high-level
-- project-specific operational detail pushed down into the nearest local context file
+This skill is **brain-coupled** — it operates strictly within the current project. It never touches
+workspace-root context files or anything outside the project tree.
+
+The goal is to make the context hierarchy legible, complete, and low-drift:
+- `AGENTS.md` canonical, `CLAUDE.md` symlinked at both levels
+- brain `AGENTS.md` always bootstrapped from template
+- `CONTEXT.md` present in the brain (bootstrapped if missing)
+- public repo context safe for public consumption
+- private operational detail kept behind `.brain/`
 
 ## When to Use
 
 Use this skill when:
-- the user asks to create, rewrite, or standardize `AGENTS.md` or `CLAUDE.md`
-- the user wants root/workspace context separated from project-local instructions
+- the user asks to create, rewrite, or standardize `AGENTS.md` or `CLAUDE.md` in a project
+- the user wants brain context bootstrapped or refreshed against the template
 - a repo has both files as independent copies and drift is likely
-- you need to define directory layout, conventions, and cross-cutting notes for agents
+- the user wants `.brain/CONTEXT.md` bootstrapped if it doesn't exist
+- the public repo `AGENTS.md` needs to be kept safe around private dotbrain wiring
 
 Don't use this skill for:
-- authoring skill files (`SKILL.md`)
+- authoring skill files (`SKILL.md`) — use `/skill-authoring`
+- workspace-root context files (`~/AGENTS.md`, `~/CLAUDE.md`)
 - product specs, ADRs, or user documentation that is not agent-facing
 - one-off code comments or README cleanup
+- deep refinement of `CONTEXT.md` terminology — seed initial terms here, then use `/grill-decisions` to stress-test and sharpen them
+
+## Files This Skill Touches
+
+| File | Purpose |
+|------|---------|
+| `<project>/AGENTS.md` | Repo-level context |
+| `<project>/CLAUDE.md` | Symlink to `AGENTS.md` |
+| `<project>/.brain/AGENTS.md` | Private brain-level context (source of truth) |
+| `<project>/.brain/CLAUDE.md` | Symlink to `AGENTS.md` |
+| `<project>/.brain/CONTEXT.md` | Domain vocabulary (bootstrapped if missing) |
+
+Nothing outside the project tree is ever touched.
 
 ## Canonical Convention
 
-Default convention unless the user says otherwise:
-- `AGENTS.md` is canonical
-- `CLAUDE.md` is a symlink to `AGENTS.md`
-- the nearest context file in the current directory tree wins
-- the root context is a fallback, not the place for detailed project operations
+- `AGENTS.md` is canonical at every level.
+- `CLAUDE.md` is a symlink to `AGENTS.md` at every level.
+- The nearest context file in the directory tree wins.
+- Brain `.brain/AGENTS.md` overrides repo `AGENTS.md` when dotbrain is wired.
 
-## Dotbrain Public-Repo Convention
+## Two-Level Structure
 
-Some repos are public adopter repos wired locally to private dotbrain state through ignored `.brain`,
-`.beads`, `.claude`, and `.codex` symlinks. The tracked public `AGENTS.md` must still work when a
-fresh clone is not wired.
+A dotbrain-wired project has two layers of agent context:
 
-For a public or potentially public adopter repo:
-- Keep the tracked `AGENTS.md` self-contained for normal source work: purpose, public paths,
-  commands, verification, and public hazards.
-- Add only one private-context pointer: if `.brain/AGENTS.md` exists locally, read it before
-  substantial agent work for private project operations.
-- State that missing `.brain/AGENTS.md` is not an error on unwired checkouts.
-- Do not expose private dotbrain internals in the public file: no `.brain/CONTEXT.md`,
-  `.brain/adr/`, `.brain/docs/*`, `.brain/project.yaml`, `.beads`, `bd` workflow, private issue
-  tracker details, private roadmap, or private domain vocabulary paths.
-- Do not create tracked public replacement files for missing private dotbrain state.
+### Repo level (`AGENTS.md`)
 
-For private Brainspaces or private repos, it is fine to document the private paths directly when
-they are part of the repo's durable operational context.
+- Tracked in git, visible to anyone who clones the repo.
+- Self-contained: purpose, public paths, commands, verification, public hazards.
+- Points to `.brain/AGENTS.md` as optional private context — missing is not an error.
+- Must not expose private dotbrain internals (no `.brain/CONTEXT.md`, `.brain/adr/`,
+  `.brain/project.yaml`, `.beads`, `bd` workflow, private issue tracker details).
+
+### Private brain level (`.brain/AGENTS.md`)
+
+- Never committed to the code repo — lives in the dotbrain brainspace.
+- Holds private operational context: build/test commands, project-wide constraints,
+  gotchas, tracker conventions, vocabulary/ADR/skill pointers.
+- Bootstrapped from `templates/brain-AGENTS.md` — always refreshable against it.
 
 ## Working Process
 
-1. Inspect current state.
-   - Check whether `AGENTS.md` and/or `CLAUDE.md` already exist.
-   - Check whether either is already a symlink.
-   - Read both before deciding what to keep, merge, or drop.
-   - If working at a workspace root, inspect top-level directory layout before drafting content.
+### 1. Inspect current state
 
-2. Decide scope.
-   - Root/workspace-level files should contain only shared, cross-cutting guidance.
-   - Project-local files should contain structure, workflows, commands, traps, and operational notes for that project.
-   - Push detail downward instead of bloating the root file.
-   - In public adopter repos, push private project operations behind the optional `.brain/AGENTS.md`
-     pointer instead of listing private dotbrain paths in the tracked public context.
+Check what exists at both levels:
+```
+ls -la AGENTS.md CLAUDE.md .brain/AGENTS.md .brain/CLAUDE.md .brain/CONTEXT.md
+```
+- Are `AGENTS.md` files regular files or symlinks?
+- Are `CLAUDE.md` files symlinks?
+- Does `.brain/CONTEXT.md` exist?
 
-3. Clarify contents when the desired scope is not obvious.
-   - If it is not clear what the user wants included in the context file, ask explicitly before drafting.
-   - Ask what categories of information they want captured (for example: directory layout, commands, workflows, conventions, architecture notes, safety warnings, important paths, or excluded topics).
-   - Do not guess missing content just because a nearby file or repo suggests a pattern.
-   - If the user already stated a clear preference, follow it directly instead of re-asking.
+### 2. Update or create brain AGENTS.md
 
-4. Draft the file around agent needs, not human marketing.
-   Keep it focused on:
-   - scope and override rules
-   - directory layout
-   - organization conventions
-   - important locations
-   - cross-cutting safety notes
+Always update `.brain/AGENTS.md` against `templates/brain-AGENTS.md`:
+- If it exists, compare against the template — preserve user-authored content in
+  the `## Project` section and any custom sections, but ensure the header and
+  structural pointers are current.
+- If it doesn't exist, create it from the template.
+- Ensure `CLAUDE.md` is a symlink to `AGENTS.md` (replace with backup if regular).
 
-5. Preserve useful content, remove drift-prone duplication.
-   - Merge useful facts from existing `CLAUDE.md` or old `AGENTS.md` into the new canonical file.
-   - Remove project-specific detail from a root file if it belongs in a nearer context.
-   - Avoid duplicating the same instructions at multiple levels unless repetition is intentionally defensive.
-   - When migrating an old public convention into dotbrain, remove stale tracked references to the
-     old private/project-operations paths after the durable content has been moved behind dotbrain.
+### 3. Update or create repo AGENTS.md
 
-6. Normalize the files.
-   - Write or update `AGENTS.md`.
-   - Before replacing an existing regular `CLAUDE.md`, make a backup such as `CLAUDE.md.bak`.
-   - Replace `CLAUDE.md` with a symlink to `AGENTS.md`.
-   - If the repo already has an `## Agent skills` block that points at private `.brain/` files, verify those files actually exist afterward. If they were missing or accidentally deleted, restore or recreate them instead of leaving broken references.
+Update `AGENTS.md` against `templates/project-AGENTS.md`:
+- If it exists, preserve user-authored content (purpose, paths, commands, conventions,
+  notes) while ensuring the private-context pointer and structure are current.
+- If it doesn't exist, create it from the template.
+- Scan for private dotbrain internals — none should appear. The only `.brain` path
+  allowed is `.brain/AGENTS.md`.
+- Ensure `CLAUDE.md` is a symlink to `AGENTS.md` (replace with backup if regular).
 
-7. Verify.
-   - Confirm `CLAUDE.md` resolves to `AGENTS.md`.
-   - Read through the symlinked path to ensure content matches.
-   - For public adopter repos, scan the tracked `AGENTS.md`/`CLAUDE.md` for private dotbrain
-     internals. The only `.brain` path exposed publicly should normally be `.brain/AGENTS.md`.
-   - Check that the resulting file stays concise and scope-appropriate.
-   - For config/runtime repos, verify the context distinguishes durable source-of-truth files from volatile/generated runtime state so agents do not casually edit the wrong thing.
-   - If the workspace root lives through a symlinked or synced path (for example `/home/...` resolving to `/mnt/...`), treat that as expected as long as `CLAUDE.md` still resolves to the correct canonical `AGENTS.md` content.
+### 4. Bootstrap and populate CONTEXT.md
 
-## Root File Guidance
+If `.brain/CONTEXT.md` does not exist, create it. Either way, seed or update minimal domain
+terms based on what you observed while inspecting the project.
 
-A root `AGENTS.md` should usually include:
-- what scope the root file covers
-- that nearer local context overrides it
-- top-level directory layout (e.g. code repos, infra, and notes, plus hidden config dirs like `~/.config`, `~/.claude`, `~/.codex`, `~/.ssh`, etc.)
-- conventions for where code, notes, infra, and runtime state belong
-- cross-cutting cautions about broad system changes
+Scaffold (if creating from scratch):
 
-A root `AGENTS.md` should usually avoid:
-- detailed service inventories
-- long command cheat-sheets
-- project-specific workflows
-- operational detail that already has a natural home in a subdirectory context
+```markdown
+# CONTEXT.md
 
-If the user says the root file should stay high-level, take that literally. Push infra/service details down into the nearest relevant repo context instead of keeping them in the workspace root.
+Domain vocabulary for this project. Terms here are canonical — use them consistently
+in issues, plans, code, ADRs, and agent conversations.
 
-Important: "push detail down" does not mean delete useful detail. When a root file contains valuable operational specifics that should still live inside the repo, relocate them into one of these homes:
-- the nearest local `AGENTS.md` for repeated directory-specific workflow
-- a durable repo doc under `.brain/` for long-form reference or runbook material
-- an existing conceptual/source-of-truth file such as `CONTEXT.md` when the detail is about domain language rather than workflow
+## Terms
 
-A good rewrite preserves value while improving placement.
+<!-- Populated by /build-context during project orientation. /grill-decisions will
+     refine and stress-test these terms during planning sessions. -->
+```
 
-## Project-Local File Guidance
+Seed terms from what you've already discovered during inspection — key concepts, domain
+objects, non-obvious naming conventions, architecture patterns the project uses. Keep each
+term brief (one line) and grounded in what's actually in the code or docs. Don't invent
+terms the project doesn't use.
 
-A project-local `AGENTS.md` should usually include:
-- repo purpose and boundaries
-- important directories and file ownership
-- local commands, test/build workflows, and verification steps
-- architecture or domain notes that matter repeatedly
-- sharp edges, conventions, and non-obvious traps
+If `.brain/CONTEXT.md` already exists, review your observations against the current terms
+and propose additions or refinements — but don't remove existing terms without asking.
 
-For a public project-local `AGENTS.md` in a dotbrain-wired repo, keep private operational detail out
-of this list and use the optional `.brain/AGENTS.md` pointer described above.
+Do not attempt deep terminology debates — that's `/grill-decisions` territory. The goal
+here is to capture the obvious terms any orienting agent would notice, so the brain is
+both complete and useful from the start.
+
+### 5. Verify
+
+- [ ] `readlink -f CLAUDE.md` resolves to `AGENTS.md` (repo level)
+- [ ] `readlink -f .brain/CLAUDE.md` resolves to `.brain/AGENTS.md` (brain level)
+- [ ] Reading through both paths at each level shows identical content
+- [ ] Public `AGENTS.md` contains no private dotbrain internals beyond `.brain/AGENTS.md`
+- [ ] Missing `.brain/AGENTS.md` is explicitly noted as non-fatal in the public file
+- [ ] `.brain/CONTEXT.md` exists
+- [ ] No workspace-root files were touched
+
+## Repo-Level File Guidance
+
+A repo-level `AGENTS.md` should include:
+- Scope and override rules
+- Private context pointer (`.brain/AGENTS.md` only)
+- Project purpose and boundaries
+- Important directory layout
+- Working conventions
+- Commands and verification steps
+- Important notes and traps
+
+If the repo is public, `AGENTS.md` must NOT include:
+- Private dotbrain paths (`CONTEXT.md`, `adr/`, `project.yaml`, `docs/`)
+- `.beads`, `bd` commands, or private execution workflow
+- Private issue tracker details, roadmap, or domain vocabulary
+
+## Brain-Level File Guidance
+
+A brain `.brain/AGENTS.md` should include:
+- The standard dotbrain bootstrap header (private context explanation,
+  `DOTBRAIN.md` pointer)
+- A `## Project` section with cross-cutting rules: build/test commands,
+  project-wide constraints, gotchas, tracker conventions
+- Pointers to `CONTEXT.md`, `adr/`, and `project.yaml`
+
+The brain template is the canonical source for the header structure. User-authored
+content lives primarily in the `## Project` section.
+
+## CONTEXT.md Guidance
+
+`CONTEXT.md` holds the domain vocabulary for the project. Terms defined there are
+canonical — agents should use them consistently in issues, plans, code, and ADRs.
+
+- This skill bootstraps the file if it doesn't exist, and seeds minimal terms based on
+  what the agent observed while orienting in the project.
+- Terms should be brief, grounded in actual code/docs, and limited to what's obvious
+  from inspection — key concepts, domain objects, architecture patterns, non-obvious
+  naming conventions.
+- Deeper refinement belongs to `/grill-decisions`, which stress-tests and sharpens the
+  vocabulary through debate. `/build-context` gives it something to start from.
 
 ## Common Pitfalls
 
-1. Leaving both `AGENTS.md` and `CLAUDE.md` as separate real files.
-   That guarantees drift. Pick one canonical source and symlink the other.
+1. **Leaving both `AGENTS.md` and `CLAUDE.md` as separate real files at either level.**
+   That guarantees drift. Pick `AGENTS.md` as canonical and symlink `CLAUDE.md`.
 
-2. Treating the root file like a dumping ground.
-   If the detail only matters inside a single infra or service repo, move it there.
+2. **Exposing dotbrain internals in the public repo `AGENTS.md`.**
+   Public tracked context must only mention `.brain/AGENTS.md`. No other `.brain`
+   subpaths, no `.beads`, no `bd` workflow.
 
-3. Replacing `CLAUDE.md` without a backup.
-   If it was a real file with useful content, preserve it first.
+3. **Touching workspace-root files.**
+   This skill is project-scoped. Never touch `~/AGENTS.md`, `~/CLAUDE.md`, or any
+   other root-level context file.
 
-4. Writing generic filler instead of actionable context.
+4. **Replacing `CLAUDE.md` without a backup.**
+   If it was a regular file with useful content, preserve it first as `.bak`.
+
+5. **Over-populating CONTEXT.md with speculative terms.**
+   Seed terms you actually observed in the code/docs — don't invent vocabulary the
+   project doesn't use. Leave deep refinement to `/grill-decisions`.
+
+6. **Forgetting the two-level structure.**
+   Both the repo level and the private brain level need maintenance.
+   Updating one without the other leaves the hierarchy incomplete.
+
+7. **Writing generic filler instead of actionable context.**
    Agent context should explain navigation, conventions, workflows, and hazards.
-
-5. Forgetting override rules.
-   State clearly that the nearest local context file takes precedence.
-
-6. Guessing what the user wants in the file when they have not been specific.
-   If the desired contents are unclear, ask what should be included or excluded instead of inventing a structure from habit.
-
-7. Exposing dotbrain internals in a public repo.
-   Public tracked context should not mention private `.brain` subpaths, `.beads`, `bd`, private
-   issue trackers, private roadmap paths, or private skill config. Point to `.brain/AGENTS.md` only
-   and make that pointer optional for unwired clones.
 
 ## Verification Checklist
 
-- [ ] Existing `AGENTS.md` and `CLAUDE.md` were inspected before editing
-- [ ] Canonical file chosen explicitly (`AGENTS.md` by default)
-- [ ] If the desired file contents were unclear, the user was asked what to include or exclude before drafting
-- [ ] Root file content is high-level and cross-cutting only
-- [ ] Project-specific detail lives in the nearest relevant local context file
-- [ ] Existing `CLAUDE.md` was backed up before replacement if it was a regular file
-- [ ] `CLAUDE.md` is now a symlink to `AGENTS.md`
-- [ ] `readlink -f CLAUDE.md` resolves to `AGENTS.md`
-- [ ] Reading through both paths shows identical content
-- [ ] In public dotbrain-wired repos, the only public private-context path is `.brain/AGENTS.md`
-- [ ] In public dotbrain-wired repos, missing `.brain/AGENTS.md` is explicitly non-fatal
+- [ ] Existing `AGENTS.md` and `CLAUDE.md` were inspected at BOTH levels before editing
+- [ ] Brain `AGENTS.md` is current against `templates/brain-AGENTS.md`
+- [ ] Repo `AGENTS.md` is current against `templates/project-AGENTS.md`
+- [ ] `CLAUDE.md` is a symlink to `AGENTS.md` at each level
+- [ ] `readlink -f CLAUDE.md` resolves correctly at each level
+- [ ] Public `AGENTS.md` scanned for private dotbrain internals — only `.brain/AGENTS.md` allowed
+- [ ] Missing `.brain/AGENTS.md` is explicitly non-fatal in public file
+- [ ] `.brain/CONTEXT.md` exists (bootstrapped if it was missing)
+- [ ] No workspace-root files were touched
+- [ ] User-authored content was preserved in `## Project` and custom sections
 
-## References
+## Templates
 
-- See `references/root-context-pattern.md` for a concise root-level pattern derived from this workspace.
-- See `templates/root-AGENTS.md` for a starter root context template.
-- See `templates/project-AGENTS.md` for a starter project-local template.
+- `templates/brain-AGENTS.md` — brain-level AGENTS.md (private, source of truth)
+- `templates/project-AGENTS.md` — repo-level AGENTS.md
