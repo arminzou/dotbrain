@@ -1,6 +1,6 @@
 ---
 name: build-context
-description: Draft, rewrite, and normalize project-level AGENTS.md/CLAUDE.md context files at both the public repo and private .brain levels. Use when setting project agent instructions, making AGENTS.md canonical with CLAUDE.md symlinked to it at both levels, repairing context drift, bootstrapping .brain/CONTEXT.md, or keeping public AGENTS.md safe around private dotbrain wiring.
+description: Draft, rewrite, and normalize project-level AGENTS.md/CLAUDE.md context files at both the public repo and private .brain levels. Use when setting project agent instructions, making AGENTS.md canonical with CLAUDE.md symlinked to it at both levels, repairing context drift, or keeping public AGENTS.md safe around private dotbrain wiring.
 ---
 
 # Agent Context
@@ -16,7 +16,6 @@ workspace-root context files or anything outside the project tree.
 The goal is to make the context hierarchy legible, complete, and low-drift:
 - `AGENTS.md` canonical, `CLAUDE.md` symlinked at both levels
 - brain `AGENTS.md` always bootstrapped from template
-- `CONTEXT.md` present in the brain (bootstrapped if missing)
 - public repo context safe for public consumption
 - private operational detail kept behind `.brain/`
 
@@ -26,7 +25,6 @@ Use this skill when:
 - the user asks to create, rewrite, or standardize `AGENTS.md` or `CLAUDE.md` in a project
 - the user wants brain context bootstrapped or refreshed against the template
 - a repo has both files as independent copies and drift is likely
-- the user wants `.brain/CONTEXT.md` bootstrapped if it doesn't exist
 - the public repo `AGENTS.md` needs to be kept safe around private dotbrain wiring
 
 Don't use this skill for:
@@ -34,7 +32,7 @@ Don't use this skill for:
 - workspace-root context files (`~/AGENTS.md`, `~/CLAUDE.md`)
 - product specs, ADRs, or user documentation that is not agent-facing
 - one-off code comments or README cleanup
-- deep refinement of `CONTEXT.md` terminology — seed initial terms here, then use `/grill-decisions` to stress-test and sharpen them
+- authoring or refining `CONTEXT.md` vocabulary — that belongs to `/grill-decisions`
 
 ## Files This Skill Touches
 
@@ -44,7 +42,7 @@ Don't use this skill for:
 | `<project>/CLAUDE.md` | Symlink to `AGENTS.md` |
 | `<project>/.brain/AGENTS.md` | Private brain-level context (source of truth) |
 | `<project>/.brain/CLAUDE.md` | Symlink to `AGENTS.md` |
-| `<project>/.brain/CONTEXT.md` | Domain vocabulary (bootstrapped if missing) |
+| `<project>/.brain/CONTEXT.md` | Domain vocabulary (read if present; absent is not an error) |
 
 Nothing outside the project tree is ever touched.
 
@@ -100,41 +98,20 @@ Always update `.brain/AGENTS.md` against `templates/brain-AGENTS.md`:
 Update `AGENTS.md` against `templates/project-AGENTS.md`:
 - If it exists, preserve user-authored content (purpose, paths, commands, conventions,
   notes) while ensuring the private-context pointer and structure are current.
-- If it doesn't exist, create it from the template.
+- If it doesn't exist, create it from the template. If the user supplied `/init` output
+  as a starting draft, absorb its content into the canonical template structure — `/init`
+  output is a draft, not a durable owner of repo-root files.
 - Scan for private dotbrain internals — none should appear. The only `.brain` path
   allowed is `.brain/AGENTS.md`.
 - Ensure `CLAUDE.md` is a symlink to `AGENTS.md` (replace with backup if regular).
 
-### 4. Bootstrap and populate CONTEXT.md
+### 4. Read CONTEXT.md if present
 
-If `.brain/CONTEXT.md` does not exist, create it. Either way, seed or update minimal domain
-terms based on what you observed while inspecting the project.
+If `.brain/CONTEXT.md` exists, read it before finalising the context files — domain terms
+there inform accurate phrasing in both `AGENTS.md` files.
 
-Scaffold (if creating from scratch):
-
-```markdown
-# CONTEXT.md
-
-Domain vocabulary for this project. Terms here are canonical — use them consistently
-in issues, plans, code, ADRs, and agent conversations.
-
-## Terms
-
-<!-- Populated by /build-context during project orientation. /grill-decisions will
-     refine and stress-test these terms during planning sessions. -->
-```
-
-Seed terms from what you've already discovered during inspection — key concepts, domain
-objects, non-obvious naming conventions, architecture patterns the project uses. Keep each
-term brief (one line) and grounded in what's actually in the code or docs. Don't invent
-terms the project doesn't use.
-
-If `.brain/CONTEXT.md` already exists, review your observations against the current terms
-and propose additions or refinements — but don't remove existing terms without asking.
-
-Do not attempt deep terminology debates — that's `/grill-decisions` territory. The goal
-here is to capture the obvious terms any orienting agent would notice, so the brain is
-both complete and useful from the start.
+If `.brain/CONTEXT.md` is absent, that is a legitimate state. Do not create it. Let the
+user know that running `/grill-decisions` will populate vocabulary for this project.
 
 ### 5. Verify
 
@@ -143,7 +120,6 @@ both complete and useful from the start.
 - [ ] Reading through both paths at each level shows identical content
 - [ ] Public `AGENTS.md` contains no private dotbrain internals beyond `.brain/AGENTS.md`
 - [ ] Missing `.brain/AGENTS.md` is explicitly noted as non-fatal in the public file
-- [ ] `.brain/CONTEXT.md` exists
 - [ ] No workspace-root files were touched
 
 ## Repo-Level File Guidance
@@ -179,13 +155,12 @@ content lives primarily in the `## Project` section.
 `CONTEXT.md` holds the domain vocabulary for the project. Terms defined there are
 canonical — agents should use them consistently in issues, plans, code, and ADRs.
 
-- This skill bootstraps the file if it doesn't exist, and seeds minimal terms based on
-  what the agent observed while orienting in the project.
-- Terms should be brief, grounded in actual code/docs, and limited to what's obvious
-  from inspection — key concepts, domain objects, architecture patterns, non-obvious
-  naming conventions.
-- Deeper refinement belongs to `/grill-decisions`, which stress-tests and sharpens the
-  vocabulary through debate. `/build-context` gives it something to start from.
+- This skill reads `CONTEXT.md` if it is present and uses its terms to inform accurate
+  phrasing in the context files. It does not create or modify `CONTEXT.md`.
+- If `.brain/CONTEXT.md` is absent, suggest the user run `/grill-decisions` to populate
+  vocabulary. Absence is not an error.
+- `/grill-decisions` is the sole writer of `CONTEXT.md`; it stress-tests and sharpens
+  vocabulary through structured debate.
 
 ## Common Pitfalls
 
@@ -203,9 +178,9 @@ canonical — agents should use them consistently in issues, plans, code, and AD
 4. **Replacing `CLAUDE.md` without a backup.**
    If it was a regular file with useful content, preserve it first as `.bak`.
 
-5. **Over-populating CONTEXT.md with speculative terms.**
-   Seed terms you actually observed in the code/docs — don't invent vocabulary the
-   project doesn't use. Leave deep refinement to `/grill-decisions`.
+5. **Trying to create or seed `CONTEXT.md`.**
+   `build-context` does not write `CONTEXT.md`. If it is absent, tell the user to run
+   `/grill-decisions` to populate it — do not create it here.
 
 6. **Forgetting the two-level structure.**
    Both the repo level and the private brain level need maintenance.
@@ -223,7 +198,6 @@ canonical — agents should use them consistently in issues, plans, code, and AD
 - [ ] `readlink -f CLAUDE.md` resolves correctly at each level
 - [ ] Public `AGENTS.md` scanned for private dotbrain internals — only `.brain/AGENTS.md` allowed
 - [ ] Missing `.brain/AGENTS.md` is explicitly non-fatal in public file
-- [ ] `.brain/CONTEXT.md` exists (bootstrapped if it was missing)
 - [ ] No workspace-root files were touched
 - [ ] User-authored content was preserved in `## Project` and custom sections
 
