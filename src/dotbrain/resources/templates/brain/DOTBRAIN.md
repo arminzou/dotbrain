@@ -24,6 +24,10 @@ Brain template propagate to every brain.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
 - If `CONTEXT.md` or `adr/` are missing or empty, proceed silently — note the gap, don't
   scaffold them unasked.
+- `.brain/docs/` holds project-scoped knowledge (runbooks, references, derived notes) that
+  is not auto-injected into context. Before answering how this project builds, runs, deploys,
+  integrates, or otherwise works, check and search `.brain/docs/` first — do not infer from
+  the public repo or generic conventions when the Brain has a documented answer.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
 - Public-facing repo docs (README.md, repo-root AGENTS.md) must not expose private Brain
