@@ -44,7 +44,7 @@ uncertain.
 Create `.brain/designs/<slug>.md`.
 
 Use the initiative title as the H1. Include frontmatter when the project uses it. Mark the doc as
-`status: active` once execution starts. Author only the sections the initiative needs.
+`lifecycle: active` once execution starts. Author only the sections the initiative needs.
 
 Common sections:
 

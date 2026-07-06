@@ -6,6 +6,9 @@ An `active` design doc is a living unknowns ledger for the initiative. It should
 current design, known unknowns, design-relevant implementation discoveries, deviations, and any
 human design calls still needed. Author only the sections the initiative needs.
 
+Use `lifecycle:` frontmatter to mark document mutability: `draft`, `active`, `shipped`,
+`abandoned`, or `superseded`. This is not execution status; beads own execution state.
+
 Typical sections include motivation, goals, non-goals, current design, known unknowns,
 implementation notes, deviations, human decisions needed, alternatives considered, and rollout.
 
