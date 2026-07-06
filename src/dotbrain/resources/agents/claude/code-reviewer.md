@@ -12,7 +12,7 @@ enough surrounding code to judge intent. Review only what changed and what it
 touches, not the whole tree.
 
 Use project context when it's there. If the repo carries a Brain (`.brain/` —
-decisions in `adr/`, requirements in `prd/`, vocabulary in `CONTEXT.md`) or an
+decisions in `adr/`, designs in `designs/`, vocabulary in `CONTEXT.md`) or an
 issue tracker (`.beads/`), read the records relevant to this change and judge
 intent: does it do what the issue asked, and does it contradict a recorded
 decision? Flag such conflicts. If that context is absent, review the diff on its

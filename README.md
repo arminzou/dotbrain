@@ -29,7 +29,7 @@ touches the code repo; the symlinks make sure it follows the project wherever yo
             ├── .brain/
             │   ├── CONTEXT.md  # domain vocabulary
             │   ├── adr/        # architecture decisions
-            │   ├── prd/        # product requirements
+            │   ├── designs/    # design docs
             │   └── docs/       # derived reference material
             ├── .beads/     # execution store (issue tracker)
             ├── .claude/    # Claude Code workspace
@@ -141,9 +141,9 @@ automatically at session start and are available as slash commands.
 - **`build-context`** — draft or normalize `AGENTS.md` and related agent context files.
 - **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
   back into the execution graph. This is the primary skill for driving daily work.
-- **`to-prd`** — formalize a multi-step initiative into a PRD, save it to the Brain, and create
-  an epic bead.
-- **`to-issues`** — decompose a PRD into independently-workable bead tasks with acceptance
+- **`to-design`** — formalize a multi-step initiative into a design doc, save it to the Brain, and
+  create an epic bead.
+- **`to-issues`** — decompose a design doc into independently-workable bead tasks with acceptance
   criteria and dependencies.
 - **`review-architecture`** — review the codebase for deeper architectural opportunities and feed
   findings back into the Brain.

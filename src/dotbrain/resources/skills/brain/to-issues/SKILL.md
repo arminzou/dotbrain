@@ -1,27 +1,27 @@
 ---
 name: to-issues
-description: Break a PRD into independently-workable bead tasks under an epic. Decomposes user stories into vertical-slice issues with acceptance criteria and dependencies. Use when a PRD is ready and you want to create the execution graph.
+description: Break a design doc into independently-workable bead tasks under an epic. Decomposes the plan into vertical-slice issues with acceptance criteria and dependencies. Use when a design doc is ready and you want to create the execution graph.
 ---
 
 # To Issues
 
-Take a PRD and decompose it into bead tasks under the epic. Each task is a thin, vertical slice that cuts through all integration layers — a demoable unit of work.
+Take a design doc and decompose it into bead tasks under the epic. Each task is a thin, vertical slice that cuts through all integration layers — a demoable unit of work.
 
 ## Process
 
-### 1. Find the PRD
+### 1. Find the design doc
 
-If the user passes a PRD path or name, use that. Otherwise, find the latest PRD in `.brain/prd/`:
+If the user passes a design doc path or name, use that. Otherwise, find the latest design doc in `.brain/designs/`:
 
 ```bash
-ls -t .brain/prd/*.md | head -1
+ls -t .brain/designs/*.md | head -1
 ```
 
-Read the full PRD — problem statement, solution, user stories, and out-of-scope.
+Read the full design doc — motivation, goals, design, implementation plan, and non-goals.
 
 ### 2. Draft vertical slices
 
-Decompose the user stories into **vertical slices** (tracer bullets). Each slice delivers a narrow but complete path through every layer (schema, API, UI, tests if applicable). A completed slice is demoable or verifiable on its own.
+Decompose the goals and implementation plan into **vertical slices** (tracer bullets). Each slice delivers a narrow but complete path through every layer (schema, API, UI, tests if applicable). A completed slice is demoable or verifiable on its own.
 
 Prefer many thin slices over few thick ones.
 
@@ -33,14 +33,14 @@ For each slice, identify:
   - **HITL** (Human In The Loop): needs a decision, design review, or sign-off at some point. These beads get flagged `bd human`.
   - Prefer AFK over HITL where possible.
 - **Blocked by** — which other slices (if any) must complete first
-- **User stories covered** — which stories from the PRD this addresses
+- **Goals covered** — which goals from the design doc this addresses
 - **Acceptance criteria** — outcome-focused, verifiable. Self-test: if you rebuilt the solution differently, would the criteria still hold?
 
 ### 3. Present for sign-off
 
 Present the breakdown as a numbered list. For each slice, show:
 
-- **Title**, **Scope** (AFK/HITL), **Blocked by**, **User stories**, **Acceptance criteria** (brief)
+- **Title**, **Scope** (AFK/HITL), **Blocked by**, **Goals covered**, **Acceptance criteria** (brief)
 
 Ask the user:
 

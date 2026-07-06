@@ -42,8 +42,10 @@ Brain template propagate to every brain.
 
 - `CONTEXT.md` — domain vocabulary for this project
 - `adr/` — Architecture Decision Records, one file per decision
-- `prd/` — Product Requirements Documents, one initiative per file. Authored by `to-prd`,
-  decomposed into bead epics by `to-issues`
+- `designs/` — design docs, one initiative per file, sectioned to fold motivation (lightweight
+  PRD), design (spec), and rollout into one file. Authored by `to-design`, decomposed into bead
+  epics by `to-issues`. Point-in-time: written to think and decompose, not maintained after the
+  initiative ships — durable residue lands in `adr/` (decisions) and `CONTEXT.md` (vocabulary)
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
 

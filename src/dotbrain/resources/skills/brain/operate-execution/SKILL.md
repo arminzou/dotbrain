@@ -28,7 +28,7 @@ Read at session start, before inspecting the graph:
 2. **[references/beads.md](references/beads.md)** — engine mechanics and native-modeling rules:
    commands, types, dependencies, status, labels. Swap for the active engine's reference if it changes.
 3. **[references/work-intake.md](references/work-intake.md)** — work intake pipeline: when to create a
-   issue directly vs when to suggest a PRD + epic. Read to decide how new work enters the graph.
+   issue directly vs when to suggest a design doc + epic. Read to decide how new work enters the graph.
 
 ## What this skill owns
 

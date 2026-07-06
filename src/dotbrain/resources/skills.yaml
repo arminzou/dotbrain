@@ -16,7 +16,7 @@ global_required:
 
 project_required:
   - brain/operate-execution
-  - brain/to-prd
+  - brain/to-design
   - brain/to-issues
   - brain/enter-main-agent
   - brain/triage-public

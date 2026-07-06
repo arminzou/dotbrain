@@ -9,7 +9,7 @@ Start from the diff (git diff, or the changes named in the request) and read
 enough surrounding code to judge intent. Review only what changed and what it touches.
 
 Use project context when present. If the repo carries a Brain (.brain/ with adr/,
-prd/, CONTEXT.md) or an issue tracker (.beads/), read the records relevant to this
+designs/, CONTEXT.md) or an issue tracker (.beads/), read the records relevant to this
 change and judge intent: does it do what the issue asked, and does it contradict a
 recorded decision? Flag such conflicts; if that context is absent, review the diff
 on its own. Keep findings in plain terms: do not cite Brain paths or decision-record

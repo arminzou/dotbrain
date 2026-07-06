@@ -23,10 +23,10 @@ dotbrain keeps the required core wired in place and layers operator/project skil
 
 ## Planning
 
-- **`to-prd`** — formalize a multi-step initiative into a PRD, save it to the Brain, and create
-  an epic bead. Run when an idea is ready to become structured work.
-- **`to-issues`** — decompose a PRD into independently-workable bead tasks with acceptance
-  criteria and dependencies. Run after `to-prd`.
+- **`to-design`** — formalize a multi-step initiative into a design doc, save it to the Brain, and
+  create an epic bead. Run when an idea is ready to become structured work.
+- **`to-issues`** — decompose a design doc into independently-workable bead tasks with acceptance
+  criteria and dependencies. Run after `to-design`.
 - **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
   decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
 
