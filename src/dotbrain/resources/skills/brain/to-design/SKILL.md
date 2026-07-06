@@ -62,6 +62,9 @@ Common sections:
 Guidance:
 
 - Keep the design at the interface and behavior level. Exact file paths and code snippets go stale.
+- Order `Current Design` by volatility: lead with the decisions most likely to change — data models,
+  type interfaces, migration shape, UX flows — and put mechanical or obvious work last. Surfacing the
+  volatile decisions first is what lets a reviewer catch a wrong turn cheaply.
 - Put design-relevant discoveries back into the active design doc as implementation proceeds.
 - Put slice-local execution facts in beads instead of the design doc.
 - If a discovery becomes a durable, cross-cutting, expensive-to-reverse decision, promote it to an

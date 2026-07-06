@@ -38,6 +38,22 @@ Brain template propagate to every brain.
   public repo carries. State the rationale in plain terms instead; the ADR linkage stays
   in the Brain.
 
+## Unknowns
+
+The Brain exists to shrink the gap between the map (what the agent has been told — vocabulary,
+decisions, rules) and the territory (the codebase and its real constraints). That gap is the
+project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
+design docs speak one language:
+
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and `AGENTS.md`.
+- **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
+- **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
+  Surfaced by grilling and prototypes, then written into canon.
+- **Unknown unknowns** — constraints, edge cases, and existing behavior you have not thought to
+  consider. Surfaced by a blind-spot pass before implementation; caught mid-build as discoveries.
+
+Cheap moves early — orient, grill, prototype — turn expensive late unknowns into known knowns.
+
 ## Brain structure
 
 - `CONTEXT.md` — domain vocabulary for this project

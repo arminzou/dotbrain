@@ -29,6 +29,10 @@ Decompose the goals and implementation notes into vertical slices. Each slice sh
 narrow but complete path through every relevant layer. A completed slice should be demoable or
 otherwise verifiable on its own.
 
+Sequence the slices by volatility: within their dependency constraints, put the ones that resolve the
+most volatile, highest-blast-radius decisions — data models, type interfaces, migration shape — first.
+Validating a risky assumption in the first slice is far cheaper than discovering it wrong in the fifth.
+
 For each slice, show:
 
 - `Title`
