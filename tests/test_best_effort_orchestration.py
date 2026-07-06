@@ -57,11 +57,8 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
 
     result = beads_mod.pull_beads_for_all(dotbrain_home)
 
-    assert result.pulled == [str(brainspace)]
-    assert pull_calls == [
-        ["bd", "-C", str(brainspace), "dolt", "test"],
-        ["bd", "-C", str(brainspace), "dolt", "pull"],
-    ]
+    assert result.pulled == []
+    assert pull_calls == [["bd", "-C", str(brainspace), "dolt", "test"]]
     assert not result.warnings
     assert json.loads((beads / "metadata.json").read_text()) == {
         "database": "dolt",
@@ -91,7 +88,7 @@ def test_pull_beads_hydrates_repo_less_brainspace(
 
     result = beads_mod.pull_beads_for_all(dotbrain_home)
 
-    assert result.pulled == [str(brainspace)]
+    assert result.pulled == []
     assert not result.warnings
     metadata = json.loads((beads / "metadata.json").read_text())
     assert metadata["dolt_mode"] == "server"
@@ -116,7 +113,7 @@ def test_pull_beads_creates_missing_beads_dir(
 
     result = beads_mod.pull_beads_for_all(dotbrain_home)
 
-    assert result.pulled == [str(brainspace)]
+    assert result.pulled == []
     assert not result.warnings
     metadata = json.loads((brainspace / ".beads" / "metadata.json").read_text())
     assert metadata["dolt_mode"] == "server"

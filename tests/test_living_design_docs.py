@@ -17,8 +17,11 @@ def test_seeded_design_docs_are_living_while_active(dotbrain_home: Path, tmp_pat
     designs_readme = " ".join(designs_readme.split())
 
     assert "living design authority" in dotbrain_doc
+    assert "lifecycle:" in dotbrain_doc
+    assert "Agents must update lifecycle" in dotbrain_doc
     assert "Beads still own execution state" in dotbrain_doc
     assert "living unknowns ledger" in designs_readme
+    assert "Use `lifecycle:` frontmatter" in designs_readme
     assert "Beads own execution state" in designs_readme
 
 

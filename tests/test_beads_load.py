@@ -108,6 +108,29 @@ def test_engine_projects_filter_pulls_only_target(
     assert result.pulled == [alpha]
 
 
+def test_server_mode_hydrates_without_dolt_pull(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _write_server_yaml(dotbrain_home)
+    brainspace = _brainspace(dotbrain_home, "alpha")
+    (brainspace / ".beads").mkdir()
+    monkeypatch.setattr(beads_mod.shutil, "which", lambda _cmd: "/usr/bin/bd")
+
+    calls: list[list[str]] = []
+
+    def fake_run(argv, **_k):
+        calls.append(list(argv))
+        return subprocess.CompletedProcess(list(argv), 0, stdout="", stderr="")
+
+    monkeypatch.setattr(beads_mod.subprocess, "run", fake_run)
+
+    result = beads_mod.pull_beads_for_all(dotbrain_home, projects=["alpha"])
+
+    assert calls == [["bd", "-C", str(brainspace), "dolt", "test"]]
+    assert result.pulled == []
+    assert not result.warnings
+
+
 def test_load_name_unknown_warns(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):

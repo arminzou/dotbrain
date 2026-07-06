@@ -410,14 +410,15 @@ def pull_beads_for_all(
             if log:
                 result.logs.append(log)
 
-        try:
-            subprocess.run(
-                ["bd", "-C", str(brainspace), "dolt", "pull"],
-                check=True, capture_output=True, text=True, timeout=bd_timeout,
-            )
-            result.pulled.append(str(brainspace))
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            result.warnings.append(f"bd dolt pull failed for {brainspace}")
+        if beads_cfg.mode == "embedded":
+            try:
+                subprocess.run(
+                    ["bd", "-C", str(brainspace), "dolt", "pull"],
+                    check=True, capture_output=True, text=True, timeout=bd_timeout,
+                )
+                result.pulled.append(str(brainspace))
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                result.warnings.append(f"bd dolt pull failed for {brainspace}")
 
     return result
 
