@@ -46,6 +46,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
     bundled_skills_root = _REPO_ROOT / "src" / "dotbrain" / "resources" / "skills"
     for skill in (
         "brain/operate-execution",
+        "brain/find-unknowns",
         "brain/to-design",
         "brain/to-issues",
         "brain/enter-main-agent",
