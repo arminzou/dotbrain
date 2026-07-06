@@ -27,9 +27,11 @@ A Brain has five elements, each with a single clear purpose:
   use consistently, so language does not drift into synonyms.
 - **`adr/`** — Architecture Decision Records, one file per decision. Each captures a choice that is
   hard to reverse, surprising without context, and the result of a real trade-off.
-- **`designs/`** — design docs, one initiative per file, each folding motivation, spec, and rollout
-  into one sectioned file. Authored by `to-design`, decomposed into bead epics by `to-issues`.
-  Point-in-time: not maintained after the initiative ships.
+- **`designs/`** — design docs, one initiative per file. While a design is active, it is the
+  living design authority for the initiative: current design, known unknowns, and deviations live
+  there. Authored by `to-design`, decomposed into bead epics by `to-issues`. Beads remain the
+  execution/status source. Once shipped, abandoned, or superseded, the design doc freezes as a
+  point-in-time record.
 - **`AGENTS.md`** — per-project agent operating conventions: linking rules, ADR policy, priority.
 - **`project.yaml`** — per-project runtime selection plus skill and subagent selection.
 - **`docs/`** — derived runbooks and reference material. Never authoritative; the elements above win.

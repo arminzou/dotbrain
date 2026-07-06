@@ -1,35 +1,46 @@
 # Work intake: bead vs design doc
 
-This reference governs **when** new work enters the graph as a direct bead vs when an agent
-should suggest a design doc + epic workflow. `operate-execution` reads this to make the call.
+This reference governs when new work should enter the execution graph as a direct bead and when
+`operate-execution` should suggest a design doc plus epic workflow.
 
-## Create a bead directly
+## Direct bead
 
-Work can enter as a direct bead (without a design doc) when ALL of the following are true:
+Work can enter as a direct bead, without a design doc, when all of the following are true:
 
-- **Single unit** — the work is one thing, not a multi-step initiative
-- **Well-scoped** — you (or the user) can describe what done looks like in a sentence or two
-- **No architectural ambiguity** — the approach is obvious or already decided
-- **No cross-cutting impact** — the change doesn't affect multiple systems, teams, or surfaces
+- it is a single unit of work, not a multi-slice initiative
+- the design is obvious enough that a separate design narrative would add little value
+- it does not cross multiple systems, workflows, or operator-facing contracts
+- it does not carry meaningful open questions, phased rollout, or major alternatives
 
-Typical examples: a bug fix, a one-shot chore (rename, dep update), a simple feature with
-clear acceptance criteria, a discovered follow-up task.
+Typical examples:
 
-## Suggest a design doc + epic
+- a narrow bug fix
+- a small refactor inside one module boundary
+- a maintenance chore with no meaningful design ambiguity
 
-Suggest the `to-design` → `to-issues` workflow when ANY of the following is true:
+## Suggest a design doc plus epic
 
-- **Multi-step** — the work decomposes into 3+ distinct tasks
-- **Scope ambiguity** — the boundaries aren't clear yet
-- **Requires architectural decisions** — trade-offs need discussion
-- **Cross-cutting impact** — touches multiple modules, APIs, or surfaces
-- **Needs shaping** — the motivation and scope aren't obvious yet
+Suggest the `to-design` -> `to-issues` workflow when any of the following are true:
 
-The agent should raise the suggestion conversationally: "This looks like it could use a
-design doc — want me to run `to-design` and formalize it?" Do not force the workflow; offer it.
+- the work is multi-step or will likely decompose into multiple dependent slices
+- the work crosses modules, workflows, or user/operator-facing contracts
+- the work has meaningful open questions, competing approaches, or explicit non-goals
+- the work needs phased rollout or a human-readable design trail during execution
+- the work needs a living place to track design-level discoveries and unknowns as implementation
+  changes the initiative story
 
-## Exceptions
+When suggesting this path, be explicit: "This looks like design-doc work rather than a direct bead
+- want me to run `to-design` and formalize it?" Do not force the workflow; offer it.
 
-- Bugs found mid-implementation: always create a bead directly (`--type bug`). A bug is not a
-  feature and should not enter the design-doc pipeline.
-- User explicitly asks for a specific path: respect their preference, don't re-offer.
+## Discovery rule during execution
+
+Once an initiative is design-linked:
+
+- the active design doc owns current design, known unknowns, design-level discoveries, and
+  deviations
+- beads own status, dependencies, acceptance, ownership, and closure
+- design-linked slices should link back with `--spec-id design:<slug>` instead of copying the
+  initiative design into bead `--design`
+
+If implementation reveals something that changes the design story, update the active design doc. If
+the discovery is only slice-local execution detail, keep it in the bead.

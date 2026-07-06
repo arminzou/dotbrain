@@ -108,8 +108,13 @@ follow-up, scoped tech debt, a discovered blocker.
 
 Keep two fields distinct, because they have different lifetimes:
 
-- **`--design` is HOW**: approach, architecture, trade-offs. It may change during implementation.
+- **`--design` is bead-local HOW**: approach, architecture, trade-offs for a direct bead or a
+  slice-local note. It may change during implementation.
 - **`--acceptance` is WHAT**: the outcomes that define done. It should stay stable across sessions.
+
+For design-doc initiatives, the living design authority is the active design doc linked by
+`--spec-id design:<slug>`. Do not mirror initiative-level design prose into every child bead's
+`--design`; keep that field for slice-local detail only.
 
 Acceptance criteria must be **outcome-focused and verifiable**, not steps. Self-test: if you
 rebuilt the solution a different way, would the criteria still hold? If not, they are design notes

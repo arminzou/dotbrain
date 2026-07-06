@@ -38,6 +38,8 @@ Read at session start, before inspecting the graph:
 - record handoff context that lets another agent work autonomously
 - link private execution to public issues
 - absorb discoveries back into the graph when work reveals new reality
+- update the active design doc when discoveries change the initiative design rather than only the
+  execution graph
 
 It does **not** perform worktree implementation; that coordination belongs to `enter-main-agent`.
 

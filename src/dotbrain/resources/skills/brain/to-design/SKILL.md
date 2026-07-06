@@ -5,106 +5,92 @@ description: Turn the current conversation context into a design doc, save it to
 
 # To Design
 
-Synthesize the current conversation context and codebase understanding into a **design doc** — one
-sectioned file that folds the planning genres (motivation, spec, rollout) into a single artifact.
-The design doc lives in the Brain as a point-in-time record; the epic bead tracks execution.
-
-Do NOT interview the user — synthesize what you already know from the conversation. If you need
-architecture or module-level clarity, explore the codebase.
+Synthesize the current conversation context and codebase understanding into a design doc in
+`.brain/designs/`. An `active` design doc is a living unknowns ledger for the initiative. Beads
+track execution; the design doc tracks the current design story while the initiative is underway.
 
 ## Process
 
-### 1. Gather context
+### 1. Decide whether a design doc is the right shape
 
-Read the existing Brain context for this project:
+Use `to-design` when the initiative is multi-step, crosses modules or workflows, needs explicit
+scope boundaries, or carries meaningful unknowns. Small, obvious, single-slice changes can go
+straight into beads instead.
 
-1. `.brain/CONTEXT.md` — domain vocabulary; use it throughout the design doc
-2. `.brain/adr/` — relevant decisions in the area you're touching
-3. Existing `.brain/designs/` — check for related designs
+If the initiative warrants an ADR, stop and run `grill-decisions` first. ADRs own durable decision
+rationale. The design doc owns the initiative's current design, unknowns, and rollout.
 
-### 2. Explore the codebase
+### 2. Read the local operating context
 
-If you haven't already, explore the codebase to understand the current state. Sketch the major
-modules you will need to build or modify.
+Read the nearest `AGENTS.md`, `DOTBRAIN.md`, `CONTEXT.md`, and the ADRs/design docs relevant to the
+initiative. If `.brain/docs/` contains runbooks or reference notes that bear on the work, read
+those too.
 
-Actively look for opportunities to extract **deep modules** — ones that encapsulate a lot of
-functionality in a simple, testable interface which rarely changes (as opposed to shallow modules
-that are thin wrappers or pass-throughs).
+### 3. Sketch the solution before writing
 
-Present the module sketch to the user and confirm expectations before proceeding.
+For unfamiliar codebases or broad changes, inspect the relevant modules first and produce a short
+module sketch for the user:
 
-### 3. Write the design doc
+- touched modules or systems
+- likely integration points
+- obvious constraints
+- open questions
 
-Save it to `.brain/designs/<slug>.md`. Use a short kebab-case slug that captures the initiative
-(e.g., `workflow-automation.md`, `api-rate-limiting.md`).
+Do not create the design doc or epic until the user confirms the sketch when the shape is still
+uncertain.
 
-Fill only the sections this initiative needs — Non-goals and Open questions are optional; omit an
-empty section rather than padding it.
+### 4. Write the design doc
 
-<design-template>
----
-status: active        # draft | active | shipped | superseded
-date: <YYYY-MM-DD>
----
+Create `.brain/designs/<slug>.md`.
 
-# <Feature / System Name>
+Use the initiative title as the H1. Include frontmatter when the project uses it. Mark the doc as
+`status: active` once execution starts. Author only the sections the initiative needs.
 
-## Motivation
-The problem this solves, from the user's perspective. Lightweight PRD.
+Common sections:
 
-## Goals
-What this should accomplish. Outcome bullets.
+- `Motivation`
+- `Goals`
+- `Non-goals`
+- `Current Design`
+- `Known Unknowns`
+- `Implementation Notes`
+- `Deviations`
+- `Human Decisions Needed`
+- `Alternatives Considered`
+- `Rollout`
 
-## Non-goals
-What this intentionally will not solve.
+Guidance:
 
-## Design
-How it works: the shape, key modules/interfaces, data flow. The technical core.
+- Keep the design at the interface and behavior level. Exact file paths and code snippets go stale.
+- Put design-relevant discoveries back into the active design doc as implementation proceeds.
+- Put slice-local execution facts in beads instead of the design doc.
+- If a discovery becomes a durable, cross-cutting, expensive-to-reverse decision, promote it to an
+  ADR.
+- If the project vocabulary exists in `CONTEXT.md`, use it exactly.
 
-## Alternatives considered
-Options weighed and why they lost. Feature-local tradeoffs live here.
+### 5. Create the epic bead
 
-## Implementation plan
-Narrative phasing (phase 1 does X, phase 2 does Y). `to-issues` turns this into
-bead epics; once decomposed, beads is the live tracker and this section is frozen.
-
-## Open questions
-Undecided points. Resolve, or promote to Design / an ADR as they close.
-</design-template>
-
-**A design doc is point-in-time.** It captures thinking at design time; it is not a living spec. Do
-not include volatile implementation detail (exact file paths, code snippets) that goes stale — keep
-Design at the shape/interface level. After the initiative ships, do not retro-edit the doc; write a
-new one, or an ADR for a durable decision.
-
-**If this initiative also warrants an ADR** (a fundamental, cross-cutting, or expensive-to-reverse
-decision), write the ADR via `grill-decisions` and keep the design doc's *Alternatives considered*
-thin, linking the ADR. The ADR owns the decision rationale; the design doc owns the plan. Do not
-duplicate the alternatives in both.
-
-### 4. Create the epic bead
-
-Create an epic bead for this initiative:
+Create the tracking epic and link it back to the design doc:
 
 ```bash
 bd create "<Design title>" --type epic --description "See .brain/designs/<slug>.md" --spec-id design:<slug>
 ```
 
-The `--spec-id` link points from beads to the design doc. If a public issue tracker is configured,
-also create a tracking issue there with a `needs-triage` label and link it via `--external-ref`.
+`--spec-id` links the execution graph back to the design doc. If the project also has a public
+issue tracker, create a tracking issue there and link it with `--external-ref`.
 
-### 5. Close
+### 6. Close
 
-Summarize what was created — the design doc path and the epic bead ID — and recommend the next step
-(running `to-issues` to decompose into task beads).
+Summarize what was created: the design doc path and the epic bead ID. Recommend `to-issues` as the
+next step.
 
 ## Pitfalls
 
-- **Do not include volatile implementation detail in the Design section.** File paths and code
-  snippets go stale; keep it at the shape/interface level.
-- **Do not duplicate an ADR's rationale in the design doc.** If a decision earns an ADR, link it and
-  keep *Alternatives considered* thin.
-- **Do not skip the module sketch step for unfamiliar codebases.** The decomposition depends on
-  understanding the module boundaries.
-- **Do not create the epic bead before the user confirms the module sketch.** The sketch validates
-  the scope.
+- **Do not turn the design doc into a status board.** Ready, blocked, done, dependencies, claims,
+  and acceptance stay in beads.
+- **Do not include volatile implementation detail in `Current Design`.** Keep it at the
+  shape/interface level.
+- **Do not duplicate an ADR's rationale in the design doc.** Link the ADR and keep the design doc
+  focused on the initiative.
+- **Do not skip the module sketch step for unfamiliar codebases.** Good decomposition depends on
+  understanding boundaries first.

@@ -1,14 +1,18 @@
 # designs/
 
-Design docs — one initiative per file.
+Design docs - one initiative per file.
 
-A design doc folds the planning genres into one sectioned file: motivation (lightweight PRD),
-goals, non-goals, design (spec), alternatives considered, implementation plan (phasing), and open
-questions. Author only the sections the initiative needs.
+An `active` design doc is a living unknowns ledger for the initiative. It should capture the
+current design, known unknowns, design-relevant implementation discoveries, deviations, and any
+human design calls still needed. Author only the sections the initiative needs.
 
-Authored by the `to-design` skill from conversation context, then decomposed into a bead epic by
-`to-issues`. **Point-in-time:** written to think and decompose, not maintained after the initiative
-ships. Durable residue lands in `adr/` (decisions) and `CONTEXT.md` (vocabulary); a living "how it
-works now" description, if needed, is a `docs/` runbook. On conflict with canon, canon wins.
+Typical sections include motivation, goals, non-goals, current design, known unknowns,
+implementation notes, deviations, human decisions needed, alternatives considered, and rollout.
+
+Authored by the `to-design` skill, then decomposed into a bead epic by `to-issues`. Beads own
+execution state, dependencies, claim status, and acceptance criteria. When a design reaches
+`shipped`, `abandoned`, or `superseded`, it freezes as a point-in-time record. Durable residue
+lands in `adr/` (decisions) and `CONTEXT.md` (vocabulary); a maintained "how it works now"
+description is a `docs/` runbook. On conflict with canon, canon wins.
 
 See `DOTBRAIN.md` for the read order and operating rules.

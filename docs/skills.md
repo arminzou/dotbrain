@@ -1,60 +1,40 @@
 # Skills
 
 dotbrain ships nine Brain-coupled skills: the operating manual for a wired project. They cover
-wiring, planning, execution, triage, and Brain maintenance.
+wiring, planning, execution, triage, and Brain maintenance. Several are inspired by and adapted
+from [mattpocock/skills](https://github.com/mattpocock/skills).
 
-Several of these skills are inspired by and adapted from
-[mattpocock/skills](https://github.com/mattpocock/skills).
+Skill selection is dotbrain-managed:
 
-Skills are layered:
-
-- dotbrain-managed required skills ship with the tool
-- operator-owned skills live in the user's private dotbrain data root
-- per-project skills are declared in `brainspaces/<name>/project.yaml` under `skills:`
-
-dotbrain keeps the required core wired in place and layers operator/project skills on top.
+- required core skills ship with dotbrain in `src/dotbrain/resources/skills.yaml`
+- operator-owned global extras live under the private dotbrain data root
+- per-project extra skills are selected in `brainspaces/<name>/project.yaml`
 
 ## Setup
 
-- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
-  Run when starting a project, connecting an existing repo, or repairing dangling symlinks.
-- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files. Run when
-  bootstrapping a new project's agent instructions or repairing drift.
+- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain
+- **`build-context`** — draft or normalize `AGENTS.md` and related context files
 
 ## Planning
 
-- **`to-design`** — formalize a multi-step initiative into a design doc, save it to the Brain, and
-  create an epic bead. Run when an idea is ready to become structured work.
+- **`to-design`** — formalize a multi-step initiative into a living active design doc, save it to
+  the Brain, and create an epic bead. Use when the work needs explicit design shape or a place to
+  track unknowns before decomposition.
 - **`to-issues`** — decompose a design doc into independently-workable bead tasks with acceptance
-  criteria and dependencies. Run after `to-design`.
-- **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
-  decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
+  criteria and dependencies, linking each bead back with `--spec-id design:<slug>`.
+- **`grill-decisions`** — stress-test a plan against project vocabulary and decisions, then write
+  durable results into `CONTEXT.md` and `adr/`.
 
 ## Execution
 
-- **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
-  back into the execution graph. The primary skill for driving daily work.
-- **`enter-main-agent`** — activate the two-agent protocol from the main checkout: stay parked
-  on `main`, dispatch worker slices, review and land results.
+- **`operate-execution`** — inspect, claim, split, update, and close work in the private execution
+  graph
+- **`enter-main-agent`** — activate the two-agent protocol on `main`, dispatch worker slices, and
+  review or land the result
 
-## Triage and review
+## Triage And Review
 
-- **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
-  accepted work to private execution items.
-- **`review-architecture`** — review the codebase for deeper architectural opportunities and feed
-  findings back into the Brain.
+- **`triage-public`** — classify public tracker items and promote ready work into private execution
+- **`review-architecture`** — review the codebase for architectural deepening opportunities
 
-## Configuration
-
-There are two places where skills are configured:
-
-- Global required skills are declared in `src/dotbrain/resources/skills.yaml`.
-- Project-specific extra skills are declared in `brainspaces/<name>/project.yaml` under `skills:`.
-
-Per-project `agents/` files do not choose skills. They only hold conventions shared by the
-skills, such as `issue-tracker.md`.
-
-## Rule Of Thumb
-
-Use Markdown docs like this one to explain how the skills fit together. Let each skill's own
-`SKILL.md` stay authoritative for the step-by-step operating procedure.
+The packaged skill registry lives at `src/dotbrain/resources/skills.yaml`.
