@@ -38,6 +38,20 @@ Brain template propagate to every brain.
   public repo carries. State the rationale in plain terms instead; the ADR linkage stays
   in the Brain.
 
+## Working in loops
+
+These invariants bind any iterative or autonomous execution, whatever skill or loop primitive
+drives it:
+
+- Verification, success, and acceptance criteria are human-owned. Never weaken or rewrite them
+  mid-work, in any workflow; a criteria change is a human decision.
+- Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
+  is hit, report blocked with the attempt trail; do not keep iterating.
+- Irreversible or outward-facing actions — merge, push, deploy, publish, dependency changes — end
+  the loop and go to the human, whatever work item is in flight.
+- Beads are the state; the active design doc is the spec. State says where you are, the spec says
+  where to go. Reread the spec every iteration, not just at loop start.
+
 ## Unknowns
 
 The Brain exists to shrink the gap between the map (what the agent has been told — vocabulary,
