@@ -52,6 +52,7 @@ Common sections:
 - `Goals`
 - `Non-goals`
 - `Current Design`
+- `Verification / Success Criteria`
 - `Known Unknowns`
 - `Implementation Notes`
 - `Deviations`
@@ -62,6 +63,8 @@ Common sections:
 Guidance:
 
 - Keep the design at the interface and behavior level. Exact file paths and code snippets go stale.
+- Define how progress and completion will be proven. Prefer concrete commands, checks, screenshots,
+  metrics, or review gates. If no automated verifier exists, state the human/product judgment.
 - Order `Current Design` by volatility: lead with the decisions most likely to change — data models,
   type interfaces, migration shape, UX flows — and put mechanical or obvious work last. Surfacing the
   volatile decisions first is what lets a reviewer catch a wrong turn cheaply.

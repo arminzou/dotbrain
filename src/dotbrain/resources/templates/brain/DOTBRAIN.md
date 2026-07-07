@@ -61,8 +61,9 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
 - `designs/` — design docs, one initiative per file. Each design doc carries a `lifecycle:` field:
   `draft`, `active`, `shipped`, `abandoned`, or `superseded`. Agents must update lifecycle when the
   document's mutability changes. While a design is `active`, it is the living design authority for
-  the initiative: current design, known unknowns, deviations, and design-relevant implementation
-  discoveries live here. Authored by `to-design`, decomposed into bead epics by `to-issues`.
+  the initiative: current design, verification / success criteria, known unknowns, deviations, and
+  design-relevant implementation discoveries live here. Authored by `to-design`, decomposed into
+  bead epics by `to-issues`.
   Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
   freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
   (vocabulary)

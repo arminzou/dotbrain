@@ -28,6 +28,7 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
         "brain/enter-main-agent",
         "brain/find-unknowns",
         "brain/grill-decisions",
+        "brain/iterate-design",
         "brain/operate-execution",
         "brain/review-architecture",
         "brain/to-design",

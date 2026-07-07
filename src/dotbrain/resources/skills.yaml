@@ -15,6 +15,7 @@ global_required:
   - brain/wire-brain
 
 project_required:
+  - brain/iterate-design
   - brain/operate-execution
   - brain/find-unknowns
   - brain/to-design
