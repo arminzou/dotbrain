@@ -19,15 +19,6 @@ from dotbrain import brainspaces, resource_loader
 # --------------------------------------------------------------------------- mutators
 
 
-def test_ensure_brainspace_gitignore_seeds_and_is_idempotent(tmp_path: Path):
-    brainspaces.ensure_brainspace_gitignore(tmp_path)
-    lines = (tmp_path / ".gitignore").read_text().splitlines()
-    for expected in brainspaces.BRAINSPACE_GITIGNORE_LINES:
-        assert expected in lines
-    brainspaces.ensure_brainspace_gitignore(tmp_path)
-    assert (tmp_path / ".gitignore").read_text().splitlines() == lines
-
-
 def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()

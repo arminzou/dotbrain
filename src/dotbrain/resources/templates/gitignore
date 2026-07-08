@@ -1,0 +1,19 @@
+# Generated cache state.
+/.cache/
+
+# Runtime state inside Brainspaces.
+brainspaces/*/.dolt/
+brainspaces/*/*.db
+brainspaces/*/.beads-credential-key
+brainspaces/*/.beads/proxieddb/
+brainspaces/*/.beads/metadata.json
+brainspaces/*/.beads/interactions.jsonl
+brainspaces/*/.beads/dolt-config.log
+brainspaces/*/.claude/worktrees/
+brainspaces/*/.codex/worktrees/
+brainspaces/*/.claude/settings.local.json
+brainspaces/*/.claude/skills/
+brainspaces/*/.codex/skills/
+brainspaces/*/.claude/agents/
+brainspaces/*/.codex/agents/
+brainspaces/*/.repo.local

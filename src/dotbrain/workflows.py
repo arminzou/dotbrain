@@ -75,6 +75,7 @@ def wire_project(
 ) -> WireResult:
     """Create/repair a Brainspace and wire an adopter repo. Mirrors wire-project.sh's main()."""
     dotbrain_home = Path(dotbrain_home).resolve()
+    bootstrap.ensure_root_gitignore(dotbrain_home)
     if not (dotbrain_home / ".git").exists():
         raise RuntimeError(f"{dotbrain_home} is not a dotbrain git checkout")
 
@@ -109,7 +110,6 @@ def wire_project(
     if unarchived:
         result.logs.append(f"unarchived {project} from {rel}/.archive/{project}")
 
-    brainspaces.ensure_brainspace_gitignore(brainspace)
     brainspaces.seed_brain(brainspace, dotbrain_home)
     config.migrate_legacy_skill_manifest(dotbrain_home, project)
     active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
@@ -196,6 +196,7 @@ def wire_all_projects(
     Mirrors bootstrap.sh wire_brainspaces.
     """
     dotbrain_home = Path(dotbrain_home).resolve()
+    bootstrap.ensure_root_gitignore(dotbrain_home)
     rb = repo_base or (Path.home() / "repos" / "projects")
     result = BootstrapResult()
     cfg = config.load_config(dotbrain_home)

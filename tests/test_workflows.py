@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import beads, config, paths, skills, workflows
+from dotbrain import beads, bootstrap as bootstrap_mod, config, paths, skills, workflows
 
 
 def _make_wired_repo(tmp_path: Path, dotbrain_home: Path, name: str) -> Path:
@@ -75,9 +75,8 @@ def _commit_brainspace(dotbrain_home: Path, name: str) -> None:
 
 
 def _seed_byproducts(brainspace: Path) -> list[Path]:
-    """Drop in the gitignored runtime/wiring litter an offboard must strip, plus the Brainspace
-    .gitignore that marks it ignored (so `git clean -X` recognises it)."""
-    (brainspace / ".gitignore").write_text(".beads/metadata.json\n.claude/skills/\n")
+    """Drop in gitignored runtime/wiring litter an offboard must strip."""
+    bootstrap_mod.ensure_root_gitignore(brainspace.parents[1])
     runtime = brainspace / ".beads" / "metadata.json"
     runtime.parent.mkdir(parents=True, exist_ok=True)
     runtime.write_text("{}")

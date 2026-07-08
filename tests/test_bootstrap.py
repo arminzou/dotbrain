@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import bootstrap as bootstrap_mod, config, paths, skills, subagents, workflows
+from dotbrain import bootstrap as bootstrap_mod, config, paths, resource_loader, skills, subagents, workflows
 from dotbrain.cli import app
 
 runner = CliRunner()
@@ -53,12 +53,27 @@ def test_ensure_data_root_seeds_skills_config(tmp_path: Path):
     root = tmp_path / "dr"
     result = bootstrap_mod.ensure_data_root(root)
     skills_config = root / "skills" / "skills.yaml"
+    gitignore = root / ".gitignore"
     assert result.skills_seeded
     assert skills_config.is_file()
+    assert gitignore.is_file()
     # Seeded via the same renderer reconcile uses, so the first link is a no-op rewrite.
     before = skills_config.read_text()
     skills.reconcile_global_config(skills_config)
     assert skills_config.read_text() == before
+
+
+def test_ensure_data_root_reconciles_root_gitignore_from_template(tmp_path: Path):
+    root = tmp_path / "dr"
+    root.mkdir(parents=True)
+    gitignore = root / ".gitignore"
+    gitignore.write_text("custom-old-entry\n")
+
+    result = bootstrap_mod.ensure_data_root(root)
+    desired = resource_loader.resource("templates/gitignore").read_text()
+
+    assert gitignore.read_text() == desired
+    assert f"seeded .gitignore into {root}" in result.logs
 
 
 def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path):

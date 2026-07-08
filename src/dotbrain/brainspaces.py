@@ -4,7 +4,6 @@ A Brainspace is a project's private context store under ``brainspaces/<name>/``.
 its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
 (``wiring``/``beads``):
 
-- the tracked ``.gitignore`` that hides runtime byproducts;
 - Brain skeleton seeding from packaged ``templates/brain/`` resources;
 - agent-workspace seeding: the Claude/Codex SessionStart + beads hooks;
 - offboarding: keep | archive | delete plus the byproduct cleanup that precedes git mv/rm.
@@ -26,21 +25,6 @@ from dotbrain import config, paths, resource_loader
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
-# Lines seeded into a Brainspace's tracked .gitignore (mirrors wire-project.sh).
-BRAINSPACE_GITIGNORE_LINES: tuple[str, ...] = (
-    ".dolt/",
-    "*.db",
-    ".beads-credential-key",
-    ".beads/proxieddb/",
-    ".beads/metadata.json",
-    ".beads/interactions.jsonl",
-    ".beads/dolt-config.log",
-    ".claude/skills/",
-    ".codex/skills/",
-    ".repo.local",  # machine-local repo-path override; never travels with the synced Brainspace
-)
-
-
 def _default_run(
     argv: Sequence[str], *, cwd: Path | None = None, check: bool = True
 ) -> "subprocess.CompletedProcess[str]":
@@ -51,18 +35,6 @@ def _default_run(
 
 
 # --------------------------------------------------------------------------- brain & gitignore
-
-
-def ensure_brainspace_gitignore(brainspace: Path) -> None:
-    file = Path(brainspace) / ".gitignore"
-    file.parent.mkdir(parents=True, exist_ok=True)
-    existing = file.read_text().splitlines() if file.is_file() else []
-    have = set(existing)
-    missing = [line for line in BRAINSPACE_GITIGNORE_LINES if line not in have]
-    if not missing:
-        return
-    body = ("\n".join(existing) + "\n") if existing else ""
-    file.write_text(body + "\n".join(missing) + "\n")
 
 
 def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:

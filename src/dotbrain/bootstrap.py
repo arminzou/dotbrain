@@ -27,6 +27,17 @@ class DataRootResult:
     logs: list[str] = field(default_factory=list)
 
 
+def ensure_root_gitignore(dotbrain_home: Path) -> bool:
+    """Ensure the data-root gitignore matches the packaged template."""
+
+    path = Path(dotbrain_home) / ".gitignore"
+    desired = resource_loader.resource("templates/gitignore").read_text()
+    if path.is_file() and path.read_text() == desired:
+        return False
+    path.write_text(desired)
+    return True
+
+
 def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     """Create the data root and seed ``config.yaml`` from the packaged template.
 
@@ -39,6 +50,8 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
         root.mkdir(parents=True)
         result.created = True
         result.logs.append(f"created data root: {root}")
+    if ensure_root_gitignore(root):
+        result.logs.append(f"seeded .gitignore into {root}")
 
     config_dest = root / "config.yaml"
     if not config_dest.exists():

@@ -271,7 +271,6 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
 
     brainspace = dotbrain_home / "brainspaces" / "adopter"
     assert result.brainspace == brainspace
-    assert (brainspace / ".gitignore").is_file()
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
     for name in (".brain", ".claude", ".codex"):
