@@ -111,10 +111,11 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
-    assert (root / "agents" / "claude" / "reviewer.md").is_file()
-    assert (root / "agents" / "codex" / "reviewer.toml").is_file()
-    assert any("seeded agents/claude/reviewer.md" in line for line in result.logs)
-    assert (root / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")
+    for runtime, ext in (("claude", "md"), ("codex", "toml")):
+        for name in ("reviewer", "implementer", "investigator", "verifier"):
+            assert (root / ".cache" / "agents" / runtime / f"{name}.{ext}").is_file()
+    assert any("rehydrated .cache/agents/claude/reviewer.md" in line for line in result.logs)
+    assert (root / ".cache" / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")
 
 
 def test_wire_project_does_not_seed_project_default_subagents(
@@ -127,7 +128,28 @@ def test_wire_project_does_not_seed_project_default_subagents(
 
     assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ()
     project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / "project.yaml"
+    assert "agents:\n  - claude\n  - codex\n" in project_yaml.read_text()
     assert "\nsubagents:\n" not in project_yaml.read_text()
+
+
+def test_agents_link_project_target_reports_actual_linked_files(
+    dotbrain_home: Path, tmp_path: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    bootstrap_mod.ensure_data_root(dotbrain_home)
+    repo = _fresh_repo(tmp_path, "claude-only-agent-link")
+    _wire(dotbrain_home, repo, fake_home)
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+
+    project_yaml = paths.brainspace(dotbrain_home, "claude-only-agent-link") / "project.yaml"
+    project_yaml.write_text(project_yaml.read_text().replace("agents:\n  - claude\n  - codex\n", "agents:\n  - claude\n"))
+
+    result = runner.invoke(
+        app,
+        ["agents", "link", "--scope", "project", "--target", "codex", "--project", "claude-only-agent-link"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "project: linked 0 subagent file(s) into claude-only-agent-link" in result.output
 
 
 def test_link_global_subagents_links_configured_target(
@@ -204,7 +226,8 @@ def test_skills_link_project_creates_symlinks_after_wire(
         name = Path(skill).name
         assert (brainspace / ".claude" / "skills" / name).is_symlink(), \
             f"expected .claude/skills/{name} to be linked"
-    assert not (brainspace / ".codex").exists()
+        assert (brainspace / ".codex" / "skills" / name).is_symlink(), \
+            f"expected .codex/skills/{name} to be linked"
 
 
 def test_skills_link_project_prunes_stale_after_baseline_change(

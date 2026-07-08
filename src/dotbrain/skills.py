@@ -30,21 +30,24 @@ def _normalize(values: object) -> tuple[str, ...]:
 
 
 def _required_core() -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Read the brain-coupled required core from the packaged skills.yaml.
+    """Read the brain-coupled required core from the packaged core.yaml.
 
     Product-owned, read-only data: the tool always force-wires these regardless
     of operator config. Read fresh from the package so new releases reach every
     adopter without a data-root migration.
     """
-    src = resource_loader.resource("skills.yaml")
+    src = resource_loader.resource("core.yaml")
     data = yaml.safe_load(src.read_text()) or {}
     if not isinstance(data, dict):
-        raise ValueError("packaged skills.yaml: expected a YAML mapping")
-    return _normalize(data.get("global_required")), _normalize(data.get("project_required"))
+        raise ValueError("packaged core.yaml: expected a YAML mapping")
+    core_skills = data.get("skills")
+    if not isinstance(core_skills, dict):
+        raise ValueError("packaged core.yaml: expected a skills mapping")
+    return _normalize(core_skills.get("global_required")), _normalize(core_skills.get("project_required"))
 
 
 # Brain-coupled required core (force-wired). Operators add extras on top; they
-# cannot remove these. See resources/skills.yaml.
+# cannot remove these. See resources/core.yaml.
 GLOBAL_BASELINE, PROJECT_BASELINE = _required_core()
 
 DEFAULT_TARGETS: dict[str, str] = {

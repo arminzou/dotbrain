@@ -219,3 +219,18 @@ def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brai
     )
 
     assert result.warnings == ["subagent not found: missing"]
+
+
+def test_project_link_set_prepends_core_and_deduplicates() -> None:
+    names = subagents.project_link_set(("reviewer", "custom", "verifier"))
+
+    assert names[:4] == ("implementer", "investigator", "reviewer", "verifier")
+    assert names[-1] == "custom"
+    assert names.count("reviewer") == 1
+    assert names.count("verifier") == 1
+
+
+def test_project_baseline_has_packaged_files_for_each_runtime(tmp_path: Path) -> None:
+    for name in subagents.PROJECT_BASELINE:
+        resolved = subagents._resolve_subagent_files(tmp_path, name)
+        assert set(resolved) == {"claude-code", "codex"}

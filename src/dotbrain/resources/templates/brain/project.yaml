@@ -5,6 +5,7 @@ execution-engine: beads
 
 agents:
   - claude
+  - codex
 
 # Public-facing issue tracker for intake. One of: none, gh, linear.
 # Set public-tracker-id when activating a tracker (e.g. "owner/repo" for gh).
@@ -21,6 +22,6 @@ public-tracker: none
 # skills:
 #   - some-collection/some-skill
 #
-# Project-scoped subagents only. The global four come from ~/dotbrain/agents/agents.yaml.
+# Project-scoped subagents only. The packaged four are always wired into active workspaces.
 # subagents:
 #   - some-project-only-subagent

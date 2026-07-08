@@ -395,8 +395,10 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
 
     assert result.refreshed == ["refresh-subagents"]
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
+    assert (brainspace / ".claude" / "agents" / "verifier.md").is_symlink()
     assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
-    assert "project: linked 1 subagent(s) into refresh-subagents" in result.logs
+    assert (brainspace / ".codex" / "agents" / "verifier.toml").is_symlink()
+    assert "project: linked 8 subagent file(s) into refresh-subagents" in result.logs
 
 
 def test_refresh_project_honors_declared_agent_workspaces(
@@ -417,6 +419,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
     )
 
     brainspace = paths.brainspace(dotbrain_home, "claude-only")
+    (brainspace / "project.yaml").write_text("agents:\n  - claude\n")
     claude_link = repo / ".claude"
     claude_link.unlink()
     captured: dict[str, tuple[str, ...]] = {}
@@ -437,9 +440,9 @@ def test_refresh_project_honors_declared_agent_workspaces(
     assert result.refreshed == ["claude-only"]
     assert captured["workspaces"] == (".claude",)
     assert claude_link.is_symlink()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").exists()
     assert (brainspace / ".claude").is_dir()
-    assert not (brainspace / ".codex").exists()
+    assert (brainspace / ".codex").exists()
 
 
 def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(

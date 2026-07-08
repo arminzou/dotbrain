@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
@@ -25,6 +26,24 @@ WORKSPACE_RUNTIME: dict[str, str] = {
 }
 
 
+def _required_core() -> tuple[str, ...]:
+    """Read the packaged project subagent core from core.yaml."""
+
+    import yaml
+
+    src = resource_loader.resource("core.yaml")
+    data = yaml.safe_load(src.read_text()) or {}
+    if not isinstance(data, dict):
+        raise ValueError("packaged core.yaml: expected a YAML mapping")
+    subagents_data = data.get("subagents")
+    if not isinstance(subagents_data, dict):
+        raise ValueError("packaged core.yaml: expected a subagents mapping")
+    return skills._clean(subagents_data.get("project_required"))
+
+
+PROJECT_BASELINE = _required_core()
+
+
 @dataclass
 class GlobalConfig:
     """Operator-configurable global subagent-link settings."""
@@ -37,7 +56,7 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
     lines = [
         "# Global vendor-native subagents linked into personal agent homes.",
         "# Remove entries to prune dotbrain-managed links on the next relink.",
-        "# Project-scoped extras belong in project.yaml; global defaults belong here.",
+        "# Project-scoped extras belong in project.yaml; this file is for personal-home reach and extras.",
         "# Optional target overrides (defaults shown):",
         "# targets:",
         "#   claude-code: ~/.claude/agents",
@@ -54,12 +73,33 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
 
 def _copy_resource_file(resource_path: str, dest: Path) -> None:
     if dest.exists() or dest.is_symlink():
-        dest.unlink()
+        if dest.is_dir() and not dest.is_symlink():
+            shutil.rmtree(dest)
+        else:
+            dest.unlink()
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(resource_loader.resource(resource_path).read_text())
 
 
+def rehydrate_packaged_subagents(dotbrain_home: Path) -> list[Path]:
+    root = Path(dotbrain_home)
+    cached: list[Path] = []
+    for rel, src in resource_loader.iter_resource_files("agents"):
+        dest = root / ".cache" / "agents" / rel
+        if dest.exists() or dest.is_symlink():
+            if dest.is_dir() and not dest.is_symlink():
+                shutil.rmtree(dest)
+            else:
+                dest.unlink()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(src.read_text())
+        cached.append(dest)
+    return cached
+
+
 def seed_private_subagents(dotbrain_home: Path) -> list[Path]:
+    """Seed bundled examples into the private agents tree without overwriting overrides."""
+
     root = Path(dotbrain_home)
     seeded: list[Path] = []
     for rel, src in resource_loader.iter_resource_files("agents"):
@@ -152,6 +192,12 @@ def load_global_config(dotbrain_home: Path) -> GlobalConfig:
 
 def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
     return load_global_config(dotbrain_home).global_names
+
+
+def project_link_set(extras: Sequence[str]) -> tuple[str, ...]:
+    """Compose per-project link set: required core + operator extras."""
+
+    return PROJECT_BASELINE + skills._clean(extras, exclude=PROJECT_BASELINE)
 
 
 def link_project_subagents(

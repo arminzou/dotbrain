@@ -274,12 +274,10 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert (brainspace / ".gitignore").is_file()
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
-    for name in (".brain", ".claude"):
+    for name in (".brain", ".claude", ".codex"):
         assert (repo / name).is_symlink()
         assert (repo / name).resolve() == (brainspace / name).resolve()
-    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
-    assert "/.codex" not in paths.exclude_entries(repo)
-    assert not (repo / ".codex").exists()
+    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
@@ -380,11 +378,9 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
     if paths.INJECT_ADOPTER_POINTER:
         assert agents.is_file()
         assert paths.ADOPTER_POINTER in agents.read_text()
-    for name in (".brain", ".claude"):
+    for name in (".brain", ".claude", ".codex"):
         assert (repo / name).is_symlink()
-    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
-    assert "/.codex" not in paths.exclude_entries(repo)
-    assert not (repo / ".codex").exists()
+    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
 
 
 def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
@@ -499,9 +495,9 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake
 
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
     assert (brainspace / ".claude").is_dir()
-    assert not (brainspace / ".codex").exists()
+    assert (brainspace / ".codex").is_dir()
     assert (repo / ".claude").is_symlink()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").is_symlink()
 
 
 def test_wire_project_does_not_rewire_preserved_undeclared_workspace(

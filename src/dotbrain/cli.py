@@ -636,7 +636,7 @@ def agents_link(
         if project and not brainspaces_to_link[0].exists():
             raise typer.BadParameter(f"unknown project: {project}")
         for brainspace in brainspaces_to_link:
-            names = config.load_project_subagents(root, brainspace.name)
+            names = subagents.project_link_set(config.load_project_subagents(root, brainspace.name))
             declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
             active_workspaces = tuple(ws for ws in _AGENT_WORKSPACES[target] if ws in declared_workspaces)
             result = subagents.link_project_subagents(root, brainspace, active_workspaces, names)
@@ -644,7 +644,7 @@ def agents_link(
                 typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
             for pruned in result.pruned:
                 typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
-            typer.echo(f"project: linked {len(names)} subagent(s) into {brainspace.name}")
+            typer.echo(f"project: linked {len(result.linked)} subagent file(s) into {brainspace.name}")
 
     if scope in {"global", "all"}:
         _render_global_agent_link(root, target)
