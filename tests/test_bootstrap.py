@@ -111,13 +111,13 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
-    assert (root / "agents" / "claude" / "code-reviewer.md").is_file()
-    assert (root / "agents" / "codex" / "code-reviewer.toml").is_file()
-    assert any("seeded agents/claude/code-reviewer.md" in line for line in result.logs)
-    assert (root / "agents" / "claude" / "code-reviewer.md").read_text().startswith("---\n")
+    assert (root / "agents" / "claude" / "reviewer.md").is_file()
+    assert (root / "agents" / "codex" / "reviewer.toml").is_file()
+    assert any("seeded agents/claude/reviewer.md" in line for line in result.logs)
+    assert (root / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")
 
 
-def test_wire_project_seeds_code_review_as_project_default(
+def test_wire_project_does_not_seed_project_default_subagents(
     dotbrain_home: Path, tmp_path: Path, fake_home: Path
 ):
     bootstrap_mod.ensure_data_root(dotbrain_home)
@@ -125,10 +125,9 @@ def test_wire_project_seeds_code_review_as_project_default(
 
     _wire(dotbrain_home, repo, fake_home)
 
-    assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ("code-reviewer",)
+    assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ()
     project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / "project.yaml"
-    assert "subagents:" in project_yaml.read_text()
-    assert "  - code-reviewer" in project_yaml.read_text()
+    assert "\nsubagents:\n" not in project_yaml.read_text()
 
 
 def test_link_global_subagents_links_configured_target(
@@ -141,12 +140,12 @@ def test_link_global_subagents_links_configured_target(
         "targets:\n"
         "  codex: ~/.codex/agents\n"
         "global:\n"
-        "  - code-reviewer\n"
+        "  - reviewer\n"
     )
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex")
 
     assert result.warnings == []
-    assert (dest / "code-reviewer.toml").is_symlink()
+    assert (dest / "reviewer.toml").is_symlink()
     assert any(line.startswith("global: linked") for line in result.logs)
 
 

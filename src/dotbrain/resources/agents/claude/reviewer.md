@@ -1,5 +1,5 @@
 ---
-name: code-reviewer
+name: reviewer
 description: Review recent code changes for correctness, regressions, security issues, and missing tests.
 tools: Read, Grep, Glob, Bash
 ---

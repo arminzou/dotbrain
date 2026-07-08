@@ -21,7 +21,6 @@ public-tracker: none
 # skills:
 #   - some-collection/some-skill
 #
-# Starter example subagents linked into this project's agent workspaces by default.
-# Remove entries you do not want, or add more runtime-native subagents.
-subagents:
-  - code-reviewer
+# Project-scoped subagents only. The global four come from ~/dotbrain/agents/agents.yaml.
+# subagents:
+#   - some-project-only-subagent

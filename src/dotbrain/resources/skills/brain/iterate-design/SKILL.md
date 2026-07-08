@@ -1,5 +1,7 @@
+---
 name: iterate-design
 description: Iterate from an active design doc using the coding agent's native loop mode. Use when feature work should repeatedly plan, implement, verify, reflect design-relevant learning, and stop on a clear success or blocked condition.
+---
 
 # Iterate Design
 

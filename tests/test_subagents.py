@@ -60,8 +60,8 @@ def test_seed_private_subagents_copies_bundled_examples_once(
     dotbrain_home: Path, monkeypatch
 ):
     payloads = {
-        "agents/claude/code-reviewer.md": "claude-example",
-        "agents/codex/code-reviewer.toml": "codex-example",
+        "agents/claude/reviewer.md": "claude-example",
+        "agents/codex/reviewer.toml": "codex-example",
     }
 
     class FakeResource:
@@ -74,8 +74,8 @@ def test_seed_private_subagents_copies_bundled_examples_once(
     def fake_iter(path: str):
         assert path == "agents"
         for rel, text in (
-            (Path("claude/code-reviewer.md"), payloads["agents/claude/code-reviewer.md"]),
-            (Path("codex/code-reviewer.toml"), payloads["agents/codex/code-reviewer.toml"]),
+            (Path("claude/reviewer.md"), payloads["agents/claude/reviewer.md"]),
+            (Path("codex/reviewer.toml"), payloads["agents/codex/reviewer.toml"]),
         ):
             yield rel, FakeResource(text)
 
@@ -84,17 +84,17 @@ def test_seed_private_subagents_copies_bundled_examples_once(
     seeded = subagents.seed_private_subagents(dotbrain_home)
 
     assert [path.relative_to(dotbrain_home) for path in seeded] == [
-        Path("agents/claude/code-reviewer.md"),
-        Path("agents/codex/code-reviewer.toml"),
+            Path("agents/claude/reviewer.md"),
+            Path("agents/codex/reviewer.toml"),
     ]
-    assert (dotbrain_home / "agents" / "claude" / "code-reviewer.md").read_text() == "claude-example"
-    assert (dotbrain_home / "agents" / "codex" / "code-reviewer.toml").read_text() == "codex-example"
+    assert (dotbrain_home / "agents" / "claude" / "reviewer.md").read_text() == "claude-example"
+    assert (dotbrain_home / "agents" / "codex" / "reviewer.toml").read_text() == "codex-example"
 
-    (dotbrain_home / "agents" / "claude" / "code-reviewer.md").write_text("my override")
+    (dotbrain_home / "agents" / "claude" / "reviewer.md").write_text("my override")
     seeded = subagents.seed_private_subagents(dotbrain_home)
 
     assert seeded == []
-    assert (dotbrain_home / "agents" / "claude" / "code-reviewer.md").read_text() == "my override"
+    assert (dotbrain_home / "agents" / "claude" / "reviewer.md").read_text() == "my override"
 
 
 def test_resolve_subagent_files_prefers_private(dotbrain_home: Path):
@@ -206,8 +206,8 @@ def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path
     )
 
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert not (brainspace / ".codex" / "agents" / "reviewer.toml").exists()
-    assert result.linked == [".claude/reviewer.md"]
+    assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert result.linked == [".claude/reviewer.md", ".codex/reviewer.toml"]
 
 
 def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brainspace: Path):
