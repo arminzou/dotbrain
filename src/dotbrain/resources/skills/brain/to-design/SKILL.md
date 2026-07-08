@@ -63,8 +63,13 @@ Common sections:
 Guidance:
 
 - Keep the design at the interface and behavior level. Exact file paths and code snippets go stale.
-- Define how progress and completion will be proven. Prefer concrete commands, checks, screenshots,
-  metrics, or review gates. If no automated verifier exists, state the human/product judgment.
+- Define how progress and completion will be proven. Prefer mechanical pass/fail checks —
+  concrete commands, tests, screenshots, metrics. Where no automated verifier exists, state the
+  judgment criterion explicitly as a human decision gate rather than dressing it up as mechanical.
+- Once a design is `active`, criteria changes are human decisions: record them in the doc
+  (`Deviations` or `Human Decisions Needed`), not silently edited in place.
+- When a design ships, record the verification evidence achieved in the doc, so a later reader can
+  check the gate still catches the failure it was written for (gates rot).
 - Order `Current Design` by volatility: lead with the decisions most likely to change — data models,
   type interfaces, migration shape, UX flows — and put mechanical or obvious work last. Surfacing the
   volatile decisions first is what lets a reviewer catch a wrong turn cheaply.

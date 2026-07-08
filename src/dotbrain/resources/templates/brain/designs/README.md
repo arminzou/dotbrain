@@ -10,6 +10,11 @@ human design calls still needed. Author only the sections the initiative needs.
 Use `lifecycle:` frontmatter to mark document mutability: `draft`, `active`, `shipped`,
 `abandoned`, or `superseded`. This is not execution status; beads own execution state.
 
+Once a design is `active`, criteria changes are human decisions: record them in the doc
+(`Deviations` or `Human Decisions Needed`), not silently edited in place. When a design ships,
+record the verification evidence achieved, so a later reader can check the gate still catches the
+failure it was written for (gates rot).
+
 Typical sections include motivation, goals, non-goals, current design, verification / success
 criteria, known unknowns, implementation notes, deviations, human decisions needed, alternatives
 considered, and rollout.

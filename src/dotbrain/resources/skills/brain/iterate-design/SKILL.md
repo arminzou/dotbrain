@@ -11,6 +11,9 @@ reflection rules; the coding agent runs the loop.
 
 ## When to Use
 
+This loop is human-triggered: the human explicitly hands off to it as an automation handoff (for
+example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main`.
+
 Use when:
 
 - Work has an active design doc in `.brain/designs/`.
@@ -19,6 +22,15 @@ Use when:
 
 Do not use for one-off fixes, pure triage, open-ended brainstorming, or work without a verification
 story. Use `operate-execution`, `find-unknowns`, `grill-decisions`, or `to-design` first.
+
+### Loop-worthiness check
+
+Before starting the loop, confirm all four hold. If any is missing, stay in ordinary turns instead:
+
+1. A mechanical gate exists or can be named (a command, test, build, or metric — not just "looks right").
+2. The agent can run what it changes (execute the verifier itself, not wait on an external process).
+3. A hard stop is set (a retry cap or budget the loop will actually honor).
+4. A human gate covers anything irreversible the loop's checkpoints might touch.
 
 ## Read Order
 
@@ -47,7 +59,9 @@ treat it as a human decision gate.
 
 Use this protocol inside the agent-native loop:
 
-1. PLAN: Pick the smallest checkpoint that advances the active design.
+1. PLAN: Reread the active design doc fresh — do not rely on an earlier iteration's memory of it,
+   since long runs are where constraints silently drop out of lossy context. Then pick the
+   smallest checkpoint that advances the design.
 2. DO: Implement only that checkpoint.
 3. VERIFY: Run the verifier named by the design doc, or explain why no automated verifier exists.
 4. REFLECT: Update the active design doc only for design-relevant learning:
@@ -57,9 +71,19 @@ Use this protocol inside the agent-native loop:
    - A deviation from the current design was necessary.
    - A human decision is needed.
 5. REVIEW: When implementation and verification pass, use a checker/reviewer subagent if available
-   and the change is non-trivial.
+   and the change is non-trivial. The reviewer supplements the verifier, never replaces it — a
+   review pass without a mechanical pass/fail check is two optimists agreeing.
 6. DECIDE:
    - Print `FINAL` only when the checkpoint satisfies acceptance and verification evidence exists.
+     `FINAL` means the checkpoint is verified, not that the work has landed — do not stop silently
+     with verified work sitting unlanded on a branch.
+   - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
+     landing path was fixed at handoff — it stays on the branch even if a mid-loop
+     human-in-the-loop moment pulls the human in along the way.
+   - Landing means opening the review surface: a PR when the project hosts them, otherwise the
+     branch diff reviewed directly and merged locally. Opening the review surface is an
+     outward-facing action, so the loop ends and hands to the human for that action — never push
+     or open a PR unprompted.
    - Print `BLOCKED` and ask the user when scope, safety, or design ambiguity prevents progress.
    - Print `BLOCKED` with the attempt trail after 3 consecutive failed VERIFY cycles on the same
      checkpoint. Do not keep iterating past the cap.
@@ -107,8 +131,9 @@ Stop when the checkpoint satisfies the design doc's Verification / Success Crite
 pass, design-relevant discoveries are reflected into the active design doc, and reviewer feedback has
 no blocking findings.
 
-Loop protocol:
-1. Read AGENTS.md, CONTEXT.md if present, the active design doc, and the linked bead if present.
+Loop protocol (every iteration, not just the first):
+1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
+   if present. Do not rely on an earlier iteration's memory of the design doc.
 2. Pick the next smallest checkpoint.
 3. If the path is unclear, use a read-only explorer first.
 4. Implement only the checkpoint.
@@ -117,8 +142,14 @@ Loop protocol:
    verify cycles on the same checkpoint, stop and report BLOCKED with the attempt trail.
 7. If design-relevant learning appears, update Known Unknowns, Implementation Notes, Deviations, or
    Human Decisions Needed in the active design doc.
-8. If implementation and verification pass, use a reviewer/checker before FINAL when available.
+8. If implementation and verification pass, use a reviewer/checker before FINAL when available. The
+   reviewer supplements the verifier, never replaces it — a review pass without a mechanical
+   pass/fail check is two optimists agreeing.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
+10. Before calling FINAL: this loop is an automation handoff running on its dedicated branch
+    (never `main`). The landing step is opening the review surface — a PR when the project hosts
+    them, otherwise the branch diff reviewed directly and merged locally — and that landing path
+    stays fixed even if a mid-loop human-in-the-loop moment pulls the human in.
 
 Progress log:
 - Current checkpoint
@@ -136,6 +167,11 @@ Rules:
 - Never edit Verification / Success Criteria or bead acceptance criteria; if they are wrong or
   unmeetable, report BLOCKED instead.
 - Never iterate past 3 consecutive failed verify cycles on the same checkpoint.
+- FINAL is not landing. This automation-handoff loop lands through the review surface — a PR
+  when the project hosts them, otherwise a branch diff reviewed directly and merged locally —
+  and that landing path stays fixed on the branch even if the human is pulled in mid-loop.
+- Never push or open a PR unprompted — opening the review surface is the human's action to take
+  or authorize.
 ```
 
 ## Completion Criteria
@@ -143,3 +179,15 @@ Rules:
 Finish with checkpoint complete or clearly blocked, verification evidence or a verification gap,
 design-relevant learning reflected into the active design doc, and bead state updated only for
 execution facts when a bead is linked.
+
+Checkpoint-verified is not landed. This automation-handoff loop runs on its dedicated branch,
+never `main`, and lands through the review surface — a PR when the project hosts them, otherwise
+the branch diff reviewed directly and merged locally. Opening that review surface is an
+outward-facing action: do not push or open it without the user present to authorize it. The
+landing path was fixed at handoff and stays on the branch even if a mid-loop human-in-the-loop
+moment pulls the human in.
+
+When the checkpoint lands through a public PR, the PR body must carry a `Verification` section
+restating the evidence (commands run, results, screenshots, metric values) in audience-safe,
+plain terms. No `.brain/` paths, ADR numbers, or `design:` spec-ids in the PR body — the design
+doc holds the private, durable record; the PR holds the public, per-change rendering.

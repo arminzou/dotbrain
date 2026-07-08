@@ -49,6 +49,8 @@ drives it:
   is hit, report blocked with the attempt trail; do not keep iterating.
 - Irreversible or outward-facing actions — merge, push, deploy, publish, dependency changes — end
   the loop and go to the human, whatever work item is in flight.
+- Automation-handoff / agent-driven loop work runs on a dedicated branch, never directly on
+  `main`; manual turn-by-turn work needs no branch — it is reviewed as it happens.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 

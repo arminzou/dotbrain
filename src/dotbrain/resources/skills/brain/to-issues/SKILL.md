@@ -33,6 +33,10 @@ Sequence the slices by volatility: within their dependency constraints, put the 
 most volatile, highest-blast-radius decisions — data models, type interfaces, migration shape — first.
 Validating a risky assumption in the first slice is far cheaper than discovering it wrong in the fifth.
 
+Word each slice `Title` to echo the corresponding `Current Design` subsection heading or a
+distinctive phrase from it. This lets a later reader match a bead straight back to its exact
+design-doc section by title alone, without re-reading the whole document.
+
 For each slice, show:
 
 - `Title`

@@ -41,7 +41,7 @@ Read at session start, before inspecting the graph:
 - update the active design doc when discoveries change the initiative design rather than only the
   execution graph
 
-It does **not** perform worktree implementation; that coordination belongs to `enter-main-agent`.
+It does **not** perform worktree implementation; that coordination belongs to a different skill.
 
 ## Who uses it
 
@@ -84,9 +84,16 @@ Autonomous (unflagged) items do not need a mode recommendation — claim and wor
 4. Select the next ready item:
    - **Human-gated** — recommend mode and stop for sign-off before claiming.
    - **Autonomous** — claim directly and proceed.
-5. Implement, update notes, and close when acceptance criteria are satisfied.
-6. If discoveries change reality, update the graph instead of forcing stale plans to stand.
-7. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
+5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
+   implementing. Beads carry execution facts; the design doc carries the current design,
+   rationale, and file-level scope — do not infer those from the compressed acceptance criteria
+   alone.
+6. Implement, update notes, and close when acceptance criteria are satisfied. This is manual,
+   turn-by-turn work — the human reviews each edit and each `bd close` as it happens — so it
+   lands local by default, epic or not (unless a linked public issue already requires one; see
+   Public/private link below). `bd close` is the close signal for this local-review path.
+7. If discoveries change reality, update the graph instead of forcing stale plans to stand.
+8. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
 
 ## Discoveries and re-slicing
@@ -109,6 +116,15 @@ Public issues and private items are linked, not field-synced: pull an issue inwa
 private item that references it; publish outward by deriving a public-safe issue and recording its
 reference on the item. A PR's `Closes #N` closes the public issue only — the private item still
 needs an explicit close. Mechanics live in [references/beads.md](references/beads.md).
+
+When a private item's work lands through a public PR, the PR body must carry a `Verification`
+section restating the verification evidence in audience-safe, plain terms — no `.brain/` paths,
+ADR numbers, or `design:` spec-ids. The private item may keep the full evidence in its own notes
+or the linked design doc; the PR gets the public rendering only.
+
+Landing here is local review by default — this is manual, turn-by-turn work reviewed
+continuously as it happens; a PR only applies when a linked public issue already requires one
+(see Operating loop above).
 
 ## Pitfalls
 
