@@ -299,7 +299,8 @@ def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_home: Path):
     beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
+    (brainspace / ".brain").mkdir(exist_ok=True)
+    (brainspace / ".brain" / "project.yaml").write_text("beads:\n  mode: server\n")
 
     calls: list[dict[str, Any]] = []
     findings = doctor._check_beads_state(brainspace, "demo", dotbrain_home, run=_recording_run(calls))
@@ -335,7 +336,8 @@ def test_beads_connectivity_failure_reports_error(dotbrain_home: Path):
     beads = brainspace / ".beads"
     beads.mkdir()
     (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (brainspace / "project.yaml").write_text("beads:\n  mode: server\n")
+    (brainspace / ".brain").mkdir(exist_ok=True)
+    (brainspace / ".brain" / "project.yaml").write_text("beads:\n  mode: server\n")
 
     findings = doctor._check_beads_state(
         brainspace, "demo", dotbrain_home,

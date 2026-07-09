@@ -456,7 +456,7 @@ def test_wire_project_server_host_records_server_mode(
         run=_runner_creating_beads(brainspace),
     )
     # embedded is the default; an explicit server_host deviates and is recorded in project.yaml.
-    assert (dotbrain_home / "brainspaces" / "plain" / "project.yaml").exists()
+    assert (dotbrain_home / "brainspaces" / "plain" / ".brain" / "project.yaml").exists()
     assert config.load_project_config(dotbrain_home, "plain").mode == "server"
 
 
@@ -517,7 +517,7 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
     )
     brainspace = dotbrain_home / "brainspaces" / "downgraded-project"
 
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     workflows.wire_project(
         dotbrain_home=dotbrain_home,
         repo=repo,
@@ -528,7 +528,7 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
     assert (repo / ".codex").is_symlink()
     assert (brainspace / ".codex").is_dir()
 
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
     (repo / ".codex").unlink()
     result = workflows.wire_project(
         dotbrain_home=dotbrain_home,

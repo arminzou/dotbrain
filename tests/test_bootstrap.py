@@ -142,7 +142,7 @@ def test_wire_project_does_not_seed_project_default_subagents(
     _wire(dotbrain_home, repo, fake_home)
 
     assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ()
-    project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / "project.yaml"
+    project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / ".brain" / "project.yaml"
     assert "agents:\n  - claude\n  - codex\n" in project_yaml.read_text()
     assert "\nsubagents:\n" not in project_yaml.read_text()
 
@@ -155,7 +155,7 @@ def test_agents_link_project_target_reports_actual_linked_files(
     _wire(dotbrain_home, repo, fake_home)
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
-    project_yaml = paths.brainspace(dotbrain_home, "claude-only-agent-link") / "project.yaml"
+    project_yaml = paths.brainspace(dotbrain_home, "claude-only-agent-link") / ".brain" / "project.yaml"
     project_yaml.write_text(project_yaml.read_text().replace("agents:\n  - claude\n  - codex\n", "agents:\n  - claude\n"))
 
     result = runner.invoke(

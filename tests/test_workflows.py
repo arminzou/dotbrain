@@ -310,7 +310,7 @@ def test_unwire_delete_removes_projects_entry(dotbrain_home: Path):
         run=_git_runner(dotbrain_home),
     )
 
-    assert not (dotbrain_home / "brainspaces" / "fresh" / "project.yaml").exists()
+    assert not (dotbrain_home / "brainspaces" / "fresh" / ".brain" / "project.yaml").exists()
     assert any("removed" in line for line in result.logs)
 
 
@@ -338,7 +338,7 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     repo = _make_wired_repo(tmp_path, dotbrain_home, "refreshme")
     brainspace = paths.brainspace(dotbrain_home, "refreshme")
     (brainspace / ".repo").write_text(f"{repo}\n")
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     (repo / ".codex").unlink()
     loaded: dict[str, object] = {}
 
@@ -374,7 +374,7 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     repo = _make_wired_repo(tmp_path, dotbrain_home, "refresh-subagents")
     brainspace = paths.brainspace(dotbrain_home, "refresh-subagents")
     (brainspace / ".repo").write_text(f"{repo}\n")
-    (brainspace / "project.yaml").write_text(
+    (brainspace / ".brain" / "project.yaml").write_text(
         "agents:\n"
         "  - claude\n"
         "  - codex\n"
@@ -418,7 +418,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
     )
 
     brainspace = paths.brainspace(dotbrain_home, "claude-only")
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
     claude_link = repo / ".claude"
     claude_link.unlink()
     captured: dict[str, tuple[str, ...]] = {}
@@ -461,7 +461,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         home=fake_home,
     )
     brainspace = paths.brainspace(dotbrain_home, "refresh-downgraded")
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
     workflows.wire_project(
         dotbrain_home=dotbrain_home,
         repo=repo,
@@ -471,7 +471,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
     )
     assert (repo / ".codex").is_symlink()
 
-    (brainspace / "project.yaml").write_text("agents:\n  - claude\n")
+    (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
     (repo / ".codex").unlink()
     captured: dict[str, tuple[str, ...]] = {}
 

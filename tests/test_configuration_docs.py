@@ -16,7 +16,7 @@ def _extract_yaml_block(doc: str, heading: str) -> str:
 def test_configuration_doc_examples_match_runtime_config(tmp_path: Path):
     doc = Path("docs/configuration.md").read_text()
     dotbrain_home = tmp_path / "dotbrain"
-    project_root = dotbrain_home / "brainspaces" / "demo"
+    project_root = dotbrain_home / "brainspaces" / "demo" / ".brain"
     project_root.mkdir(parents=True)
 
     config_yaml = _extract_yaml_block(doc, "config.yaml")

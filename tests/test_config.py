@@ -77,7 +77,7 @@ def test_load_project_config_defaults(tmp_path: Path):
 
 
 def test_load_project_config_reads_project_yaml(tmp_path: Path):
-    project_dir = tmp_path / "brainspaces" / "fork"
+    project_dir = tmp_path / "brainspaces" / "fork" / ".brain"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         beads:
@@ -95,7 +95,7 @@ def test_load_project_agents_defaults_to_legacy_workspaces(tmp_path: Path):
 
 
 def test_load_project_agents_reads_project_yaml(tmp_path: Path):
-    project_dir = tmp_path / "brainspaces" / "acme"
+    project_dir = tmp_path / "brainspaces" / "acme" / ".brain"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         agents:
@@ -109,7 +109,7 @@ def test_load_project_agents_reads_project_yaml(tmp_path: Path):
 
 
 def test_load_project_config_custom_database(tmp_path: Path):
-    project_dir = tmp_path / "brainspaces" / "renamed"
+    project_dir = tmp_path / "brainspaces" / "renamed" / ".brain"
     project_dir.mkdir(parents=True)
     (project_dir / "project.yaml").write_text(textwrap.dedent("""\
         beads:
@@ -192,7 +192,7 @@ def test_write_project_config_creates_file(tmp_path: Path):
         config.ProjectBeads(mode="embedded", remote="https://example.com/fork"),
     )
     assert log is not None
-    path = tmp_path / "brainspaces" / "fork" / "project.yaml"
+    path = tmp_path / "brainspaces" / "fork" / ".brain" / "project.yaml"
     assert path.is_file()
     text = path.read_text()
     assert "mode: embedded" in text
@@ -226,7 +226,7 @@ def test_record_project_beads_delegates_to_project_yaml(tmp_path: Path):
         config.ProjectBeads(mode="embedded", remote="https://example.com/fork"),
     )
     assert log is not None
-    assert (tmp_path / "brainspaces" / "fork" / "project.yaml").is_file()
+    assert (tmp_path / "brainspaces" / "fork" / ".brain" / "project.yaml").is_file()
 
 
 def test_record_project_beads_skips_non_deviations(tmp_path: Path):
@@ -253,7 +253,7 @@ def test_remove_project_beads_deletes_file(tmp_path: Path):
     )
     log = config.remove_project_beads(tmp_path, "fork")
     assert log is not None
-    assert not (tmp_path / "brainspaces" / "fork" / "project.yaml").exists()
+    assert not (tmp_path / "brainspaces" / "fork" / ".brain" / "project.yaml").exists()
     assert config.remove_project_beads(tmp_path, "fork") is None  # already gone
 
 
@@ -261,7 +261,7 @@ def test_remove_project_beads_deletes_file(tmp_path: Path):
 
 
 def _project_yaml(tmp_path: Path, name: str, body: str) -> Path:
-    path = tmp_path / "brainspaces" / name / "project.yaml"
+    path = tmp_path / "brainspaces" / name / ".brain" / "project.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body)
     return path

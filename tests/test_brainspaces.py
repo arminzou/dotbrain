@@ -88,8 +88,8 @@ def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unli
     dotbrain_home: Path, fake_home: Path
 ):
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
-    brainspace.mkdir(parents=True)
-    (brainspace / "project.yaml").write_text(
+    (brainspace / ".brain").mkdir(parents=True)
+    (brainspace / ".brain" / "project.yaml").write_text(
         "agents:\n"
         "  - claude\n"
         "  - custom\n"
@@ -103,7 +103,7 @@ def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unli
     assert (brainspace / ".claude" / "settings.json").is_file()
     assert not (brainspace / ".codex" / "hooks.json").exists()
     assert existing_codex.read_text() == "keep\n"
-    assert warnings == [f"ignored unknown agent workspace in {brainspace / 'project.yaml'}: custom"]
+    assert warnings == [f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: custom"]
 
 
 def test_sessionstart_bootstrap_script_does_not_invoke_bd(tmp_path: Path):

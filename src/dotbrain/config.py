@@ -108,7 +108,8 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
 # ---------------------------------------------------------------------------
 
 def _project_config_path(dotbrain_home: Path, name: str) -> Path:
-    return paths.brainspace(dotbrain_home, name) / "project.yaml"
+    """Canonical project.yaml path: ``.brain/project.yaml``."""
+    return paths.brainspace(dotbrain_home, name) / ".brain" / "project.yaml"
 
 
 def default_beads_mode(dotbrain_home: Path) -> str:

@@ -41,8 +41,8 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
     """Seed a brain skeleton from packaged dotbrain resources.
 
     ``DOTBRAIN.md`` and ``README.md`` files are dotbrain-owned and overwritten
-    so package template changes propagate. All other files are project-owned and
-    are only written when missing.
+    so package template changes propagate. All other files, including
+    ``project.yaml``, are project-owned and are only written when missing.
     """
 
     brain = Path(brainspace) / ".brain"
@@ -52,13 +52,6 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
         raise FileNotFoundError("package resource templates/brain/AGENTS.md is missing")
 
     for rel, src in resource_loader.iter_resource_files("templates/brain"):
-        if src.name == "project.yaml":
-            # Brainspace-level, not inside .brain/; project-owned, seed once.
-            dest = brainspace / "project.yaml"
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            if not dest.exists():
-                dest.write_text(src.read_text())
-            continue
         dest = brain / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         if src.name in ("DOTBRAIN.md", "README.md"):
@@ -174,7 +167,7 @@ def seed_agent_workspaces(brainspace: Path, dotbrain_home: Path, home: Path | No
     for agent in config.load_project_agents(dotbrain_home, brainspace.name):
         template = _AGENT_WORKSPACE_TEMPLATES.get(agent)
         if template is None:
-            warnings.append(f"ignored unknown agent workspace in {brainspace / 'project.yaml'}: {agent}")
+            warnings.append(f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: {agent}")
             continue
 
         workspace = brainspace / f".{agent}"
