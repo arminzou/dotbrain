@@ -89,7 +89,7 @@ Two patterns to know before changing anything:
 - **Checkout vs. data root.** The *checkout* (this repo) is the tool source. The *data root*
   (`$DOTBRAIN_HOME`, by convention `~/dotbrain`) holds `brainspaces/`, `skills/`, and the seeded
   `config.yaml`; it is resolved by `paths.resolve_dotbrain_home()`. Config splits into a global
-  `config.yaml` (infra defaults like `beads.server`) and a per-project `brainspaces/<name>/project.yaml`
+  `config.yaml` (infra defaults like `beads.server`) and a per-project `brainspaces/<name>/.brain/project.yaml`
   (beads mode, skill and subagent selection). Don't conflate the two roots.
 
 ## Conventions

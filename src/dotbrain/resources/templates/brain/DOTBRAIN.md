@@ -73,6 +73,7 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
 ## Brain structure
 
 - `CONTEXT.md` — domain vocabulary for this project
+- `project.yaml` — per-project skill selection and engine/tracker config
 - `adr/` — Architecture Decision Records, one file per decision
 - `designs/` — design docs, one initiative per file. Each design doc carries a `lifecycle:` field:
   `draft`, `active`, `shipped`, `abandoned`, or `superseded`. Agents must update lifecycle when the

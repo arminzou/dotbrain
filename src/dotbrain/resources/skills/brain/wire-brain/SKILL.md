@@ -28,7 +28,7 @@ dotbrain wire
 
 Use `--repo <path>` or `--name <project-name>` only when the defaults are wrong.
 
-Public tracker metadata, when needed, lives in `project.yaml` rather than a wire-time CLI flag.
+Public tracker metadata, when needed, lives in `.brain/project.yaml` rather than a wire-time CLI flag.
 The default wiring remains private-only (beads is always the
 source of truth).
 

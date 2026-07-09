@@ -1,7 +1,7 @@
-"""Config store: global ``config.yaml`` + per-project ``project.yaml``.
+"""Config store: global ``config.yaml`` + per-project ``.brain/project.yaml``.
 
 ``config.yaml`` (data root, version 3) holds global infrastructure defaults
-(``beads.server``).  ``brainspaces/<name>/project.yaml`` (version 1) holds
+(``beads.server``).  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
 per-project identity (beads mode, database, remote).  The old
 ``dotbrain.yaml`` is read transparently as a fallback when ``config.yaml``
 is absent.
@@ -32,7 +32,7 @@ class BeadsServer:
 
 @dataclass
 class ProjectBeads:
-    """Effective per-project beads config from ``project.yaml``."""
+    """Effective per-project beads config from ``.brain/project.yaml``."""
     mode: str = "embedded"  # embedded | server | none
     remote: str = ""
     database: str = ""
@@ -104,11 +104,11 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
 
 
 # ---------------------------------------------------------------------------
-# Per-project config (<data-dir>/<name>/project.yaml)
+# Per-project config (<data-dir>/<name>/.brain/project.yaml)
 # ---------------------------------------------------------------------------
 
 def _project_config_path(dotbrain_home: Path, name: str) -> Path:
-    """Canonical project.yaml path: ``.brain/project.yaml``."""
+    """Canonical ``.brain/project.yaml`` path."""
     return paths.brainspace(dotbrain_home, name) / ".brain" / "project.yaml"
 
 
@@ -118,24 +118,24 @@ def default_beads_mode(dotbrain_home: Path) -> str:
     Follows infrastructure: a configured shared sql-server (``beads.server.host``
     in config.yaml) makes ``server`` the default, so every wired project uses it;
     otherwise the default is ``embedded``. Projects override per-project by
-    setting ``mode`` explicitly in ``project.yaml``.
+    setting ``mode`` explicitly in ``.brain/project.yaml``.
     """
     return "server" if load_config(dotbrain_home).beads_server.host else "embedded"
 
 
 def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
-    """Read ``brainspaces/<name>/project.yaml``, resolving defaults.
+    """Read ``brainspaces/<name>/.brain/project.yaml``, resolving defaults.
 
     The default mode follows :func:`default_beads_mode` (server when a shared
     server is configured, else embedded); database defaults to the project name.
     Old ``dotbrain.yaml`` ``projects:<name>`` entries take precedence over a
-    default (seeded) ``project.yaml``.
+    default (seeded) ``.brain/project.yaml``.
     """
     import yaml
 
     default_mode = default_beads_mode(dotbrain_home)
 
-    # Read project.yaml if it exists.
+    # Read .brain/project.yaml if it exists.
     file_beads: ProjectBeads | None = None
     path = _project_config_path(dotbrain_home, name)
     if path.is_file():
@@ -147,7 +147,7 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
             database=str(beads.get("database", name)),
         )
 
-    # Check old dotbrain.yaml — its explicit entries override a default project.yaml.
+    # Check old dotbrain.yaml — its explicit entries override a default .brain/project.yaml.
     old = _old_config_path(dotbrain_home)
     if old.is_file():
         data: dict[str, Any] = yaml.safe_load(old.read_text()) or {}
@@ -159,8 +159,8 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
                 remote=str(entry.get("remote", "")),
                 database=str(entry.get("database", name)),
             )
-            # If project.yaml exists and deviates from defaults, it wins.
-            # If project.yaml is all defaults (seeded template), old format wins.
+            # If .brain/project.yaml exists and deviates from defaults, it wins.
+            # If .brain/project.yaml is all defaults (seeded template), old format wins.
             if file_beads is not None and _is_beads_deviation(dotbrain_home, name, file_beads):
                 return file_beads
             return old_beads
@@ -171,7 +171,7 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
 
 
 def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
-    """Read the operator's per-project skill list from project.yaml ``skills:``.
+    """Read the operator's per-project skill list from ``.brain/project.yaml`` ``skills:``.
 
     Returns deduped extras with the brain-coupled required core excluded; the
     tool always force-wires the required core on top of these.
@@ -190,7 +190,7 @@ def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 
 
 def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
-    """Read per-project subagent declarations from ``project.yaml``."""
+    """Read per-project subagent declarations from ``.brain/project.yaml``."""
     import yaml
 
     from dotbrain import skills
@@ -205,7 +205,7 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 
 
 def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
-    """Read declared agent workspaces from ``brainspaces/<name>/project.yaml``.
+    """Read declared agent workspaces from ``brainspaces/<name>/.brain/project.yaml``.
 
     Missing ``agents`` preserves legacy behavior by enabling both packaged agent
     workspaces. An explicit empty list disables agent workspace seeding.
@@ -237,7 +237,7 @@ def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 
 
 def write_project_config(dotbrain_home: Path, name: str, beads: ProjectBeads) -> str | None:
-    """Write ``brainspaces/<name>/project.yaml``. Returns a log line or None if unchanged."""
+    """Write ``brainspaces/<name>/.brain/project.yaml``. Returns a log line or None if unchanged."""
     import yaml
 
     path = _project_config_path(dotbrain_home, name)
@@ -279,7 +279,7 @@ def write_project_config(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
 # ---------------------------------------------------------------------------
 
 def record_project_beads(dotbrain_home: Path, name: str, beads: ProjectBeads) -> str | None:
-    """Persist a project's beads config in project.yaml.
+    """Persist a project's beads config in ``.brain/project.yaml``.
 
     Only writes when the config deviates from the resolved defaults (mode differs
     from the config-driven default mode, or a custom remote/database).  A default
@@ -292,10 +292,10 @@ def record_project_beads(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
 
 
 def migrate_legacy_skill_manifest(dotbrain_home: Path, name: str) -> str | None:
-    """Fold a legacy ``.brain/agents/skills.yaml`` into project.yaml and remove it.
+    """Fold a legacy ``.brain/agents/skills.yaml`` into ``.brain/project.yaml`` and remove it.
 
     The per-project skill list used to live in a tool-managed manifest under
-    ``.brain/agents/``; it now lives in ``project.yaml`` ``skills:``. This folds any
+    ``.brain/agents/``; it now lives in ``.brain/project.yaml`` ``skills:``. This folds any
     extras across (without losing them) and deletes the stale file. Idempotent.
     """
     import yaml
@@ -315,11 +315,11 @@ def migrate_legacy_skill_manifest(dotbrain_home: Path, name: str) -> str | None:
     legacy.unlink()
 
     suffix = f" ({len(extras)} skill(s))" if extras else ""
-    return f"migrated legacy skills manifest for {name} into project.yaml{suffix}"
+    return f"migrated legacy skills manifest for {name} into .brain/project.yaml{suffix}"
 
 
 def _append_project_skills(dotbrain_home: Path, name: str, extras: tuple[str, ...]) -> None:
-    """Append a ``skills:`` block to project.yaml, preserving existing content.
+    """Append a ``skills:`` block to ``.brain/project.yaml``, preserving existing content.
 
     No-op when the file already declares ``skills:`` (the operator owns it then).
     """
@@ -353,7 +353,7 @@ def remove_project_beads(dotbrain_home: Path, name: str) -> str | None:
     path = _project_config_path(dotbrain_home, name)
     if path.is_file():
         os.remove(path)
-        return f"removed project.yaml for {name}"
+        return f"removed .brain/project.yaml for {name}"
 
     # Old-format cleanup: remove from dotbrain.yaml projects section
     old = _old_config_path(dotbrain_home)

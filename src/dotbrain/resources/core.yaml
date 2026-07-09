@@ -6,9 +6,9 @@ version: 1
 #
 # Operators layer their own additions on top at separate scopes:
 #   - skills/global:      ~/dotbrain/skills/skills.yaml        (global_extra)
-#   - skills/per-project: brainspaces/<name>/project.yaml      (skills:)
+#   - skills/per-project: brainspaces/<name>/.brain/project.yaml      (skills:)
 #   - subagents/global:   ~/dotbrain/agents/agents.yaml        (global:)
-#   - subagents/project:  brainspaces/<name>/project.yaml      (subagents:)
+#   - subagents/project:  brainspaces/<name>/.brain/project.yaml      (subagents:)
 
 skills:
   global_required:

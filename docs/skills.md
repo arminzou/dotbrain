@@ -8,7 +8,7 @@ Skill selection is dotbrain-managed:
 
 - required core skills ship with dotbrain in `src/dotbrain/resources/skills.yaml`
 - operator-owned global extras live under the private dotbrain data root
-- per-project extra skills are selected in `brainspaces/<name>/project.yaml`
+- per-project extra skills are selected in `brainspaces/<name>/.brain/project.yaml`
 
 ## Setup
 

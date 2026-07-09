@@ -1,9 +1,9 @@
 # dotbrain global settings
 # Seeded into ~/dotbrain/config.yaml by ``dotbrain bootstrap``.
-# Per-project identity (including beads mode) lives in brainspaces/<name>/project.yaml.
+# Per-project identity (including beads mode) lives in brainspaces/<name>/.brain/project.yaml.
 # Never put credentials (passwords, tokens) here — those belong in your secrets store.
 
-# Beads execution store. Each project picks a mode in its project.yaml:
+# Beads execution store. Each project picks a mode in its .brain/project.yaml:
 #   embedded — local Dolt store in the Brainspace, optionally synced to a remote (the default)
 #   server   — shared Dolt sql-server, configured by the block below (cross-machine, multi-project)
 #   none     — no execution store (e.g. a project that tracks work via tracker: gh)

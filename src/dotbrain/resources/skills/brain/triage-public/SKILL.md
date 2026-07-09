@@ -5,7 +5,7 @@ description: Triage public issue tracker items through labels, reproduction, sco
 
 # Triage Public
 
-Operate a project's public collaboration layer. The public tracker is declared in `project.yaml`
+Operate a project's public collaboration layer. The public tracker is declared in `.brain/project.yaml`
 (`public-tracker:`); execution itself is planned and tracked privately through `operate-execution`.
 This skill is tracker-agnostic — it owns the triage workflow. The tracker's CLI mechanics and label
 vocabulary live in the tracker reference ([references/github.md](references/github.md) for GitHub).

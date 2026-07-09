@@ -34,7 +34,7 @@ defaults such as shared beads server settings.
 
 ### project.yaml
 
-The per-project config file at `~/dotbrain/brainspaces/<name>/project.yaml`. It declares project-level
+The per-project config file at `~/dotbrain/brainspaces/<name>/.brain/project.yaml`. It declares project-level
 settings such as execution engine choice, public tracker choice, seeded agent workspaces, beads
 deviations, and extra skills.
 
