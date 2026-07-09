@@ -41,14 +41,16 @@ Read at session start, before inspecting the graph:
 - update the active design doc when discoveries change the initiative design rather than only the
   execution graph
 
-It does **not** perform worktree implementation; that coordination belongs to a different skill.
+It recommends how to isolate work (below) but does **not** run it: turn-by-turn work happens in the
+session, an automation handoff runs through `iterate-design`, and worktree isolation is a runtime
+capability, not a mode this skill enters.
 
 ## Who uses it
 
-Both **main-agent** and **worker-agent** sessions. The main agent shapes work, inspects readiness,
-recommends mode, and maintains the graph. A worker may claim, update, split, create, and close
-related items as discoveries emerge. Worker autonomy is intentional: stay anchored to the assigned
-item or epic, but do not freeze when work reveals missing scope.
+Any session, from the main checkout or from a worktree. From the main checkout you shape work,
+inspect readiness, recommend mode, and maintain the graph. A worktree session may claim, update,
+split, create, and close related items as discoveries emerge. That autonomy is intentional: stay
+anchored to the assigned item or epic, but do not freeze when work reveals missing scope.
 
 ## Human gate
 
@@ -65,14 +67,25 @@ everything else unflagged so the agent can flow through the ready frontier.
 
 ## Execution-mode recommendation
 
-When a human-gated ready item is under consideration, recommend one of:
+When a human-gated ready item is under consideration, recommend where to run it. Isolation is a
+per-item choice, not a mode the session enters: pick the cheapest rung that fits, and climb only
+when a driver forces it.
 
-- **Current session** — small, local, low-contention work.
-- **Worktree** — substantial work, likely discoveries, Brain-plus-code changes, or isolated review.
+- **Main checkout, in place** — the default: one line of work, reviewed as it happens, landing
+  local. Most work stays here.
+- **Branch in place** (`git switch -c`) — when you want a review surface or the work is safe to
+  abandon, but it is still one line of work at a time. A branch isolates history without a second
+  working tree.
+- **Worktree** — when the work needs a second working tree at once: genuine parallelism (two or
+  more trees in flight), an automation handoff you want off the interactive tree, or a long-running
+  worker session returned to later. A worktree isolates the working directory on top of history.
 - **Skip** — the item needs a decision you want to make; leave it for later triage.
 
 Advisory, not a gate; always include a one-line reason. Stop after the recommendation and wait for
-the user to respond. Skip means the item stays in the human queue.
+the user to respond. Skip means the item stays in the human queue. You recommend the rung; the user
+confirms; then the work is cut at that rung — a branch or an `isolation: worktree` dispatch by the
+runtime, or the `--worktree` launcher for a full worker session. Autonomous (unflagged) items need
+no mode recommendation: claim and work them directly.
 
 Autonomous (unflagged) items do not need a mode recommendation — claim and work them directly.
 

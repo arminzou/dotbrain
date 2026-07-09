@@ -50,7 +50,6 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/find-unknowns",
         "brain/to-design",
         "brain/to-issues",
-        "brain/enter-main-agent",
         "brain/triage-public",
         "brain/build-context",
         "brain/review-architecture",

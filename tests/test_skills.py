@@ -25,7 +25,6 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
     found = skills.discover_skills(dotbrain_home / "skills")
     assert found == [
         "brain/build-context",
-        "brain/enter-main-agent",
         "brain/find-unknowns",
         "brain/grill-decisions",
         "brain/iterate-design",
@@ -150,7 +149,6 @@ def test_project_link_set_empty_extras_is_required_core():
 
 _SKILL_PATH = {
     "operate-execution": "brain/operate-execution",
-    "enter-main-agent": "brain/enter-main-agent",
     "triage-public": "brain/triage-public",
     "discovery-test": "misc/discovery-test",
 }

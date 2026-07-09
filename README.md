@@ -149,23 +149,22 @@ automatically at session start and are available as slash commands.
   findings back into the Brain.
 - **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
   accepted work to private execution items.
-- **`enter-main-agent`** — activate the two-agent protocol from the main checkout: stay parked
-  on `main`, dispatch worker slices, review and land results.
 
 See [docs/skills.md](docs/skills.md) for the full set.
 
 ### Worktree execution
 
-Single-agent execution is the default. Use the two-agent protocol when a slice is large enough
-that review and landing should stay separate from implementation.
+Most work runs in place in the main checkout, reviewed as it happens. When work needs isolation,
+such as genuine parallelism or a long-running loop you want off your interactive tree, run it in a
+git worktree instead. A worktree shares the same Brainspace, Brain, and execution state as the main
+checkout through the same symlinks, with no separate Brain and no re-wiring.
 
-A main-agent session stays parked on `main`: it inspects ready work, describes the slice, and
-dispatches a worker into an isolated git worktree. The worker shares the same Brainspace, Brain,
-and execution state as the main checkout through the same symlinks, with no separate Brain and no
-re-wiring. When the worker finishes, the main-agent reviews and lands the result.
+`operate-execution` recommends when to isolate; the agent runtime provides the worktree. Start a
+full worker session in one with the launcher:
 
-Invoke `enter-main-agent` to start this mode. See
-[docs/two-agent-protocol.md](docs/two-agent-protocol.md) for the full protocol.
+```bash
+dotbrain codex --worktree <bead-id>-<slug>
+```
 
 ## Install
 

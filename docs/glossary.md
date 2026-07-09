@@ -92,16 +92,6 @@ To create a public-facing explanation or artifact from private source material w
 private source directly. dotbrain uses this boundary to keep Brains private while still publishing
 docs or tooling publicly.
 
-## Two-Agent Terms
-
-For the coordination terms below, see
-[two-agent-protocol.md](/home/armin/repos/projects/dotbrain/docs/two-agent-protocol.md):
-
-- `main-agent`
-- `worker`
-- `slice`
-- `landing`
-
 ## Excluded Terms
 
 This glossary intentionally leaves out lower-level implementation jargon and private internal

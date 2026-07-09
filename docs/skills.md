@@ -29,8 +29,6 @@ Skill selection is dotbrain-managed:
 
 - **`operate-execution`** — inspect, claim, split, update, and close work in the private execution
   graph
-- **`enter-main-agent`** — activate the two-agent protocol on `main`, dispatch worker slices, and
-  review or land the result
 
 ## Triage And Review
 
