@@ -35,4 +35,9 @@ Skill selection is dotbrain-managed:
 - **`triage-public`** — classify public tracker items and promote ready work into private execution
 - **`review-architecture`** — review the codebase for architectural deepening opportunities
 
+## Authoring
+
+- **`write-skills`** — create a new agent skill or improve an existing one: invocation choice,
+  description writing, information hierarchy, and pruning
+
 The packaged skill registry lives at `src/dotbrain/resources/skills.yaml`.

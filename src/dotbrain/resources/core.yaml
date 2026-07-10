@@ -23,6 +23,7 @@ skills:
     - brain/build-context
     - brain/review-architecture
     - brain/grill-decisions
+    - brain/write-skills
 
 subagents:
   project_required:

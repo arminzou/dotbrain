@@ -28,7 +28,7 @@ Use this skill when:
 - the public repo `AGENTS.md` needs to be kept safe around private dotbrain wiring
 
 Don't use this skill for:
-- authoring skill files (`SKILL.md`) — use `/skill-authoring`
+- authoring skill files (`SKILL.md`) — use `/write-skills`
 - workspace-root context files (`~/AGENTS.md`, `~/CLAUDE.md`)
 - product specs, ADRs, or user documentation that is not agent-facing
 - one-off code comments or README cleanup

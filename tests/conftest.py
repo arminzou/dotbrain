@@ -55,6 +55,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/review-architecture",
         "brain/grill-decisions",
         "brain/wire-brain",
+        "brain/write-skills",
     ):
         shutil.copytree(bundled_skills_root / skill, root / "skills" / skill)
 

@@ -149,6 +149,8 @@ automatically at session start and are available as slash commands.
   findings back into the Brain.
 - **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
   accepted work to private execution items.
+- **`write-skills`** — create a new agent skill or improve an existing one: invocation choice,
+  description writing, information hierarchy, and pruning.
 
 See [docs/skills.md](docs/skills.md) for the full set.
 
