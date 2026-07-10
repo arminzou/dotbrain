@@ -12,6 +12,7 @@ The subprocess seams take an injected ``run`` callable so tests record argv inst
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -36,6 +37,29 @@ def _default_run(
         list(argv), cwd=cwd, env=env, check=check,
         capture_output=True, text=True, stdin=subprocess.DEVNULL,
     )
+
+
+def _is_tracked_path(dotbrain_home: Path, rel_path: str, run: Runner) -> bool:
+    out = run(["git", "-C", str(dotbrain_home), "ls-files", "--", rel_path], check=False)
+    return bool((out.stdout or "").strip())
+
+
+def _restore_archived_brainspace(dotbrain_home: Path, project: str, run: Runner) -> str | None:
+    brainspace = paths.brainspace(dotbrain_home, project)
+    rel = paths.data_dir(dotbrain_home).name
+    for archived_path, archived_rel in (
+        (paths.archived_brainspace(dotbrain_home, project), f"archive/{project}"),
+        (paths.legacy_archived_brainspace(dotbrain_home, project), f"{rel}/.archive/{project}"),
+    ):
+        if not archived_path.is_dir():
+            continue
+        if _is_tracked_path(dotbrain_home, archived_rel, run):
+            run(["git", "-C", str(dotbrain_home), "mv", archived_rel, f"{rel}/{project}"])
+        else:
+            brainspace.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(archived_path), str(brainspace))
+        return archived_rel
+    return None
 
 
 @dataclass
@@ -93,12 +117,9 @@ def wire_project(
 
     brainspace = paths.brainspace(dotbrain_home, project)
     rel = paths.data_dir(dotbrain_home).name
-    archive = paths.data_dir(dotbrain_home) / ".archive" / project
-    unarchived = False
-    if archive.is_dir() and not brainspace.is_dir():
-        run(["git", "-C", str(dotbrain_home), "mv",
-             f"{rel}/.archive/{project}", f"{rel}/{project}"])
-        unarchived = True
+    unarchived_from = None
+    if not brainspace.is_dir():
+        unarchived_from = _restore_archived_brainspace(dotbrain_home, project, run)
     brainspace.mkdir(parents=True, exist_ok=True)
     if no_repo:
         (brainspace / ".repo").write_text("(brain-only)\n")
@@ -107,8 +128,8 @@ def wire_project(
         (brainspace / ".repo").write_text(f"{adopter_repos.abbrev_home(resolved_repo, home)}\n")
 
     result = WireResult(brainspace=brainspace, repo=resolved_repo, project=project)
-    if unarchived:
-        result.logs.append(f"unarchived {project} from {rel}/.archive/{project}")
+    if unarchived_from:
+        result.logs.append(f"unarchived {project} from {unarchived_from}")
 
     brainspaces.seed_brain(brainspace, dotbrain_home)
     config.migrate_legacy_skill_manifest(dotbrain_home, project)
@@ -373,6 +394,68 @@ def _repo_root(repo: Path | None, run: Runner) -> Path:
     cwd = repo or Path.cwd()
     result = run(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"])
     return Path(result.stdout.strip())
+
+
+def archive_project(
+    *,
+    dotbrain_home: Path,
+    repo: Path | None = None,
+    project: str | None = None,
+    no_repo: bool = False,
+    dry_run: bool = False,
+    run: Runner = _default_run,
+) -> UnwireResult:
+    """Archive a Brainspace after disconnecting any adopter repo wiring."""
+    return unwire_project(
+        dotbrain_home=dotbrain_home,
+        repo=repo,
+        project=project,
+        no_repo=no_repo,
+        offboard="archive",
+        dry_run=dry_run,
+        run=run,
+    )
+
+
+def unarchive_project(
+    *,
+    dotbrain_home: Path,
+    project: str,
+    dry_run: bool = False,
+    run: Runner = _default_run,
+) -> UnwireResult:
+    """Restore an archived Brainspace into the active Brainspace registry."""
+    dotbrain_home = Path(dotbrain_home).resolve()
+    brainspace = paths.brainspace(dotbrain_home, project)
+    rel = paths.data_dir(dotbrain_home).name
+    result = UnwireResult(project=project, repo=None)
+    if brainspace.is_dir():
+        result.logs.append(f"Brainspace already active at {rel}/{project}")
+        return result
+
+    for archived_path, archived_rel in (
+        (paths.archived_brainspace(dotbrain_home, project), f"archive/{project}"),
+        (paths.legacy_archived_brainspace(dotbrain_home, project), f"{rel}/.archive/{project}"),
+    ):
+        if not archived_path.is_dir():
+            continue
+        if dry_run:
+            result.logs.append(f"would unarchive Brainspace {archived_rel} -> {rel}/{project}")
+            return result
+        if _is_tracked_path(dotbrain_home, archived_rel, run):
+            run(["git", "-C", str(dotbrain_home), "mv", archived_rel, f"{rel}/{project}"])
+            staged = " (staged)"
+        else:
+            brainspace.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(archived_path), str(brainspace))
+            staged = " (uncommitted)"
+        result.logs.append(f"unarchived Brainspace {archived_rel} -> {rel}/{project}{staged}")
+        return result
+
+    result.warnings.append(
+        f"archived Brainspace not found for {project} (checked archive/{project} and {rel}/.archive/{project})"
+    )
+    return result
 
 
 def unwire_project(

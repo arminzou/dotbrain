@@ -251,14 +251,15 @@ def unwire(
     repo: Optional[Path] = typer.Option(None, "--repo", help="Adopter repo path; defaults to cwd"),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name"),
     no_repo: bool = typer.Option(False, "--no-repo", help="Only offboard the named Brainspace; do not edit an adopter repo."),
-    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to <data-dir>/.archive/"),
+    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to archive/ (compatibility path; prefer `dotbrain archive`)."),
     delete: bool = typer.Option(False, "--delete", help="Remove the Brainspace (destructive)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview the offboard without performing it."),
 ) -> None:
     """Disconnect an adopter repo from its Brainspace.
 
-    Offboards the Brainspace only (keep/archive/delete). To drop a server-backend project's
-    remote beads database, use `dotbrain beads drop-db` separately.
+    Offboards the Brainspace only (keep/archive/delete). For explicit lifecycle commands, prefer
+    `dotbrain archive` and `dotbrain unarchive`. To drop a server-backend project's remote beads
+    database, use `dotbrain beads drop-db` separately.
     """
     if all:
         if repo or name or no_repo:
@@ -289,6 +290,48 @@ def unwire(
         project=name,
         no_repo=no_repo,
         offboard=offboard,
+        dry_run=dry_run,
+    )
+    for line in result.logs:
+        typer.echo(line)
+    for w in result.warnings:
+        typer.echo(f"warning: {w}", err=True)
+
+
+@app.command()
+def archive(
+    repo: Optional[Path] = typer.Option(None, "--repo", help="Adopter repo path; defaults to cwd."),
+    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name."),
+    no_repo: bool = typer.Option(False, "--no-repo", help="Archive the named Brainspace only; do not edit an adopter repo."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the archive without performing it."),
+) -> None:
+    """Archive a Brainspace into archive/ after disconnecting any adopter repo wiring."""
+    if no_repo and repo is not None:
+        raise typer.BadParameter("--no-repo is mutually exclusive with --repo")
+    if no_repo and not name:
+        raise typer.BadParameter("--no-repo requires --name")
+    result = workflows.archive_project(
+        dotbrain_home=paths.resolve_dotbrain_home(),
+        repo=repo,
+        project=name,
+        no_repo=no_repo,
+        dry_run=dry_run,
+    )
+    for line in result.logs:
+        typer.echo(line)
+    for w in result.warnings:
+        typer.echo(f"warning: {w}", err=True)
+
+
+@app.command()
+def unarchive(
+    name: str = typer.Argument(..., help="Project/Brainspace name to restore from archive/."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the restore without performing it."),
+) -> None:
+    """Restore an archived Brainspace into the active brainspaces/ registry without rewiring it."""
+    result = workflows.unarchive_project(
+        dotbrain_home=paths.resolve_dotbrain_home(),
+        project=name,
         dry_run=dry_run,
     )
     for line in result.logs:

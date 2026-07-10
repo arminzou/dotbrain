@@ -121,9 +121,10 @@ Detach through the CLI:
 
 ```bash
 dotbrain unwire --repo /path/to/repo
-dotbrain unwire --repo /path/to/repo --archive
+dotbrain archive --repo /path/to/repo
 dotbrain unwire --repo /path/to/repo --delete
-dotbrain unwire --name <project> --no-repo --archive
+dotbrain archive --name <project> --no-repo
+dotbrain unarchive <project>
 ```
 
 Remote beads databases are separate from Brainspace offboarding. Use `dotbrain beads drop-db` only

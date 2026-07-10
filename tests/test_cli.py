@@ -20,7 +20,7 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "codex", "skills", "agents"):
+    for command in ("bootstrap", "wire", "refresh", "unwire", "archive", "unarchive", "beads", "codex", "skills", "agents"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
@@ -616,3 +616,46 @@ def test_unwire_all_rejects_destructive_flags(
     result = runner.invoke(app, ["unwire", "--all", "--archive"])
     assert result.exit_code != 0
     assert "archive" in result.output.lower()
+
+
+def test_archive_command_delegates_to_archive_workflow(
+    dotbrain_home: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    called = {}
+
+    def fake_archive(**kwargs):
+        called.update(kwargs)
+        return SimpleNamespace(logs=["archived"], warnings=[])
+
+    monkeypatch.setattr("dotbrain.cli.workflows.archive_project", fake_archive)
+
+    result = runner.invoke(app, ["archive", "--name", "demo", "--no-repo", "--dry-run"])
+
+    assert result.exit_code == 0, result.output
+    assert called["project"] == "demo"
+    assert called["no_repo"] is True
+    assert called["dry_run"] is True
+    assert "archived" in result.output
+
+
+def test_unarchive_command_delegates_to_unarchive_workflow(
+    dotbrain_home: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    called = {}
+
+    def fake_unarchive(**kwargs):
+        called.update(kwargs)
+        return SimpleNamespace(logs=["unarchived"], warnings=[])
+
+    monkeypatch.setattr("dotbrain.cli.workflows.unarchive_project", fake_unarchive)
+
+    result = runner.invoke(app, ["unarchive", "demo", "--dry-run"])
+
+    assert result.exit_code == 0, result.output
+    assert called["project"] == "demo"
+    assert called["dry_run"] is True
+    assert "unarchived" in result.output

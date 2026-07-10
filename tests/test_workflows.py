@@ -95,13 +95,27 @@ def test_offboard_archive_strips_byproducts_and_stages_git_mv(dotbrain_home: Pat
         dotbrain_home, "proj-archive", "archive", run=_git_runner(dotbrain_home)
     )
 
-    archive = dotbrain_home / "brainspaces" / ".archive" / "proj-archive"
+    archive = dotbrain_home / "archive" / "proj-archive"
     assert archive.is_dir()
     assert (archive / ".brain" / "AGENTS.md").exists()  # tracked content moved
     assert not (archive / ".beads" / "metadata.json").exists()  # litter not dragged along
     assert not (archive / ".claude" / "skills" / "build-context").exists()
     assert any("archived" in l for l in logs)
     assert not (dotbrain_home / "brainspaces" / "proj-archive").exists()
+
+
+def test_offboard_archive_rejects_existing_archive_target(dotbrain_home: Path):
+    _commit_brainspace(dotbrain_home, "proj-archive")
+    archive = dotbrain_home / "archive" / "proj-archive"
+    archive.mkdir(parents=True)
+
+    with pytest.raises(FileExistsError):
+        workflows.offboard_brainspace(
+            dotbrain_home,
+            "proj-archive",
+            "archive",
+            run=_git_runner(dotbrain_home),
+        )
 
 
 # --------------------------------------------------------------------------- delete
@@ -274,10 +288,44 @@ def test_unwire_no_repo_archive_uncommitted_root(dotbrain_home: Path):
         run=_git_runner(dotbrain_home),
     )
 
-    archived = dotbrain_home / "brainspaces" / ".archive" / "fresh"
+    archived = dotbrain_home / "archive" / "fresh"
     assert (archived / ".brain" / "AGENTS.md").exists()  # brain survives the move
     assert not brainspace.exists()
     assert any("uncommitted" in line for line in result.logs)
+
+
+def test_unarchive_project_restores_canonical_archive(dotbrain_home: Path):
+    archive = dotbrain_home / "archive" / "fresh"
+    (archive / ".brain").mkdir(parents=True)
+    (archive / ".brain" / "AGENTS.md").write_text("# archived\n")
+
+    result = workflows.unarchive_project(
+        dotbrain_home=dotbrain_home,
+        project="fresh",
+        run=_git_runner(dotbrain_home),
+    )
+
+    brainspace = paths.brainspace(dotbrain_home, "fresh")
+    assert (brainspace / ".brain" / "AGENTS.md").exists()
+    assert not archive.exists()
+    assert any("archive/fresh" in line for line in result.logs)
+
+
+def test_unarchive_project_restores_legacy_hidden_archive(dotbrain_home: Path):
+    archive = dotbrain_home / "brainspaces" / ".archive" / "legacy"
+    (archive / ".brain").mkdir(parents=True)
+    (archive / ".brain" / "AGENTS.md").write_text("# archived\n")
+
+    result = workflows.unarchive_project(
+        dotbrain_home=dotbrain_home,
+        project="legacy",
+        run=_git_runner(dotbrain_home),
+    )
+
+    brainspace = paths.brainspace(dotbrain_home, "legacy")
+    assert (brainspace / ".brain" / "AGENTS.md").exists()
+    assert not archive.exists()
+    assert any("brainspaces/.archive/legacy" in line for line in result.logs)
 
 
 def test_unwire_no_repo_delete_dry_run_keeps_root(dotbrain_home: Path):

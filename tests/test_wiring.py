@@ -307,12 +307,12 @@ def test_wire_project_unarchives_automatically(dotbrain_home: Path, fake_home: P
     subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
 
     # Simulate an archived Brainspace
-    archive = dotbrain_home / "brainspaces" / ".archive" / "archived-proj"
+    archive = dotbrain_home / "archive" / "archived-proj"
     archive.mkdir(parents=True)
     (archive / ".brain").mkdir()
     (archive / ".brain" / "AGENTS.md").write_text("# archived\n")
     subprocess.run(
-        ["git", "-C", str(dotbrain_home), "add", "brainspaces/.archive/archived-proj"],
+        ["git", "-C", str(dotbrain_home), "add", "archive/archived-proj"],
         check=True, capture_output=True,
     )
     subprocess.run(

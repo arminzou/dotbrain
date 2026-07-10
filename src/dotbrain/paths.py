@@ -62,9 +62,29 @@ def data_dir(dotbrain_home: Path) -> Path:
     return root / DATA_DIRS[0]
 
 
+def archive_root(dotbrain_home: Path) -> Path:
+    """The canonical root for archived Brainspaces."""
+    return Path(dotbrain_home) / "archive"
+
+
+def legacy_archive_root(dotbrain_home: Path) -> Path:
+    """Legacy hidden archive location under the active Brainspace registry."""
+    return data_dir(dotbrain_home) / ".archive"
+
+
 def brainspace(dotbrain_home: Path, name: str) -> Path:
     """Return the Brainspace path for a project: ``<dotbrain_home>/<data-dir>/<name>``."""
     return data_dir(dotbrain_home) / name
+
+
+def archived_brainspace(dotbrain_home: Path, name: str) -> Path:
+    """Return the canonical archived Brainspace path for ``name``."""
+    return archive_root(dotbrain_home) / name
+
+
+def legacy_archived_brainspace(dotbrain_home: Path, name: str) -> Path:
+    """Return the legacy hidden archived Brainspace path for ``name``."""
+    return legacy_archive_root(dotbrain_home) / name
 
 
 def brainspaces(dotbrain_home: Path) -> list[Path]:

@@ -87,6 +87,20 @@ Important detail:
 
 If a project uses a server beads backend, dropping that remote database is a separate operation.
 
+Use the dedicated lifecycle commands when you want archive semantics without treating them as a
+special case of `unwire`:
+
+```bash
+dotbrain archive
+dotbrain archive --name <project> --no-repo
+dotbrain unarchive <project>
+dotbrain wire
+```
+
+`dotbrain archive` disconnects the adopter repo and moves the Brainspace to `~/dotbrain/archive/`.
+`dotbrain unarchive` restores it to the active `brainspaces/` registry without rewiring the repo;
+run `dotbrain wire` afterward if you want the adopter checkout linked again.
+
 ## Worktrees
 
 Worktrees do not get separate Brains or separate execution stores.

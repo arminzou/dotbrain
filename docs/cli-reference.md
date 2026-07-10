@@ -25,6 +25,10 @@ Reference for the public `dotbrain` CLI.
 │ refresh    Refresh Brain/workspace files, repo links, beads state, and       │
 │            project skills.                                                   │
 │ unwire     Disconnect an adopter repo from its Brainspace.                   │
+│ archive    Archive a Brainspace into archive/ after disconnecting any        │
+│            adopter repo wiring.                                              │
+│ unarchive  Restore an archived Brainspace into the active brainspaces/       │
+│            registry without rewiring it.                                     │
 │ codex      Create or reuse a dotbrain-wired git worktree and start Codex     │
 │            there.                                                            │
 │ skills     Link dotbrain skills into agent runtimes.                         │
@@ -61,6 +65,25 @@ Reference for the public `dotbrain` CLI.
 │ --scope            TEXT  global | project | all [default: all]               │
 │ --project          TEXT  Limit project linking to a single Brainspace by     │
 │                          name.                                               │
+│ --help     -h            Show this message and exit.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+## `dotbrain archive`
+
+```text
+                                                                                
+ Usage: dotbrain archive [OPTIONS]                                              
+                                                                                
+ Archive a Brainspace into archive/ after disconnecting any adopter repo        
+ wiring.                                                                        
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --repo             PATH  Adopter repo path; defaults to cwd.                 │
+│ --name             TEXT  Project/Brainspace name.                            │
+│ --no-repo                Archive the named Brainspace only; do not edit an   │
+│                          adopter repo.                                       │
+│ --dry-run                Preview the archive without performing it.          │
 │ --help     -h            Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -367,6 +390,25 @@ Reference for the public `dotbrain` CLI.
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
+## `dotbrain unarchive`
+
+```text
+                                                                                
+ Usage: dotbrain unarchive [OPTIONS] NAME                                       
+                                                                                
+ Restore an archived Brainspace into the active brainspaces/ registry without   
+ rewiring it.                                                                   
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    name      TEXT  Project/Brainspace name to restore from archive/.       │
+│                      [required]                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --dry-run            Preview the restore without performing it.              │
+│ --help     -h        Show this message and exit.                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
 ## `dotbrain unwire`
 
 ```text
@@ -375,9 +417,11 @@ Reference for the public `dotbrain` CLI.
                                                                                 
  Disconnect an adopter repo from its Brainspace.                                
                                                                                 
- Offboards the Brainspace only (keep/archive/delete). To drop a server-backend  
- project's                                                                      
- remote beads database, use `dotbrain beads drop-db` separately.                
+ Offboards the Brainspace only (keep/archive/delete). For explicit lifecycle    
+ commands, prefer                                                               
+ `dotbrain archive` and `dotbrain unarchive`. To drop a server-backend          
+ project's remote beads                                                         
+ database, use `dotbrain beads drop-db` separately.                             
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                    Unwire every project Brainspace (keep only; see     │
@@ -387,7 +431,8 @@ Reference for the public `dotbrain` CLI.
 │ --name             TEXT  Project/Brainspace name                             │
 │ --no-repo                Only offboard the named Brainspace; do not edit an  │
 │                          adopter repo.                                       │
-│ --archive                Move Brainspace to <data-dir>/.archive/             │
+│ --archive                Move Brainspace to archive/ (compatibility path;    │
+│                          prefer `dotbrain archive`).                         │
 │ --delete                 Remove the Brainspace (destructive)                 │
 │ --dry-run                Preview the offboard without performing it.         │
 │ --help     -h            Show this message and exit.                         │

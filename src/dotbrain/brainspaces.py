@@ -221,21 +221,23 @@ def offboard_brainspace(
 
     if mode == "archive":
         if dry_run:
-            return [f"would archive Brainspace {rel}/{project} -> {rel}/.archive/{project} "
+            return [f"would archive Brainspace {rel}/{project} -> archive/{project} "
                     "(stripping runtime byproducts first)"]
         _strip_brainspace_byproducts(dotbrain_home, project, run)
-        archive_dir = paths.data_dir(dotbrain_home) / ".archive"
+        archive_dir = paths.archive_root(dotbrain_home)
         archive_dir.mkdir(exist_ok=True)
-        dest = archive_dir / project
+        dest = paths.archived_brainspace(dotbrain_home, project)
+        if dest.exists():
+            raise FileExistsError(f"archive target already exists: {dest}")
         if _is_tracked(dotbrain_home, project, run):
             run(["git", "-C", str(dotbrain_home), "mv",
-                 f"{rel}/{project}", f"{rel}/.archive/{project}"])
+                 f"{rel}/{project}", f"archive/{project}"])
             staged = " (staged)"
         else:
             shutil.move(str(brainspace), str(dest))
             staged = " (uncommitted)"
         return [
-            f"archived Brainspace -> {rel}/.archive/{project}{staged}",
+            f"archived Brainspace -> archive/{project}{staged}",
             f"suggested commit: chore(brain): archive {project} Brainspace",
         ]
 
