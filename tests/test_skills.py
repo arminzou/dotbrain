@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import skills
+from dotbrain import resource_loader, skills
 
 BASE = skills.project_baseline()
 
@@ -231,3 +231,28 @@ def test_link_into_stashes_real_collision(dotbrain_home: Path, tmp_path: Path):
     result = skills.link_into(dotbrain_home, dest, ("brain/wire-brain",))
     assert (dest / "wire-brain").is_symlink()
     assert result.stashed and result.stashed[0].read_text() == "real, do not delete"
+
+
+def test_wire_brain_skill_tracks_current_cli_wiring_model():
+    text = resource_loader.resource("skills/brain/wire-brain/SKILL.md").read_text()
+
+    for command in (
+        "dotbrain wire",
+        "dotbrain wire --all",
+        "dotbrain refresh",
+        "dotbrain bootstrap",
+        "dotbrain doctor",
+        "dotbrain unwire",
+        "dotbrain beads drop-db",
+    ):
+        assert command in text
+
+    for phrase in (
+        "Expected links are derived from project config",
+        "beads.mode",
+        "agents",
+        "skills",
+        "subagents",
+        "public-tracker",
+    ):
+        assert phrase in text

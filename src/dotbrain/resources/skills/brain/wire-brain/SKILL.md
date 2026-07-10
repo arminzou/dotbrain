@@ -1,115 +1,142 @@
 ---
 name: wire-brain
-description: Wire a repo into dotbrain by creating or updating its Brainspace, Brain, agent workspace symlinks, beads pointer, and repo agent instructions. Use when starting a new project under dotbrain, connecting an existing repo to a Brainspace, repairing .brain/.beads/.claude/.codex wiring, or updating bootstrap expectations.
+description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace using the current dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads/.claude/.codex links, reconciling skills/agents/hooks after an upgrade, or checking bootstrap expectations.
 ---
 
 # Wire Brain
 
-Connect a code repo to its project Brainspace in dotbrain.
+Connect an adopter repo to its private Brainspace through `dotbrain`. The CLI owns wiring,
+scaffolding, symlink reconciliation, hooks, skill links, agent links, and beads setup. Agents using
+this skill choose the right CLI command, inspect the result, and hand Brain content changes to the
+skill that owns that content.
 
-## Preconditions
+## Command Choice
 
-- dotbrain is available at `~/dotbrain`.
-- The target code repo path is known.
-- The project name defaults to the repo directory name unless the user specifies one.
-- `dotbrain bootstrap` performs machine-wide reconciliation later; this skill handles one target
-  repo/Brainspace at a time.
-- Wiring makes one minimal tracked adopter-repo change: a context pointer to
-  `.brain/AGENTS.md`. Do not edit `.gitignore`, `README.md`, `dev/`, docs, source, or legacy
-  context as part of wiring.
+Use the narrowest command that matches the job:
 
-## Default Command
+- `dotbrain wire --repo <path>`: create or repair one Brainspace and attach one adopter repo.
+- `dotbrain wire --name <project> --no-repo`: create a Brain-only Brainspace.
+- `dotbrain wire --all`: reconcile every existing Brainspace with its adopter repo under the repo
+  base.
+- `dotbrain refresh`: refresh an existing Brainspace; use `--name <project>` to select one project.
+- `dotbrain refresh --name <project>`: refresh one existing Brainspace after config, skill, agent,
+  template, or CLI changes.
+- `dotbrain refresh --all`: refresh every Brainspace without creating new projects.
+- `dotbrain bootstrap`: install or reconcile machine-global hooks and global skills.
+- `dotbrain doctor`: inspect machine readiness, project wiring, hooks, and beads health.
+- `dotbrain unwire`: detach an adopter repo and keep, archive, or delete the private Brainspace.
 
-From the project repo, run:
+Do not recreate these steps by hand unless the CLI reports a concrete obstruction that must be
+removed first.
+
+## Ownership
+
+`~/dotbrain/config.yaml` holds global infrastructure defaults, such as a shared beads sql-server.
+Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml`:
+
+- `beads.mode`: `embedded`, `server`, or `none`.
+- `agents`: active workspaces, usually `claude` and/or `codex`.
+- `skills`: project skill extras beyond the packaged required core.
+- `subagents`: project subagent extras.
+- `public-tracker` and `public-tracker-id`: public intake metadata, if any.
+
+The CLI seeds missing Brain scaffolding and links runtime assets. Agents author Brain knowledge only
+through the relevant Brain skills: context through `build-context`, execution through
+`operate-execution`, design through `to-design`, and public intake through `triage-public`.
+
+## Wiring Contract
+
+A wired adopter repo points at its Brainspace through local, gitignored symlinks. Expected links are derived from project config:
+
+- `.brain` always points at the Brain.
+- `.beads` exists unless `beads.mode` is `none`.
+- `.claude` exists when the `claude` agent workspace is active.
+- `.codex` exists when the `codex` agent workspace is active.
+
+The repo's `.git/info/exclude` ignores `/.brain`, `/.beads`, `/.claude`, and `/.codex`. The public
+repo context may contain the standard pointer to `.brain/AGENTS.md`; private Brain paths, ADRs,
+beads details, and tracker operations stay out of public repo files.
+
+## Wire One Repo
+
+From the adopter repo, run:
 
 ```bash
 dotbrain wire
 ```
 
-Use `--repo <path>` or `--name <project-name>` only when the defaults are wrong.
+From elsewhere, pass the repo explicitly:
 
-Public tracker metadata, when needed, lives in `.brain/project.yaml` rather than a wire-time CLI flag.
-The default wiring remains private-only (beads is always the
-source of truth).
-
-The script owns deterministic wiring and appends the `.brain/AGENTS.md` pointer idempotently to the
-repo's `AGENTS.md` and, when distinct, `CLAUDE.md`. Use the rest of this skill to inspect results,
-repair edge cases, or make explicit follow-up changes after the user approves them.
-
-## Brainspace Layout
-
-Create or update `~/dotbrain/brainspaces/<name>/`:
-
-```text
-.brain/
-  AGENTS.md       # Brain entrypoint and read order
-  CLAUDE.md -> AGENTS.md
-  CONTEXT.md     # domain vocabulary, created lazily when useful
-  adr/           # decisions, created lazily
-  docs/          # optional durable operational docs (e.g. labels.md, created on demand)
-  project.yaml   # skill selection and engine/tracker config, CLI-seeded from templates/brain/
-.beads/          # execution engine: thin beads pointer/config plus ignored runtime state
-.claude/         # Claude workspace: SessionStart hook (brain + `bd prime`)
-.codex/          # Codex workspace: brain + beads `bd codex-hook` hooks
+```bash
+dotbrain wire --repo /path/to/repo
 ```
 
-Do not create a per-project brain git repo. The Brainspace is versioned as part of dotbrain.
+Use `--name <project>` only when the Brainspace name should differ from the repo directory name.
+Use beads options only for the initial tracker setup when project config or global config is not
+already sufficient:
 
-## Steps
+```bash
+dotbrain wire --repo /path/to/repo --beads-server-host db.example.internal
+dotbrain wire --repo /path/to/repo --beads-remote https://doltremoteapi.dolthub.com/owner/repo
+dotbrain wire --repo /path/to/repo --skip-beads
+```
 
-1. **Create or inspect the brain.**
-   - Read any existing `.brain/` files before changing them.
-   - Seed `.brain/AGENTS.md` with read order: agent instructions, `bd ready` / `bd list`, system
-     docs, `CONTEXT.md`, then ADRs.
-   - Create `.brain/CONTEXT.md` and `.brain/adr/` only when there is real content.
+After wiring, run:
 
-2. **Initialize beads for the Brainspace.**
-   - Use the current bootstrap policy for `.beads/config.yaml` and the named database.
-   - Verify with `bd -C <repo> ready` after the repo symlink is wired, or
-     `bd -C ~/dotbrain/brainspaces/<name> ready` while operating directly in dotbrain.
-   - Dolt/runtime state stays ignored. `dotbrain wire` owns the commit: it undoes beads' own
-     `bd init` commit and lands the whole Brainspace as one `feat(brain): wire <name>` commit in
-     dotbrain (wire-project owns Brainspace writes). Do not hand-commit the
-     dotbrain side.
+```bash
+dotbrain doctor
+git -C /path/to/repo status --short
+```
 
-3. **Wire the repo symlinks.**
-   ```bash
-   ln -s ~/dotbrain/brainspaces/<name>/.brain  <repo>/.brain
-   ln -s ~/dotbrain/brainspaces/<name>/.beads  <repo>/.beads
-   ln -s ~/dotbrain/brainspaces/<name>/.claude <repo>/.claude
-   ln -s ~/dotbrain/brainspaces/<name>/.codex  <repo>/.codex
-   ```
-   Add `/.brain`, `/.beads`, `/.claude`, and `/.codex` to `<repo>/.git/info/exclude` with leading
-   slashes and no trailing slashes. Any symlink whose target is outside the containing git repo is
-   local wiring and must be ignored, not tracked. Do not edit the adopter repo's tracked
-   `.gitignore` as part of wiring. Exception: the dotbrain repo itself tracks its project #0
-   symlink ignore policy in `.gitignore`.
+Expected public repo changes are limited to the agent context pointer when it is newly inserted.
+Symlinks whose targets are outside the repo must remain untracked.
 
-4. **Let the CLI seed the Brain skeleton.**
-   `dotbrain wire` seeds `AGENTS.md`, `DOTBRAIN.md`, and `project.yaml` from `templates/brain/`.
-   This skill provisions the containers; it does not hand-write Brain content.
-   - Skill *selection* lives in `project.yaml` (`skills:`); project tracker conventions, when a
-     project deviates from defaults, go in `AGENTS.md` under Project.
-   - `.brain/docs/labels.md` is **not** seeded — `operate-execution` / `triage-public` create it the
-     first time a label convention is actually decided. An absent file means canonical triage defaults.
+## Repair Or Refresh
 
-5. **Add only the adopter repo context pointer.**
-   Append the one-line `.brain/AGENTS.md` pointer to the repo's tracked `AGENTS.md` and, if it is a
-   distinct file, `CLAUDE.md`. Do not rewrite or consolidate the repo context during wiring. If the
-   user later asks to consolidate repo context, use `build-context` as a separate, explicit
-   follow-up.
+Use repair commands by symptom:
 
-## Done When
+- Broken or missing repo symlinks for one project: `dotbrain wire --repo <path>`.
+- Existing Brainspaces need repo link reconciliation: `dotbrain wire --all`.
+- Skills, agents, hooks, templates, or legacy skill manifests changed: `dotbrain refresh --name
+  <project>` or `dotbrain refresh --all`.
+- Machine-global hooks or global skills are stale: `dotbrain bootstrap`, or `dotbrain bootstrap
+  --only claude-hook`, `--only codex-hook`, or `--only skills`.
+- Need a health report before deciding: `dotbrain doctor`.
 
-- `<repo>/.brain` resolves to `~/dotbrain/brainspaces/<name>/.brain`.
-- `<repo>/.beads` resolves to `~/dotbrain/brainspaces/<name>/.beads`.
-- `<repo>/.claude` resolves to `~/dotbrain/brainspaces/<name>/.claude`.
-- `<repo>/.codex` resolves to `~/dotbrain/brainspaces/<name>/.codex`.
-- `<repo>/.git/info/exclude` ignores `/.brain`, `/.beads`, `/.claude`, and `/.codex`.
-- No symlink pointing outside `<repo>` is tracked by git.
-- `bd -C <repo> ready` works or reports a valid empty database.
-- `.brain/project.yaml` carries the CLI-seeded skill selection and engine/tracker config.
-- The repo's agent context has a one-line pointer to `.brain/AGENTS.md`.
-- `git -C <repo> status --short` shows no tracked-file changes other than that pointer.
+`refresh` does not create projects. `wire --all` reconciles known Brainspaces and warns when it
+cannot find an adopter repo.
 
-Brain knowledge writes are agent-managed (the brain is git-tracked, so changes are revertable). Execution-state writes in beads are agent-managed too.
+## Worktrees
+
+dotbrain worktree support reuses the main checkout's Brainspace links. Session-start hooks and the
+worktree bootstrap commands repair worktree links so worker sessions see the same Brain, beads, and
+agent workspaces as the main checkout.
+
+Use the CLI entrypoints for worktree launches and bootstrap hooks. Do not create separate
+Brainspaces for git worktrees.
+
+## Offboarding
+
+Detach through the CLI:
+
+```bash
+dotbrain unwire --repo /path/to/repo
+dotbrain unwire --repo /path/to/repo --archive
+dotbrain unwire --repo /path/to/repo --delete
+dotbrain unwire --name <project> --no-repo --archive
+```
+
+Remote beads databases are separate from Brainspace offboarding. Use `dotbrain beads drop-db` only
+when the operator explicitly wants to remove the server-side database.
+
+## Verification
+
+Before declaring wiring fixed:
+
+- `dotbrain doctor` reports no relevant errors.
+- `readlink <repo>/.brain` resolves into `~/dotbrain/brainspaces/<name>/.brain`.
+- Expected `.beads`, `.claude`, and `.codex` links match `.brain/project.yaml`.
+- `.git/info/exclude` contains the dotbrain link entries.
+- `git -C <repo> status --short` shows no unexpected tracked changes.
+- If beads are enabled, `bd -C <repo> ready` works or reports a valid empty tracker.
+- Public repo files contain no private Brain content beyond the `.brain/AGENTS.md` pointer.
