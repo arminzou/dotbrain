@@ -304,8 +304,7 @@ def link_into(
             message = paths.symlink_privilege_message(exc)
             if message is None:
                 raise
-            result.warnings.append(f"{dest}: {message}")
-            continue
+            raise RuntimeError(f"{dest}: {message}") from exc
         result.linked.append(f"{prefix}{dest.name}")
 
     for entry in sorted(skills_dir.iterdir()):

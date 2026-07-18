@@ -168,7 +168,7 @@ def link_global_skills(
         result.warnings += [f"{warning} (global {key})" for warning in link_result.warnings]
         result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
         result.logs += [f"pruned stale {pruned}" for pruned in link_result.pruned]
-        result.logs.append(f"global: linked {len(skill_paths)} skill(s) into {dest}")
+        result.logs.append(f"global: linked {len(link_result.linked)} skill(s) into {dest}")
     return result
 
 

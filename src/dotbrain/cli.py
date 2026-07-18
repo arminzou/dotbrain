@@ -95,8 +95,11 @@ def bootstrap(
         bootstrap_mod.install_global_codex_hook(root)
         typer.echo(f"[bootstrap] installed Codex global bootstrap hook in {Path.home() / '.codex' / 'hooks.json'}")
     if run_skills:
-        _render_global_skill_link(root, "all")
-        _render_global_agent_link(root, "all")
+        try:
+            _render_global_skill_link(root, "all")
+            _render_global_agent_link(root, "all")
+        except RuntimeError as exc:
+            raise typer.BadParameter(str(exc)) from exc
 
 def _render_doctor(report: doctor_mod.DoctorReport) -> None:
     ok, warn, err = 0, 0, 0
@@ -182,7 +185,10 @@ def wire(
     if all:
         if repo or name or no_repo or remote:
             raise typer.BadParameter("--all is mutually exclusive with --repo, --name, --no-repo, and --beads-remote")
-        result = workflows.wire_all_projects(root, repo_base=repo_base)
+        try:
+            result = workflows.wire_all_projects(root, repo_base=repo_base)
+        except (ValueError, RuntimeError) as exc:
+            raise typer.BadParameter(str(exc)) from exc
         for line in result.logs:
             typer.echo(f"[wire] {line}")
         for w in result.warnings:
@@ -555,12 +561,15 @@ def skills_link(
         raise typer.BadParameter(f"invalid --scope: {scope}")
 
     root = paths.resolve_dotbrain_home()
-    if scope in {"project", "all"}:
-        _link_projects_native(root, target, project)
-    if scope in {"global", "all"}:
-        if project:
-            typer.echo("skill-link: warning: --project is ignored for global scope", err=True)
-        _render_global_skill_link(root, target)
+    try:
+        if scope in {"project", "all"}:
+            _link_projects_native(root, target, project)
+        if scope in {"global", "all"}:
+            if project:
+                typer.echo("skill-link: warning: --project is ignored for global scope", err=True)
+            _render_global_skill_link(root, target)
+    except RuntimeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _link_projects_native(root: Path, target: str, project: Optional[str]) -> None:
@@ -583,7 +592,7 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
             typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
         for pruned in result.pruned:
             typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
-        typer.echo(f"project: linked {len(skill_paths)} skill(s) into {brainspace.name}")
+        typer.echo(f"project: linked {len(result.linked)} skill(s) into {brainspace.name}")
 
 
 def _render_global_skill_link(root: Path, target: str) -> None:

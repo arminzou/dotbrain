@@ -48,19 +48,17 @@ class ReconcileResult:
     repaired: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
     collisions: list[str] = field(default_factory=list)
-    failed: list[str] = field(default_factory=list)
 
 
-def _symlink_directory(path: Path, target_str: str) -> str | None:
-    """Create a directory symlink at ``path``. Returns a Developer-Mode warning on privilege failure."""
+def _symlink_directory(path: Path, target_str: str) -> None:
+    """Create a directory symlink at ``path`` or raise a clear privilege failure."""
     try:
         path.symlink_to(target_str, target_is_directory=True)
     except OSError as exc:
         message = paths.symlink_privilege_message(exc)
         if message is None:
             raise
-        return f"{path}: {message}"
-    return None
+        raise RuntimeError(f"{path}: {message}") from exc
 
 
 def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
@@ -81,10 +79,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             if paths.symlink_target_matches(os.readlink(path), target_str):
                 continue
             path.unlink()
-            failure = _symlink_directory(path, target_str)
-            if failure:
-                result.failed.append(failure)
-                continue
+            _symlink_directory(path, target_str)
             result.repaired.append(name)
             continue
 
@@ -92,10 +87,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             result.collisions.append(name)
             continue
 
-        failure = _symlink_directory(path, target_str)
-        if failure:
-            result.failed.append(failure)
-            continue
+        _symlink_directory(path, target_str)
         result.created.append(name)
 
     return result
@@ -140,7 +132,7 @@ def expand_path(raw: str, home: Path | None = None) -> Path:
     h = Path(home) if home is not None else Path.home()
     if raw == "~":
         return h
-    if raw.startswith("~/"):
+    if raw.startswith(("~/", "~\\")):
         return h / raw[2:]
     return Path(raw)
 
@@ -392,7 +384,6 @@ def wire_repo(
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")
     for name in result.collisions:
         warnings.append(f"{repo / name} exists and is not a symlink; leaving it unchanged")
-    warnings.extend(result.failed)
     for name in targets:
         if use_local_excludes:
             ensure_local_exclude_line(repo, f"/{name}", run)

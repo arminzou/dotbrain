@@ -7,6 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from dotbrain import adopter_repos, paths
 
 
@@ -90,7 +92,7 @@ def _windows_privilege_error() -> OSError:
     return exc
 
 
-def test_reconcile_translates_windows_privilege_error(tmp_path: Path, monkeypatch) -> None:
+def test_reconcile_raises_translated_windows_privilege_error(tmp_path: Path, monkeypatch) -> None:
     directory = tmp_path / "repo"
     directory.mkdir()
     brainspace = tmp_path / "brainspace"
@@ -102,11 +104,9 @@ def test_reconcile_translates_windows_privilege_error(tmp_path: Path, monkeypatc
 
     monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
 
-    result = adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
+    with pytest.raises(RuntimeError, match="Developer Mode"):
+        adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
 
-    assert result.created == []
-    assert len(result.failed) == 1
-    assert "Developer Mode" in result.failed[0]
     assert not (directory / ".brain").exists()
 
 
@@ -168,6 +168,10 @@ def test_expand_path_tilde_alone(fake_home: Path):
 
 def test_expand_path_tilde_prefix(fake_home: Path):
     assert adopter_repos.expand_path("~/dotbrain", fake_home) == fake_home / "dotbrain"
+
+
+def test_expand_path_windows_tilde_prefix(fake_home: Path):
+    assert adopter_repos.expand_path(r"~\.codex\skills", fake_home) == fake_home / r".codex\skills"
 
 
 def test_expand_path_tilde_nested(fake_home: Path):
@@ -293,7 +297,7 @@ def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
     assert (repo / ".claude").read_text() == "real"
 
 
-def test_ensure_symlink_translates_windows_privilege_error(tmp_path: Path, monkeypatch):
+def test_ensure_symlink_raises_translated_windows_privilege_error(tmp_path: Path, monkeypatch):
     repo = tmp_path / "repo"
     repo.mkdir()
     good = tmp_path / "target"
@@ -304,8 +308,8 @@ def test_ensure_symlink_translates_windows_privilege_error(tmp_path: Path, monke
 
     monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
 
-    warning = adopter_repos.ensure_symlink(repo, ".brain", good)
-    assert warning and "Developer Mode" in warning
+    with pytest.raises(RuntimeError, match="Developer Mode"):
+        adopter_repos.ensure_symlink(repo, ".brain", good)
 
 
 def test_ensure_agent_context_pointer_creates_when_absent(tmp_path: Path):

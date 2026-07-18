@@ -22,6 +22,43 @@ function Write-Log($Message)  { Write-Host "[install] $Message" }
 function Write-Warn($Message) { Write-Warning "[install] $Message" }
 function Write-Die($Message)  { Write-Host "[install] error: $Message" -ForegroundColor Red; exit 1 }
 
+function Add-ProcessPath($Directory) {
+    if (-not $Directory) { return }
+    $entries = $env:Path -split [IO.Path]::PathSeparator
+    if ($entries -notcontains $Directory) {
+        $env:Path = "$Directory$([IO.Path]::PathSeparator)$env:Path"
+    }
+}
+
+function Get-BdInstallDirectories {
+    $directories = [System.Collections.Generic.List[string]]::new()
+
+    # Beads records the exact binary path for release, Go, and source installs.
+    $recorded = Get-Variable -Scope Script -Name LastInstallPath -ErrorAction SilentlyContinue
+    if ($recorded -and $recorded.Value) {
+        $directories.Add((Split-Path -Parent $recorded.Value))
+    }
+
+    $directories.Add((Join-Path $env:LOCALAPPDATA "Programs\bd"))
+
+    # Its release download can fall back to `go install`, which writes to GOBIN or GOPATH\bin.
+    if (Get-Command go -ErrorAction SilentlyContinue) {
+        $goBin = (& go env GOBIN 2>$null | Select-Object -First 1)
+        if ($goBin -and $goBin.Trim()) {
+            $directories.Add($goBin.Trim())
+        } else {
+            $goPath = (& go env GOPATH 2>$null | Select-Object -First 1)
+            foreach ($entry in ($goPath -split [IO.Path]::PathSeparator)) {
+                if ($entry.Trim()) {
+                    $directories.Add((Join-Path $entry.Trim() "bin"))
+                }
+            }
+        }
+    }
+
+    return $directories | Select-Object -Unique
+}
+
 # Install uv if not already available.
 function Ensure-Uv {
     $existing = Get-Command uv -ErrorAction SilentlyContinue
@@ -60,9 +97,11 @@ function Ensure-Bd {
     Write-Log "bd not found; installing Beads"
     Invoke-RestMethod https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | Invoke-Expression
 
-    $bdBin = Join-Path $env:LOCALAPPDATA "Programs\bd"
-    if (($env:Path -split ";") -notcontains $bdBin) {
-        $env:Path = "$bdBin;$env:Path"
+    foreach ($bdBin in Get-BdInstallDirectories) {
+        if (Test-Path (Join-Path $bdBin "bd.exe")) {
+            Add-ProcessPath $bdBin
+            break
+        }
     }
 
     if (-not (Get-Command bd -ErrorAction SilentlyContinue)) {
