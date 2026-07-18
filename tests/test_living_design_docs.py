@@ -10,8 +10,8 @@ def test_seeded_design_docs_are_living_while_active(dotbrain_home: Path, tmp_pat
     brainspaces.seed_brain(brainspace, dotbrain_home)
 
     brain = brainspace / ".brain"
-    dotbrain_doc = (brain / "DOTBRAIN.md").read_text()
-    designs_readme = (brain / "designs" / "README.md").read_text()
+    dotbrain_doc = (brain / "DOTBRAIN.md").read_text(encoding="utf-8")
+    designs_readme = (brain / "designs" / "README.md").read_text(encoding="utf-8")
 
     dotbrain_doc = " ".join(dotbrain_doc.split())
     designs_readme = " ".join(designs_readme.split())
@@ -34,7 +34,7 @@ def test_to_design_states_criteria_lifecycle(dotbrain_home: Path):
         / "brain"
         / "to-design"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
     assert "Prefer mechanical pass/fail checks" in skill
     assert "human decision gate" in skill
@@ -49,7 +49,7 @@ def test_to_issues_uses_spec_id_for_design_linked_beads(dotbrain_home: Path):
         / "brain"
         / "to-issues"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
     assert "--spec-id design:<slug>" in skill
     assert "Do not use `--design` for design-linked initiative slices." in skill
@@ -62,7 +62,7 @@ def test_to_issues_titles_echo_design_doc_subsections(dotbrain_home: Path):
         / "brain"
         / "to-issues"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
     assert "Word each slice `Title` to echo the corresponding `Current Design` subsection" in skill
 
@@ -74,7 +74,7 @@ def test_iterate_design_rereads_design_doc_every_cycle(dotbrain_home: Path):
         / "brain"
         / "iterate-design"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(skill.split())
 
     assert "Loop protocol (every iteration, not just the first)" in normalized
@@ -89,7 +89,7 @@ def test_iterate_design_has_loop_worthiness_check(dotbrain_home: Path):
         / "brain"
         / "iterate-design"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(skill.split())
 
     assert "Loop-worthiness check" in normalized
@@ -105,7 +105,7 @@ def test_iterate_design_distinguishes_reviewer_from_verifier(dotbrain_home: Path
         / "brain"
         / "iterate-design"
         / "SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(skill.split())
 
     assert "The reviewer supplements the verifier, never replaces it" in normalized

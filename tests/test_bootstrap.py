@@ -11,6 +11,8 @@ from typer.testing import CliRunner
 from dotbrain import bootstrap as bootstrap_mod, config, paths, resource_loader, skills, subagents, workflows
 from dotbrain.cli import app
 
+from conftest import set_fake_home
+
 runner = CliRunner()
 
 
@@ -171,7 +173,7 @@ def test_link_global_subagents_links_configured_target(
     dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     dest = tmp_path / ".codex" / "agents"
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
     (dotbrain_home / "agents" / "agents.yaml").write_text(
         "targets:\n"
@@ -179,7 +181,7 @@ def test_link_global_subagents_links_configured_target(
         "global:\n"
         "  - reviewer\n"
     )
-    result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex")
+    result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex", home=tmp_path)
 
     assert result.warnings == []
     assert (dest / "reviewer.toml").is_symlink()
@@ -189,7 +191,7 @@ def test_link_global_subagents_links_configured_target(
 def test_link_global_subagents_warns_once_for_missing_name(
     dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_fake_home(monkeypatch, tmp_path)
     (dotbrain_home / "agents").mkdir(parents=True, exist_ok=True)
     (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - missing-agent\n")
 

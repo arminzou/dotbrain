@@ -14,6 +14,8 @@ from dotbrain import bootstrap as bootstrap_mod, migrate, paths
 from dotbrain import cli
 from dotbrain.cli import app
 
+from conftest import set_fake_home
+
 runner = CliRunner()
 
 
@@ -304,7 +306,7 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
 
 def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
     (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - reviewer\n")
 
@@ -333,7 +335,7 @@ def test_skills_link_global_renders_bootstrap_result(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(fake_home))
+    set_fake_home(monkeypatch, fake_home)
     _write_global_config(
         dotbrain_home,
         "targets:\n  codex: ~/.codex/skills\nglobal_extra:\n  - misc/discovery-test\n",
@@ -349,7 +351,7 @@ def test_skills_link_global_uses_default_targets(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(fake_home))
+    set_fake_home(monkeypatch, fake_home)
     _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n")
     result = runner.invoke(
         app, ["skills", "link", "--scope", "global", "--target", "claude-code"]

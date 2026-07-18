@@ -6,6 +6,7 @@ live dotbrain checkout.
 
 from __future__ import annotations
 
+import pathlib
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,6 +18,38 @@ from dotbrain import paths
 # The repo root — resolved from this file's location so tests can find the real
 # templates/brain/ that ships with dotbrain.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Test fixtures across the suite create symlinks via bare `path.symlink_to(target)`, correct on
+# POSIX (target_is_directory is a no-op there) but wrong on Windows when the target is a directory:
+# without it, Windows creates a file-type reparse point pointing at a directory, which behaves
+# incorrectly for later directory operations. Rather than touch every fixture call site, patch
+# Path.symlink_to for the whole test session to infer target_is_directory from whether the target
+# actually is a directory (resolved relative to the link's own parent for relative targets) — the
+# same inference production call sites make explicitly, applied once here for every test fixture.
+_original_symlink_to = pathlib.Path.symlink_to
+
+
+def _symlink_to_auto(self: pathlib.Path, target, target_is_directory: bool = False) -> None:
+    if not target_is_directory:
+        target_path = Path(target)
+        if not target_path.is_absolute():
+            target_path = self.parent / target_path
+        target_is_directory = target_path.is_dir()
+    _original_symlink_to(self, target, target_is_directory=target_is_directory)
+
+
+pathlib.Path.symlink_to = _symlink_to_auto
+
+
+def set_fake_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
+    """Sandbox the home directory for Path.home()/expanduser() across platforms.
+
+    HOME alone isn't enough: os.path.expanduser() on Windows checks USERPROFILE first and never
+    reads HOME at all, so a test that only sets HOME silently keeps resolving `~` to the real
+    Windows user profile instead of the sandboxed tmp_path.
+    """
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
 
 
 def _git_init(repo: Path) -> None:
