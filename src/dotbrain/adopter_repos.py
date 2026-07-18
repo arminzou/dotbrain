@@ -50,6 +50,17 @@ class ReconcileResult:
     collisions: list[str] = field(default_factory=list)
 
 
+def _symlink_directory(path: Path, target_str: str) -> None:
+    """Create a directory symlink at ``path`` or raise a clear privilege failure."""
+    try:
+        path.symlink_to(target_str, target_is_directory=True)
+    except OSError as exc:
+        message = paths.symlink_privilege_message(exc)
+        if message is None:
+            raise
+        raise RuntimeError(f"{path}: {message}") from exc
+
+
 def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
     """Reconcile a Brainspace link mapping into one directory."""
     directory = Path(directory)
@@ -65,10 +76,10 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             continue
 
         if path.is_symlink():
-            if os.readlink(path) == target_str:
+            if paths.symlink_target_matches(os.readlink(path), target_str):
                 continue
             path.unlink()
-            path.symlink_to(target_str)
+            _symlink_directory(path, target_str)
             result.repaired.append(name)
             continue
 
@@ -76,7 +87,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             result.collisions.append(name)
             continue
 
-        path.symlink_to(target_str)
+        _symlink_directory(path, target_str)
         result.created.append(name)
 
     return result
@@ -121,7 +132,7 @@ def expand_path(raw: str, home: Path | None = None) -> Path:
     h = Path(home) if home is not None else Path.home()
     if raw == "~":
         return h
-    if raw.startswith("~/"):
+    if raw.startswith(("~/", "~\\")):
         return h / raw[2:]
     return Path(raw)
 
@@ -168,9 +179,9 @@ def abbrev_home(path: Path, home: Path | None = None) -> str:
     if path == home:
         return "~"
     try:
-        return f"~/{path.relative_to(home)}"
+        return f"~/{path.relative_to(home).as_posix()}"
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def is_dotbrain_repo(repo: Path, dotbrain_home: Path) -> bool:
@@ -281,13 +292,12 @@ def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:
     path = Path(repo) / name
     target_str = str(target)
     if path.is_symlink():
-        if os.readlink(path) == target_str:
+        if paths.symlink_target_matches(os.readlink(path), target_str):
             return None
         path.unlink()
     elif path.exists():
         return f"{path} exists and is not a symlink; leaving it unchanged"
-    path.symlink_to(target_str)
-    return None
+    return _symlink_directory(path, target_str)
 
 
 def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _default_run) -> str | None:

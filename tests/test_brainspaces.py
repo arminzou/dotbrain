@@ -124,10 +124,10 @@ def test_sessionstart_bootstrap_script_does_not_invoke_bd(tmp_path: Path):
     (fake_bin / "bd").chmod(0o755)
     (fake_bin / "dotbrain").chmod(0o755)
 
-    env = {**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}"}
+    env = {**os.environ, "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"}
     with resource_loader.resource_file("scripts/brain-sessionstart.sh") as script:
         result = subprocess.run(
-            ["bash", str(script)],
+            [resource_loader.resolve_bash(), str(script)],
             cwd=repo,
             env=env,
             check=True,

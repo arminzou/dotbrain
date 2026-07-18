@@ -4,7 +4,7 @@ from pathlib import Path
 def test_work_intake_mentions_active_design_doc_for_design_discoveries():
     doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/references/work-intake.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "living place to track design-level discoveries and unknowns" in normalized
@@ -15,7 +15,7 @@ def test_work_intake_mentions_active_design_doc_for_design_discoveries():
 def test_beads_reference_keeps_design_doc_and_status_ownership_separate():
     doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/references/beads.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "living design authority is the active design doc linked by `--spec-id design:<slug>`" in normalized
@@ -25,7 +25,7 @@ def test_beads_reference_keeps_design_doc_and_status_ownership_separate():
 def test_operating_loop_reads_linked_design_doc_before_implementing():
     doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md`" in normalized
@@ -35,7 +35,7 @@ def test_operating_loop_reads_linked_design_doc_before_implementing():
 def test_operate_execution_requires_verification_section_in_public_prs():
     doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "the PR body must carry a `Verification` section" in normalized
@@ -45,7 +45,7 @@ def test_operate_execution_requires_verification_section_in_public_prs():
 def test_iterate_design_requires_verification_section_in_public_prs():
     doc = Path(
         "src/dotbrain/resources/skills/brain/iterate-design/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "the PR body must carry a `Verification` section" in normalized
@@ -55,7 +55,7 @@ def test_iterate_design_requires_verification_section_in_public_prs():
 def test_iterate_design_lands_via_dedicated_branch_and_review_surface():
     doc = Path(
         "src/dotbrain/resources/skills/brain/iterate-design/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "runs on a dedicated branch — never directly on `main`" in normalized
@@ -71,7 +71,7 @@ def test_iterate_design_lands_via_dedicated_branch_and_review_surface():
 def test_operate_execution_lands_local_because_reviewed_continuously():
     doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
 
     assert "the human reviews each edit and each `bd close` as it happens" in normalized
@@ -83,10 +83,10 @@ def test_operate_execution_lands_local_because_reviewed_continuously():
 def test_enter_main_agent_not_referenced_in_iterate_design_or_operate_execution():
     iterate_doc = Path(
         "src/dotbrain/resources/skills/brain/iterate-design/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     operate_doc = Path(
         "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
     assert "enter-main-agent" not in iterate_doc
     assert "enter-main-agent" not in operate_doc

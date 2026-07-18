@@ -32,6 +32,43 @@ ADOPTER_POINTER: str = (
 # redundant. Flip to True to re-enable wire/doctor pointer management.
 INJECT_ADOPTER_POINTER: bool = False
 
+# Windows WinError raised when creating a directory symlink without Developer Mode or elevation.
+_WIN_PRIVILEGE_NOT_HELD = 1314
+
+DEVELOPER_MODE_MESSAGE: str = (
+    "creating a directory symlink requires Windows Developer Mode (or Administrator "
+    "privileges); enable Developer Mode in Settings > Privacy & security > For developers, "
+    "then retry"
+)
+
+
+def symlink_privilege_message(exc: OSError) -> str | None:
+    """Translate a Windows directory-symlink privilege ``OSError`` into a dotbrain message.
+
+    Returns ``None`` when ``exc`` isn't that specific failure, so callers re-raise everything
+    else unchanged.
+    """
+    if getattr(exc, "winerror", None) == _WIN_PRIVILEGE_NOT_HELD:
+        return DEVELOPER_MODE_MESSAGE
+    return None
+
+
+# Windows extended-length path prefix. os.readlink() can surface it on a symlink's stored target
+# even when the string originally passed to symlink_to() didn't have it, so exact-string comparisons
+# against a freshly computed target must strip it on both sides first.
+_WIN_EXTENDED_PREFIX = "\\\\?\\"
+
+
+def _strip_extended_prefix(path_str: str) -> str:
+    if path_str.startswith(_WIN_EXTENDED_PREFIX):
+        return path_str[len(_WIN_EXTENDED_PREFIX):]
+    return path_str
+
+
+def symlink_target_matches(existing: str, expected: str) -> bool:
+    """True when a symlink's ``os.readlink()`` target already matches the expected target string."""
+    return _strip_extended_prefix(existing) == _strip_extended_prefix(expected)
+
 
 def resolve_dotbrain_home() -> Path:
     """The dotbrain home: ``$DOTBRAIN_HOME`` if set, else inferred from this file.

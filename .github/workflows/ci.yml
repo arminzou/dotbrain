@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # Typer force-enables Rich terminal rendering under GITHUB_ACTIONS, which reformats --help/error
+  # output into colored boxed panels and breaks plain-text CLI assertions. This is the officially
+  # supported override (see typer/rich_utils.py) to keep CI output matching local dev output.
+  _TYPER_FORCE_DISABLE_TERMINAL: "1"
+  # Windows' default I/O encoding for a non-console stream (e.g. a redirected pipe) is the legacy
+  # ANSI codepage, not UTF-8 — this affects both reading UTF-8-authored repo content and Rich's
+  # ascii-only box-drawing fallback (Console.ascii_only checks the encoding directly). PEP 540's
+  # UTF-8 mode makes both consistent with Linux/macOS.
+  PYTHONUTF8: "1"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Go fallback (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: false
+
+      - name: Install bd (Linux/macOS)
+        if: runner.os != 'Windows'
+        # beads' installer hits the unauthenticated GitHub API rate limit occasionally on shared
+        # runner IPs (curl 403 on releases/latest). Retry transient failures, then let the
+        # installer's supported Go fallback build bd when the rate limit persists.
+        run: |
+          for attempt in 1 2 3; do
+            if curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash; then
+              break
+            fi
+            [ "$attempt" -eq 3 ] && exit 1
+            sleep $((attempt * 10))
+          done
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+
+      - name: Install bd (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installed = $false
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+              irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+              $installed = $true
+              break
+            } catch {
+              if ($attempt -eq 3) { throw }
+              Start-Sleep -Seconds ($attempt * 10)
+            }
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA "Programs\bd")
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Run tests
+        run: uv run pytest

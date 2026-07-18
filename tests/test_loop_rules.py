@@ -9,7 +9,7 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
 
     brainspaces.seed_brain(brainspace, dotbrain_home)
 
-    doc = (brainspace / ".brain" / "DOTBRAIN.md").read_text()
+    doc = (brainspace / ".brain" / "DOTBRAIN.md").read_text(encoding="utf-8")
     doc = " ".join(doc.split())
 
     assert "Working in loops" in doc

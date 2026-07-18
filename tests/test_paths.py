@@ -47,3 +47,12 @@ def test_repo_is_wired_after_brainspace_link_symlinks_created(
     for link in paths.BRAINSPACE_LINKS:
         (disconnected_adopter_repo / link).symlink_to(brainspace / link)
     assert paths.is_wired(disconnected_adopter_repo) is True
+
+
+def test_symlink_target_matches_ignores_windows_extended_prefix():
+    plain = "C:\\Users\\example\\brainspaces\\example\\.brain"
+    extended = "\\\\?\\" + plain
+    assert paths.symlink_target_matches(extended, plain) is True
+    assert paths.symlink_target_matches(plain, extended) is True
+    assert paths.symlink_target_matches(plain, plain) is True
+    assert paths.symlink_target_matches(plain, "C:\\Users\\example\\other") is False

@@ -117,7 +117,7 @@ def discover_skills(skills_root: Path) -> list[str]:
     for skill_md in skills_root.rglob("SKILL.md"):
         if "node_modules" in skill_md.parts:
             continue
-        out.append(str(skill_md.parent.relative_to(skills_root)))
+        out.append(skill_md.parent.relative_to(skills_root).as_posix())
     return sorted(out)
 
 
@@ -298,7 +298,13 @@ def link_into(
             result.stashed.append(stash_collision(dest))
         if dest.is_symlink() or dest.exists():
             dest.unlink()
-        dest.symlink_to(os.path.relpath(src, skills_dir))
+        try:
+            dest.symlink_to(os.path.relpath(src, skills_dir), target_is_directory=True)
+        except OSError as exc:
+            message = paths.symlink_privilege_message(exc)
+            if message is None:
+                raise
+            raise RuntimeError(f"{dest}: {message}") from exc
         result.linked.append(f"{prefix}{dest.name}")
 
     for entry in sorted(skills_dir.iterdir()):

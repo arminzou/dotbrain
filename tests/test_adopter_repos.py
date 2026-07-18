@@ -7,6 +7,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from dotbrain import adopter_repos, paths
 
 
@@ -84,6 +86,50 @@ def test_reconcile_reports_real_path_collisions(tmp_path: Path) -> None:
     assert result.collisions == [".brain"]
 
 
+def _windows_privilege_error() -> OSError:
+    exc = OSError("A required privilege is not held by the client")
+    exc.winerror = 1314  # type: ignore[attr-defined]
+    return exc
+
+
+def test_reconcile_raises_translated_windows_privilege_error(tmp_path: Path, monkeypatch) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".brain").mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise _windows_privilege_error()
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    with pytest.raises(RuntimeError, match="Developer Mode"):
+        adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
+
+    assert not (directory / ".brain").exists()
+
+
+def test_reconcile_reraises_unrelated_oserror(tmp_path: Path, monkeypatch) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".brain").mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    try:
+        adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
+        raised = False
+    except OSError:
+        raised = True
+    assert raised
+
+
 def test_reconcile_worktree_repairs_wrong_targets(tmp_path: Path) -> None:
     repo = tmp_path / "main-repo"
     repo.mkdir()
@@ -122,6 +168,10 @@ def test_expand_path_tilde_alone(fake_home: Path):
 
 def test_expand_path_tilde_prefix(fake_home: Path):
     assert adopter_repos.expand_path("~/dotbrain", fake_home) == fake_home / "dotbrain"
+
+
+def test_expand_path_windows_tilde_prefix(fake_home: Path):
+    assert adopter_repos.expand_path(r"~\.codex\skills", fake_home) == fake_home / r".codex\skills"
 
 
 def test_expand_path_tilde_nested(fake_home: Path):
@@ -247,6 +297,21 @@ def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
     assert (repo / ".claude").read_text() == "real"
 
 
+def test_ensure_symlink_raises_translated_windows_privilege_error(tmp_path: Path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    good = tmp_path / "target"
+    good.mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise _windows_privilege_error()
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    with pytest.raises(RuntimeError, match="Developer Mode"):
+        adopter_repos.ensure_symlink(repo, ".brain", good)
+
+
 def test_ensure_agent_context_pointer_creates_when_absent(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -325,5 +390,7 @@ def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
     # Reconcile (what `wire --all` does) re-points every link to the new Brainspace.
     result = adopter_repos.reconcile(repo, paths.brainspace_link_targets(root, "example"))
     assert set(result.repaired) == set(paths.BRAINSPACE_LINKS)
-    assert os.readlink(repo / ".brain") == str(root / "brainspaces" / "example" / ".brain")
+    assert paths.symlink_target_matches(
+        os.readlink(repo / ".brain"), str(root / "brainspaces" / "example" / ".brain")
+    )
     assert (repo / ".brain").resolve().is_dir()

@@ -13,6 +13,8 @@ from typer.testing import CliRunner
 from dotbrain import config, doctor, paths
 from dotbrain.cli import app
 
+from conftest import set_fake_home
+
 runner = CliRunner()
 
 
@@ -368,7 +370,7 @@ def test_run_doctor_with_wired_project(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(fake_home))
+    set_fake_home(monkeypatch, fake_home)
 
     repo = tmp_path / "proj"
     repo.mkdir()

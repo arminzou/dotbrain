@@ -14,6 +14,8 @@ from dotbrain import bootstrap as bootstrap_mod, migrate, paths
 from dotbrain import cli
 from dotbrain.cli import app
 
+from conftest import set_fake_home
+
 runner = CliRunner()
 
 
@@ -217,6 +219,23 @@ def test_bootstrap_only_skills_links_global_only(
     assert calls == [("global", dotbrain_home, "all"), ("global-agent", dotbrain_home, "all")]
 
 
+def test_bootstrap_skills_renders_symlink_privilege_failure(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    monkeypatch.setattr(
+        cli,
+        "_render_global_skill_link",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("enable Developer Mode")),
+    )
+
+    result = runner.invoke(app, ["bootstrap", "--only", "skills"])
+
+    assert result.exit_code != 0
+    assert "enable Developer Mode" in result.output
+    assert "global: linked" not in result.output
+
+
 def test_bootstrap_rejects_project_reconciliation_scopes(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -304,7 +323,7 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
 
 def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(tmp_path))
+    set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
     (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - reviewer\n")
 
@@ -333,7 +352,7 @@ def test_skills_link_global_renders_bootstrap_result(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(fake_home))
+    set_fake_home(monkeypatch, fake_home)
     _write_global_config(
         dotbrain_home,
         "targets:\n  codex: ~/.codex/skills\nglobal_extra:\n  - misc/discovery-test\n",
@@ -349,7 +368,7 @@ def test_skills_link_global_uses_default_targets(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setenv("HOME", str(fake_home))
+    set_fake_home(monkeypatch, fake_home)
     _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n")
     result = runner.invoke(
         app, ["skills", "link", "--scope", "global", "--target", "claude-code"]
@@ -535,6 +554,40 @@ def test_wire_all_rejects_single_project_flags(
     result = runner.invoke(app, ["wire", "--all", "--repo", "/tmp/x"])
     assert result.exit_code != 0
     assert "mutually exclusive" in result.output
+
+
+def test_wire_all_renders_symlink_privilege_failure(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    monkeypatch.setattr(
+        "dotbrain.cli.workflows.wire_all_projects",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("enable Developer Mode")),
+    )
+
+    result = runner.invoke(app, ["wire", "--all"])
+
+    assert result.exit_code != 0
+    assert "enable Developer Mode" in result.output
+    assert "wired" not in result.output
+
+
+def test_skills_link_renders_symlink_privilege_failure(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    monkeypatch.setattr(
+        "dotbrain.cli._render_global_skill_link",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("enable Developer Mode")),
+    )
+
+    result = runner.invoke(
+        app, ["skills", "link", "--scope", "global", "--target", "codex"]
+    )
+
+    assert result.exit_code != 0
+    assert "enable Developer Mode" in result.output
+    assert "global: linked" not in result.output
 
 
 def test_refresh_delegates_and_echoes(

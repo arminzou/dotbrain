@@ -10,6 +10,7 @@ committed file, failing when the CLI surface drifts. Regenerate with::
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -55,11 +56,23 @@ def command_paths() -> list[list[str]]:
 
 
 def _help(exe: Path, path: list[str]) -> str:
-    env = {**os.environ, "COLUMNS": "80"}
+    # PYTHONUTF8 matters beyond decoding: Rich's Console.ascii_only checks whether the captured
+    # stdout's encoding starts with "utf" and falls back to ASCII box-drawing characters otherwise.
+    # A captured pipe's default encoding on Windows is the legacy ANSI codepage, not UTF-8, unless
+    # this is set — so without it, the reference doc's box borders differ only on Windows.
+    env = {**os.environ, "COLUMNS": "80", "PYTHONUTF8": "1"}
     result = subprocess.run(
         [str(exe), *path, "--help"], capture_output=True, text=True, env=env, check=True
     )
-    return result.stdout.rstrip("\n")
+    output = result.stdout.rstrip("\n")
+    # Click derives its usage-line prog_name from argv[0]'s basename: the installed console
+    # script's actual filename, which is "dotbrain" on POSIX but "dotbrain.exe"/"dotbrain.EXE" on
+    # Windows. Normalize to the canonical name so the committed doc doesn't depend on platform or
+    # installer casing. Match the exact invoked name (extension included), not a bare "dotbrain"
+    # substring — the help text itself contains unrelated words like "$DOTBRAIN_HOME".
+    if exe.name.lower() != "dotbrain":
+        output = re.sub(re.escape(exe.name), "dotbrain", output, flags=re.IGNORECASE)
+    return output
 
 
 def render() -> str:
