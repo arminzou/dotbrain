@@ -233,6 +233,21 @@ def test_link_into_stashes_real_collision(dotbrain_home: Path, tmp_path: Path):
     assert result.stashed and result.stashed[0].read_text() == "real, do not delete"
 
 
+def test_link_into_translates_windows_privilege_error(dotbrain_home: Path, tmp_path: Path, monkeypatch):
+    dest = tmp_path / "global-skills"
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        exc = OSError("A required privilege is not held by the client")
+        exc.winerror = 1314
+        raise exc
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    result = skills.link_into(dotbrain_home, dest, ("brain/wire-brain",))
+    assert not (dest / "wire-brain").exists()
+    assert any("Developer Mode" in w for w in result.warnings)
+
+
 def test_wire_brain_skill_tracks_current_cli_wiring_model():
     text = resource_loader.resource("skills/brain/wire-brain/SKILL.md").read_text()
 

@@ -84,6 +84,52 @@ def test_reconcile_reports_real_path_collisions(tmp_path: Path) -> None:
     assert result.collisions == [".brain"]
 
 
+def _windows_privilege_error() -> OSError:
+    exc = OSError("A required privilege is not held by the client")
+    exc.winerror = 1314  # type: ignore[attr-defined]
+    return exc
+
+
+def test_reconcile_translates_windows_privilege_error(tmp_path: Path, monkeypatch) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".brain").mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise _windows_privilege_error()
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    result = adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
+
+    assert result.created == []
+    assert len(result.failed) == 1
+    assert "Developer Mode" in result.failed[0]
+    assert not (directory / ".brain").exists()
+
+
+def test_reconcile_reraises_unrelated_oserror(tmp_path: Path, monkeypatch) -> None:
+    directory = tmp_path / "repo"
+    directory.mkdir()
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".brain").mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    try:
+        adopter_repos.reconcile(directory, {".brain": brainspace / ".brain"})
+        raised = False
+    except OSError:
+        raised = True
+    assert raised
+
+
 def test_reconcile_worktree_repairs_wrong_targets(tmp_path: Path) -> None:
     repo = tmp_path / "main-repo"
     repo.mkdir()
@@ -245,6 +291,21 @@ def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
     warning = adopter_repos.ensure_symlink(repo, ".claude", good)
     assert warning and "not a symlink" in warning
     assert (repo / ".claude").read_text() == "real"
+
+
+def test_ensure_symlink_translates_windows_privilege_error(tmp_path: Path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    good = tmp_path / "target"
+    good.mkdir()
+
+    def raising_symlink_to(self, target, target_is_directory=False):
+        raise _windows_privilege_error()
+
+    monkeypatch.setattr(Path, "symlink_to", raising_symlink_to)
+
+    warning = adopter_repos.ensure_symlink(repo, ".brain", good)
+    assert warning and "Developer Mode" in warning
 
 
 def test_ensure_agent_context_pointer_creates_when_absent(tmp_path: Path):

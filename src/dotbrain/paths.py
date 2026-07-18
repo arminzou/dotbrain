@@ -32,6 +32,26 @@ ADOPTER_POINTER: str = (
 # redundant. Flip to True to re-enable wire/doctor pointer management.
 INJECT_ADOPTER_POINTER: bool = False
 
+# Windows WinError raised when creating a directory symlink without Developer Mode or elevation.
+_WIN_PRIVILEGE_NOT_HELD = 1314
+
+DEVELOPER_MODE_MESSAGE: str = (
+    "creating a directory symlink requires Windows Developer Mode (or Administrator "
+    "privileges); enable Developer Mode in Settings > Privacy & security > For developers, "
+    "then retry"
+)
+
+
+def symlink_privilege_message(exc: OSError) -> str | None:
+    """Translate a Windows directory-symlink privilege ``OSError`` into a dotbrain message.
+
+    Returns ``None`` when ``exc`` isn't that specific failure, so callers re-raise everything
+    else unchanged.
+    """
+    if getattr(exc, "winerror", None) == _WIN_PRIVILEGE_NOT_HELD:
+        return DEVELOPER_MODE_MESSAGE
+    return None
+
 
 def resolve_dotbrain_home() -> Path:
     """The dotbrain home: ``$DOTBRAIN_HOME`` if set, else inferred from this file.

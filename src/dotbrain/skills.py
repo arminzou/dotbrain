@@ -298,7 +298,14 @@ def link_into(
             result.stashed.append(stash_collision(dest))
         if dest.is_symlink() or dest.exists():
             dest.unlink()
-        dest.symlink_to(os.path.relpath(src, skills_dir))
+        try:
+            dest.symlink_to(os.path.relpath(src, skills_dir), target_is_directory=True)
+        except OSError as exc:
+            message = paths.symlink_privilege_message(exc)
+            if message is None:
+                raise
+            result.warnings.append(f"{dest}: {message}")
+            continue
         result.linked.append(f"{prefix}{dest.name}")
 
     for entry in sorted(skills_dir.iterdir()):

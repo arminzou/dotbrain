@@ -48,6 +48,19 @@ class ReconcileResult:
     repaired: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
     collisions: list[str] = field(default_factory=list)
+    failed: list[str] = field(default_factory=list)
+
+
+def _symlink_directory(path: Path, target_str: str) -> str | None:
+    """Create a directory symlink at ``path``. Returns a Developer-Mode warning on privilege failure."""
+    try:
+        path.symlink_to(target_str, target_is_directory=True)
+    except OSError as exc:
+        message = paths.symlink_privilege_message(exc)
+        if message is None:
+            raise
+        return f"{path}: {message}"
+    return None
 
 
 def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
@@ -68,7 +81,10 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             if os.readlink(path) == target_str:
                 continue
             path.unlink()
-            path.symlink_to(target_str)
+            failure = _symlink_directory(path, target_str)
+            if failure:
+                result.failed.append(failure)
+                continue
             result.repaired.append(name)
             continue
 
@@ -76,7 +92,10 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             result.collisions.append(name)
             continue
 
-        path.symlink_to(target_str)
+        failure = _symlink_directory(path, target_str)
+        if failure:
+            result.failed.append(failure)
+            continue
         result.created.append(name)
 
     return result
@@ -286,8 +305,7 @@ def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:
         path.unlink()
     elif path.exists():
         return f"{path} exists and is not a symlink; leaving it unchanged"
-    path.symlink_to(target_str)
-    return None
+    return _symlink_directory(path, target_str)
 
 
 def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _default_run) -> str | None:
@@ -374,6 +392,7 @@ def wire_repo(
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")
     for name in result.collisions:
         warnings.append(f"{repo / name} exists and is not a symlink; leaving it unchanged")
+    warnings.extend(result.failed)
     for name in targets:
         if use_local_excludes:
             ensure_local_exclude_line(repo, f"/{name}", run)
