@@ -78,7 +78,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
             continue
 
         if path.is_symlink():
-            if os.readlink(path) == target_str:
+            if paths.symlink_target_matches(os.readlink(path), target_str):
                 continue
             path.unlink()
             failure = _symlink_directory(path, target_str)
@@ -187,7 +187,7 @@ def abbrev_home(path: Path, home: Path | None = None) -> str:
     if path == home:
         return "~"
     try:
-        return f"~/{path.relative_to(home)}"
+        return f"~/{path.relative_to(home).as_posix()}"
     except ValueError:
         return str(path)
 
@@ -300,7 +300,7 @@ def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:
     path = Path(repo) / name
     target_str = str(target)
     if path.is_symlink():
-        if os.readlink(path) == target_str:
+        if paths.symlink_target_matches(os.readlink(path), target_str):
             return None
         path.unlink()
     elif path.exists():

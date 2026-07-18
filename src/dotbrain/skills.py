@@ -117,7 +117,7 @@ def discover_skills(skills_root: Path) -> list[str]:
     for skill_md in skills_root.rglob("SKILL.md"):
         if "node_modules" in skill_md.parts:
             continue
-        out.append(str(skill_md.parent.relative_to(skills_root)))
+        out.append(skill_md.parent.relative_to(skills_root).as_posix())
     return sorted(out)
 
 

@@ -53,6 +53,23 @@ def symlink_privilege_message(exc: OSError) -> str | None:
     return None
 
 
+# Windows extended-length path prefix. os.readlink() can surface it on a symlink's stored target
+# even when the string originally passed to symlink_to() didn't have it, so exact-string comparisons
+# against a freshly computed target must strip it on both sides first.
+_WIN_EXTENDED_PREFIX = "\\\\?\\"
+
+
+def _strip_extended_prefix(path_str: str) -> str:
+    if path_str.startswith(_WIN_EXTENDED_PREFIX):
+        return path_str[len(_WIN_EXTENDED_PREFIX):]
+    return path_str
+
+
+def symlink_target_matches(existing: str, expected: str) -> bool:
+    """True when a symlink's ``os.readlink()`` target already matches the expected target string."""
+    return _strip_extended_prefix(existing) == _strip_extended_prefix(expected)
+
+
 def resolve_dotbrain_home() -> Path:
     """The dotbrain home: ``$DOTBRAIN_HOME`` if set, else inferred from this file.
 

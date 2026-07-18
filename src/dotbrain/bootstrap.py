@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import brainspaces, resource_loader, skills, subagents
+from dotbrain import adopter_repos, brainspaces, resource_loader, skills, subagents
 
 # --------------------------------------------------------------------------- data-root seeding
 
@@ -82,7 +82,9 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     seeded_subagents = subagents.rehydrate_packaged_subagents(root)
     if seeded_subagents:
         result.agents_seeded = True
-        result.logs += [f"rehydrated {path.relative_to(root)} into {root}" for path in seeded_subagents]
+        result.logs += [
+            f"rehydrated {path.relative_to(root).as_posix()} into {root}" for path in seeded_subagents
+        ]
 
     return result
 
@@ -143,8 +145,11 @@ def install_global_codex_hook(
     )
 
 
-def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillBootstrapResult:
+def link_global_skills(
+    dotbrain_home: Path, target: str = "all", *, home: Path | None = None
+) -> GlobalSkillBootstrapResult:
     root = Path(dotbrain_home)
+    h = Path(home) if home is not None else Path.home()
     config_path = root / "skills" / "skills.yaml"
     result = GlobalSkillBootstrapResult()
     config = skills.reconcile_global_config(config_path)
@@ -158,7 +163,7 @@ def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillB
         return result
 
     for key in keys:
-        dest = Path(config.targets[key]).expanduser()
+        dest = adopter_repos.expand_path(config.targets[key], home=h)
         link_result = skills.link_into(root, dest, skill_paths, label=key, prune_owned_only=True)
         result.warnings += [f"{warning} (global {key})" for warning in link_result.warnings]
         result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
@@ -167,8 +172,11 @@ def link_global_skills(dotbrain_home: Path, target: str = "all") -> GlobalSkillB
     return result
 
 
-def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSkillBootstrapResult:
+def link_global_subagents(
+    dotbrain_home: Path, target: str = "all", *, home: Path | None = None
+) -> GlobalSkillBootstrapResult:
     root = Path(dotbrain_home)
+    h = Path(home) if home is not None else Path.home()
     result = GlobalSkillBootstrapResult()
     config = subagents.load_global_config(root)
     names = config.global_names
@@ -185,7 +193,7 @@ def link_global_subagents(dotbrain_home: Path, target: str = "all") -> GlobalSki
         return result
 
     for key in keys:
-        dest = Path(config.targets[key]).expanduser()
+        dest = adopter_repos.expand_path(config.targets[key], home=h)
         files = [runtime_files[key] for name, runtime_files in resolved.items() if key in runtime_files]
         link_result = subagents.link_files_into(
             root,
