@@ -189,7 +189,7 @@ def abbrev_home(path: Path, home: Path | None = None) -> str:
     try:
         return f"~/{path.relative_to(home).as_posix()}"
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def is_dotbrain_repo(repo: Path, dotbrain_home: Path) -> bool:

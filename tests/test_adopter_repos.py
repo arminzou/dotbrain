@@ -386,5 +386,7 @@ def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
     # Reconcile (what `wire --all` does) re-points every link to the new Brainspace.
     result = adopter_repos.reconcile(repo, paths.brainspace_link_targets(root, "example"))
     assert set(result.repaired) == set(paths.BRAINSPACE_LINKS)
-    assert os.readlink(repo / ".brain") == str(root / "brainspaces" / "example" / ".brain")
+    assert paths.symlink_target_matches(
+        os.readlink(repo / ".brain"), str(root / "brainspaces" / "example" / ".brain")
+    )
     assert (repo / ".brain").resolve().is_dir()
