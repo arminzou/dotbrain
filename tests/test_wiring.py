@@ -7,7 +7,6 @@ real repos) but no-ops ``bd`` and script invocations, so tests stay hermetic and
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 from pathlib import Path
 
@@ -88,24 +87,9 @@ def test_init_beads_preserves_repo_root_beads_symlink(dotbrain_home: Path):
 
     beads.init_beads(brainspace, "example", dotbrain_home, run=run)
 
-    # TEMP DIAGNOSTIC: narrowing down a Windows-only failure in the hide/restore rename logic.
-    hidden_files = list(dotbrain_home.glob(".beads.wire-project.*"))
-    print(f"DIAG root_beads.is_symlink()={root_beads.is_symlink()}")
-    if root_beads.is_symlink():
-        print(f"DIAG root_beads readlink={os.readlink(root_beads)!r}")
-        print(f"DIAG root_beads.resolve()={root_beads.resolve()!r}")
-    print(f"DIAG proj0_beads.resolve()={proj0_beads.resolve()!r}")
-    print(f"DIAG hidden_files_remaining={hidden_files!r}")
-    for hf in hidden_files:
-        hf_readlink = repr(os.readlink(hf)) if hf.is_symlink() else "N/A"
-        print(
-            f"DIAG hidden {hf!r} is_symlink={hf.is_symlink()} exists={hf.exists()} "
-            f"readlink={hf_readlink}"
-        )
-
     assert root_beads.is_symlink()
     assert root_beads.resolve() == proj0_beads.resolve()  # still project #0, not example
-    assert not hidden_files  # no orphaned hidden file
+    assert not list(dotbrain_home.glob(".beads.wire-project.*"))  # no orphaned hidden file
 
 
 def test_init_beads_rejects_conflicting_backends(dotbrain_home: Path, tmp_path: Path):

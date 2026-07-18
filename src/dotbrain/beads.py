@@ -232,8 +232,13 @@ def _restore_root_beads(hidden: Path | None, dotbrain_home: Path) -> None:
     bd init runs with the git top-level still resolving to dotbrain, so it may recreate a .beads at
     the repo root pointing at the *wired* project. Remove whatever it left and restore the original
     target unconditionally — a stale ``not root_beads.exists()`` guard here is what let the wired
-    project hijack project #0's tracker."""
-    if hidden is None or not hidden.exists():
+    project hijack project #0's tracker.
+
+    Uses ``os.path.lexists`` rather than ``Path.exists()``: the latter follows the symlink and
+    checks the *target*, and on Windows that check can spuriously fail for a relative-target
+    symlink resolved through a renamed path even when the symlink itself and its target are both
+    fine — the wrong question for "did we actually hide something to restore"."""
+    if hidden is None or not os.path.lexists(hidden):
         return
     root_beads = Path(dotbrain_home) / ".beads"
     if root_beads.is_symlink() or root_beads.is_file():
