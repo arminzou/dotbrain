@@ -29,10 +29,18 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
+      - name: Install Go fallback (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache: false
+
       - name: Install bd (Linux/macOS)
         if: runner.os != 'Windows'
         # beads' installer hits the unauthenticated GitHub API rate limit occasionally on shared
-        # runner IPs (curl 403 on releases/latest); a few retries with backoff ride that out.
+        # runner IPs (curl 403 on releases/latest). Retry transient failures, then let the
+        # installer's supported Go fallback build bd when the rate limit persists.
         run: |
           for attempt in 1 2 3; do
             if curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash; then
