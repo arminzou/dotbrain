@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+env:
+  # Typer force-enables Rich terminal rendering under GITHUB_ACTIONS, which reformats --help/error
+  # output into colored boxed panels and breaks plain-text CLI assertions. This is the officially
+  # supported override (see typer/rich_utils.py) to keep CI output matching local dev output.
+  _TYPER_FORCE_DISABLE_TERMINAL: "1"
+
 jobs:
   test:
     strategy:
