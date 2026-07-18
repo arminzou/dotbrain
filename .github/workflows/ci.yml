@@ -31,8 +31,16 @@ jobs:
 
       - name: Install bd (Linux/macOS)
         if: runner.os != 'Windows'
+        # beads' installer hits the unauthenticated GitHub API rate limit occasionally on shared
+        # runner IPs (curl 403 on releases/latest); a few retries with backoff ride that out.
         run: |
-          curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+          for attempt in 1 2 3; do
+            if curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash; then
+              break
+            fi
+            [ "$attempt" -eq 3 ] && exit 1
+            sleep $((attempt * 10))
+          done
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "/usr/local/bin" >> "$GITHUB_PATH"
 
@@ -40,7 +48,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+          $installed = $false
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+              irm https://raw.githubusercontent.com/gastownhall/beads/main/install.ps1 | iex
+              $installed = $true
+              break
+            } catch {
+              if ($attempt -eq 3) { throw }
+              Start-Sleep -Seconds ($attempt * 10)
+            }
+          }
           Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA "Programs\bd")
 
       - name: Sync dependencies
