@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,6 +91,19 @@ def launch_codex(plan: CodexWorktreePlan) -> None:
     os.execvp(plan.codex_command[0], list(plan.codex_command))
 
 
+# shlex.quote()'s safe-char set treats backslash as unsafe (a POSIX shell metacharacter), so it
+# quotes every Windows path purely for containing `\`, even without a space. This is a display
+# preview, not something meant to be pasted verbatim into either shell, so backslash is added to the
+# safe set: quote only for genuinely ambiguous content (spaces, quotes, etc.), consistent across OSes.
+_UNSAFE_CHARS = re.compile(r"[^\w@%+=:,./\\-]", re.ASCII)
+
+
+def _quote_for_display(token: str) -> str:
+    if token and not _UNSAFE_CHARS.search(token):
+        return token
+    return "'" + token.replace("'", "'\"'\"'") + "'"
+
+
 def shell_join(command: Sequence[str]) -> str:
     """Quote a command for display."""
-    return shlex.join(command)
+    return " ".join(_quote_for_display(arg) for arg in command)
