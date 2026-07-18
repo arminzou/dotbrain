@@ -10,6 +10,11 @@ env:
   # output into colored boxed panels and breaks plain-text CLI assertions. This is the officially
   # supported override (see typer/rich_utils.py) to keep CI output matching local dev output.
   _TYPER_FORCE_DISABLE_TERMINAL: "1"
+  # Windows' default I/O encoding for a non-console stream (e.g. a redirected pipe) is the legacy
+  # ANSI codepage, not UTF-8 — this affects both reading UTF-8-authored repo content and Rich's
+  # ascii-only box-drawing fallback (Console.ascii_only checks the encoding directly). PEP 540's
+  # UTF-8 mode makes both consistent with Linux/macOS.
+  PYTHONUTF8: "1"
 
 jobs:
   test:
