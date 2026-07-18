@@ -170,12 +170,30 @@ dotbrain codex --worktree <bead-id>-<slug>
 
 ## Install
 
+### macOS and Linux
+
 ```bash
 git clone https://github.com/arminzou/dotbrain.git
 cd dotbrain
 ./install.sh        # installs uv, Beads (bd), and the dotbrain CLI
 dotbrain bootstrap  # install agent hooks and link global skills
 ```
+
+### Windows
+
+Enable [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
+first so Dotbrain can create directory symlinks without Administrator privileges. Then run from
+PowerShell:
+
+```powershell
+git clone https://github.com/arminzou/dotbrain.git
+cd dotbrain
+.\install.ps1       # installs uv, Beads (bd), and the dotbrain CLI
+dotbrain bootstrap  # install agent hooks and link global skills
+```
+
+The private dotbrain home defaults to `%USERPROFILE%\dotbrain` on Windows (for example,
+`C:\Users\you\dotbrain`). Set `DOTBRAIN_HOME` only when you want to use a different location.
 
 ## Use
 
