@@ -171,9 +171,10 @@ type/readiness/resolution with labels; beads has real fields for each.
 | `ready-for-human` | needs a person | `bd label add <id> human` after creating, or keep on GitHub |
 | `wontfix` | rejected | do not create a bead; resolve on GitHub |
 
-Always link the layers with `--external-ref gh-<number>` so the bead points back at its public
-origin. Keep status independent across the two; a PR's `Closes #N` closes the GitHub issue only,
-and the bead still needs `bd close`.
+Link the promoted bead to its public origin with `--external-ref gh-<number>`. Use this field only
+for an issue that already exists as genuine public intake or contributor collaboration; never
+create a public issue to give a private bead an external reference. Keep status independent across
+the two: a PR's `Closes #N` closes the GitHub issue only, and the bead still needs `bd close`.
 
 ## Anti-patterns
 
@@ -186,3 +187,5 @@ and the bead still needs `bd close`.
   `.brain/adr/` (owned by `grill-decisions`).
 - **Do not** carry a triage-label vocabulary in private beads; triage labels are a GitHub-surface
   concern that `triage-public` maps inward.
+- **Do not** create GitHub issues for private epics, slices, or beads. Public issues enter the graph
+  as provenance-bearing intake; the execution graph is never projected outward as a tracking copy.

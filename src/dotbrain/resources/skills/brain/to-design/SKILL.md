@@ -87,8 +87,9 @@ Create the tracking epic and link it back to the design doc:
 bd create "<Design title>" --type epic --description "See .brain/designs/<slug>.md" --spec-id design:<slug>
 ```
 
-`--spec-id` links the execution graph back to the design doc. If the project also has a public
-issue tracker, create a tracking issue there and link it with `--external-ref`.
+`--spec-id` links the execution graph back to the design doc. The epic remains private even when
+the project configures a public tracker. Only attach `--external-ref` when this initiative was
+promoted from an already-existing public collaboration issue.
 
 ### 6. Close
 

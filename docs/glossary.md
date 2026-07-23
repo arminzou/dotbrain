@@ -59,8 +59,10 @@ The runtime-specific workspace config dotbrain links into a repo or worktree, su
 
 ### public tracker
 
-The outward-facing issue system used for public intake, such as GitHub Issues. It is linked to the
-private execution graph, not treated as the source of truth for execution.
+The outward-facing issue system used for public intake and contributor collaboration, such as
+GitHub Issues. Existing public issues may be promoted into the private execution graph with a
+provenance link. Private designs, epics, and work items are never projected outward as public
+tracking issues; a PR can provide a public review surface without one.
 
 ### worktree
 

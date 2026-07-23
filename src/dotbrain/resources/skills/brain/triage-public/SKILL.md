@@ -10,9 +10,10 @@ Operate a project's public collaboration layer. The public tracker is declared i
 This skill is tracker-agnostic — it owns the triage workflow. The tracker's CLI mechanics and label
 vocabulary live in the tracker reference ([references/github.md](references/github.md) for GitHub).
 
-The private execution engine is the source of truth for all work. Intake never moves that truth to
-the public tracker: an accepted issue is recorded into the private engine as a work item that
-references the public issue. The public tracker holds discussion; the private engine holds the work.
+The private execution engine is the source of truth for all work. The public tracker holds issues
+raised by reporters or intentionally opened for contributor collaboration. When one is accepted,
+record it in the private engine as a work item that references the public origin. This flow is
+inward only: private designs, epics, and beads never generate public tracking issues.
 
 Every comment posted to a public issue during intake must start with:
 
@@ -45,6 +46,13 @@ instead: when promoting inward, `operate-execution` translates a role to the rig
 status, close reason) rather than copying it as a label. A project records any mapping deviations
 in `.brain/docs/labels.md` (owned by `operate-execution`).
 
+## Public boundary
+
+Use the public tracker when the issue itself is a collaboration artifact: external intake,
+reporter follow-up, maintainer/contributor discussion, or work intentionally offered to public
+contributors. Use a PR to surface code review without manufacturing an issue. Planning,
+dependencies, readiness, ownership, and status stay exclusively in the private execution engine.
+
 ## Show what needs attention
 
 Query the tracker and present, in order: unlabeled issues, `needs-triage`, then `needs-info` with
@@ -74,7 +82,8 @@ maintainer pick.
 ## Quick override
 
 If the maintainer says to move an issue to a state, trust them. Confirm public mutations, apply the
-roles, and ask only whether they want an agent brief or private work item created.
+roles, and ask only whether they want an agent brief or private work item created. This applies to
+an issue already on the public tracker; it never authorizes projecting unrelated private work there.
 
 ## Needs-info template
 

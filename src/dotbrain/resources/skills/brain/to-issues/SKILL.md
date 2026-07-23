@@ -90,8 +90,9 @@ For HITL slices, set the human gate by adding the `human` label:
 bd label add <bead-id> human # surfaced by `bd human list`
 ```
 
-If the project has a public issue tracker, create a tracking issue for each slice with a
-`needs-triage` label and link it via `--external-ref gh-<number>`.
+Keep every slice in the private execution graph. A configured public tracker is an intake and
+contributor-collaboration surface, not a second execution graph; decomposition never creates public
+tracking issues.
 
 ### 5. Close
 

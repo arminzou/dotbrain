@@ -56,3 +56,5 @@ skills:
   project should deviate from the default naming/layout.
 - `agents` controls which agent workspaces dotbrain seeds for the project.
 - `skills` adds project-specific skills on top of dotbrain's required core skills.
+- `public-tracker` configures public issue intake and contributor collaboration. It does not mirror
+  the private execution graph or cause private work items to become public issues.

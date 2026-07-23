@@ -7,7 +7,8 @@ agents:
   - claude
   - codex
 
-# Public-facing issue tracker for intake. One of: none, gh, linear.
+# Public-facing tracker for issue intake and contributor collaboration, never private work tracking.
+# One of: none, gh, linear.
 # Set public-tracker-id when activating a tracker (e.g. "owner/repo" for gh).
 public-tracker: none
 # public-tracker-id: ""

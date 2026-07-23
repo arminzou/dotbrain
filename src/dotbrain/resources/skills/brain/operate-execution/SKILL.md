@@ -15,8 +15,10 @@ blockers) is the set safe to claim and run in parallel; blocking edges are the s
 is no separate coordination mechanism.
 
 - **Private execution graph** — work items in the engine's store; this skill owns it and it is the
-  source of truth. Never mirror work state into markdown docs, ROADMAPs, or task lists.
-- **Public issue tracker** — handled by `triage-public`; linked to private work, not synced.
+  source of truth. Never mirror work state into markdown docs, ROADMAPs, task lists, or a public
+  issue tracker.
+- **Public issue tracker** — handled by `triage-public`; existing public collaboration may be
+  promoted inward with a provenance link, but private work is never published outward for tracking.
 - **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`; owned by other skills.
 
 ## Context files
@@ -36,7 +38,7 @@ Read at session start, before inspecting the graph:
 - choose the ready frontier and recommend the smallest useful continuation
 - recommend an execution mode for ready work (below)
 - record handoff context that lets another agent work autonomously
-- link private execution to public issues
+- preserve provenance when an existing public issue is promoted into private execution
 - absorb discoveries back into the graph when work reveals new reality
 - update the active design doc when discoveries change the initiative design rather than only the
   execution graph
@@ -103,8 +105,8 @@ Autonomous (unflagged) items do not need a mode recommendation — claim and wor
    alone.
 6. Implement, update notes, and close when acceptance criteria are satisfied. This is manual,
    turn-by-turn work — the human reviews each edit and each `bd close` as it happens — so it
-   lands local by default, epic or not (unless a linked public issue already requires one; see
-   Public/private link below). `bd close` is the close signal for this local-review path.
+   lands local by default, epic or not. Work originating from an existing public issue may land
+   through its public PR collaboration flow. `bd close` remains the private close signal.
 7. If discoveries change reality, update the graph instead of forcing stale plans to stand.
 8. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
@@ -123,11 +125,14 @@ without being spoon-fed: work-item ID, anchor epic (if any), branch/worktree nam
 required checks, and review/landing expectations. Agent-created branches use the canonical name
 `<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart anchor inference.
 
-## Public/private link
+## Public provenance and PRs
 
-Public issues and private items are linked, not field-synced: pull an issue inward by creating a
-private item that references it; publish outward by deriving a public-safe issue and recording its
-reference on the item. A PR's `Closes #N` closes the public issue only — the private item still
+The link has one direction: promote an existing public issue inward by creating a private item that
+references it. The public issue exists for reporter or contributor collaboration; the private item
+exists for execution. A private bead, epic, or design never causes a public tracking issue to be
+created. A PR may surface any change for review without a companion public issue.
+
+When a PR closes an existing public issue, `Closes #N` closes only that issue; the private item still
 needs an explicit close. Mechanics live in [references/beads.md](references/beads.md).
 
 When a private item's work lands through a public PR, the PR body must carry a `Verification`
@@ -135,9 +140,9 @@ section restating the verification evidence in audience-safe, plain terms — no
 ADR numbers, or `design:` spec-ids. The private item may keep the full evidence in its own notes
 or the linked design doc; the PR gets the public rendering only.
 
-Landing here is local review by default — this is manual, turn-by-turn work reviewed
-continuously as it happens; a PR only applies when a linked public issue already requires one
-(see Operating loop above).
+Landing here is local review by default because manual, turn-by-turn work is reviewed continuously.
+Use a PR when the user wants a review surface or the work is already part of public collaboration;
+do not create an issue merely to justify the PR.
 
 ## Pitfalls
 
@@ -147,3 +152,5 @@ continuously as it happens; a PR only applies when a linked public issue already
   whether to use it or start fresh.
 - **Do not close an item without presenting what was done.** Summarize and confirm first, unless the
   user explicitly asked you to close it.
+- **Do not project private execution outward.** Keep beads-only work in beads; use GitHub Issues
+  only when the issue itself is a genuine public intake or contributor-collaboration artifact.

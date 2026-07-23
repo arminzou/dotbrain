@@ -38,7 +38,8 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 - `agents`: active workspaces, usually `claude` and/or `codex`.
 - `skills`: project skill extras beyond the packaged required core.
 - `subagents`: project subagent extras.
-- `public-tracker` and `public-tracker-id`: public intake metadata, if any.
+- `public-tracker` and `public-tracker-id`: public intake and contributor-collaboration metadata,
+  never a mirror of private execution.
 
 The CLI seeds missing Brain scaffolding and links runtime assets. Agents author Brain knowledge only
 through the relevant Brain skills: context through `build-context`, execution through

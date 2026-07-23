@@ -76,8 +76,36 @@ def test_operate_execution_lands_local_because_reviewed_continuously():
 
     assert "the human reviews each edit and each `bd close` as it happens" in normalized
     assert "so it lands local by default, epic or not" in normalized
-    assert "unless a linked public issue already requires one" in normalized
-    assert "`bd close` is the close signal for this local-review path" in normalized
+    assert "Work originating from an existing public issue may land" in normalized
+    assert "`bd close` remains the private close signal" in normalized
+
+
+def test_private_execution_is_never_projected_to_public_tracking_issues():
+    paths = [
+        "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md",
+        "src/dotbrain/resources/skills/brain/to-design/SKILL.md",
+        "src/dotbrain/resources/skills/brain/to-issues/SKILL.md",
+        "src/dotbrain/resources/skills/brain/triage-public/SKILL.md",
+    ]
+    normalized = " ".join(
+        " ".join(Path(path).read_text(encoding="utf-8").split()) for path in paths
+    )
+
+    assert "private work is never published outward for tracking" in normalized
+    assert "decomposition never creates public tracking issues" in normalized
+    assert "private designs, epics, and beads never generate public tracking issues" in normalized
+    assert "create a tracking issue for each slice" not in normalized
+    assert "create a tracking issue there" not in normalized
+
+
+def test_public_links_are_inward_provenance_only():
+    doc = Path(
+        "src/dotbrain/resources/skills/brain/operate-execution/references/beads.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(doc.split())
+
+    assert "genuine public intake or contributor collaboration" in normalized
+    assert "never create a public issue to give a private bead an external reference" in normalized
 
 
 def test_enter_main_agent_not_referenced_in_iterate_design_or_operate_execution():
