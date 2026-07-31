@@ -25,6 +25,7 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
     found = skills.discover_skills(dotbrain_home / "skills")
     assert found == [
         "brain/build-context",
+        "brain/close-design",
         "brain/find-unknowns",
         "brain/grill-decisions",
         "brain/iterate-design",

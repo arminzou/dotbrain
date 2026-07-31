@@ -43,8 +43,11 @@ Brain template propagate to every brain.
 These invariants bind any iterative or autonomous execution, whatever skill or loop primitive
 drives it:
 
-- Verification, success, and acceptance criteria are human-owned. Never weaken or rewrite them
-  mid-work, in any workflow; a criteria change is a human decision.
+- Verification, success, and acceptance criteria are human-owned. They can change, but only through
+  the human: surface the proposed wording and the reason, get approval, then record what changed.
+  Where no human is present to approve — an autonomous loop — that is a stop condition, not a
+  licence to decide. What is ruled out in every workflow is an agent weakening or rewriting them on
+  its own to match what the build does.
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
 - Irreversible or outward-facing actions — merge, push, deploy, publish, dependency changes — end
@@ -83,7 +86,10 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
   bead epics by `to-issues`.
   Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
   freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
-  (vocabulary)
+  (vocabulary). Driving a design to a terminal state is `close-design`'s job.
+  Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
+  `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc
+  invented fields drift the vocabulary apart; say anything else in prose
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
 

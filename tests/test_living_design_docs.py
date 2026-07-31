@@ -28,6 +28,80 @@ def test_seeded_design_docs_are_living_while_active(dotbrain_home: Path, tmp_pat
 
 
 def test_to_design_states_criteria_lifecycle(dotbrain_home: Path):
+    """Section-authoring guidance and the rules governing the doc after authoring both live in
+    the template, beside the sections they bind. The skill keeps only the procedural bar."""
+    to_design = dotbrain_home / "skills" / "brain" / "to-design"
+    skill = (to_design / "SKILL.md").read_text(encoding="utf-8")
+    template = (to_design / "templates" / "design.md").read_text(encoding="utf-8")
+
+    assert "Prefer mechanical pass/fail checks" in template
+    assert "human decision gate" in template
+    assert "criteria changes are human decisions" in template
+    assert "gates rot" in template
+    assert "Completion: every section you kept is filled" in skill
+    assert "each goal has a matching entry under `Success Criteria`" in skill
+
+
+def test_to_design_template_carries_the_section_set(dotbrain_home: Path):
+    template = (
+        dotbrain_home
+        / "skills"
+        / "brain"
+        / "to-design"
+        / "templates"
+        / "design.md"
+    ).read_text(encoding="utf-8")
+
+    assert "lifecycle: draft" in template
+    for section in (
+        "## Motivation",
+        "## Goals",
+        "## Non-goals",
+        "## Design",
+        "## Success Criteria",
+        "## Verification Evidence",
+        "## Known Unknowns",
+        "## Implementation Notes",
+        "## Deviations",
+        "## Human Decisions Needed",
+        "## Alternatives Considered",
+        "## Rollout",
+    ):
+        assert section in template
+
+
+def test_close_design_covers_every_terminal_branch(dotbrain_home: Path):
+    skill = (
+        dotbrain_home / "skills" / "brain" / "close-design" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    for state in ("shipped", "abandoned", "superseded"):
+        assert state in skill
+    assert "residue" in skill
+    assert "gates rot" not in skill, "the gates-rot rule belongs to the design template"
+
+
+def test_close_design_frontmatter_vocabulary_is_single_sourced(dotbrain_home: Path):
+    """The field set is stated in DOTBRAIN.md (policy) and close-design (the skill that
+    stamps it). No third copy."""
+    brain_doc = (
+        dotbrain_home
+        / "templates"
+        / "brain"
+        / "DOTBRAIN.md"
+    )
+    skill = (
+        dotbrain_home / "skills" / "brain" / "close-design" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    for field in ("lifecycle:", "started:", "ended:", "extends:", "residue:"):
+        assert field in skill
+    if brain_doc.exists():
+        text = brain_doc.read_text(encoding="utf-8")
+        assert "close-design" in text
+
+
+def test_to_design_routes_unfamiliar_territory_to_find_unknowns(dotbrain_home: Path):
     skill = (
         dotbrain_home
         / "skills"
@@ -36,10 +110,7 @@ def test_to_design_states_criteria_lifecycle(dotbrain_home: Path):
         / "SKILL.md"
     ).read_text(encoding="utf-8")
 
-    assert "Prefer mechanical pass/fail checks" in skill
-    assert "human decision gate" in skill
-    assert "criteria changes are human decisions" in skill
-    assert "gates rot" in skill
+    assert "find-unknowns" in skill
 
 
 def test_to_issues_uses_spec_id_for_design_linked_beads(dotbrain_home: Path):
@@ -64,7 +135,7 @@ def test_to_issues_titles_echo_design_doc_subsections(dotbrain_home: Path):
         / "SKILL.md"
     ).read_text(encoding="utf-8")
 
-    assert "Word each slice `Title` to echo the corresponding `Current Design` subsection" in skill
+    assert "Word each slice `Title` to echo the corresponding `Design` subsection" in skill
 
 
 def test_iterate_design_rereads_design_doc_every_cycle(dotbrain_home: Path):
@@ -110,3 +181,4 @@ def test_iterate_design_distinguishes_reviewer_from_verifier(dotbrain_home: Path
 
     assert "The reviewer supplements the verifier, never replaces it" in normalized
     assert "two optimists agreeing" in normalized
+
