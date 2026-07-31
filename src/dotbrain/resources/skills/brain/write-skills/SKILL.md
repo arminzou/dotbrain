@@ -28,8 +28,27 @@ A skill exists to wrangle determinism out of a stochastic system. **Predictabili
 
 Two choices, trading different costs:
 
-- A **model-invoked** skill keeps a **description**, so the agent can fire it autonomously _and_ other skills can reach it (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Mechanics: omit `disable-model-invocation`, and write a model-facing description with rich trigger phrasing ("Use when the user wants…, mentions…").
-- A **user-invoked** skill strips the description from the agent's reach: only you, typing its name, can invoke it — and no other skill can. Zero context load, but it spends **cognitive load**: _you_ are the index that must remember it exists. Mechanics: set `disable-model-invocation: true`; the `description` becomes human-facing — a one-line summary, trigger lists stripped.
+- A **model-invoked** skill keeps a **description**, so the agent can fire it autonomously _and_ other skills can reach it (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Write a model-facing description with rich trigger phrasing ("Use when the user wants…, mentions…").
+- A **user-invoked** skill strips the description from the agent's reach: only you, typing its name, can invoke it — and no other skill can. Zero context load, but it spends **cognitive load**: _you_ are the index that must remember it exists. Its `description` becomes human-facing — a one-line summary, trigger lists stripped.
+
+### Declaring it in both runtimes
+
+dotbrain links one skill directory into both `~/.claude/skills` and `~/.codex/skills`, so the choice
+has to be stated twice. **The two keys are inverted**, and a boolean copied from one to the other
+means the opposite of what it did:
+
+| Runtime | Where | Model-invoked | User-invoked |
+|---|---|---|---|
+| Claude Code | `SKILL.md` frontmatter | omit the key | `disable-model-invocation: true` |
+| Codex | `agents/openai.yaml` | omit `policy` (defaults true) | `policy.allow_implicit_invocation: false` |
+
+Declaring only one leaves the skill user-invoked in that runtime and still auto-firing in the other,
+which is the failure you will not notice, because the runtime you tested is the one you fixed.
+
+`agents/openai.yaml` also carries Codex's human-facing `interface.display_name` and
+`interface.short_description` (25–64 characters). For a user-invoked skill that pair is what the
+operator actually reads when scanning the Codex skill list, so it does the job the stripped
+`description` no longer does.
 
 Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If it only ever fires by hand, make it user-invoked and pay no context load.
 
@@ -123,7 +142,7 @@ Materialise a declaration with **linking**: `dotbrain skills link --scope global
 
 ## Review checklist
 
-- [ ] Invocation matches intent — **model-invoked** only if the agent should fire it unprompted
+- [ ] Invocation matches intent — **model-invoked** only if the agent should fire it unprompted — and declared in both runtime formats, whose keys are inverted
 - [ ] Description (model-invoked): **leading word** front-loaded, one trigger per **branch**, no **duplication** with the body
 - [ ] **Steps** end on checkable **completion criteria** — a vague one invites **premature completion**
 - [ ] In-file content is only what every **branch** needs; the rest is **external reference**, `templates/`, or `scripts/`

@@ -231,6 +231,23 @@ def test_adr_offer_test_is_single_sourced(dotbrain_home: Path):
         assert "ADR-FORMAT.md" in (brain / skill / "SKILL.md").read_text(encoding="utf-8")
 
 
+def test_stepped_skills_declare_their_boundaries(dotbrain_home: Path):
+    """A skill with a Process needs to say what it is not, because four of them route
+    into each other and the seams are where work gets duplicated or dropped."""
+    brain = dotbrain_home / "skills" / "brain"
+    for name in (
+        "build-context",
+        "close-design",
+        "find-unknowns",
+        "grill-decisions",
+        "review-architecture",
+        "to-design",
+        "to-issues",
+    ):
+        skill = (brain / name / "SKILL.md").read_text(encoding="utf-8")
+        assert "## Boundaries" in skill, f"{name} has steps but no Boundaries section"
+
+
 def test_review_architecture_scopes_before_scanning(dotbrain_home: Path):
     """A deepening candidate in code nobody touches never pays back, so the scan is
     aimed at hot spots rather than run over everything."""
@@ -244,3 +261,43 @@ def test_review_architecture_scopes_before_scanning(dotbrain_home: Path):
     assert "top recommendation" in skill.lower()
     assert "DEEPENING.md" in skill, "dependency categories must be reachable from the skill"
 
+
+def test_review_architecture_is_user_invoked(dotbrain_home: Path):
+    """Nothing routes to it — the two sibling mentions are `vs` comparisons — so it pays no
+    context load in every wired project. Its description is human-facing, not a trigger list."""
+    brain = dotbrain_home / "skills" / "brain"
+    skill = (brain / "review-architecture" / "SKILL.md").read_text(encoding="utf-8")
+    frontmatter = skill.split("---")[1]
+
+    assert "disable-model-invocation: true" in frontmatter
+    assert "Use when" not in frontmatter, "user-invoked descriptions strip trigger lists"
+
+    codex = (brain / "review-architecture" / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    assert "allow_implicit_invocation: false" in codex
+
+    for other in brain.glob("*/SKILL.md"):
+        if other.parent.name == "review-architecture":
+            continue
+        for line in other.read_text(encoding="utf-8").splitlines():
+            if "review-architecture" in line:
+                assert line.lstrip().startswith("- **vs"), (
+                    f"{other.parent.name} reaches review-architecture, which user-invocation blocks"
+                )
+
+
+def test_invocation_choice_is_declared_in_both_runtimes(dotbrain_home: Path):
+    """Claude Code and Codex express this with inverted keys in different files. A skill
+    declared in only one still auto-fires in the other, which is invisible from whichever
+    runtime you happened to test."""
+    for skill in sorted((dotbrain_home / "skills" / "brain").glob("*/SKILL.md")):
+        frontmatter = skill.read_text(encoding="utf-8").split("---")[1]
+        claude_user_invoked = "disable-model-invocation: true" in frontmatter
+
+        openai_yaml = skill.parent / "agents" / "openai.yaml"
+        codex_text = openai_yaml.read_text(encoding="utf-8") if openai_yaml.exists() else ""
+        codex_user_invoked = "allow_implicit_invocation: false" in codex_text
+
+        assert claude_user_invoked == codex_user_invoked, (
+            f"{skill.parent.name}: user-invoked in "
+            f"{'Claude Code' if claude_user_invoked else 'Codex'} only"
+        )

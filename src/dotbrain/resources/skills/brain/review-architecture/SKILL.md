@@ -1,11 +1,27 @@
 ---
 name: review-architecture
-description: Review a codebase for deepening opportunities, informed by the project Brain's domain language and ADRs. Use when the user wants to improve architecture, find refactoring opportunities, consolidate tightly-coupled modules, or make a codebase more testable and AI-navigable.
+description: Review a codebase for deepening opportunities, informed by the project Brain's domain language and ADRs.
+disable-model-invocation: true
 ---
 
 # Architecture Review
 
 Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
+
+## Boundaries
+
+- **vs `find-unknowns`**: that hunts comprehension gaps and assumes you do not yet understand the
+  domain; this hunts structural depth problems and assumes you do. Orient first, review second.
+- **vs `grill-decisions`**: that grills a plan against domain vocabulary. Step 3 here is a grilling
+  too, but scoped to one deepening candidate and conducted in architecture vocabulary.
+- **vs `to-design`**: this surfaces and shapes a refactor; that formalizes it. A candidate large
+  enough to need slices graduates to a design doc rather than growing inside this skill.
+
+This reviews structure, not a diff: it reads the codebase as it stands rather than the change in
+front of it, and it proposes deepening rather than hunting defects.
+
+This skill is an entry point rather than a pipeline stage. It starts from the codebase instead of
+from a plan, and anything multi-step it produces joins the main pipeline at `to-design`.
 
 ## Glossary
 
