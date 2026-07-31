@@ -101,6 +101,15 @@ def test_close_design_frontmatter_vocabulary_is_single_sourced(dotbrain_home: Pa
         assert "close-design" in text
 
 
+def test_operate_execution_hands_off_at_epic_close(dotbrain_home: Path):
+    skill = (
+        dotbrain_home / "skills" / "brain" / "operate-execution" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(skill.split())
+
+    assert "run `close-design` before moving on" in normalized
+
+
 def test_to_design_routes_unfamiliar_territory_to_find_unknowns(dotbrain_home: Path):
     skill = (
         dotbrain_home
@@ -148,9 +157,20 @@ def test_iterate_design_rereads_design_doc_every_cycle(dotbrain_home: Path):
     ).read_text(encoding="utf-8")
     normalized = " ".join(skill.split())
 
-    assert "Loop protocol (every iteration, not just the first)" in normalized
     assert "Reread the active design doc fresh" in normalized
-    assert normalized.count("Reread the active design doc fresh") >= 2
+
+    prompt = " ".join(
+        (
+            dotbrain_home
+            / "skills"
+            / "brain"
+            / "iterate-design"
+            / "templates"
+            / "loop-prompt.md"
+        ).read_text(encoding="utf-8").split()
+    )
+    assert "Loop protocol (every iteration, not just the first)" in prompt
+    assert "Do not rely on an earlier iteration's memory of the design doc." in prompt
 
 
 def test_iterate_design_has_loop_worthiness_check(dotbrain_home: Path):
@@ -181,4 +201,32 @@ def test_iterate_design_distinguishes_reviewer_from_verifier(dotbrain_home: Path
 
     assert "The reviewer supplements the verifier, never replaces it" in normalized
     assert "two optimists agreeing" in normalized
+
+
+def test_grill_decisions_has_a_checkable_stopping_condition(dotbrain_home: Path):
+    """The decision tree is a visible artifact so the session can be finished, not
+    abandoned when the agent feels done."""
+    skill = (
+        dotbrain_home / "skills" / "brain" / "grill-decisions" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    assert "## Boundaries" in skill
+    assert "Lay out the decision tree" in skill
+    assert "every branch on the tree is resolved or explicitly deferred" in skill.lower()
+    assert "Interview me" not in skill, "skills address the agent, not the user"
+    assert "<what-to-do>" not in skill, "the set uses markdown headings"
+
+
+def test_adr_offer_test_is_single_sourced(dotbrain_home: Path):
+    """The three-part test lives only in ADR-FORMAT.md; skills that offer ADRs point at it."""
+    brain = dotbrain_home / "skills" / "brain"
+    owners = [
+        p
+        for p in brain.rglob("*.md")
+        if "hard to reverse" in p.read_text(encoding="utf-8").lower()
+    ]
+
+    assert [p.name for p in owners] == ["ADR-FORMAT.md"]
+    for skill in ("grill-decisions", "review-architecture"):
+        assert "ADR-FORMAT.md" in (brain / skill / "SKILL.md").read_text(encoding="utf-8")
 

@@ -89,26 +89,28 @@ confirms; then the work is cut at that rung — a branch or an `isolation: workt
 runtime, or the `--worktree` launcher for a full worker session. Autonomous (unflagged) items need
 no mode recommendation: claim and work them directly.
 
-Autonomous (unflagged) items do not need a mode recommendation — claim and work them directly.
-
 ## Operating loop
 
 1. Read the context files above, then project Brain context and relevant ADRs.
 2. Inspect the graph: ready frontier, list, and item detail (commands in `references/beads.md`).
-3. Check for human-gated items among the ready set (engine reference covers the command).
+3. Check for human-gated items among the ready set (engine reference covers the command). Recheck
+   every iteration: the gated set changes as items close and new ones are created.
 4. Select the next ready item:
    - **Human-gated** — recommend mode and stop for sign-off before claiming.
    - **Autonomous** — claim directly and proceed.
 5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
-   implementing. Beads carry execution facts; the design doc carries the current design,
+   implementing. Beads carry execution facts; the design doc carries the design,
    rationale, and file-level scope — do not infer those from the compressed acceptance criteria
    alone.
 6. Implement, update notes, and close when acceptance criteria are satisfied. This is manual,
    turn-by-turn work — the human reviews each edit and each `bd close` as it happens — so it
    lands local by default, epic or not. Work originating from an existing public issue may land
    through its public PR collaboration flow. `bd close` remains the private close signal.
-7. If discoveries change reality, update the graph instead of forcing stale plans to stand.
-8. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
+7. If that close emptied a design-linked epic — no open slices left under an epic carrying
+   `spec-id design:<slug>` — run `close-design` before moving on. The design doc is still marked
+   `active` and its residue is still unharvested; that is the moment to settle both.
+8. If discoveries change reality, update the graph instead of forcing stale plans to stand.
+9. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
 
 ## Discoveries and re-slicing
@@ -144,13 +146,9 @@ Landing here is local review by default because manual, turn-by-turn work is rev
 Use a PR when the user wants a review surface or the work is already part of public collaboration;
 do not create an issue merely to justify the PR.
 
-## Pitfalls
+## Working habits
 
-- **Do not jump from recommendation to execution for human-gated items.** Stop and wait for confirmation from the user. Autonomous (unflagged) items flow through without a stop — the gate handles separation.
-- **Do not skip the human-gate check at the start of the loop.** Check it every iteration — the set of gated items may change as other items close or as new items are created.
 - **Check for existing branches first.** Run `git branch -a | grep -i <topic>`; if one exists, ask
   whether to use it or start fresh.
-- **Do not close an item without presenting what was done.** Summarize and confirm first, unless the
-  user explicitly asked you to close it.
-- **Do not project private execution outward.** Keep beads-only work in beads; use GitHub Issues
-  only when the issue itself is a genuine public intake or contributor-collaboration artifact.
+- **Summarize before closing.** Present what was done and confirm, unless the user explicitly asked
+  you to close it.

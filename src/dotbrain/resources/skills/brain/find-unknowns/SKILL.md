@@ -14,16 +14,9 @@ nothing to the Brain. It surfaces unknowns and hands each one to the skill that 
 
 ## The frame
 
-Four quadrants of what an initiative knows about itself:
-
-- **Known knowns**: stated goal, constraints, intended shape. Already in the prompt or the Brain.
-- **Known unknowns**: questions you know are open.
-- **Unknown knowns**: tacit preferences or domain expectations a human recognizes only when shown.
-- **Unknown unknowns**: constraints, edge cases, existing behavior, or better approaches you have not
-  thought to consider.
-
-The Brain already answers many known knowns. This skill spends its budget on the last two quadrants,
-the ones no planning step catches because you do not know to ask.
+`DOTBRAIN.md` defines the four quadrants of unknowns; use those terms exactly. The Brain already
+answers many known knowns, so this skill spends its budget on **unknown knowns** and **unknown
+unknowns**: the two no planning step catches, because you do not know to ask.
 
 ## Process
 
@@ -68,7 +61,12 @@ change the architecture, the contract, or just an implementation detail?).
 Present the findings sorted by blast radius, largest first. The architecture-changing unknowns are the
 expensive ones to discover late.
 
-Completion: a triaged list of findings, each with a blast-radius call, ordered largest-first.
+Every finding names a file, behavior, or dependency you actually read. A finding you cannot ground
+that way is a generic checklist item ("did you consider error handling?"), which the agent would
+have produced anyway: drop it rather than padding the list.
+
+Completion: a triaged list of findings, each grounded in something read and carrying a blast-radius
+call, ordered largest-first.
 
 ### 5. Hand off
 
@@ -94,12 +92,3 @@ Completion: every finding has a named next action, and you have recommended the 
 Pipeline position: `find-unknowns` (surface), then `grill-decisions` (resolve), then `to-design`
 (capture), then `to-issues` (decompose), then `operate-execution` (build).
 
-## Pitfalls
-
-- **Do not emit a generic checklist.** "Did you consider error handling?" is a no-op. Every finding
-  must be grounded in a specific file, behavior, or dependency you actually read. If you cannot ground
-  it, drop it.
-- **Do not write the Brain.** Surface and hand off; the owning skill writes.
-- **Do not resolve the unknowns here.** Surfacing is the job. Resolution is `grill-decisions`, a
-  prototype, or a human.
-- **Do not over-orient small work.** If the shape is obvious, say so and skip to beads.

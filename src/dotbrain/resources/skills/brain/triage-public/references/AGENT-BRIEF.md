@@ -1,7 +1,7 @@
 # Writing agent briefs
 
 An agent brief is a structured comment posted on a public issue when it moves to `ready-for-agent`.
-It is the **public-safe summary** of the planned work, so an external or AFK agent (or a human
+It is the **public-safe summary** of the planned work, so an external or unattended agent (or a human
 contributor) can see what "ready" means without reading the private Brain.
 
 The binding execution contract is the **private work item** in the engine (acceptance criteria,

@@ -8,7 +8,7 @@ def test_work_intake_mentions_active_design_doc_for_design_discoveries():
     normalized = " ".join(doc.split())
 
     assert "living place to track design-level discoveries and unknowns" in normalized
-    assert "the active design doc owns current design, known unknowns, design-level discoveries" in normalized
+    assert "the active design doc owns the design, known unknowns, design-level discoveries" in normalized
     assert "--spec-id design:<slug>" in normalized
 
 
@@ -43,13 +43,23 @@ def test_operate_execution_requires_verification_section_in_public_prs():
 
 
 def test_iterate_design_requires_verification_section_in_public_prs():
-    doc = Path(
-        "src/dotbrain/resources/skills/brain/iterate-design/SKILL.md"
-    ).read_text(encoding="utf-8")
-    normalized = " ".join(doc.split())
+    """The rule has one home: operate-execution owns public provenance and PRs.
+    iterate-design points at it rather than restating it."""
+    owner = " ".join(
+        Path("src/dotbrain/resources/skills/brain/operate-execution/SKILL.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    loop = " ".join(
+        Path("src/dotbrain/resources/skills/brain/iterate-design/SKILL.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
 
-    assert "the PR body must carry a `Verification` section" in normalized
-    assert "No `.brain/` paths, ADR numbers, or `design:` spec-ids" in normalized
+    assert "the PR body must carry a `Verification` section" in owner
+    assert "no `.brain/` paths, ADR numbers, or `design:` spec-ids" in owner
+    assert "`Verification` section described in `operate-execution`" in loop
+    assert "the PR body must carry a `Verification` section" not in loop
 
 
 def test_iterate_design_lands_via_dedicated_branch_and_review_surface():
@@ -65,7 +75,7 @@ def test_iterate_design_lands_via_dedicated_branch_and_review_surface():
         in normalized
     )
     assert "branch diff reviewed directly and merged locally" in normalized
-    assert "Never push or open a PR unprompted" in normalized
+    assert "never push or open a PR unprompted" in normalized
 
 
 def test_operate_execution_lands_local_because_reviewed_continuously():

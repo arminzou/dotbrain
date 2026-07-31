@@ -36,7 +36,7 @@ When suggesting this path, be explicit: "This looks like design-doc work rather 
 
 Once an initiative is design-linked:
 
-- the active design doc owns current design, known unknowns, design-level discoveries, and
+- the active design doc owns the design, known unknowns, design-level discoveries, and
   deviations
 - beads own status, dependencies, acceptance, ownership, and closure
 - design-linked slices should link back with `--spec-id design:<slug>` instead of copying the
