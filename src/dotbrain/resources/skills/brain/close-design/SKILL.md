@@ -40,7 +40,16 @@ Pipeline position: `to-design` (open), `to-issues` (decompose), `iterate-design`
 
 ### 1. Establish the terminal state
 
-For a single doc, read it and the epic it links (`bd list --spec-id design:<slug>`).
+For a single doc, read it and the beads it links:
+
+```bash
+bd list --spec "design:<slug>" --status open,in_progress,blocked,deferred,closed --json
+```
+
+`--spec` matches by *prefix*, so a slug that prefixes another slug over-matches (`design:qa-bank`
+also returns `design:qa-bank-variety-pass` items). Filter the result to an exact `spec_id` before
+drawing any conclusion about which slices belong to this doc. `--spec-id` is a `bd create` flag and
+is not accepted by `bd list`.
 
 For a sweep, enumerate every doc in `.brain/designs/` with its lifecycle and the state of its epic.
 An `active` doc whose slices are all closed shipped and was never stamped; one whose epic was
@@ -96,8 +105,8 @@ today's date, unless they are the same. For `superseded`, the replacing design c
 Close the epic if it is still open. Where the initiative had a public collaboration issue, that
 closes through its own public flow; `bd close` remains the private close signal.
 
-Completion: the doc carries `lifecycle:` and `ended:`, the epic is closed, and `bd list
---spec-id design:<slug>` shows nothing open.
+Completion: the doc carries `lifecycle:` and `ended:`, the epic is closed, and an exact-`spec_id`
+filter over `bd list --spec "design:<slug>"` shows nothing open.
 
 ### 5. Close
 
