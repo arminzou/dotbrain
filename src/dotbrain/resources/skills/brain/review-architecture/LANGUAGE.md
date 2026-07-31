@@ -38,6 +38,22 @@ What maintainers get from depth. Change, bugs, knowledge, and verification conce
 - **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
 - **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a seam unless something actually varies across it.
 
+## Designing for depth
+
+When shaping an interface, narrow it first: can you reduce the number of entry points, simplify the
+parameters, or hide more complexity behind them?
+
+Three properties make a module deep and testable at the same time, because callers and tests cross
+the same seam:
+
+- **Accept dependencies, don't create them.** A module that constructs its own collaborators has
+  hidden them behind its interface without hiding their cost, and no test can substitute them.
+- **Return results, don't mutate.** A module that reports what it computed can be verified by
+  reading its output; one that reaches out and changes state can only be verified by inspecting
+  whatever it touched.
+- **Keep the surface small.** Fewer entry points means fewer tests to write and less setup per
+  test. This is **leverage** measured from the test side.
+
 ## Relationships
 
 - A **Module** has exactly one **Interface** (the surface it presents to callers and tests).

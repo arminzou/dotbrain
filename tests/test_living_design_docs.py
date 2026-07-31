@@ -230,3 +230,17 @@ def test_adr_offer_test_is_single_sourced(dotbrain_home: Path):
     for skill in ("grill-decisions", "review-architecture"):
         assert "ADR-FORMAT.md" in (brain / skill / "SKILL.md").read_text(encoding="utf-8")
 
+
+def test_review_architecture_scopes_before_scanning(dotbrain_home: Path):
+    """A deepening candidate in code nobody touches never pays back, so the scan is
+    aimed at hot spots rather than run over everything."""
+    skill = (
+        dotbrain_home / "skills" / "brain" / "review-architecture" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Scope before you scan" in skill
+    assert "git log --oneline" in skill
+    assert "Strength" in skill and "Speculative" in skill
+    assert "top recommendation" in skill.lower()
+    assert "DEEPENING.md" in skill, "dependency categories must be reachable from the skill"
+

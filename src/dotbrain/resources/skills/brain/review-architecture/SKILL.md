@@ -20,6 +20,9 @@ Use these terms exactly in every suggestion. Consistent language is the point �
 - **Leverage** — what callers get from depth.
 - **Locality** — what maintainers get from depth: change, bugs, knowledge concentrated in one place.
 
+Deepening a cluster safely depends on what it depends on: [DEEPENING.md](DEEPENING.md) covers the
+dependency categories, seam discipline, and replace-don't-layer testing.
+
 Key principles (see [LANGUAGE.md](LANGUAGE.md) for the full list):
 
 - **Deletion test**: imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
@@ -31,6 +34,16 @@ This skill is _informed_ by the project's domain model. The domain language give
 ## Process
 
 ### 1. Explore
+
+**Scope before you scan.** Deepening a module pays off by making future changes to it cheaper, so a
+candidate in code nobody touches is a refactor that never pays back. Decide *where* to look before
+you look:
+
+- If the user named a direction — a module, a subsystem, a pain point — take it and skip the
+  inference below.
+- Otherwise walk back a good stretch of `git log --oneline` to find the codebase's hot spots, the
+  files and areas that keep coming up, and let those paths pull your attention first.
+- If the changes are scattered with no clear hot spot, widen the net.
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
@@ -46,6 +59,9 @@ organically and note where you experience friction:
 
 Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
 
+Completion: the scope is stated with the reason it was chosen, every module you flagged as shallow
+has been through the deletion test, and you can name the ADRs covering the area you explored.
+
 ### 2. Present candidates
 
 Present a numbered list of deepening opportunities. For each candidate:
@@ -54,12 +70,23 @@ Present a numbered list of deepening opportunities. For each candidate:
 - **Problem** — why the current architecture is causing friction
 - **Solution** — plain English description of what would change
 - **Benefits** — explained in terms of locality and leverage, and also in how tests would improve
+- **Strength** — `Strong`, `Worth exploring`, or `Speculative`
+
+Rating each candidate forces the list to differentiate. A flat list where everything reads as
+equally worth doing pushes the choice back onto the user with no information attached.
 
 **Use CONTEXT.md vocabulary for the domain, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly (e.g. _"contradicts that ADR — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
+Close with a **top recommendation**: which candidate you would tackle first and why. Be opinionated;
+the user wants a strong read, not a menu.
+
 Do NOT propose interfaces yet. Ask the user: "Which of these would you like to explore?"
+
+Completion: every candidate carries all five fields, uses `CONTEXT.md` and `LANGUAGE.md`
+vocabulary, and any ADR conflict is marked. A top recommendation is named, and the user has been
+asked to pick.
 
 ### 3. Grilling loop
 
@@ -69,5 +96,8 @@ Side effects happen inline as decisions crystallize:
 
 - **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-decisions` (see [CONTEXT-FORMAT.md](../grill-decisions/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones. See [ADR-FORMAT.md](../grill-decisions/ADR-FORMAT.md).
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Apply the three-part test in [ADR-FORMAT.md](../grill-decisions/ADR-FORMAT.md), which is the single source for when any skill offers an ADR — a rejection that fails it ("not worth it right now") is ephemeral, not durable.
 - **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
+
+Completion: the picked candidate has an agreed shape, every new concept it names is in
+`CONTEXT.md`, and any load-bearing rejection was offered as an ADR.
