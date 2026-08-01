@@ -37,7 +37,7 @@ def _required_core() -> tuple[tuple[str, ...], tuple[str, ...]]:
     adopter without a data-root migration.
     """
     src = resource_loader.resource("core.yaml")
-    data = yaml.safe_load(src.read_text()) or {}
+    data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise ValueError("packaged core.yaml: expected a YAML mapping")
     core_skills = data.get("skills")
@@ -122,7 +122,7 @@ def discover_skills(skills_root: Path) -> list[str]:
 
 
 def _read_yaml_mapping(path: Path) -> dict[str, object]:
-    data = yaml.safe_load(path.read_text()) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise ValueError(f"{path}: expected a YAML mapping")
     return data
@@ -195,8 +195,8 @@ def reconcile_global_config(path: Path) -> GlobalConfig:
             config.global_extra,
             project_baseline=config.project_baseline,
         )
-        if path.read_text() != desired:
-            path.write_text(desired)
+        if path.read_text(encoding="utf-8") != desired:
+            path.write_text(desired, encoding="utf-8", newline="\n")
     return config
 
 
@@ -246,7 +246,11 @@ def _copy_resource_tree(resource_path: str, dest: Path) -> None:
     for rel, src in resource_loader.iter_resource_files(resource_path):
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(src.read_text())
+        target.write_text(
+            src.read_text(encoding="utf-8"),
+            encoding="utf-8",
+            newline="\n",
+        )
 
 
 def _resolve_skill_source(dotbrain_home: Path, skill_path: str) -> Path | None:

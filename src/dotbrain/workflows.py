@@ -34,7 +34,7 @@ def _default_run(
     # of blocking forever on terminal input while capture_output swallows the prompt text.
     return subprocess.run(
         list(argv), cwd=cwd, env=env, check=check,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
     )
 
 
@@ -101,10 +101,16 @@ def wire_project(
         unarchived = True
     brainspace.mkdir(parents=True, exist_ok=True)
     if no_repo:
-        (brainspace / ".repo").write_text("(brain-only)\n")
+        (brainspace / ".repo").write_text(
+            "(brain-only)\n", encoding="utf-8", newline="\n"
+        )
     else:
         assert resolved_repo is not None
-        (brainspace / ".repo").write_text(f"{adopter_repos.abbrev_home(resolved_repo, home)}\n")
+        (brainspace / ".repo").write_text(
+            f"{adopter_repos.abbrev_home(resolved_repo, home)}\n",
+            encoding="utf-8",
+            newline="\n",
+        )
 
     result = WireResult(brainspace=brainspace, repo=resolved_repo, project=project)
     if unarchived:
@@ -355,7 +361,10 @@ def refresh_project(
 
 def _is_brain_only_brainspace(brainspace: Path) -> bool:
     repo_file = brainspace / ".repo"
-    return repo_file.is_file() and repo_file.read_text().strip() == "(brain-only)"
+    return (
+        repo_file.is_file()
+        and repo_file.read_text(encoding="utf-8").strip() == "(brain-only)"
+    )
 
 
 # --------------------------------------------------------------------------- unwire

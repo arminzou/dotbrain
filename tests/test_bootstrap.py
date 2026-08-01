@@ -59,6 +59,13 @@ def test_ensure_data_root_seeds_skills_config(tmp_path: Path):
     assert result.skills_seeded
     assert skills_config.is_file()
     assert gitignore.is_file()
+    generated = [
+        gitignore,
+        root / "config.yaml",
+        skills_config,
+        root / "agents" / "agents.yaml",
+    ]
+    assert all(b"\r\n" not in path.read_bytes() for path in generated)
     # Seeded via the same renderer reconcile uses, so the first link is a no-op rewrite.
     before = skills_config.read_text()
     skills.reconcile_global_config(skills_config)

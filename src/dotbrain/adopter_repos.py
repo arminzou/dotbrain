@@ -35,7 +35,7 @@ def _default_run(
     # of blocking forever on terminal input while capture_output swallows the prompt text.
     return subprocess.run(
         list(argv), cwd=cwd, env=env, check=check,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
     )
 
 
@@ -93,7 +93,7 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
     return result
 
 
-def reconcile_worktree(worktree_root: Path, run: Runner = subprocess.run) -> ReconcileResult:
+def reconcile_worktree(worktree_root: Path, run: Runner = _default_run) -> ReconcileResult:
     """Repair a worktree's Brainspace links so they point at the main checkout."""
     worktree_root = Path(worktree_root).resolve()
     if not (worktree_root / ".git").is_file():
@@ -104,8 +104,6 @@ def reconcile_worktree(worktree_root: Path, run: Runner = subprocess.run) -> Rec
             ["git", "rev-parse", "--git-common-dir"],
             cwd=worktree_root,
             check=True,
-            capture_output=True,
-            text=True,
         )
     except subprocess.CalledProcessError:
         return ReconcileResult()
@@ -155,7 +153,7 @@ def repo_for_brainspace(
         pointer = brainspace / pointer_name
         if pointer.is_file():
             lines = [
-                l.strip() for l in pointer.read_text().splitlines()
+                l.strip() for l in pointer.read_text(encoding="utf-8").splitlines()
                 if l.strip() and not l.strip().startswith("#")
             ]
             if lines:
@@ -265,13 +263,17 @@ def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
 def ensure_exclude_line(exclude_file: Path, line: str) -> None:
     exclude_file = Path(exclude_file)
     exclude_file.parent.mkdir(parents=True, exist_ok=True)
-    existing = exclude_file.read_text().splitlines() if exclude_file.is_file() else []
+    existing = (
+        exclude_file.read_text(encoding="utf-8").splitlines()
+        if exclude_file.is_file()
+        else []
+    )
     if line in existing:
         return
-    body = (exclude_file.read_text() if exclude_file.is_file() else "")
+    body = exclude_file.read_text(encoding="utf-8") if exclude_file.is_file() else ""
     if body and not body.endswith("\n"):
         body += "\n"
-    exclude_file.write_text(body + line + "\n")
+    exclude_file.write_text(body + line + "\n", encoding="utf-8", newline="\n")
 
 
 def _git_dir(repo: Path, run: Runner) -> Path:
@@ -321,10 +323,12 @@ def append_pointer_to_file(file: Path, pointer: str) -> str | None:
         target = file
     if not target.is_file():
         return f"{target} is not a regular file; leaving it unchanged"
-    if "@.brain/CLAUDE.md" in target.read_text():
+    text = target.read_text(encoding="utf-8")
+    if "@.brain/CLAUDE.md" in text:
         return None
-    with target.open("a") as handle:
-        handle.write(f"\n{pointer}\n")
+    if text and not text.endswith("\n"):
+        text += "\n"
+    target.write_text(f"{text}\n{pointer}\n", encoding="utf-8", newline="\n")
     return None
 
 
@@ -333,7 +337,7 @@ def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTE
     agents = repo / "AGENTS.md"
     claude = repo / "CLAUDE.md"
     if not agents.exists() and not claude.exists():
-        agents.write_text(f"{pointer}\n")
+        agents.write_text(f"{pointer}\n", encoding="utf-8", newline="\n")
         return []
 
     warnings: list[str] = []
@@ -429,7 +433,7 @@ def _git_exclude_file(repo: Path) -> Path | None:
     if git_marker.is_dir():
         return git_marker / "info" / "exclude"
     if git_marker.is_file():
-        content = git_marker.read_text().strip()
+        content = git_marker.read_text(encoding="utf-8").strip()
         if content.startswith("gitdir: "):
             raw = content[len("gitdir: "):]
             git_dir = Path(raw) if Path(raw).is_absolute() else repo / raw
@@ -454,25 +458,29 @@ def unwire_repo(repo: Path, dry_run: bool = False) -> UnwireResult:
 
     exclude = _git_exclude_file(repo)
     if exclude and exclude.is_file():
-        lines = exclude.read_text().splitlines(keepends=True)
+        lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
         filtered = [l for l in lines if l.rstrip("\n") not in paths.EXCLUDE_ENTRIES]
         if len(filtered) < len(lines):
             if not dry_run:
-                exclude.write_text("".join(filtered))
+                exclude.write_text("".join(filtered), encoding="utf-8", newline="\n")
             result.logs.append(f"{verb} Brainspace ignore rules from .git/info/exclude")
 
     for fname in ("AGENTS.md", "CLAUDE.md"):
         f = repo / fname
         if not f.exists() or f.is_symlink():
             continue
-        text = f.read_text()
+        text = f.read_text(encoding="utf-8")
         pointer_lines = set(paths.ADOPTER_POINTER.strip().splitlines())
         if any(pl in text for pl in pointer_lines):
             if not dry_run:
                 cleaned = "\n".join(
                     l for l in text.splitlines() if l.strip() not in pointer_lines
                 ).strip()
-                f.write_text(cleaned + "\n" if cleaned else "")
+                f.write_text(
+                    cleaned + "\n" if cleaned else "",
+                    encoding="utf-8",
+                    newline="\n",
+                )
             result.logs.append(f"{verb} agent-context pointer from {fname}")
 
     return result

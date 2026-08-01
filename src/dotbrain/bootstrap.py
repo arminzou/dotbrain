@@ -31,10 +31,10 @@ def ensure_root_gitignore(dotbrain_home: Path) -> bool:
     """Ensure the data-root gitignore matches the packaged template."""
 
     path = Path(dotbrain_home) / ".gitignore"
-    desired = resource_loader.resource("templates/gitignore").read_text()
-    if path.is_file() and path.read_text() == desired:
+    desired = resource_loader.resource("templates/gitignore").read_text(encoding="utf-8")
+    if path.is_file() and path.read_text(encoding="utf-8") == desired:
         return False
-    path.write_text(desired)
+    path.write_text(desired, encoding="utf-8", newline="\n")
     return True
 
 
@@ -57,7 +57,11 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     if not config_dest.exists():
         src = resource_loader.resource("config.yaml")
         if src.is_file():
-            config_dest.write_text(src.read_text())
+            config_dest.write_text(
+                src.read_text(encoding="utf-8"),
+                encoding="utf-8",
+                newline="\n",
+            )
             result.config_seeded = True
             result.logs.append(f"seeded config.yaml into {root}")
 
@@ -67,7 +71,11 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     skills_dest = root / "skills" / "skills.yaml"
     if not skills_dest.exists():
         skills_dest.parent.mkdir(parents=True, exist_ok=True)
-        skills_dest.write_text(skills.render_global_config(skills.DEFAULT_TARGETS, ()))
+        skills_dest.write_text(
+            skills.render_global_config(skills.DEFAULT_TARGETS, ()),
+            encoding="utf-8",
+            newline="\n",
+        )
         result.skills_seeded = True
         result.logs.append(f"seeded skills/skills.yaml into {root}")
 
@@ -76,7 +84,11 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
         (agents_root / subdir).mkdir(parents=True, exist_ok=True)
     agents_dest = agents_root / "agents.yaml"
     if not agents_dest.exists():
-        agents_dest.write_text(subagents.render_global_subagents())
+        agents_dest.write_text(
+            subagents.render_global_subagents(),
+            encoding="utf-8",
+            newline="\n",
+        )
         result.agents_seeded = True
         result.logs.append(f"seeded agents/agents.yaml into {root}")
     seeded_subagents = subagents.rehydrate_packaged_subagents(root)
@@ -102,7 +114,9 @@ class GlobalSkillBootstrapResult:
 def _default_run(
     argv: Sequence[str], *, cwd: Path | None = None, env: dict | None = None, check: bool = True
 ) -> "subprocess.CompletedProcess[str]":
-    return subprocess.run(list(argv), cwd=cwd, env=env, check=check, capture_output=True, text=True)
+    return subprocess.run(
+        list(argv), cwd=cwd, env=env, check=check, capture_output=True, encoding="utf-8"
+    )
 
 
 def _global_hook_command(script_name: str, dotbrain_home: Path, home: Path | None = None) -> str:

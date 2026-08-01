@@ -71,7 +71,7 @@ def beads_mode(brainspace: Path) -> str:
     if not metadata.is_file():
         return "unknown"
     try:
-        data = json.loads(metadata.read_text())
+        data = json.loads(metadata.read_text(encoding="utf-8"))
     except (ValueError, OSError):
         return "unknown"
     mode = str(data.get("dolt_mode", "")).strip()

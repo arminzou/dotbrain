@@ -197,6 +197,7 @@ def test_write_project_config_creates_file(tmp_path: Path):
     text = path.read_text()
     assert "mode: embedded" in text
     assert "remote: https://example.com/fork" in text
+    assert b"\r\n" not in path.read_bytes()
 
 
 def test_write_project_config_idempotent(tmp_path: Path):

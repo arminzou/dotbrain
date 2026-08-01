@@ -49,7 +49,7 @@ def _default_run(
     # of blocking forever on terminal input while capture_output swallows the prompt text.
     return subprocess.run(
         list(argv), cwd=cwd, env=env, check=check,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
     )
 
 
@@ -66,15 +66,21 @@ def write_server_beads_metadata(
     """
     beads_dir = Path(beads_dir)
     beads_dir.chmod(0o700)
-    (beads_dir / "metadata.json").write_text(json.dumps({
-        "database": "dolt",
-        "backend": "dolt",
-        "dolt_mode": "server",
-        "dolt_server_host": host,
-        "dolt_server_user": user,
-        "dolt_database": database,
-    }, indent=2) + "\n")
-    (beads_dir / "dolt-server.port").write_text(f"{port}\n")
+    (beads_dir / "metadata.json").write_text(
+        json.dumps({
+            "database": "dolt",
+            "backend": "dolt",
+            "dolt_mode": "server",
+            "dolt_server_host": host,
+            "dolt_server_user": user,
+            "dolt_database": database,
+        }, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    (beads_dir / "dolt-server.port").write_text(
+        f"{port}\n", encoding="utf-8", newline="\n"
+    )
 
 
 def normalize_server_beads_metadata(beads_dir: Path, port: str) -> None:
@@ -84,10 +90,16 @@ def normalize_server_beads_metadata(beads_dir: Path, port: str) -> None:
     beads_dir = Path(beads_dir)
     meta_file = beads_dir / "metadata.json"
     if meta_file.is_file():
-        data = json.loads(meta_file.read_text())
+        data = json.loads(meta_file.read_text(encoding="utf-8"))
         if data.pop("dolt_server_port", None) is not None:
-            meta_file.write_text(json.dumps(data, indent=2) + "\n")
-    (beads_dir / "dolt-server.port").write_text(f"{port}\n")
+            meta_file.write_text(
+                json.dumps(data, indent=2) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+    (beads_dir / "dolt-server.port").write_text(
+        f"{port}\n", encoding="utf-8", newline="\n"
+    )
 
 
 def _is_server_db_exists_error(exc: subprocess.CalledProcessError) -> bool:
@@ -419,7 +431,7 @@ def pull_beads_for_all(
             try:
                 subprocess.run(
                     ["bd", "-C", str(brainspace), "dolt", "pull"],
-                    check=True, capture_output=True, text=True, timeout=bd_timeout,
+                    check=True, capture_output=True, encoding="utf-8", timeout=bd_timeout,
                 )
                 result.pulled.append(str(brainspace))
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired):

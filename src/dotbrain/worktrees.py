@@ -39,7 +39,7 @@ def repo_root(path: Path, run: Run = subprocess.run) -> Path:
         cwd=path,
         check=True,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
     )
     return Path(result.stdout.strip()).resolve()
 

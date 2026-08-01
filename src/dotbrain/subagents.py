@@ -32,7 +32,7 @@ def _required_core() -> tuple[str, ...]:
     import yaml
 
     src = resource_loader.resource("core.yaml")
-    data = yaml.safe_load(src.read_text()) or {}
+    data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise ValueError("packaged core.yaml: expected a YAML mapping")
     subagents_data = data.get("subagents")
@@ -78,7 +78,11 @@ def _copy_resource_file(resource_path: str, dest: Path) -> None:
         else:
             dest.unlink()
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(resource_loader.resource(resource_path).read_text())
+    dest.write_text(
+        resource_loader.resource(resource_path).read_text(encoding="utf-8"),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def rehydrate_packaged_subagents(dotbrain_home: Path) -> list[Path]:
@@ -92,7 +96,11 @@ def rehydrate_packaged_subagents(dotbrain_home: Path) -> list[Path]:
             else:
                 dest.unlink()
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(src.read_text())
+        dest.write_text(
+            src.read_text(encoding="utf-8"),
+            encoding="utf-8",
+            newline="\n",
+        )
         cached.append(dest)
     return cached
 
@@ -107,7 +115,11 @@ def seed_private_subagents(dotbrain_home: Path) -> list[Path]:
         if dest.exists() or dest.is_symlink():
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(src.read_text())
+        dest.write_text(
+            src.read_text(encoding="utf-8"),
+            encoding="utf-8",
+            newline="\n",
+        )
         seeded.append(dest)
     return seeded
 

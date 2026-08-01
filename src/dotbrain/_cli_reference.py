@@ -62,7 +62,11 @@ def _help(exe: Path, path: list[str]) -> str:
     # this is set — so without it, the reference doc's box borders differ only on Windows.
     env = {**os.environ, "COLUMNS": "80", "PYTHONUTF8": "1"}
     result = subprocess.run(
-        [str(exe), *path, "--help"], capture_output=True, text=True, env=env, check=True
+        [str(exe), *path, "--help"],
+        capture_output=True,
+        encoding="utf-8",
+        env=env,
+        check=True,
     )
     output = result.stdout.rstrip("\n")
     # Click derives its usage-line prog_name from argv[0]'s basename: the installed console
@@ -85,7 +89,7 @@ def render() -> str:
 
 
 def main() -> None:
-    REFERENCE_PATH.write_text(render())
+    REFERENCE_PATH.write_text(render(), encoding="utf-8", newline="\n")
     print(f"wrote {REFERENCE_PATH}")
 
 

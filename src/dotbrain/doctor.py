@@ -25,7 +25,7 @@ def _default_run(
     argv: list[str], *, cwd: Path | None = None, check: bool = True, timeout: int | None = None
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        argv, cwd=cwd, check=check, capture_output=True, text=True, timeout=timeout,
+        argv, cwd=cwd, check=check, capture_output=True, encoding="utf-8", timeout=timeout,
     )
 
 
@@ -90,7 +90,7 @@ def _check_global_hook(home: Path, settings_rel: str, script_name: str,
         return Finding("warn", f"{label} settings not found at {target}",
                        f"run 'dotbrain bootstrap' to install hooks")
     try:
-        data = json.loads(target.read_text())
+        data = json.loads(target.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return Finding("warn", f"{label} settings unreadable",
                        f"check {target} for syntax errors")
@@ -133,7 +133,7 @@ def _check_repo_file(brainspace: Path) -> tuple[Finding | None, Path | None]:
         return (Finding("error", f".repo file missing in {brainspace.name}",
                         "run 'dotbrain wire --repo <repo>' to wire a code repo"),
                 None)
-    content = repo_file.read_text().strip()
+    content = repo_file.read_text(encoding="utf-8").strip()
     if content.startswith("(brain-only)"):
         return (Finding("ok", "brain-only project (no code repo)"), None)
     resolved = Path(content).expanduser().resolve() if content else None
@@ -187,7 +187,7 @@ def _check_agent_pointer(repo: Path) -> list[Finding]:
         except OSError:
             continue
         try:
-            if _WIRE_POINTER_MARKER not in target.read_text():
+            if _WIRE_POINTER_MARKER not in target.read_text(encoding="utf-8"):
                 findings.append(Finding("warn",
                                          f"{file} missing dotbrain pointer",
                                          f"run 'dotbrain wire --repo {repo}' to repair"))

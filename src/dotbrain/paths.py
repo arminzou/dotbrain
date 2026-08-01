@@ -134,6 +134,6 @@ def exclude_entries(repo: Path) -> set[str]:
         return set()
     return {
         line.strip()
-        for line in exclude_file.read_text().splitlines()
+        for line in exclude_file.read_text(encoding="utf-8").splitlines()
         if line.strip()
     }

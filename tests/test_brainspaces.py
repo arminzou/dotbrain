@@ -27,6 +27,7 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     assert (brain / "AGENTS.md").is_file()
     assert (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
+    assert b"\r\n" not in (brain / "DOTBRAIN.md").read_bytes()
     for sub in ("adr", "designs", "docs"):
         assert (brain / sub).is_dir()
         assert (brain / sub / "README.md").is_file(), \

@@ -68,7 +68,7 @@ def test_seed_private_subagents_copies_bundled_examples_once(
         def __init__(self, text: str):
             self._text = text
 
-        def read_text(self) -> str:
+        def read_text(self, encoding: str | None = None) -> str:
             return self._text
 
     def fake_iter(path: str):
@@ -120,7 +120,7 @@ def test_resolve_subagent_files_caches_bundled(dotbrain_home: Path, monkeypatch)
         def is_file(self) -> bool:
             return True
 
-        def read_text(self) -> str:
+        def read_text(self, encoding: str | None = None) -> str:
             return self._text
 
     def fake_resource(path: str):

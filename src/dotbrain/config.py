@@ -73,7 +73,7 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
     if not path.is_file():
         return DotbrainConfig()
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text()) or {}
+    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     server = (data.get("beads") or {}).get("server") or {}
     return DotbrainConfig(
         version=int(data.get("version", 3)),
@@ -90,7 +90,7 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
     """Read beads.server from a legacy dotbrain.yaml, ignoring projects: section."""
     import yaml
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text()) or {}
+    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     server = (data.get("beads") or {}).get("server") or {}
     return DotbrainConfig(
         version=3,
@@ -139,7 +139,7 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
     file_beads: ProjectBeads | None = None
     path = _project_config_path(dotbrain_home, name)
     if path.is_file():
-        data: dict[str, Any] = yaml.safe_load(path.read_text()) or {}
+        data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         beads = data.get("beads") or {}
         file_beads = ProjectBeads(
             mode=str(beads.get("mode", default_mode)),
@@ -150,7 +150,7 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
     # Check old dotbrain.yaml — its explicit entries override a default .brain/project.yaml.
     old = _old_config_path(dotbrain_home)
     if old.is_file():
-        data: dict[str, Any] = yaml.safe_load(old.read_text()) or {}
+        data: dict[str, Any] = yaml.safe_load(old.read_text(encoding="utf-8")) or {}
         projects = data.get("projects") or {}
         if name in projects:
             entry = (projects[name] or {}).get("beads") or {}
@@ -183,7 +183,7 @@ def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
         return ()
-    data = yaml.safe_load(path.read_text()) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         return ()
     return skills._clean(data.get("skills"), exclude=skills.project_baseline())
@@ -198,7 +198,7 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
         return ()
-    data = yaml.safe_load(path.read_text()) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         return ()
     return skills._clean(data.get("subagents"))
@@ -216,7 +216,7 @@ def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     if not path.is_file():
         return DEFAULT_PROJECT_AGENTS
 
-    data = yaml.safe_load(path.read_text()) or {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         return DEFAULT_PROJECT_AGENTS
 
@@ -270,7 +270,11 @@ def write_project_config(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
         doc["subagents"] = list(existing_subagents)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.dump(doc, default_flow_style=False, sort_keys=False))
+    path.write_text(
+        yaml.dump(doc, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+        newline="\n",
+    )
     return f"wrote beads config for {name} to {path}"
 
 
@@ -306,7 +310,7 @@ def migrate_legacy_skill_manifest(dotbrain_home: Path, name: str) -> str | None:
     if not legacy.is_file():
         return None
 
-    data = yaml.safe_load(legacy.read_text()) or {}
+    data = yaml.safe_load(legacy.read_text(encoding="utf-8")) or {}
     extras: tuple[str, ...] = ()
     if isinstance(data, dict):
         extras = skills._clean(data.get("skills", data.get("extra")), exclude=skills.project_baseline())
@@ -328,16 +332,16 @@ def _append_project_skills(dotbrain_home: Path, name: str, extras: tuple[str, ..
     path = _project_config_path(dotbrain_home, name)
     block = "skills:\n" + "".join(f"  - {skill}\n" for skill in extras)
     if path.is_file():
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         if re.search(r"(?m)^skills:", text):
             return
         if text and not text.endswith("\n"):
             text += "\n"
-        path.write_text(text + "\n" + block)
+        path.write_text(text + "\n" + block, encoding="utf-8", newline="\n")
         return
     header = "# Per-project skills, linked on top of the brain-coupled required core.\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(header + block)
+    path.write_text(header + block, encoding="utf-8", newline="\n")
 
 
 def _is_beads_deviation(dotbrain_home: Path, name: str, beads: ProjectBeads) -> bool:
@@ -359,7 +363,7 @@ def remove_project_beads(dotbrain_home: Path, name: str) -> str | None:
     old = _old_config_path(dotbrain_home)
     if old.is_file():
         import yaml
-        data: dict[str, Any] = yaml.safe_load(old.read_text()) or {}
+        data: dict[str, Any] = yaml.safe_load(old.read_text(encoding="utf-8")) or {}
         projects = data.get("projects")
         if projects and name in projects:
             return _remove_from_old_projects_section(old, name)
@@ -371,13 +375,13 @@ def _remove_from_old_projects_section(path: Path, name: str) -> str | None:
     """Drop ``projects.<name>`` from a legacy dotbrain.yaml, preserving other text."""
     import yaml
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text()) or {}
+    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     projects: dict[str, Any] = data.get("projects") or {}
     if name not in projects:
         return None
     del projects[name]
 
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     kept: list[str] = []
     in_section = False
     in_entry = False
@@ -404,7 +408,7 @@ def _remove_from_old_projects_section(path: Path, name: str) -> str | None:
     out = "\n".join(kept) + "\n"
     if projects:
         out += "\n" + _render_old_projects_section(projects)
-    path.write_text(out)
+    path.write_text(out, encoding="utf-8", newline="\n")
     return f"removed beads deviation for {name} from dotbrain.yaml"
 
 

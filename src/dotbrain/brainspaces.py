@@ -28,7 +28,9 @@ Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 def _default_run(
     argv: Sequence[str], *, cwd: Path | None = None, check: bool = True
 ) -> "subprocess.CompletedProcess[str]":
-    return subprocess.run(list(argv), cwd=cwd, check=check, capture_output=True, text=True)
+    return subprocess.run(
+        list(argv), cwd=cwd, check=check, capture_output=True, encoding="utf-8"
+    )
 
 
 # --------------------------------------------------------------------------- pure helpers
@@ -58,7 +60,11 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
             pass
         elif dest.exists():
             continue
-        dest.write_text(src.read_text())
+        dest.write_text(
+            src.read_text(encoding="utf-8"),
+            encoding="utf-8",
+            newline="\n",
+        )
 
     claude = brain / "CLAUDE.md"
     if not claude.exists():
@@ -89,7 +95,8 @@ def ensure_json_hook(
     """
     file = Path(file)
     file.parent.mkdir(parents=True, exist_ok=True)
-    data = json.loads(file.read_text()) if file.is_file() and file.read_text().strip() else {}
+    text = file.read_text(encoding="utf-8") if file.is_file() else ""
+    data = json.loads(text) if text.strip() else {}
     if not isinstance(data, dict):
         data = {}
 
@@ -105,7 +112,11 @@ def ensure_json_hook(
     if matcher:
         entry["matcher"] = matcher
     entries.append(entry)
-    file.write_text(json.dumps(data, indent=2) + "\n")
+    file.write_text(
+        json.dumps(data, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def ensure_codex_config(file: Path) -> str | None:
@@ -113,9 +124,13 @@ def ensure_codex_config(file: Path) -> str | None:
     file = Path(file)
     file.parent.mkdir(parents=True, exist_ok=True)
     if not file.exists():
-        file.write_text("[features]\nhooks = true\n")
+        file.write_text(
+            "[features]\nhooks = true\n",
+            encoding="utf-8",
+            newline="\n",
+        )
         return None
-    for line in file.read_text().splitlines():
+    for line in file.read_text(encoding="utf-8").splitlines():
         if line.strip().replace(" ", "") == "hooks=true":
             return None
     return f"{file} exists but does not explicitly enable hooks"
@@ -130,7 +145,7 @@ def _merge_hooks_from_template(template_resource: str, dest: Path) -> None:
     import json as _json
 
     src = resource_loader.resource(f"templates/{template_resource}")
-    template = _json.loads(src.read_text())
+    template = _json.loads(src.read_text(encoding="utf-8"))
     for event, entries in template.get("hooks", {}).items():
         for entry in entries if isinstance(entries, list) else [entries]:
             matcher = entry.get("matcher", "") if isinstance(entry, dict) else ""
