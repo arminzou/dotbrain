@@ -44,6 +44,20 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: P
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
+def test_seed_brain_does_not_rewrite_unchanged_owned_files(
+    dotbrain_home: Path, tmp_path: Path
+):
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    readme = brainspace / ".brain" / "docs" / "README.md"
+    original_mtime = readme.stat().st_mtime_ns
+
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+
+    assert readme.stat().st_mtime_ns == original_mtime
+
+
 def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
     file = tmp_path / "settings.json"
     brainspaces.ensure_json_hook(file, "SessionStart", "do-thing")

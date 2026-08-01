@@ -56,12 +56,13 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
     for rel, src in resource_loader.iter_resource_files("templates/brain"):
         dest = brain / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if src.name in ("DOTBRAIN.md", "README.md"):
-            pass
-        elif dest.exists():
+        if src.name not in ("DOTBRAIN.md", "README.md") and dest.exists():
+            continue
+        content = src.read_text(encoding="utf-8")
+        if dest.is_file() and dest.read_bytes() == content.encode("utf-8"):
             continue
         dest.write_text(
-            src.read_text(encoding="utf-8"),
+            content,
             encoding="utf-8",
             newline="\n",
         )
