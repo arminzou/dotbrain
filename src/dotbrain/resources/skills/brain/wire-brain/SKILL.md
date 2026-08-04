@@ -18,6 +18,8 @@ Use the narrowest command that matches the job:
 - `dotbrain wire --name <project> --no-repo`: create a Brain-only Brainspace.
 - `dotbrain wire --all`: reconcile every existing Brainspace with its adopter repo under the repo
   base.
+- `dotbrain worktrees wire [path]`: repair an existing git worktree so its Brainspace links reuse
+  the main checkout's links.
 - `dotbrain refresh`: refresh an existing Brainspace; use `--name <project>` to select one project.
 - `dotbrain refresh --name <project>`: refresh one existing Brainspace after config, skill, agent,
   template, or CLI changes.
@@ -96,7 +98,8 @@ Symlinks whose targets are outside the repo must remain untracked.
 
 Use repair commands by symptom:
 
-- Broken or missing repo symlinks for one project: `dotbrain wire --repo <path>`.
+- Broken or missing symlinks in the main checkout: `dotbrain wire --repo <path>`.
+- Broken or missing symlinks in a git worktree: `dotbrain worktrees wire [path]`.
 - Existing Brainspaces need repo link reconciliation: `dotbrain wire --all`.
 - Skills, agents, hooks, templates, or legacy skill manifests changed: `dotbrain refresh --name
   <project>` or `dotbrain refresh --all`.
@@ -113,8 +116,17 @@ dotbrain worktree support reuses the main checkout's Brainspace links. Session-s
 worktree bootstrap commands repair worktree links so worker sessions see the same Brain, beads, and
 agent workspaces as the main checkout.
 
-Use the CLI entrypoints for worktree launches and bootstrap hooks. Do not create separate
-Brainspaces for git worktrees.
+After creating a worktree manually, run this before dispatching work into it:
+
+```bash
+dotbrain worktrees wire /path/to/worktree
+```
+
+A fresh standalone Claude or Codex session normally runs the same reconciliation through its
+SessionStart hook. An in-session collaboration agent does not start a new session, so its manually
+created worktree must be wired explicitly. Verify `.brain`, `.beads`, and the active agent-workspace
+links resolve through the main checkout. Use `dotbrain wire` only for adopter-repo/Brainspace
+wiring; a git worktree reuses the existing Brainspace rather than creating another one.
 
 ## Offboarding
 

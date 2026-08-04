@@ -32,6 +32,15 @@ Before starting the loop, confirm all four hold. If any is missing, stay in ordi
 3. A hard stop is set (a retry cap or budget the loop will actually honor).
 4. A human gate covers anything irreversible the loop's checkpoints might touch.
 
+## Worktree Preparation
+
+A dedicated branch may run in place or in a git worktree. Before planning in a worktree, verify
+that `.brain`, `.beads`, and the active agent-workspace links resolve through the main checkout. A
+fresh standalone agent session normally reconciles them through SessionStart. When an in-session
+collaboration agent uses a manually created worktree, run `dotbrain worktrees wire <path>` before
+dispatch. `dotbrain wire` attaches an adopter repo to a Brainspace; it is not the worktree repair
+command.
+
 ## Read Order
 
 Before planning, read:

@@ -12,7 +12,10 @@ Brain template propagate to every brain.
   Brainspace. They are local machine wiring: never commit them to the code repo.
 - Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
 - Worktrees reach this same Brain through the same symlinks; never copy it per worktree.
-- If the symlinks are missing or dangling, run `dotbrain wire` from the repo root.
+- In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
+- In a git worktree, repair them with `dotbrain worktrees wire` from the worktree root. A fresh
+  standalone agent session normally does this through its SessionStart hook; an in-session
+  collaboration agent using a manually created worktree needs the command run explicitly.
 
 ## Rules
 

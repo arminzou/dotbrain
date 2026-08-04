@@ -256,6 +256,7 @@ def test_wire_brain_skill_tracks_current_cli_wiring_model():
     for command in (
         "dotbrain wire",
         "dotbrain wire --all",
+        "dotbrain worktrees wire",
         "dotbrain refresh",
         "dotbrain bootstrap",
         "dotbrain doctor",

@@ -81,6 +81,9 @@ when a driver forces it.
 - **Worktree** — when the work needs a second working tree at once: genuine parallelism (two or
   more trees in flight), an automation handoff you want off the interactive tree, or a long-running
   worker session returned to later. A worktree isolates the working directory on top of history.
+  After manual creation, run `dotbrain worktrees wire <path>` before dispatch so its `.brain`,
+  `.beads`, and agent-workspace links reuse the main checkout. A fresh standalone agent session
+  normally runs this through SessionStart; an in-session collaboration agent does not.
 - **Skip** — the item needs a decision you want to make; leave it for later triage.
 
 Advisory, not a gate; always include a one-line reason. Stop after the recommendation and wait for
