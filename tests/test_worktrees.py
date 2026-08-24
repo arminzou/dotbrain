@@ -27,7 +27,7 @@ def test_codex_worktree_plan_uses_codex_workspace_directory(tmp_path: Path):
     )
 
     assert plan.name == "scaffold-blog"
-    assert plan.worktree == repo.resolve() / ".codex" / "worktrees" / "scaffold-blog"
+    assert plan.worktree == repo.resolve().parent / "worktrees" / "scaffold-blog"
     assert plan.create_command == (
         "git",
         "worktree",

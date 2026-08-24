@@ -418,7 +418,7 @@ def test_codex_prints_worktree_commands(disconnected_adopter_repo: Path):
     )
 
     assert result.exit_code == 0, result.output
-    worktree = disconnected_adopter_repo / ".codex" / "worktrees" / "scaffold-blog"
+    worktree = disconnected_adopter_repo.parent / "worktrees" / "scaffold-blog"
     assert f"git worktree add -b scaffold-blog {worktree} develop" in result.output
     assert (
         f"codex -C {worktree} --sandbox workspace-write 'start here'"
@@ -429,7 +429,7 @@ def test_codex_prints_worktree_commands(disconnected_adopter_repo: Path):
 def test_codex_wires_worktree_before_launch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     repo = tmp_path / "repo"
     repo.mkdir()
-    worktree = repo / ".codex" / "worktrees" / "feature"
+    worktree = repo.parent / "worktrees" / "feature"
     plan = SimpleNamespace(
         repo=repo,
         worktree=worktree,

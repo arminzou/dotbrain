@@ -55,7 +55,7 @@ def codex_worktree_plan(
     """Build the commands for a Codex worktree session."""
     resolved_repo = Path(repo).resolve()
     slug = slugify_name(name)
-    worktree = resolved_repo / ".codex" / "worktrees" / slug
+    worktree = resolved_repo.parent / "worktrees" / slug
     create_command = (
         "git",
         "worktree",
