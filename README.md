@@ -166,30 +166,37 @@ main checkout.
 
 ## Install
 
-### macOS and Linux
+Dotbrain installs as a plugin. You do not need to clone this repo: the plugin carries the skills,
+the session-start hook, and an installer for the matching CLI.
+
+Claude Code — send these as two separate prompts:
+
+```
+/plugin marketplace add arminzou/dotbrain
+/plugin install dotbrain@dotbrain
+```
+
+Codex:
 
 ```bash
-git clone https://github.com/arminzou/dotbrain.git
-cd dotbrain
-./install.sh        # installs uv, Beads (bd), and the dotbrain CLI
-dotbrain bootstrap  # install agent hooks and link global skills
+codex plugin marketplace add arminzou/dotbrain
+codex plugin add dotbrain@dotbrain
 ```
 
-### Windows
+Codex holds plugin lifecycle hooks until you approve them: start `codex`, open `/hooks`, trust the
+dotbrain hook, then start a new thread.
 
-Enable [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
-first so Dotbrain can create directory symlinks without Administrator privileges. Then run from
-PowerShell:
+Then ask your agent to wire a repo, or invoke the `wire-brain` skill. It installs the `dotbrain`
+CLI (along with `uv` and Beads) if it is missing, runs `dotbrain bootstrap`, and wires the repo.
 
-```powershell
-git clone https://github.com/arminzou/dotbrain.git
-cd dotbrain
-.\install.ps1       # installs uv, Beads (bd), and the dotbrain CLI
-dotbrain bootstrap  # install agent hooks and link global skills
-```
+On **Windows**, enable
+[Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
+first so Dotbrain can create directory symlinks without Administrator privileges. The private
+dotbrain home defaults to `%USERPROFILE%\dotbrain` (for example, `C:\Users\you\dotbrain`). Set
+`DOTBRAIN_HOME` only when you want to use a different location.
 
-The private dotbrain home defaults to `%USERPROFILE%\dotbrain` on Windows (for example,
-`C:\Users\you\dotbrain`). Set `DOTBRAIN_HOME` only when you want to use a different location.
+See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough, including how to
+install the CLI by hand and what to do if `marketplace add` trips over a Windows file lock.
 
 ## Use
 
@@ -204,7 +211,25 @@ dotbrain unwire <repo>    # disconnect a repo from its Brainspace
 The CLI is a [uv](https://docs.astral.sh/uv/)-managed Python package.
 
 ```bash
+git clone https://github.com/arminzou/dotbrain.git
+cd dotbrain
 uv sync                 # provision the env
 uv run dotbrain --help  # inspect the command tree
 uv run pytest           # run the test suite
 ```
+
+To install a CLI from your checkout rather than a release tag, run `./install.sh` (or
+`.\install.ps1` on Windows) from the repo root, then `dotbrain bootstrap`. That is the contributor
+path; users get the CLI from the plugin.
+
+The plugin's `skills/` tree is generated. After editing anything under
+`src/dotbrain/resources/skills/`, regenerate it or the drift guard fails:
+
+```bash
+uv run python -m dotbrain._plugin_build
+```
+
+Version lives in `pyproject.toml` and is mirrored into `src/dotbrain/__init__.py`, both plugin
+manifests, and both first-run installers; `tests/test_plugin_build.py` enforces that they agree.
+When cutting a release, bump all of them and push a matching `v<version>` tag — the installers pin
+that tag, so a release without one breaks first-run installs.

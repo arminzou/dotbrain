@@ -36,7 +36,7 @@ Use server mode when:
 Server mode needs shared infrastructure defaults in `config.yaml`, typically under `beads.server`.
 The per-project `project.yaml` then sets `beads.mode: server`.
 
-See [configuration.md](/home/armin/repos/projects/dotbrain/docs/configuration.md) for the concrete
+See [configuration.md](configuration.md) for the concrete
 config examples.
 
 ## How dotbrain Decides

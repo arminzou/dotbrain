@@ -4,7 +4,7 @@ This page covers the wiring model behind dotbrain: what gets connected, what sta
 when to use `wire`, `refresh`, or `unwire`.
 
 For the first-run setup, start with
-[getting-started.md](/home/armin/repos/projects/dotbrain/docs/getting-started.md).
+[getting-started.md](getting-started.md).
 
 ## What Wiring Means
 
