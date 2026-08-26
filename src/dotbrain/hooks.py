@@ -6,6 +6,12 @@ Windows' ``System32`` WSL launcher depends on how Git was installed, and when th
 resolver picked the stub the script emitted nothing. Because the hook is fail-open,
 that surfaced as a session with no Brain context and no error at all.
 
+Only ``DOTBRAIN.md`` is injected. dotbrain owns that file, so its size is bounded and
+guarded by a test. The project's own ``.brain/AGENTS.md`` is deliberately left out: it
+grows with the project and would eventually cross the payload limit, at which point the
+runtime spills stdout to a file and the model receives none of it — including the
+convention. ``DOTBRAIN.md`` carries a rule telling the agent to read it instead.
+
 Output is assembled as bytes and written to ``stdout.buffer`` so the payload is exactly
 what ``cat`` produced: no newline translation on Windows, no re-encoding of Brain files.
 
@@ -21,7 +27,10 @@ from pathlib import Path
 from typing import BinaryIO
 
 CONVENTION_HEADING = "## dotbrain convention"
-PROJECT_HEADING = "## Project brain"
+
+# Hook stdout over this many bytes is spilled to a file and never reaches the model.
+# Measured on Claude Code: 9,961 bytes delivered, 10,010 did not.
+PAYLOAD_LIMIT = 10_000
 
 
 def repo_root(cwd: Path | None = None) -> Path | None:
@@ -49,24 +58,12 @@ def brain_context(cwd: Path | None = None) -> bytes:
     root = repo_root(cwd)
     if root is None:
         return b""
-    brain = root / ".brain"
-    if not brain.is_dir():
+    convention = root / ".brain" / "DOTBRAIN.md"
+    if not convention.is_file():
         return b""
 
-    parts: list[bytes] = []
-    convention = brain / "DOTBRAIN.md"
-    if convention.is_file():
-        parts.append(f"{CONVENTION_HEADING}\n\n".encode("utf-8"))
-        parts.append(convention.read_bytes())
-        parts.append(b"\n\n")
-
-    agents = brain / "AGENTS.md"
-    if agents.is_file():
-        parts.append(f"{PROJECT_HEADING} \u2014 {root.name}\n\n".encode("utf-8"))
-        parts.append(agents.read_bytes())
-        parts.append(b"\n\n")
-
-    return b"".join(parts)
+    heading = (CONVENTION_HEADING + "\n\n").encode("utf-8")
+    return heading + convention.read_bytes() + b"\n\n"
 
 
 def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) -> None:

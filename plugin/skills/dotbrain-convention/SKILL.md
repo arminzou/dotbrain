@@ -31,6 +31,8 @@ Brain template propagate to every brain.
 
 ## Rules
 
+- Read `.brain/AGENTS.md` before substantial work. It holds this project's own rules and is
+  not injected at session start. If it is missing, note the gap and continue.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - Execution lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists.

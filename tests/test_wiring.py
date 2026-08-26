@@ -290,9 +290,10 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
 
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
     assert "## dotbrain convention" in injected
-    assert "## Project brain" in injected
-    assert "adopter" in injected
-    assert "Private agent context for this project" in injected
+    # The project's own rules are read on instruction, never injected.
+    assert "Read `.brain/AGENTS.md` before substantial work" in injected
+    assert "Private agent context for this project" not in injected
+    assert (repo / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_project_materializes_workspaces_without_touching_tracked_files(
