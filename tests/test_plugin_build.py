@@ -64,11 +64,17 @@ def test_plugin_owns_session_start_registration_for_both_runtimes():
     assert hook["commandWindows"] == (
         "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook session-start }"
     )
-    for manifest_dir in (".claude-plugin", ".codex-plugin"):
-        manifest = json.loads(
-            (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
-        )
-        assert manifest["hooks"] == "./hooks/hooks.json"
+    # Claude Code auto-discovers hooks/hooks.json; declaring it in the manifest too makes the
+    # runtime reject the whole plugin with "Duplicate hooks file detected", skills included.
+    claude_manifest = json.loads(
+        (_plugin_build.PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    assert "hooks" not in claude_manifest
+    # Codex does not auto-discover, so its manifest still points at the same file.
+    codex_manifest = json.loads(
+        (_plugin_build.PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    assert codex_manifest["hooks"] == "./hooks/hooks.json"
 
 
 def test_first_run_installers_pin_the_plugin_cli_version():
