@@ -1,6 +1,6 @@
 {
   "name": "dotbrain",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The dotbrain operating manual: brain-coupled skills and the dotbrain convention, plus Brain context injection at session start.",
   "author": {
     "name": "Armin Zou",
