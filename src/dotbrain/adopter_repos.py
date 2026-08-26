@@ -485,27 +485,61 @@ class UnwireResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def _git_exclude_file(repo: Path) -> Path | None:
-    """Return .git/info/exclude for a repo or worktree; None if the layout is unrecognised."""
-    git_marker = repo / ".git"
-    if git_marker.is_dir():
-        return git_marker / "info" / "exclude"
-    if git_marker.is_file():
-        content = git_marker.read_text(encoding="utf-8").strip()
-        if content.startswith("gitdir: "):
-            raw = content[len("gitdir: "):]
-            git_dir = Path(raw) if Path(raw).is_absolute() else repo / raw
-            return git_dir / "info" / "exclude"
-    return None
+def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
+    root = Path(dotbrain_home).resolve()
+    links: list[Path] = []
+    for name in (".claude", ".codex"):
+        workspace = Path(repo) / name
+        if workspace.is_symlink():
+            candidates = [workspace]
+        elif workspace.is_dir():
+            candidates = list(workspace.rglob("*"))
+        else:
+            continue
+        for entry in candidates:
+            if not entry.is_symlink():
+                continue
+            try:
+                if entry.resolve().is_relative_to(root):
+                    links.append(entry)
+            except OSError:
+                continue
+    return links
 
 
-def unwire_repo(repo: Path, dry_run: bool = False) -> UnwireResult:
+def _remove_empty_workspace_dirs(repo: Path) -> list[Path]:
+    removed: list[Path] = []
+    for name in (".claude", ".codex"):
+        workspace = Path(repo) / name
+        for directory in sorted(
+            (path for path in workspace.rglob("*") if path.is_dir() and not path.is_symlink()),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        ) if workspace.is_dir() and not workspace.is_symlink() else []:
+            if not any(directory.iterdir()):
+                directory.rmdir()
+        if workspace.is_dir() and not workspace.is_symlink() and not any(workspace.iterdir()):
+            workspace.rmdir()
+            removed.append(workspace)
+    return removed
+
+
+def unwire_repo(
+    repo: Path,
+    dry_run: bool = False,
+    *,
+    dotbrain_home: Path | None = None,
+    run: Runner = _default_run,
+) -> UnwireResult:
     """Remove agent workspace symlinks, exclude entries, and the adopter-context pointer.
 
     With ``dry_run`` the repo is left untouched; logs report what would be removed.
     """
     result = UnwireResult(repo=repo)
     verb = "would remove" if dry_run else "removed"
+
+    managed_links = _managed_workspace_links(repo, dotbrain_home) if dotbrain_home else []
+    managed_entries = [link.relative_to(repo).as_posix() for link in managed_links]
 
     for name in paths.BRAINSPACE_LINKS:
         link = repo / name
@@ -514,14 +548,25 @@ def unwire_repo(repo: Path, dry_run: bool = False) -> UnwireResult:
                 link.unlink()
             result.logs.append(f"{verb} symlink {name}")
 
-    exclude = _git_exclude_file(repo)
+    for link, entry in zip(managed_links, managed_entries):
+        if not dry_run:
+            link.unlink()
+        result.logs.append(f"{verb} workspace link {entry}")
+
+    exclude = git_exclude_file(repo, run)
     if exclude and exclude.is_file():
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
-        filtered = [l for l in lines if l.rstrip("\n") not in paths.EXCLUDE_ENTRIES]
+        excludes = {*paths.EXCLUDE_ENTRIES, "/.claude", "/.codex"}
+        excludes.update(f"/{entry}" for entry in managed_entries)
+        filtered = [l for l in lines if l.rstrip("\r\n") not in excludes]
         if len(filtered) < len(lines):
             if not dry_run:
                 exclude.write_text("".join(filtered), encoding="utf-8", newline="\n")
-            result.logs.append(f"{verb} Brainspace ignore rules from .git/info/exclude")
+            result.logs.append(f"{verb} dotbrain ignore rules from .git/info/exclude")
+
+    if not dry_run:
+        for workspace in _remove_empty_workspace_dirs(repo):
+            result.logs.append(f"removed empty workspace {workspace.name}")
 
     for fname in ("AGENTS.md", "CLAUDE.md"):
         f = repo / fname

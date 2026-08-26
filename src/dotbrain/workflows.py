@@ -482,7 +482,9 @@ def unwire_project(
     else:
         resolved_repo = _repo_root(repo, run)
         project = _resolve_project(resolved_repo, project)
-        result = unwire_repo(resolved_repo, dry_run=dry_run)
+        result = unwire_repo(
+            resolved_repo, dry_run=dry_run, dotbrain_home=dotbrain_home, run=run
+        )
         result.project = project
     result.logs += offboard_brainspace(dotbrain_home, project, offboard, dry_run=dry_run, run=run)
     if offboard in {"archive", "delete"} and not dry_run:
@@ -517,7 +519,7 @@ def unwire_all_projects(
         try:
             repo = repo_for_brainspace(brainspace, dotbrain_home)
             if repo and repo.is_dir():
-                result = unwire_repo(repo, dry_run=dry_run)
+                result = unwire_repo(repo, dry_run=dry_run, dotbrain_home=dotbrain_home, run=run)
             else:
                 result = UnwireResult(project=project, repo=None)
             result.project = project
