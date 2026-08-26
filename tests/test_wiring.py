@@ -578,8 +578,8 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake
     )
 
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
-    assert (brainspace / ".claude").is_dir()
-    assert (brainspace / ".codex").is_dir()
+    assert not (brainspace / ".claude").exists()  # repo-backed: workspace lives in the repo
+    assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
     assert (repo / ".claude").is_dir()
     assert not (repo / ".claude").is_symlink()
     assert (repo / ".codex").is_dir()
@@ -611,7 +611,7 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         home=fake_home,
     )
     assert (repo / ".codex").is_dir()
-    assert (brainspace / ".codex").is_dir()
+    assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
 
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
     result = workflows.wire_project(
@@ -621,6 +621,6 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         home=fake_home,
     )
 
-    assert (brainspace / ".codex").is_dir()
+    assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
     assert (repo / ".codex").is_dir()
     assert not any(".codex is not wired" in warning for warning in result.warnings)

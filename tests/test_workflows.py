@@ -488,8 +488,8 @@ def test_refresh_project_honors_declared_agent_workspaces(
     assert claude_workspace.is_dir()
     assert not claude_workspace.is_symlink()
     assert (repo / ".codex").is_dir()
-    assert (brainspace / ".claude").is_dir()
-    assert (brainspace / ".codex").exists()
+    assert not (brainspace / ".claude").exists()  # repo-backed: workspace lives in the repo
+    assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
 
 
 def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
@@ -535,7 +535,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
 
     assert result.refreshed == ["refresh-downgraded"]
     assert captured["workspaces"] == (".claude",)
-    assert (brainspace / ".codex").is_dir()
+    assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
     assert (repo / ".codex").is_dir()
 def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch

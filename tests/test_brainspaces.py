@@ -72,43 +72,55 @@ def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
     assert entries[1]["hooks"][0]["statusMessage"] == "msg"
 
 
-def test_seed_agent_workspaces_leaves_session_start_to_plugin(
+def test_seed_agent_workspaces_skips_a_repo_backed_brainspace(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
+    """A repo-backed Brainspace links from the code repo, so a workspace here would be dead."""
+
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()
+    (brainspace / ".repo").write_text("~/repos/projects/thing", encoding="utf-8")
+
+    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
+
+    assert warnings == []
+    assert not (brainspace / ".claude").exists()
+    assert not (brainspace / ".codex").exists()
+
+
+def test_seed_agent_workspaces_serves_a_brain_only_brainspace(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
+):
+    """With no repo there is nowhere else for its links to live."""
+
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    (brainspace / ".repo").write_text("(brain-only)", encoding="utf-8")
+
     warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
     warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
+
     assert warnings == []
     assert warnings_again == []
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").is_dir()
     assert not (brainspace / ".claude" / "settings.json").exists()
     assert not (brainspace / ".codex" / "hooks.json").exists()
-    assert not (brainspace / ".codex" / "config.toml").exists()
 
 
-def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
-    dotbrain_home: Path, fake_home: Path
-):
+def test_seed_agent_workspaces_warns_on_an_unknown_agent(dotbrain_home: Path, fake_home: Path):
+    """A typo in project.yaml warns whether or not anything gets created."""
+
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
     (brainspace / ".brain").mkdir(parents=True)
     (brainspace / ".brain" / "project.yaml").write_text(
-        "agents:\n"
-        "  - claude\n"
-        "  - custom\n"
+        "agents:" + chr(10) + "  - claude" + chr(10) + "  - custom" + chr(10)
     )
-    existing_codex = brainspace / ".codex" / "keep.txt"
-    existing_codex.parent.mkdir(parents=True)
-    existing_codex.write_text("keep\n")
 
     warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
 
-    assert (brainspace / ".claude").is_dir()
-    assert not (brainspace / ".claude" / "settings.json").exists()
-    assert not (brainspace / ".codex" / "hooks.json").exists()
-    assert existing_codex.read_text() == "keep\n"
     assert warnings == [f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: custom"]
+    assert not (brainspace / ".claude").exists()
 
 
 def test_sessionstart_hook_emits_nothing_for_a_repo_without_a_brain(tmp_path: Path):

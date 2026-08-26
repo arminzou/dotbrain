@@ -129,20 +129,36 @@ def active_agent_workspaces(brainspace: Path, dotbrain_home: Path) -> tuple[str,
     return tuple(f".{agent}" for agent in agents if agent in _KNOWN_AGENT_WORKSPACES)
 
 
-def seed_agent_workspaces(brainspace: Path, dotbrain_home: Path, home: Path | None = None) -> list[str]:
-    """Create declared agent workspaces without runtime-owned configuration.
+def is_brain_only(brainspace: Path) -> bool:
+    """True when the Brainspace declares no adopter repo."""
 
-    SessionStart registration is plugin-owned. Only listed workspaces are created;
-    existing undeclared workspaces are left in place.
+    repo_file = Path(brainspace) / ".repo"
+    return (
+        repo_file.is_file()
+        and repo_file.read_text(encoding="utf-8").strip() == "(brain-only)"
+    )
+
+
+def seed_agent_workspaces(brainspace: Path, dotbrain_home: Path, home: Path | None = None) -> list[str]:
+    """Create declared agent workspaces, but only for a brain-only Brainspace.
+
+    A repo-backed Brainspace has its workspaces materialized in the code repo, and skill and
+    subagent links point from there straight at the dotbrain home. Seeding one here too would
+    leave directories nothing reads. A brain-only Brainspace has no repo, so it is the only
+    place its links can live.
+
+    Undeclared agents still warn either way: a typo in ``project.yaml`` should not be silent.
     """
     brainspace = Path(brainspace)
     warnings: list[str] = []
+    brain_only = is_brain_only(brainspace)
 
     for agent in config.load_project_agents(dotbrain_home, brainspace.name):
         if agent not in _KNOWN_AGENT_WORKSPACES:
             warnings.append(f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: {agent}")
             continue
-        (brainspace / f".{agent}").mkdir(parents=True, exist_ok=True)
+        if brain_only:
+            (brainspace / f".{agent}").mkdir(parents=True, exist_ok=True)
 
     return warnings
 

@@ -378,7 +378,7 @@ def refresh_projects(
         )
 
         if repo is None:
-            if not _is_brain_only_brainspace(brainspace):
+            if not brainspaces.is_brain_only(brainspace):
                 result.warnings.append(
                     f"no repo found for Brainspace {brainspace.name}; "
                     f"add {brainspace}/.repo or create {rb}/{brainspace.name}"
@@ -425,17 +425,6 @@ def refresh_project(
         workspaces=workspaces,
         run=run,
     )
-
-
-def _is_brain_only_brainspace(brainspace: Path) -> bool:
-    repo_file = brainspace / ".repo"
-    return (
-        repo_file.is_file()
-        and repo_file.read_text(encoding="utf-8").strip() == "(brain-only)"
-    )
-
-
-# --------------------------------------------------------------------------- unwire
 
 
 def _resolve_project(repo: Path, project: str | None) -> str:
