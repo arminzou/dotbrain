@@ -1,11 +1,11 @@
-"""Brainspace lifecycle: Brain seeding, agent-workspace seeding, and offboarding.
+"""Brainspace lifecycle: Brain seeding, agent-workspace preparation, and offboarding.
 
 A Brainspace is a project's private context store under ``brainspaces/<name>/``. This module owns
 its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads setup
 (``wiring``/``beads``):
 
 - Brain skeleton seeding from packaged ``templates/brain/`` resources;
-- agent-workspace seeding: the Claude/Codex SessionStart + beads hooks;
+- agent-workspace preparation for selected Claude/Codex assets;
 - offboarding: keep | archive | delete plus the byproduct cleanup that precedes git mv/rm.
 
 It depends only on ``paths``. It is intentionally not split into ``brain_seed.py`` /
@@ -120,80 +120,29 @@ def ensure_json_hook(
     )
 
 
-def ensure_codex_config(file: Path) -> str | None:
-    """Ensure codex config enables hooks; returns a warning if it exists but does not."""
-    file = Path(file)
-    file.parent.mkdir(parents=True, exist_ok=True)
-    if not file.exists():
-        file.write_text(
-            "[features]\nhooks = true\n",
-            encoding="utf-8",
-            newline="\n",
-        )
-        return None
-    for line in file.read_text(encoding="utf-8").splitlines():
-        if line.strip().replace(" ", "") == "hooks=true":
-            return None
-    return f"{file} exists but does not explicitly enable hooks"
-
-
-def _merge_hooks_from_template(template_resource: str, dest: Path) -> None:
-    """Merge hook entries from a packaged JSON template into an existing or new file.
-
-    Reads ``templates/<template_resource>``, iterates its ``hooks`` block, and calls
-    ``ensure_json_hook`` for each entry.  User-owned keys outside ``hooks`` are preserved.
-    """
-    import json as _json
-
-    src = resource_loader.resource(f"templates/{template_resource}")
-    template = _json.loads(src.read_text(encoding="utf-8"))
-    for event, entries in template.get("hooks", {}).items():
-        for entry in entries if isinstance(entries, list) else [entries]:
-            matcher = entry.get("matcher", "") if isinstance(entry, dict) else ""
-            for hook in entry.get("hooks", []) if isinstance(entry, dict) else []:
-                if isinstance(hook, dict) and hook.get("type") == "command":
-                    ensure_json_hook(
-                        dest, event, hook["command"],
-                        matcher=matcher,
-                        status_message=hook.get("statusMessage", ""),
-                    )
-
-
-_AGENT_WORKSPACE_TEMPLATES: dict[str, str] = {
-    "claude": "claude/settings.json",
-    "codex": "codex/hooks.json",
-}
+_KNOWN_AGENT_WORKSPACES = frozenset({"claude", "codex"})
 
 
 def active_agent_workspaces(brainspace: Path, dotbrain_home: Path) -> tuple[str, ...]:
     """Return the declared, known workspace directory names for a project."""
     agents = config.load_project_agents(dotbrain_home, Path(brainspace).name)
-    return tuple(f".{agent}" for agent in agents if agent in _AGENT_WORKSPACE_TEMPLATES)
+    return tuple(f".{agent}" for agent in agents if agent in _KNOWN_AGENT_WORKSPACES)
 
 
 def seed_agent_workspaces(brainspace: Path, dotbrain_home: Path, home: Path | None = None) -> list[str]:
-    """Seed declared agent workspaces from packaged templates.
+    """Create declared agent workspaces without runtime-owned configuration.
 
-    Only listed workspaces are created or repaired. Existing undeclared
-    workspaces are left in place.
+    SessionStart registration is plugin-owned. Only listed workspaces are created;
+    existing undeclared workspaces are left in place.
     """
     brainspace = Path(brainspace)
     warnings: list[str] = []
 
     for agent in config.load_project_agents(dotbrain_home, brainspace.name):
-        template = _AGENT_WORKSPACE_TEMPLATES.get(agent)
-        if template is None:
+        if agent not in _KNOWN_AGENT_WORKSPACES:
             warnings.append(f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: {agent}")
             continue
-
-        workspace = brainspace / f".{agent}"
-        config_file = "settings.json" if agent == "claude" else "hooks.json"
-        _merge_hooks_from_template(template, workspace / config_file)
-
-        if agent == "codex":
-            warning = ensure_codex_config(workspace / "config.toml")
-            if warning:
-                warnings.append(warning)
+        (brainspace / f".{agent}").mkdir(parents=True, exist_ok=True)
 
     return warnings
 

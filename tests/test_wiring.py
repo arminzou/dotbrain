@@ -7,12 +7,13 @@ real repos) but no-ops ``bd`` and script invocations, so tests stay hermetic and
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from dotbrain import beads, config, paths, workflows
+from dotbrain import beads, config, paths, resource_loader, workflows
 
 
 def make_runner(calls: list[list[str]]):
@@ -278,11 +279,33 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
         assert (repo / name).resolve() == (brainspace / name).resolve()
     assert (repo / ".codex").is_dir()
     assert not (repo / ".codex").is_symlink()
+    assert not (repo / ".claude" / "settings.json").exists()
+    assert not (repo / ".codex" / "hooks.json").exists()
     assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
     assert "/.codex" not in paths.exclude_entries(repo)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
+
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_dotbrain = fake_bin / "dotbrain"
+    fake_dotbrain.write_text("#!/usr/bin/env bash\nexit 0\n")
+    fake_dotbrain.chmod(0o755)
+    env = {**os.environ, "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"}
+    with resource_loader.resource_file("scripts/brain-sessionstart.sh") as script:
+        hook = subprocess.run(
+            [resource_loader.resolve_bash(), str(script)],
+            cwd=repo,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    assert "## dotbrain convention" in hook.stdout
+    assert "## Project brain" in hook.stdout
+    assert "adopter" in hook.stdout
+    assert "Private agent context for this project" in hook.stdout
 
 
 def test_wire_project_materializes_codex_without_touching_tracked_files(

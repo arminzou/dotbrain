@@ -2,7 +2,7 @@
 
 These are the bodies behind ``dotbrain wire``, ``wire --all``, ``unwire``, and ``unwire --all``:
 cross-concept orchestration that stitches together ``adopter_repos`` (repo links),
-``brainspaces`` (Brain/workspace seeding, offboarding), ``beads`` (tracker init), ``skills``
+``brainspaces`` (Brain/workspace preparation, offboarding), ``beads`` (tracker init), ``skills``
 (skill manifest), and ``wiring`` (global hooks). ``cli.py`` stays a thin Typer parsing/rendering
 layer over these.
 
@@ -269,7 +269,7 @@ def wire_all_projects(
     home: Path | None = None,
     run: Runner = _default_run,
 ) -> BootstrapResult:
-    """Re-seed brains from templates and repair agent workspace symlinks and hooks for every
+    """Re-seed brains from templates and repair agent workspace links for every
     wired Brainspace.  Dotbrain-owned files (DOTBRAIN.md, README.md) are always
     overwritten so template changes propagate.
 
@@ -283,7 +283,7 @@ def wire_all_projects(
 
     for brainspace in paths.brainspaces(dotbrain_home):
         brainspaces.seed_brain(brainspace, dotbrain_home)
-        # repair per-Brainspace agent workspace hooks and configs
+        # prepare declared agent workspaces before linking their assets
         result.warnings += brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, home)
 
         repo = adopter_repos.repo_for_brainspace(brainspace, dotbrain_home, rb, home)

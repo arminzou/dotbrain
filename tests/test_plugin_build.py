@@ -6,6 +6,7 @@ without regenerating fails here. Regenerate with:
 ``uv run python -m dotbrain._plugin_build``
 """
 
+import json
 from pathlib import Path
 
 from dotbrain import _plugin_build, skills
@@ -49,3 +50,20 @@ def test_wire_worktree_skill_is_self_contained_and_windows_safe():
     assert "mklink /D" in text
     assert "Bare `ln -s` can silently copy directories on Windows" in text
     assert "do not run `dotbrain wire`" in text
+
+
+def test_plugin_owns_session_start_registration_for_both_runtimes():
+    hooks_path = _plugin_build.PLUGIN_ROOT / "hooks" / "hooks.json"
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    commands = [
+        hook["command"]
+        for entry in hooks["hooks"]["SessionStart"]
+        for hook in entry["hooks"]
+    ]
+
+    assert commands == ["dotbrain hook session-start"]
+    for manifest_dir in (".claude-plugin", ".codex-plugin"):
+        manifest = json.loads(
+            (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
+        )
+        assert manifest["hooks"] == "./hooks/hooks.json"

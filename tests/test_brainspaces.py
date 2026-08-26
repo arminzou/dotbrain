@@ -1,4 +1,4 @@
-"""Tests for brainspaces.py: Brain seeding, agent-workspace seeding, and offboarding helpers."""
+"""Tests for brainspaces.py: Brain seeding, workspace preparation, and offboarding helpers."""
 
 from __future__ import annotations
 
@@ -71,32 +71,20 @@ def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
     assert entries[1]["hooks"][0]["statusMessage"] == "msg"
 
 
-def test_ensure_codex_config(tmp_path: Path):
-    created = tmp_path / "config.toml"
-    assert brainspaces.ensure_codex_config(created) is None
-    assert "hooks = true" in created.read_text()
-
-    disabled = tmp_path / "disabled.toml"
-    disabled.write_text("[features]\n")
-    assert "does not explicitly enable hooks" in brainspaces.ensure_codex_config(disabled)
-
-
-def test_seed_agent_workspaces_writes_hooks(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
+def test_seed_agent_workspaces_leaves_session_start_to_plugin(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
+):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()
     warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
     warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
     assert warnings == []
     assert warnings_again == []
-    bootstrap = "dotbrain hook session-start"
-    claude = json.loads((brainspace / ".claude" / "settings.json").read_text())
-    claude_commands = [h["command"] for e in claude["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert claude_commands == [bootstrap]
-    codex = json.loads((brainspace / ".codex" / "hooks.json").read_text())
-    assert set(codex["hooks"]) == {"SessionStart"}
-    codex_commands = [h["command"] for e in codex["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert codex_commands == [bootstrap]
-    assert "hooks = true" in (brainspace / ".codex" / "config.toml").read_text()
+    assert (brainspace / ".claude").is_dir()
+    assert (brainspace / ".codex").is_dir()
+    assert not (brainspace / ".claude" / "settings.json").exists()
+    assert not (brainspace / ".codex" / "hooks.json").exists()
+    assert not (brainspace / ".codex" / "config.toml").exists()
 
 
 def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unlisted(
@@ -115,7 +103,8 @@ def test_seed_agent_workspaces_honors_project_agents_and_preserves_existing_unli
 
     warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
 
-    assert (brainspace / ".claude" / "settings.json").is_file()
+    assert (brainspace / ".claude").is_dir()
+    assert not (brainspace / ".claude" / "settings.json").exists()
     assert not (brainspace / ".codex" / "hooks.json").exists()
     assert existing_codex.read_text() == "keep\n"
     assert warnings == [f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: custom"]
