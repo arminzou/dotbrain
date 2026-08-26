@@ -50,13 +50,20 @@ def test_wire_worktree_skill_is_self_contained_and_windows_safe():
 def test_plugin_owns_session_start_registration_for_both_runtimes():
     hooks_path = _plugin_build.PLUGIN_ROOT / "hooks" / "hooks.json"
     hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
-    commands = [
-        hook["command"]
-        for entry in hooks["hooks"]["SessionStart"]
-        for hook in entry["hooks"]
-    ]
+    entries = [hook for entry in hooks["hooks"]["SessionStart"] for hook in entry["hooks"]]
 
-    assert commands == ["dotbrain hook session-start"]
+    assert len(entries) == 1
+    hook = entries[0]
+    # Both commands must guard on the CLI being present: the plugin installs at user scope, so
+    # every session on the machine runs this hook, including before the CLI exists.
+    assert hook["command"] == (
+        "if command -v dotbrain >/dev/null 2>&1; then dotbrain hook session-start; fi"
+    )
+    # commandWindows keeps the guard in PowerShell instead of resolving `bash`, where the
+    # System32 WSL launcher shadows Git Bash on PATH.
+    assert hook["commandWindows"] == (
+        "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook session-start }"
+    )
     for manifest_dir in (".claude-plugin", ".codex-plugin"):
         manifest = json.loads(
             (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
