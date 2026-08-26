@@ -55,6 +55,12 @@ def command_paths() -> list[list[str]]:
     return walk(root, [])
 
 
+# Rich draws Typer's help panels with rounded corners, except where Console.legacy_windows
+# is true — a captured pipe on Windows — where box.ROUNDED substitutes the square set. The
+# committed doc would otherwise depend on which OS regenerated it, so normalize to square.
+_SQUARE_CORNERS = str.maketrans("╭╮╰╯", "┌┐└┘")
+
+
 def _help(exe: Path, path: list[str]) -> str:
     # PYTHONUTF8 matters beyond decoding: Rich's Console.ascii_only checks whether the captured
     # stdout's encoding starts with "utf" and falls back to ASCII box-drawing characters otherwise.
@@ -76,6 +82,7 @@ def _help(exe: Path, path: list[str]) -> str:
     # substring — the help text itself contains unrelated words like "$DOTBRAIN_HOME".
     if exe.name.lower() != "dotbrain":
         output = re.sub(re.escape(exe.name), "dotbrain", output, flags=re.IGNORECASE)
+    output = output.translate(_SQUARE_CORNERS)
     return "\n".join(line.rstrip() for line in output.splitlines())
 
 
@@ -89,6 +96,17 @@ def render() -> str:
 
 
 def main() -> None:
+    # Rich narrows its console by one column when legacy_windows is on, which it always is
+    # for a captured subprocess pipe on Windows. The committed page is therefore the POSIX
+    # rendering, and test_cli_reference.py skips on Windows for the same reason. Regenerating
+    # here would write an 80-col page as 79 and break CI's ubuntu/macos legs, where the guard
+    # actually runs — so refuse rather than write a page this platform cannot validate.
+    if sys.platform == "win32":
+        raise SystemExit(
+            "refusing to regenerate docs/cli-reference.md on Windows: Rich renders panels one "
+            "column narrower here, and the committed page is the POSIX rendering that CI "
+            "validates. Regenerate under WSL, Linux, or macOS."
+        )
     REFERENCE_PATH.write_text(render(), encoding="utf-8", newline="\n")
     print(f"wrote {REFERENCE_PATH}")
 
