@@ -8,8 +8,10 @@ without regenerating fails here. Regenerate with:
 
 import json
 from pathlib import Path
+import re
+import tomllib
 
-from dotbrain import _plugin_build
+from dotbrain import __version__, _plugin_build
 
 
 def _tree(root: Path) -> dict[str, str]:
@@ -60,3 +62,31 @@ def test_plugin_owns_session_start_registration_for_both_runtimes():
             (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
         )
         assert manifest["hooks"] == "./hooks/hooks.json"
+
+
+def test_first_run_installers_pin_the_plugin_cli_version():
+    version = tomllib.loads((_plugin_build._REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
+    scripts = _plugin_build.PLUGIN_ROOT / "scripts"
+
+    for manifest_dir in (".claude-plugin", ".codex-plugin"):
+        manifest = json.loads(
+            (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
+        )
+        assert manifest["version"] == version
+    assert __version__ == version
+
+    for name in ("install.sh", "install.ps1"):
+        text = (scripts / name).read_text(encoding="utf-8")
+        assert version in text
+        assert re.search(r"git\+https://github\.com/arminzou/dotbrain@[0-9a-f]{40}", text)
+        assert "dotbrain bootstrap" in text
+
+
+def test_wire_brain_installs_only_when_the_cli_is_absent():
+    text = " ".join(
+        (_plugin_build.SKILLS_DIR / "wire-brain" / "SKILL.md").read_text(encoding="utf-8").split()
+    )
+
+    assert "If it is, continue without installing anything." in text
+    assert "scripts/install.sh" in text
+    assert "scripts/install.ps1" in text

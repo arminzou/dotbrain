@@ -10,6 +10,17 @@ scaffolding, symlink reconciliation, hooks, skill links, agent links, and beads 
 this skill choose the right CLI command, inspect the result, and hand Brain content changes to the
 skill that owns that content.
 
+## First Run
+
+Before choosing a CLI command, check whether `dotbrain` is on `PATH`. If it is, continue without
+installing anything. If it is absent, run the installer shipped beside this skill:
+
+- On macOS or Linux: `${CLAUDE_PLUGIN_ROOT}/scripts/install.sh`.
+- On Windows: `pwsh -NoProfile -File "$env:CLAUDE_PLUGIN_ROOT/scripts/install.ps1"`.
+
+The installer provides `uv`, `bd`, the CLI version pinned to this plugin release, and runs
+`dotbrain bootstrap`. Then resume this skill's normal wiring flow in the current repo.
+
 ## Command Choice
 
 Use the narrowest command that matches the job:
