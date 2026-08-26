@@ -60,11 +60,11 @@ def project_workspace_dirs(
     workspaces: Sequence[str],
     run: Runner = _default_run,
 ) -> tuple[dict[str, Path], list[str]]:
-    """Resolve runtime workspace directories, materializing Codex in the adopter repo."""
+    """Resolve runtime workspace directories, materializing them in the adopter repo."""
     directories: dict[str, Path] = {}
     warnings: list[str] = []
     for workspace in workspaces:
-        if repo is not None and workspace == ".codex":
+        if repo is not None:
             warning = adopter_repos.materialize_workspace(repo, brainspace, workspace, run)
             if warning:
                 warnings.append(warning)
@@ -82,8 +82,9 @@ def _reconcile_project_asset_excludes(
 ) -> None:
     if repo is None:
         return
-    linked = [entry for result in results for entry in result.linked if entry.startswith(".codex/")]
-    pruned = [entry for result in results for entry in result.pruned if entry.startswith(".codex/")]
+    prefixes = (".claude/", ".codex/")
+    linked = [entry for result in results for entry in result.linked if entry.startswith(prefixes)]
+    pruned = [entry for result in results for entry in result.pruned if entry.startswith(prefixes)]
     adopter_repos.reconcile_link_excludes(repo, linked=linked, pruned=pruned, run=run)
 
 
@@ -224,11 +225,11 @@ def wire_project(
         brainspace,
         dotbrain_home,
         run,
-        workspace_links=tuple(ws for ws in active_workspaces if ws != ".codex"),
+        workspace_links=(),
     )
     if paths.INJECT_ADOPTER_POINTER:
         result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
-    expected_links = (".brain", *(ws for ws in active_workspaces if ws != ".codex"))
+    expected_links = (".brain",)
     if (brainspace / ".beads").exists():
         expected_links += (".beads",)
     result.warnings += adopter_repos.verify_wiring(
@@ -254,11 +255,7 @@ def _repair_adopter_repo_links(
         dotbrain_home,
         run,
         skip_beads_link=skip_beads_link,
-        workspace_links=tuple(
-            workspace
-            for workspace in brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
-            if workspace != ".codex"
-        ),
+        workspace_links=(),
     )
     return [f"wired {brainspace.name} -> {repo}"], warnings
 

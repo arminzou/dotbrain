@@ -31,15 +31,13 @@ touches the code repo; the symlinks make sure it follows the project wherever yo
             │   ├── adr/        # architecture decisions
             │   ├── designs/    # design docs
             │   └── docs/       # derived reference material
-            ├── .beads/     # execution store (issue tracker)
-            ├── .claude/    # Claude Code workspace
-            └── .codex/     # Codex workspace
+            └── .beads/     # execution store (issue tracker)
 
-    ~/repos/my-project/     (gitignored symlinks in your code repo)
+    ~/repos/my-project/
     ├── .brain  ──────────────► ~/dotbrain/brainspaces/my-project/.brain
     ├── .beads  ──────────────► ~/dotbrain/brainspaces/my-project/.beads
-    ├── .claude ──────────────► ~/dotbrain/brainspaces/my-project/.claude
-    └── .codex  ──────────────► ~/dotbrain/brainspaces/my-project/.codex
+    ├── .claude/               # real directory with gitignored resource links
+    └── .codex/                # real directory with gitignored resource links
 
 ## Why not just keep private notes?
 
@@ -49,8 +47,8 @@ sat off to the side of the project: when I spun up a git worktree to run a secon
 the notes did not come with it; when I cloned the project onto another machine, they were not there
 either. The context I needed most was the context that never followed the work.
 
-Dotbrain keeps the Brain, the issue tracker, and agent configs all private and versioned under a
-project's Brainspace, wired into the repo from a single private home. A worktree picks it up automatically. A new machine is one clone and bootstrap away
+Dotbrain keeps the Brain and issue tracker private and versioned under a project's Brainspace, then
+links selected agent resources into the repo's workspaces. A worktree picks it up automatically. A new machine is one clone and bootstrap away
 from having every project wired. The notes are there wherever you work the project, instead of
 sitting beside it.
 

@@ -303,7 +303,7 @@ def test_wire_brain_skill_tracks_current_cli_wiring_model():
         assert command in text
 
     for phrase in (
-        "Expected links are derived from project config",
+        "Expected wiring is derived from project config",
         "beads.mode",
         "agents",
         "skills",

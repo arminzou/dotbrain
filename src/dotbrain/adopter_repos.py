@@ -430,7 +430,7 @@ def wire_repo(
     run: Runner = _default_run,
     *,
     skip_beads_link: bool = False,
-    workspace_links: Sequence[str] = (".claude", ".codex"),
+    workspace_links: Sequence[str] = (),
 ) -> list[str]:
     """Link active Brainspace symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)

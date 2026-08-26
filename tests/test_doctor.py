@@ -138,12 +138,11 @@ def test_check_brainspace_links_all_ok(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     brainspace = dotbrain_home / "brainspaces" / "myrepo"
+    (repo / ".claude").mkdir()
+    (repo / ".codex").mkdir()
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
-        if link == ".codex":
-            (repo / link).mkdir()
-        else:
-            (repo / link).symlink_to(brainspace / link)
+        (repo / link).symlink_to(brainspace / link)
     findings = doctor._check_brainspace_links(repo, brainspace)
     assert len(findings) == 0
 
@@ -159,7 +158,7 @@ def test_check_brainspace_links_missing(
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
     findings = doctor._check_brainspace_links(repo, brainspace)
-    assert len(findings) == len(paths.BRAINSPACE_LINKS)
+    assert len(findings) == len(paths.BRAINSPACE_LINKS) + 2
     assert all(f.status == "warn" for f in findings)
 
 
@@ -172,12 +171,11 @@ def test_check_brainspace_links_broken(
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     brainspace = dotbrain_home / "brainspaces" / "brokenlinks"
     brainspace.mkdir(parents=True, exist_ok=True)
+    (repo / ".claude").mkdir()
+    (repo / ".codex").mkdir()
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
-        if link == ".codex":
-            (repo / link).mkdir()
-        else:
-            (repo / link).symlink_to(brainspace / link)
+        (repo / link).symlink_to(brainspace / link)
     # Break one
     (brainspace / ".brain").rmdir()
     findings = doctor._check_brainspace_links(repo, brainspace)
@@ -195,7 +193,7 @@ def test_check_repo_excludes_ok(
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     exclude = repo / ".git" / "info" / "exclude"
     exclude.parent.mkdir(parents=True, exist_ok=True)
-    exclude.write_text("\n".join(entry for entry in paths.EXCLUDE_ENTRIES if entry != "/.codex") + "\n")
+    exclude.write_text("\n".join(paths.EXCLUDE_ENTRIES) + "\n")
     findings = doctor._check_repo_excludes(repo)
     assert len(findings) == 0
 
@@ -208,7 +206,7 @@ def test_check_repo_excludes_missing(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     findings = doctor._check_repo_excludes(repo)
-    assert len(findings) == len(paths.EXCLUDE_ENTRIES) - 1
+    assert len(findings) == len(paths.EXCLUDE_ENTRIES)
 
 
 def test_check_agent_pointer_uses_wire_marker(

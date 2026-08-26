@@ -277,7 +277,7 @@ def test_skills_link_project_creates_symlinks_after_wire(
     brainspace = paths.brainspace(dotbrain_home, "skilltest")
     for skill in skills.project_baseline(dotbrain_home):
         name = Path(skill).name
-        assert (brainspace / ".claude" / "skills" / name).is_symlink(), \
+        assert (repo / ".claude" / "skills" / name).is_symlink(), \
             f"expected .claude/skills/{name} to be linked"
         assert (repo / ".codex" / "skills" / name).is_symlink(), \
             f"expected .codex/skills/{name} to be linked"
@@ -296,7 +296,7 @@ def test_skills_link_project_prunes_stale_after_baseline_change(
 
     # Plant a stale symlink pointing into skills/ (simulates a removed baseline entry)
     brainspace = paths.brainspace(dotbrain_home, "prunetest")
-    skills_dir = brainspace / ".claude" / "skills"
+    skills_dir = repo / ".claude" / "skills"
     stale = skills_dir / "old-skill"
     stale.symlink_to((dotbrain_home / "skills" / "brain" / "wire-brain").resolve())
 

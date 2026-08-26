@@ -1,6 +1,6 @@
 ---
 name: wire-brain
-description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace using the current dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads/.claude/.codex links, reconciling skills/agents/hooks after an upgrade, or checking bootstrap expectations.
+description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace using the current dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
 ---
 
 # Wire Brain
@@ -49,14 +49,14 @@ through the relevant Brain skills: context through `build-context`, execution th
 
 ## Wiring Contract
 
-A wired adopter repo points at its Brainspace through local, gitignored symlinks. Expected links are derived from project config:
+A wired adopter repo points at its Brainspace through local, gitignored symlinks and has real agent workspace directories. Expected wiring is derived from project config:
 
 - `.brain` always points at the Brain.
 - `.beads` exists unless `beads.mode` is `none`.
-- `.claude` exists when the `claude` agent workspace is active.
-- `.codex` exists when the `codex` agent workspace is active.
+- `.claude` is a real directory when the `claude` agent workspace is active.
+- `.codex` is a real directory when the `codex` agent workspace is active.
 
-The repo's `.git/info/exclude` ignores `/.brain`, `/.beads`, `/.claude`, and `/.codex`. The public
+The repo's `.git/info/exclude` ignores `/.brain`, `/.beads`, and each workspace link dotbrain creates. The public
 repo context may contain the standard pointer to `.brain/AGENTS.md`; private Brain paths, ADRs,
 beads details, and tracker operations stay out of public repo files.
 
@@ -148,7 +148,7 @@ Before declaring wiring fixed:
 
 - `dotbrain doctor` reports no relevant errors.
 - `readlink <repo>/.brain` resolves into `~/dotbrain/brainspaces/<name>/.brain`.
-- Expected `.beads`, `.claude`, and `.codex` links match `.brain/project.yaml`.
+- Expected `.beads` links and materialized `.claude` / `.codex` workspaces match `.brain/project.yaml`.
 - `.git/info/exclude` contains the dotbrain link entries.
 - `git -C <repo> status --short` shows no unexpected tracked changes.
 - If beads are enabled, `bd -C <repo> ready` works or reports a valid empty tracker.

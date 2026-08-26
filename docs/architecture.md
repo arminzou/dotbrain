@@ -11,13 +11,12 @@ agent needs that is not the code itself:
 
 - `.brain/` — the project's knowledge (see below)
 - `.beads/` — the execution store (issues, dependencies, plans)
-- `.claude/`, `.codex/` — agent workspaces (settings, worktrees)
 
 Brainspaces live together in a single repository. A code repo connects to its Brainspace through
-**gitignored symlinks** at the repo root (`.brain`, `.beads`, `.claude`, `.codex`). Because the
-symlink targets are outside the code repo, they are never tracked there — they are local machine
-wiring. The code repo stays clean and the context stays private, while the agent sees both as one
-tree.
+the gitignored `.brain` and `.beads` symlinks. Its `.claude` and `.codex` agent workspaces are real
+directories; dotbrain contributes individually ignored skill and subagent links without claiming
+project-owned files. The code repo stays clean and the context stays private, while the agent sees
+both as one tree.
 
 ## The Brain
 
@@ -59,8 +58,8 @@ product skills coexist safely with an operator's own private skills on the same 
 
 ## Wiring and session start
 
-Connecting a repo is one command: `dotbrain wire` creates or repairs the Brainspace, writes the
-four symlinks, and records the ignore rules that keep them out of the code repo. A one-time
+Connecting a repo is one command: `dotbrain wire` creates or repairs the Brainspace, writes its two
+links, materializes the agent workspaces, and records per-link ignore rules. A one-time
 `dotbrain bootstrap` installs the agent hooks for the machine and links global skills and
 subagents.
 
@@ -68,7 +67,7 @@ At the start of every agent session, a hook injects the shared operating rules a
 Brain context into the session, so the agent begins already knowing the project's conventions without
 anyone pasting them in. Project-selected skills and vendor-native subagents are linked into the
 matching workspaces from the same Brainspace declarations. Worktrees reach the same Brain through
-the same symlinks — never a
+their own links — never a
 per-worktree copy.
 
 ## Public / private boundary

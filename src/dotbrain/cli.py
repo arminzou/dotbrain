@@ -601,8 +601,8 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
         if repo is not None:
             adopter_repos.reconcile_link_excludes(
                 repo,
-                linked=tuple(entry for entry in result.linked if entry.startswith(".codex/")),
-                pruned=tuple(entry for entry in result.pruned if entry.startswith(".codex/")),
+                linked=tuple(entry for entry in result.linked if entry.startswith((".claude/", ".codex/"))),
+                pruned=tuple(entry for entry in result.pruned if entry.startswith((".claude/", ".codex/"))),
             )
         for warning in workspace_warnings:
             typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
@@ -680,8 +680,8 @@ def agents_link(
             if repo is not None:
                 adopter_repos.reconcile_link_excludes(
                     repo,
-                    linked=tuple(entry for entry in result.linked if entry.startswith(".codex/")),
-                    pruned=tuple(entry for entry in result.pruned if entry.startswith(".codex/")),
+                    linked=tuple(entry for entry in result.linked if entry.startswith((".claude/", ".codex/"))),
+                    pruned=tuple(entry for entry in result.pruned if entry.startswith((".claude/", ".codex/"))),
                 )
             for warning in workspace_warnings:
                 typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)

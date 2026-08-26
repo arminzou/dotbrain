@@ -159,8 +159,9 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
 
-    for name in (".brain", ".beads", ".claude"):
+    for name in (".brain", ".beads"):
         assert not (repo / name).exists()
+    assert (repo / ".claude").is_dir()
     assert (repo / ".codex").is_dir()
     assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
     exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
@@ -364,7 +365,7 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     assert "/.codex" not in paths.exclude_entries(repo)
     for skill_path in skills.project_baseline(dotbrain_home):
         skill_name = Path(skill_path).name
-        assert (brainspace / ".claude" / "skills" / skill_name).is_symlink()
+        assert (repo / ".claude" / "skills" / skill_name).is_symlink()
         assert (repo / ".codex" / "skills" / skill_name).is_symlink()
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
@@ -397,8 +398,8 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents", repo_base=tmp_path, home=fake_home)
 
     assert result.refreshed == ["refresh-subagents"]
-    assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (brainspace / ".claude" / "agents" / "verifier.md").is_symlink()
+    assert (repo / ".claude" / "agents" / "reviewer.md").is_symlink()
+    assert (repo / ".claude" / "agents" / "verifier.md").is_symlink()
     assert (repo / ".codex" / "agents" / "reviewer.toml").is_symlink()
     assert (repo / ".codex" / "agents" / "verifier.toml").is_symlink()
     assert "project: linked 8 subagent file(s) into refresh-subagents" in result.logs
@@ -423,8 +424,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
 
     brainspace = paths.brainspace(dotbrain_home, "claude-only")
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    claude_link = repo / ".claude"
-    claude_link.unlink()
+    claude_workspace = repo / ".claude"
     captured: dict[str, tuple[str, ...]] = {}
 
     def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths, **kwargs):
@@ -442,7 +442,8 @@ def test_refresh_project_honors_declared_agent_workspaces(
 
     assert result.refreshed == ["claude-only"]
     assert captured["workspaces"] == (".claude",)
-    assert claude_link.is_symlink()
+    assert claude_workspace.is_dir()
+    assert not claude_workspace.is_symlink()
     assert (repo / ".codex").is_dir()
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").exists()

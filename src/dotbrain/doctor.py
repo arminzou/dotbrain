@@ -147,15 +147,15 @@ def _check_repo_file(brainspace: Path) -> tuple[Finding | None, Path | None]:
 def _check_brainspace_links(repo: Path, brainspace: Path) -> list[Finding]:
     findings: list[Finding] = []
     active_agents = config.load_project_agents(brainspace.parents[1], brainspace.name)
-    if "codex" in active_agents:
-        codex = repo / ".codex"
-        if not codex.is_dir() or codex.is_symlink():
+    for agent in (agent for agent in ("claude", "codex") if agent in active_agents):
+        workspace = repo / f".{agent}"
+        if not workspace.is_dir() or workspace.is_symlink():
             findings.append(Finding(
                 "warn",
-                f"{repo}/.codex is not a materialized workspace",
+                f"{workspace} is not a materialized workspace",
                 f"run 'dotbrain refresh --name {brainspace.name}'",
             ))
-    for name in (entry for entry in paths.BRAINSPACE_LINKS if entry != ".codex"):
+    for name in paths.BRAINSPACE_LINKS:
         link = repo / name
         if not link.is_symlink():
             findings.append(Finding("warn", f"{repo}/{name} not wired",
@@ -172,7 +172,7 @@ def _check_brainspace_links(repo: Path, brainspace: Path) -> list[Finding]:
 def _check_repo_excludes(repo: Path) -> list[Finding]:
     findings: list[Finding] = []
     present = paths.exclude_entries(repo)
-    for entry in (line for line in paths.EXCLUDE_ENTRIES if line != "/.codex"):
+    for entry in paths.EXCLUDE_ENTRIES:
         if entry not in present:
             findings.append(Finding("warn",
                                      f"{repo}/.git/info/exclude missing {entry}",
