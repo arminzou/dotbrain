@@ -304,6 +304,12 @@ def ensure_local_exclude_line(repo: Path, line: str, run: Runner = _default_run)
         ensure_exclude_line(exclude_file, line)
 
 
+def remove_local_exclude_line(repo: Path, line: str, run: Runner = _default_run) -> None:
+    exclude_file = git_exclude_file(repo, run)
+    if exclude_file is not None:
+        remove_exclude_line(exclude_file, line)
+
+
 def reconcile_link_excludes(
     repo: Path,
     *,
@@ -319,6 +325,26 @@ def reconcile_link_excludes(
         ensure_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
     for entry in pruned:
         remove_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
+
+
+def materialize_workspace(
+    repo: Path,
+    brainspace: Path,
+    name: str,
+    run: Runner = _default_run,
+) -> str | None:
+    """Replace a dotbrain-owned workspace link with a project-owned directory."""
+    workspace = Path(repo) / name
+    expected = Path(brainspace) / name
+    if workspace.is_symlink():
+        if not paths.symlink_target_matches(os.readlink(workspace), str(expected)):
+            return f"{workspace} is not a dotbrain workspace link; leaving it unchanged"
+        workspace.unlink()
+    elif workspace.exists() and not workspace.is_dir():
+        return f"{workspace} exists and is not a directory; leaving it unchanged"
+    workspace.mkdir(parents=True, exist_ok=True)
+    remove_local_exclude_line(repo, f"/{name}", run)
+    return None
 
 
 def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:

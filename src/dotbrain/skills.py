@@ -7,7 +7,7 @@ import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 import yaml
 
@@ -336,11 +336,14 @@ def link_project(
     brainspace: Path,
     workspaces: Sequence[str],
     skill_paths: Sequence[str],
+    *,
+    workspace_dirs: Mapping[str, Path] | None = None,
 ) -> LinkResult:
     brainspace = Path(brainspace)
     result = LinkResult()
     for workspace in workspaces:
-        skills_dir = brainspace / workspace / "skills"
+        workspace_dir = workspace_dirs.get(workspace) if workspace_dirs else None
+        skills_dir = (workspace_dir or brainspace / workspace) / "skills"
         ws_result = link_into(
             dotbrain_home,
             skills_dir,

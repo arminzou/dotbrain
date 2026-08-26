@@ -51,8 +51,9 @@ def test_unwire_keep_removes_symlinks_and_cleans_repo(tmp_path: Path, dotbrain_h
     for name in paths.BRAINSPACE_LINKS:
         assert not (repo / name).exists()
     assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
-        assert entry not in (repo / ".git" / "info" / "exclude").read_text()
+        assert entry not in exclude_lines
     assert not result.warnings
 
 
@@ -158,11 +159,13 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
 
-    for name in paths.BRAINSPACE_LINKS:
+    for name in (".brain", ".beads", ".claude"):
         assert not (repo / name).exists()
+    assert (repo / ".codex").is_dir()
     assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
-        assert entry not in (repo / ".git" / "info" / "exclude").read_text()
+        assert entry not in exclude_lines
     # Brainspace kept
     assert paths.brainspace(dotbrain_home, "roundtrip").is_dir()
 
@@ -339,7 +342,6 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     brainspace = paths.brainspace(dotbrain_home, "refreshme")
     (brainspace / ".repo").write_text(f"{repo}\n")
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
-    (repo / ".codex").unlink()
     loaded: dict[str, object] = {}
 
     def fake_pull_beads_for_all(dotbrain_home_arg, *, run, projects):
@@ -357,11 +359,13 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     )
 
     assert result.refreshed == ["refreshme"]
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
+    assert "/.codex" not in paths.exclude_entries(repo)
     for skill_path in skills.project_baseline(dotbrain_home):
         skill_name = Path(skill_path).name
         assert (brainspace / ".claude" / "skills" / skill_name).is_symlink()
-        assert (brainspace / ".codex" / "skills" / skill_name).is_symlink()
+        assert (repo / ".codex" / "skills" / skill_name).is_symlink()
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
     assert "beads warning" in result.warnings
@@ -395,8 +399,8 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     assert result.refreshed == ["refresh-subagents"]
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
     assert (brainspace / ".claude" / "agents" / "verifier.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "verifier.toml").is_symlink()
+    assert (repo / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert (repo / ".codex" / "agents" / "verifier.toml").is_symlink()
     assert "project: linked 8 subagent file(s) into refresh-subagents" in result.logs
 
 
@@ -423,7 +427,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
     claude_link.unlink()
     captured: dict[str, tuple[str, ...]] = {}
 
-    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths):
+    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths, **kwargs):
         captured["workspaces"] = tuple(workspaces)
         return skills.LinkResult()
 
@@ -439,7 +443,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
     assert result.refreshed == ["claude-only"]
     assert captured["workspaces"] == (".claude",)
     assert claude_link.is_symlink()
-    assert (repo / ".codex").exists()
+    assert (repo / ".codex").is_dir()
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").exists()
 
@@ -469,13 +473,12 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         install_global_hook=False,
         home=fake_home,
     )
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
 
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    (repo / ".codex").unlink()
     captured: dict[str, tuple[str, ...]] = {}
 
-    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths):
+    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths, **kwargs):
         captured["workspaces"] = tuple(workspaces)
         return skills.LinkResult()
 
@@ -491,7 +494,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
     assert result.refreshed == ["refresh-downgraded"]
     assert captured["workspaces"] == (".claude",)
     assert (brainspace / ".codex").is_dir()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").is_dir()
 def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):

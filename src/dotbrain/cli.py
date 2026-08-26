@@ -587,7 +587,25 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
         skill_paths = skills.project_link_set(extras)
         declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
-        result = skills.link_project(root, brainspace, active_workspaces, skill_paths)
+        repo = adopter_repos.repo_for_brainspace(brainspace, root)
+        workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
+            brainspace, repo, active_workspaces
+        )
+        result = skills.link_project(
+            root,
+            brainspace,
+            tuple(workspace_dirs),
+            skill_paths,
+            workspace_dirs=workspace_dirs,
+        )
+        if repo is not None:
+            adopter_repos.reconcile_link_excludes(
+                repo,
+                linked=tuple(entry for entry in result.linked if entry.startswith(".codex/")),
+                pruned=tuple(entry for entry in result.pruned if entry.startswith(".codex/")),
+            )
+        for warning in workspace_warnings:
+            typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
         for warning in result.warnings:
             typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
         for pruned in result.pruned:
@@ -648,7 +666,25 @@ def agents_link(
             names = subagents.project_link_set(config.load_project_subagents(root, brainspace.name))
             declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
             active_workspaces = tuple(ws for ws in _AGENT_WORKSPACES[target] if ws in declared_workspaces)
-            result = subagents.link_project_subagents(root, brainspace, active_workspaces, names)
+            repo = adopter_repos.repo_for_brainspace(brainspace, root)
+            workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
+                brainspace, repo, active_workspaces
+            )
+            result = subagents.link_project_subagents(
+                root,
+                brainspace,
+                tuple(workspace_dirs),
+                names,
+                workspace_dirs=workspace_dirs,
+            )
+            if repo is not None:
+                adopter_repos.reconcile_link_excludes(
+                    repo,
+                    linked=tuple(entry for entry in result.linked if entry.startswith(".codex/")),
+                    pruned=tuple(entry for entry in result.pruned if entry.startswith(".codex/")),
+                )
+            for warning in workspace_warnings:
+                typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
             for warning in result.warnings:
                 typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
             for pruned in result.pruned:

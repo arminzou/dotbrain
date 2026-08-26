@@ -279,7 +279,7 @@ def test_skills_link_project_creates_symlinks_after_wire(
         name = Path(skill).name
         assert (brainspace / ".claude" / "skills" / name).is_symlink(), \
             f"expected .claude/skills/{name} to be linked"
-        assert (brainspace / ".codex" / "skills" / name).is_symlink(), \
+        assert (repo / ".codex" / "skills" / name).is_symlink(), \
             f"expected .codex/skills/{name} to be linked"
 
 

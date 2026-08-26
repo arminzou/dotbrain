@@ -273,13 +273,52 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert result.brainspace == brainspace
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain", ".claude"):
         assert (repo / name).is_symlink()
         assert (repo / name).resolve() == (brainspace / name).resolve()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
+    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
+
+
+def test_wire_project_materializes_codex_without_touching_tracked_files(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
+):
+    repo = tmp_path / "owns-codex"
+    codex = repo / ".codex"
+    codex.mkdir(parents=True)
+    tracked = codex / "project.toml"
+    tracked.write_text("project-owned\n")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    subprocess.run(["git", "add", ".codex/project.toml"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "initial"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_home=dotbrain_home,
+        repo=repo,
+        run_beads=False,
+        install_global_hook=False,
+        home=fake_home,
+    )
+
+    assert codex.is_dir() and not codex.is_symlink()
+    assert tracked.read_text() == "project-owned\n"
+    assert (codex / "skills" / "operate-execution").is_symlink()
+    assert (codex / "agents" / "reviewer.toml").is_symlink()
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert status.stdout == ""
 
 
 def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
@@ -377,9 +416,11 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
     if paths.INJECT_ADOPTER_POINTER:
         assert agents.is_file()
         assert paths.ADOPTER_POINTER in agents.read_text()
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain", ".claude"):
         assert (repo / name).is_symlink()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert (repo / ".codex").is_dir()
+    assert {"/.brain", "/.claude"} <= paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
 
 
 def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
@@ -496,7 +537,8 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").is_dir()
     assert (repo / ".claude").is_symlink()
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
 
 
 def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
@@ -525,11 +567,10 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         install_global_hook=False,
         home=fake_home,
     )
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
     assert (brainspace / ".codex").is_dir()
 
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    (repo / ".codex").unlink()
     result = workflows.wire_project(
         dotbrain_home=dotbrain_home,
         repo=repo,
@@ -539,5 +580,5 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
     )
 
     assert (brainspace / ".codex").is_dir()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").is_dir()
     assert not any(".codex is not wired" in warning for warning in result.warnings)
