@@ -308,7 +308,13 @@ def materialize_workspace(
     run: Runner = _default_run,
 ) -> str | None:
     """Replace a dotbrain-owned workspace link with a project-owned directory."""
-    workspace = Path(repo) / name
+    repo = Path(repo)
+    # The mkdir below passes parents=True, so a .repo pointing at a path that does not
+    # exist would conjure the whole tree rather than fail: refreshing a Brainspace whose
+    # repo was moved or deleted silently created a phantom repo at the stale location.
+    if not repo.is_dir():
+        return f"{repo} does not exist; skipping {name} workspace"
+    workspace = repo / name
     expected = Path(brainspace) / name
     if workspace.is_symlink():
         if not paths.symlink_target_matches(os.readlink(workspace), str(expected)):

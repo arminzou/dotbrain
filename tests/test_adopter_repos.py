@@ -424,3 +424,24 @@ def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
         os.readlink(repo / ".brain"), str(root / "brainspaces" / "example" / ".brain")
     )
     assert (repo / ".brain").resolve().is_dir()
+
+
+# --------------------------------------------------------------------------- materialize_workspace
+
+
+def test_materialize_workspace_refuses_a_repo_that_does_not_exist(tmp_path: Path):
+    """A stale .repo pointer must not conjure a repo tree.
+
+    materialize_workspace creates the workspace with parents=True, so without a guard a
+    Brainspace whose repo was moved or deleted would have the whole path created at the
+    stale location on every refresh.
+    """
+    brainspace = tmp_path / "brainspace"
+    brainspace.mkdir()
+    missing = tmp_path / "gone" / "myproject"
+
+    warning = adopter_repos.materialize_workspace(missing, brainspace, ".claude")
+
+    assert warning is not None
+    assert "does not exist" in warning
+    assert not (tmp_path / "gone").exists()
