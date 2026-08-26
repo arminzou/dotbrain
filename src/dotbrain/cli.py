@@ -550,10 +550,10 @@ def skills_link(
 ) -> None:
     """Link skills into agent runtimes.
 
-    Both scopes are curated include-lists. Project links the brain-coupled
-    required core plus each project's ``project.yaml`` ``skills:`` extras into its
-    agent workspaces. Global links the required core plus optional operator
-    extras into each runtime's global skills dir.
+    Both scopes are curated include-lists. Project links each project's
+    ``project.yaml`` ``skills:`` selection into its agent workspaces. Global
+    links the operator's optional global selection into each runtime's skills
+    directory.
     """
     if target not in {"claude-code", "codex", "all"}:
         raise typer.BadParameter(f"invalid --target: {target}")

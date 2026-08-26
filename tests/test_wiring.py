@@ -343,9 +343,9 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     assert codex.is_dir() and not codex.is_symlink()
     assert claude_tracked.read_text() == "project-owned\n"
     assert codex_tracked.read_text() == "project-owned\n"
-    assert (claude / "skills" / "operate-execution").is_symlink()
+    assert not (claude / "skills" / "operate-execution").exists()
     assert (claude / "agents" / "reviewer.md").is_symlink()
-    assert (codex / "skills" / "operate-execution").is_symlink()
+    assert not (codex / "skills" / "operate-execution").exists()
     assert (codex / "agents" / "reviewer.toml").is_symlink()
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
@@ -452,9 +452,9 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_home: Path, fake_ho
     from dotbrain import config, skills
     brainspace = paths.brainspace(dotbrain_home, "with-manifest")
     assert not (brainspace / ".brain" / "agents" / "skills.yaml").exists()
-    # The link set is the brain-coupled required core plus project.yaml extras (none here).
+    # The link set is the operator's project.yaml selection (none here).
     extras = config.load_project_skills(dotbrain_home, "with-manifest")
-    assert skills.project_link_set(extras) == skills.project_baseline()
+    assert skills.project_link_set(extras) == ()
 
 
 def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path, tmp_path: Path):

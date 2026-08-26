@@ -76,7 +76,7 @@ def _help(exe: Path, path: list[str]) -> str:
     # substring — the help text itself contains unrelated words like "$DOTBRAIN_HOME".
     if exe.name.lower() != "dotbrain":
         output = re.sub(re.escape(exe.name), "dotbrain", output, flags=re.IGNORECASE)
-    return output
+    return "\n".join(line.rstrip() for line in output.splitlines())
 
 
 def render() -> str:

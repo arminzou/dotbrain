@@ -387,6 +387,9 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     brainspace = paths.brainspace(dotbrain_home, "refreshme")
     (brainspace / ".repo").write_text(f"{repo}\n")
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
+    legacy_skill = repo / ".claude" / "skills" / "operate-execution"
+    legacy_skill.parent.mkdir(parents=True)
+    legacy_skill.symlink_to(dotbrain_home / "skills" / "brain" / "operate-execution")
     loaded: dict[str, object] = {}
 
     def fake_pull_beads_for_all(dotbrain_home_arg, *, run, projects):
@@ -407,16 +410,14 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     assert (repo / ".codex").is_dir()
     assert not (repo / ".codex").is_symlink()
     assert "/.codex" not in paths.exclude_entries(repo)
-    for skill_path in skills.project_baseline(dotbrain_home):
-        skill_name = Path(skill_path).name
-        assert (repo / ".claude" / "skills" / skill_name).is_symlink()
-        assert (repo / ".codex" / "skills" / skill_name).is_symlink()
+    assert not (repo / ".claude" / "skills" / "wire-brain").exists()
+    assert not (repo / ".codex" / "skills" / "wire-brain").exists()
+    assert not legacy_skill.exists()
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
     assert "beads warning" in result.warnings
     assert not any(line.startswith("linked skill ") for line in result.logs)
-    linked_count = len(skills.project_baseline(dotbrain_home)) * 2  # .claude + .codex
-    assert f"refreshed refreshme ({linked_count} skills linked)" in result.logs
+    assert "refreshed refreshme (0 skills linked)" in result.logs
 
 
 def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):

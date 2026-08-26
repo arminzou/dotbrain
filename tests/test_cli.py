@@ -300,8 +300,8 @@ def test_skills_link_project_native(
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
-    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()
-    assert (brainspace / ".codex" / "skills" / "triage-public").is_symlink()
+    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
+    assert not (brainspace / ".codex" / "skills" / "triage-public").exists()
 
 
 def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch):
@@ -360,7 +360,6 @@ def test_skills_link_global_renders_bootstrap_result(
     result = runner.invoke(app, ["skills", "link", "--scope", "global", "--target", "codex"])
     assert result.exit_code == 0, result.output
     dest = fake_home / ".codex" / "skills"
-    assert (dest / "wire-brain").is_symlink()       # baseline
     assert (dest / "discovery-test").is_symlink()   # extra
 
 
@@ -374,7 +373,7 @@ def test_skills_link_global_uses_default_targets(
         app, ["skills", "link", "--scope", "global", "--target", "claude-code"]
     )
     assert result.exit_code == 0, result.output
-    assert (fake_home / ".claude" / "skills" / "wire-brain").is_symlink()
+    assert (fake_home / ".claude" / "skills").is_dir()
 
 
 def test_skills_link_project_filter_isolates_one_brainspace(
@@ -386,7 +385,7 @@ def test_skills_link_project_filter_isolates_one_brainspace(
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()  # named project linked
+    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
     assert not (other / ".claude" / "skills").exists()                          # others untouched
 
 

@@ -1,14 +1,13 @@
 # Skills
 
-dotbrain ships nine Brain-coupled skills: the operating manual for a wired project. They cover
-wiring, planning, execution, triage, and Brain maintenance. Several are inspired by and adapted
+The dotbrain plugin delivers its Brain-coupled skills: the operating manual for a wired project.
+They cover wiring, planning, execution, triage, and Brain maintenance. Several are inspired by and adapted
 from [mattpocock/skills](https://github.com/mattpocock/skills).
 
-Skill selection is dotbrain-managed:
+Skill linking is operator-managed:
 
-- required core skills ship with dotbrain in `src/dotbrain/resources/skills.yaml`
-- operator-owned global extras live under the private dotbrain data root
-- per-project extra skills are selected in `brainspaces/<name>/.brain/project.yaml`
+- global skills are selected in `~/dotbrain/skills/skills.yaml`
+- per-project skills are selected in `brainspaces/<name>/.brain/project.yaml`
 
 ## Setup
 
@@ -40,4 +39,4 @@ Skill selection is dotbrain-managed:
 - **`write-skills`** — create a new agent skill or improve an existing one: invocation choice,
   description writing, information hierarchy, and pruning
 
-The packaged skill registry lives at `src/dotbrain/resources/skills.yaml`.
+The plugin's skills are generated from `src/dotbrain/resources/skills/`.

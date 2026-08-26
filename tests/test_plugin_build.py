@@ -9,7 +9,7 @@ without regenerating fails here. Regenerate with:
 import json
 from pathlib import Path
 
-from dotbrain import _plugin_build, skills
+from dotbrain import _plugin_build
 
 
 def _tree(root: Path) -> dict[str, str]:
@@ -27,13 +27,6 @@ def test_plugin_skills_match_resources(tmp_path):
         "plugin/skills is stale. "
         "Regenerate with: uv run python -m dotbrain._plugin_build"
     )
-
-
-def test_plugin_ships_every_brain_coupled_skill():
-    """The plugin must carry the whole force-wired set, or wiring a repo loses skills."""
-    shipped = {p.name for p in _plugin_build.SKILLS_DIR.iterdir() if p.is_dir()}
-    required = {name.split("/")[-1] for name in skills.GLOBAL_BASELINE + skills.PROJECT_BASELINE}
-    assert required <= shipped, f"plugin is missing brain-coupled skills: {sorted(required - shipped)}"
 
 
 def test_convention_skill_carries_frontmatter_and_body():

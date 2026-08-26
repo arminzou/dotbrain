@@ -167,7 +167,7 @@ def link_global_skills(
     config_path = root / "skills" / "skills.yaml"
     result = GlobalSkillBootstrapResult()
     config = skills.reconcile_global_config(config_path)
-    skill_paths = config.linked
+    skill_paths = config.global_extra
     if target == "all":
         keys = list(config.targets)
     elif target in config.targets:

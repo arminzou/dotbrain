@@ -5,11 +5,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain`
 
 ```text
-                                                                                
- Usage: dotbrain [OPTIONS] COMMAND [ARGS]...                                    
-                                                                                
- dotbrain CLI for wiring project Brainspaces and skills into coding agents.     
-                                                                                
+
+ Usage: dotbrain [OPTIONS] COMMAND [ARGS]...
+
+ dotbrain CLI for wiring project Brainspaces and skills into coding agents.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --install-completion            Install completion for the current shell.    │
 │ --show-completion               Show completion for the current shell, to    │
@@ -37,11 +37,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain agents`
 
 ```text
-                                                                                
- Usage: dotbrain agents [OPTIONS] COMMAND [ARGS]...                             
-                                                                                
- Link dotbrain vendor-native subagents into agent runtimes.                     
-                                                                                
+
+ Usage: dotbrain agents [OPTIONS] COMMAND [ARGS]...
+
+ Link dotbrain vendor-native subagents into agent runtimes.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help  -h        Show this message and exit.                                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -53,9 +53,9 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain agents link`
 
 ```text
-                                                                                
- Usage: dotbrain agents link [OPTIONS]                                          
-                                                                                
+
+ Usage: dotbrain agents link [OPTIONS]
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --target           TEXT  claude-code | codex | all [default: all]            │
 │ --scope            TEXT  global | project | all [default: all]               │
@@ -68,11 +68,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain beads`
 
 ```text
-                                                                                
- Usage: dotbrain beads [OPTIONS] COMMAND [ARGS]...                              
-                                                                                
- Manage beads tracker state and backend.                                        
-                                                                                
+
+ Usage: dotbrain beads [OPTIONS] COMMAND [ARGS]...
+
+ Manage beads tracker state and backend.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help  -h        Show this message and exit.                                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -92,11 +92,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain beads drop-db`
 
 ```text
-                                                                                
- Usage: dotbrain beads drop-db [OPTIONS] NAME                                   
-                                                                                
- Drop a project's remote beads database on the shared Dolt sql-server.          
-                                                                                
+
+ Usage: dotbrain beads drop-db [OPTIONS] NAME
+
+ Drop a project's remote beads database on the shared Dolt sql-server.
+
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │ *    name      TEXT  Beads database name to drop (usually the project name). │
 │                      [required]                                              │
@@ -120,11 +120,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain beads list-db`
 
 ```text
-                                                                                
- Usage: dotbrain beads list-db [OPTIONS]                                        
-                                                                                
- List the databases on the shared Dolt sql-server.                              
-                                                                                
+
+ Usage: dotbrain beads list-db [OPTIONS]
+
+ List the databases on the shared Dolt sql-server.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --beads-ssh-host             TEXT  SSH hop that can reach the sql-server;    │
 │                                    empty connects directly. Defaults to      │
@@ -142,17 +142,17 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain beads load`
 
 ```text
-                                                                                
- Usage: dotbrain beads load [OPTIONS]                                           
-                                                                                
- Hydrate local beads state from tracked declarations: attach server trackers,   
- init embedded ones, then pull. Pull-only reconcile: never pushes, never        
- touches symlinks or hooks.                                                     
-                                                                                
- Without --all: load one project (by --name, or the --repo/cwd repo). With      
- --all: every brainspace                                                        
- root declared to use beads.                                                    
-                                                                                
+
+ Usage: dotbrain beads load [OPTIONS]
+
+ Hydrate local beads state from tracked declarations: attach server trackers,
+ init embedded ones, then pull. Pull-only reconcile: never pushes, never
+ touches symlinks or hooks.
+
+ Without --all: load one project (by --name, or the --repo/cwd repo). With
+ --all: every brainspace
+ root declared to use beads.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                     Load tracker state for every Brainspace.           │
 │ --repo              TEXT  Repo whose Brainspace to load. Defaults to the     │
@@ -169,12 +169,12 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain beads migrate`
 
 ```text
-                                                                                
- Usage: dotbrain beads migrate [OPTIONS]                                        
-                                                                                
- Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server, 
- history intact.                                                                
-                                                                                
+
+ Usage: dotbrain beads migrate [OPTIONS]
+
+ Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server,
+ history intact.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --repo                       TEXT  Wired repo path; project name is its dir  │
 │                                    name.                                     │
@@ -199,11 +199,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain bootstrap`
 
 ```text
-                                                                                
- Usage: dotbrain bootstrap [OPTIONS]                                            
-                                                                                
- Prepare this machine for dotbrain: global hooks and global skill links.        
-                                                                                
+
+ Usage: dotbrain bootstrap [OPTIONS]
+
+ Prepare this machine for dotbrain: global hooks and global skill links.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --only                      TEXT  claude-hook | codex-hook | skills          │
 │ --skip-claude-hook                                                           │
@@ -216,11 +216,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain codex`
 
 ```text
-                                                                                
- Usage: dotbrain codex [OPTIONS]                                                
-                                                                                
- Create or reuse a dotbrain-wired git worktree and start Codex there.           
-                                                                                
+
+ Usage: dotbrain codex [OPTIONS]
+
+ Create or reuse a dotbrain-wired git worktree and start Codex there.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ *  --worktree   -w      TEXT  Branch/worktree name, e.g. feature-auth        │
 │                               [required]                                     │
@@ -236,11 +236,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain doctor`
 
 ```text
-                                                                                
- Usage: dotbrain doctor [OPTIONS]                                               
-                                                                                
- Read-only health check: machine readiness, project wiring, beads state drift.  
-                                                                                
+
+ Usage: dotbrain doctor [OPTIONS]
+
+ Read-only health check: machine readiness, project wiring, beads state drift.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help  -h        Show this message and exit.                                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -249,11 +249,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain hook`
 
 ```text
-                                                                                
- Usage: dotbrain hook [OPTIONS] COMMAND [ARGS]...                               
-                                                                                
- Run dotbrain hook entrypoints.                                                 
-                                                                                
+
+ Usage: dotbrain hook [OPTIONS] COMMAND [ARGS]...
+
+ Run dotbrain hook entrypoints.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help  -h        Show this message and exit.                                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -269,11 +269,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain hook claude-worktree-bootstrap`
 
 ```text
-                                                                                
- Usage: dotbrain hook claude-worktree-bootstrap [OPTIONS] [ARGS]...             
-                                                                                
- Run the global Claude first-worktree bootstrap hook.                           
-                                                                                
+
+ Usage: dotbrain hook claude-worktree-bootstrap [OPTIONS] [ARGS]...
+
+ Run the global Claude first-worktree bootstrap hook.
+
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │   args      [ARGS]...                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -285,11 +285,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain hook codex-worktree-bootstrap`
 
 ```text
-                                                                                
- Usage: dotbrain hook codex-worktree-bootstrap [OPTIONS] [ARGS]...              
-                                                                                
- Run the global Codex first-worktree bootstrap hook.                            
-                                                                                
+
+ Usage: dotbrain hook codex-worktree-bootstrap [OPTIONS] [ARGS]...
+
+ Run the global Codex first-worktree bootstrap hook.
+
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │   args      [ARGS]...                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -301,11 +301,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain hook session-start`
 
 ```text
-                                                                                
- Usage: dotbrain hook session-start [OPTIONS] [ARGS]...                         
-                                                                                
- Run the dotbrain SessionStart hook.                                            
-                                                                                
+
+ Usage: dotbrain hook session-start [OPTIONS] [ARGS]...
+
+ Run the dotbrain SessionStart hook.
+
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │   args      [ARGS]...                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -317,11 +317,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain refresh`
 
 ```text
-                                                                                
- Usage: dotbrain refresh [OPTIONS]                                              
-                                                                                
- Refresh Brain/workspace files, repo links, beads state, and project skills.    
-                                                                                
+
+ Usage: dotbrain refresh [OPTIONS]
+
+ Refresh Brain/workspace files, repo links, beads state, and project skills.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                      Refresh every project workspace.                  │
 │ --name               TEXT  Refresh one project by Brainspace name.           │
@@ -333,11 +333,11 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain skills`
 
 ```text
-                                                                                
- Usage: dotbrain skills [OPTIONS] COMMAND [ARGS]...                             
-                                                                                
- Link dotbrain skills into agent runtimes.                                      
-                                                                                
+
+ Usage: dotbrain skills [OPTIONS] COMMAND [ARGS]...
+
+ Link dotbrain skills into agent runtimes.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help  -h        Show this message and exit.                                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -349,16 +349,16 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain skills link`
 
 ```text
-                                                                                
- Usage: dotbrain skills link [OPTIONS]                                          
-                                                                                
- Link skills into agent runtimes.                                               
-                                                                                
- Both scopes are curated include-lists. Project links the brain-coupled         
- required core plus each project's ``project.yaml`` ``skills:`` extras into its 
- agent workspaces. Global links the required core plus optional operator        
- extras into each runtime's global skills dir.                                  
-                                                                                
+
+ Usage: dotbrain skills link [OPTIONS]
+
+ Link skills into agent runtimes.
+
+ Both scopes are curated include-lists. Project links each project's
+ ``project.yaml`` ``skills:`` selection into its agent workspaces. Global
+ links the operator's optional global selection into each runtime's skills
+ directory.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --target           TEXT  claude-code | codex | all [default: all]            │
 │ --scope            TEXT  global | project | all [default: all]               │
@@ -370,15 +370,15 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain unwire`
 
 ```text
-                                                                                
- Usage: dotbrain unwire [OPTIONS]                                               
-                                                                                
- Disconnect an adopter repo from its Brainspace.                                
-                                                                                
- Offboards the Brainspace only (keep/archive/delete). To drop a server-backend  
- project's                                                                      
- remote beads database, use `dotbrain beads drop-db` separately.                
-                                                                                
+
+ Usage: dotbrain unwire [OPTIONS]
+
+ Disconnect an adopter repo from its Brainspace.
+
+ Offboards the Brainspace only (keep/archive/delete). To drop a server-backend
+ project's
+ remote beads database, use `dotbrain beads drop-db` separately.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                    Unwire every project Brainspace (keep only; see     │
 │                          per-project --archive/--delete for destructive      │
@@ -397,13 +397,13 @@ Reference for the public `dotbrain` CLI.
 ## `dotbrain wire`
 
 ```text
-                                                                                
- Usage: dotbrain wire [OPTIONS]                                                 
-                                                                                
- Create or repair a project Brainspace and wire an adopter repo.                
-                                                                                
- Without --all: wire one project. With --all: reconcile every Brainspace.       
-                                                                                
+
+ Usage: dotbrain wire [OPTIONS]
+
+ Create or repair a project Brainspace and wire an adopter repo.
+
+ Without --all: wire one project. With --all: reconcile every Brainspace.
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --all                                Wire every adopter repo to its          │
 │                                      Brainspace (brain seeding, symlinks,    │

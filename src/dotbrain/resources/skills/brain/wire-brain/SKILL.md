@@ -38,7 +38,7 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 
 - `beads.mode`: `embedded`, `server`, or `none`.
 - `agents`: active workspaces, usually `claude` and/or `codex`.
-- `skills`: project skill extras beyond the packaged required core.
+- `skills`: project skill selection linked into the active workspaces.
 - `subagents`: project subagent extras.
 - `public-tracker` and `public-tracker-id`: public intake and contributor-collaboration metadata,
   never a mirror of private execution.

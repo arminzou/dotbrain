@@ -1,4 +1,4 @@
-"""Skill config (packaged required core + operator extras) and symlink linking."""
+"""Operator skill config and symlink linking."""
 
 from __future__ import annotations
 
@@ -11,67 +11,18 @@ from typing import Iterable, Mapping, Sequence
 
 import yaml
 
-from dotbrain import paths, resource_loader
-
-
-def _normalize(values: object) -> tuple[str, ...]:
-    if not isinstance(values, (list, tuple)):
-        return ()
-    out: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        if not isinstance(value, str):
-            continue
-        value = value.strip().strip("/")
-        if value and value not in seen:
-            out.append(value)
-            seen.add(value)
-    return tuple(out)
-
-
-def _required_core() -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Read the brain-coupled required core from the packaged core.yaml.
-
-    Product-owned, read-only data: the tool always force-wires these regardless
-    of operator config. Read fresh from the package so new releases reach every
-    adopter without a data-root migration.
-    """
-    src = resource_loader.resource("core.yaml")
-    data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
-    if not isinstance(data, dict):
-        raise ValueError("packaged core.yaml: expected a YAML mapping")
-    core_skills = data.get("skills")
-    if not isinstance(core_skills, dict):
-        raise ValueError("packaged core.yaml: expected a skills mapping")
-    return _normalize(core_skills.get("global_required")), _normalize(core_skills.get("project_required"))
-
-
-# Brain-coupled required core (force-wired). Operators add extras on top; they
-# cannot remove these. See resources/core.yaml.
-GLOBAL_BASELINE, PROJECT_BASELINE = _required_core()
+from dotbrain import paths
 
 DEFAULT_TARGETS: dict[str, str] = {
     "claude-code": "~/.claude/skills",
     "codex": "~/.codex/skills",
 }
-BUNDLED_SKILL_PREFIXES: tuple[str, ...] = ("brain/",)
-
-
 @dataclass
 class GlobalConfig:
-    """Operator-configurable skill-link settings.
-
-    Product baselines are code-owned constants. This config carries runtime
-    targets and user/private global extras only.
-    """
+    """Operator-configurable skill-link settings."""
 
     targets: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_TARGETS))
-    project_baseline: tuple[str, ...] = PROJECT_BASELINE
     global_extra: tuple[str, ...] = ()
-
-    @property
-    def linked(self) -> tuple[str, ...]:
-        return GLOBAL_BASELINE + self.global_extra
 
 
 @dataclass
@@ -129,11 +80,7 @@ def _read_yaml_mapping(path: Path) -> dict[str, object]:
 
 
 def load_global_config(path: Path) -> GlobalConfig:
-    """Parse optional operator skill-link config.
-
-    Missing config is valid: product baselines and default runtime targets come
-    from code-owned defaults.
-    """
+    """Parse optional operator skill-link config."""
 
     path = Path(path)
     if not path.is_file():
@@ -150,31 +97,25 @@ def load_global_config(path: Path) -> GlobalConfig:
     merged_targets.update(targets)
     return GlobalConfig(
         targets=merged_targets,
-        project_baseline=PROJECT_BASELINE,
-        global_extra=_clean(
-            data.get("global_extra", data.get("extra")),
-            exclude=GLOBAL_BASELINE + PROJECT_BASELINE,
-        ),
+        global_extra=_clean(data.get("global_extra", data.get("extra"))),
     )
 
 
 def render_global_config(
     targets: dict[str, str],
     global_extra: Iterable[str],
-    project_baseline: Iterable[str] = PROJECT_BASELINE,
 ) -> str:
     """Render the optional operator-owned skill-link config."""
 
     lines = [
         "version: 1",
         "# Operator skill-link config — your global skills, linked into every agent",
-        "# session.  The brain-coupled required core is wired automatically; list only",
-        "# your own extra global skills under global_extra.",
+        "# session. List global skills under global_extra.",
         "targets:",
     ]
     for key, value in targets.items():
         lines.append(f"  {key}: {value}")
-    extra = _clean(global_extra, exclude=GLOBAL_BASELINE + tuple(project_baseline))
+    extra = _clean(global_extra)
     if extra:
         lines.append("global_extra:")
         for skill in extra:
@@ -193,28 +134,16 @@ def reconcile_global_config(path: Path) -> GlobalConfig:
         desired = render_global_config(
             config.targets,
             config.global_extra,
-            project_baseline=config.project_baseline,
         )
         if path.read_text(encoding="utf-8") != desired:
             path.write_text(desired, encoding="utf-8", newline="\n")
     return config
 
 
-def project_baseline(dotbrain_home: Path | None = None) -> tuple[str, ...]:
-    """Return code-owned project baseline skills."""
-
-    return PROJECT_BASELINE
-
-
 def project_link_set(extras: Iterable[str]) -> tuple[str, ...]:
-    """Compose the per-project link set: required core + operator extras.
+    """Return the operator's deduplicated per-project skill selection."""
 
-    ``extras`` come from ``project.yaml`` (``config.load_project_skills``) and are
-    already deduped with the required core excluded.
-    """
-
-    base = project_baseline()
-    return base + _clean(extras, exclude=base)
+    return _clean(extras)
 
 
 def stash_collision(target: Path) -> Path:
@@ -232,42 +161,17 @@ def _points_into(link: Path, root: Path) -> bool:
         return False
 
 
-def _is_bundled_skill(skill_path: str) -> bool:
-    return any(skill_path.startswith(prefix) for prefix in BUNDLED_SKILL_PREFIXES)
-
-
-def _copy_resource_tree(resource_path: str, dest: Path) -> None:
-    if dest.exists() or dest.is_symlink():
-        if dest.is_dir() and not dest.is_symlink():
-            shutil.rmtree(dest)
-        else:
-            dest.unlink()
-    dest.mkdir(parents=True, exist_ok=True)
-    for rel, src in resource_loader.iter_resource_files(resource_path):
-        target = dest / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(
-            src.read_text(encoding="utf-8"),
-            encoding="utf-8",
-            newline="\n",
-        )
-
-
 def _resolve_skill_source(dotbrain_home: Path, skill_path: str) -> Path | None:
     private_src = dotbrain_home / "skills" / skill_path
-    if private_src.is_dir():
-        return private_src
+    return private_src if private_src.is_dir() else None
 
-    if not _is_bundled_skill(skill_path):
-        return None
 
-    resource_path = f"skills/{skill_path}"
-    if not resource_loader.resource(resource_path).is_dir():
-        return None
-
-    cached = dotbrain_home / ".cache" / "skills" / skill_path
-    _copy_resource_tree(resource_path, cached)
-    return cached
+def _remove_legacy_skill_cache(dotbrain_home: Path) -> None:
+    cache = Path(dotbrain_home) / ".cache" / "skills"
+    if cache.is_dir() and not cache.is_symlink():
+        shutil.rmtree(cache)
+    elif cache.exists() or cache.is_symlink():
+        cache.unlink()
 
 
 def link_into(
@@ -288,6 +192,7 @@ def link_into(
     prefix = f"{label}/" if label else ""
     result = LinkResult()
     wanted: set[str] = set()
+    _remove_legacy_skill_cache(dotbrain_home)
     cache_root = (dotbrain_home / ".cache" / "skills").resolve()
     private_root = (dotbrain_home / "skills").resolve()
 

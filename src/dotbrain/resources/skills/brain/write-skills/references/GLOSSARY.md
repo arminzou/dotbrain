@@ -212,7 +212,7 @@ _Avoid_: category, namespace, scope (scope is the link surface, not the folder)
 
 ### Brain-coupled skill
 
-The subset of skills whose subject matter is operating the brain system itself — the dotbrain system's own operating manual. Canonical definition and current roster live in the project Brain's `.brain/CONTEXT.md`; do not restate the membership list here — reference it, so there is one **single source of truth**. Mechanically: packaged in the `brain/` **bucket**, force-wired via `core.yaml` (`global_required` for `wire-brain`, `project_required` for the rest), and not removable by an adopter.
+The subset of skills whose subject matter is operating the Brain system itself — the dotbrain system's own operating manual. Canonical definition and current roster live in the project Brain's `.brain/CONTEXT.md`; do not restate the membership list here — reference it, so there is one **single source of truth**. Mechanically: packaged in the `brain/` **bucket** and delivered by the dotbrain plugin.
 
 _Avoid_: brain skill (ambiguous), project skill
 

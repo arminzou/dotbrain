@@ -55,6 +55,6 @@ skills:
 - `beads.remote` and `beads.database` are project-level overrides. Leave them out unless the
   project should deviate from the default naming/layout.
 - `agents` controls which agent workspaces dotbrain seeds for the project.
-- `skills` adds project-specific skills on top of dotbrain's required core skills.
+- `skills` selects project-specific skills to link into the project's agent workspaces.
 - `public-tracker` configures public issue intake and contributor collaboration. It does not mirror
   the private execution graph or cause private work items to become public issues.

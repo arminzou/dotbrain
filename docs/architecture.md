@@ -50,9 +50,9 @@ swap the backend without changing how agents work.
 
 ## Skills
 
-Skills are reusable agent capabilities, owned by the tool rather than any one project. dotbrain
-manages a curated set: a small baseline that is always present, plus per-project and operator-chosen
-additions. Linking is reconciled idempotently — the tool only ever creates or prunes the symlinks it
+Skills are reusable agent capabilities, owned by the tool rather than any one project. The plugin
+delivers dotbrain's brain-coupled skills; dotbrain links only the operator's global and per-project
+selections. Linking is reconciled idempotently — the tool only ever creates or prunes the symlinks it
 owns, and never deletes a real file or a link it did not create. That is what lets the bundled
 product skills coexist safely with an operator's own private skills on the same machine.
 

@@ -116,14 +116,14 @@ def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_pat
     (dotbrain_home / "skills" / "skills.yaml").write_text(
         "targets:\n"
         f"  codex: {dest}\n"
-        "global_baseline:\n"
-        "  - brain/wire-brain\n"
+        "global_extra:\n"
+        "  - misc/discovery-test\n"
     )
 
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
 
     assert result.warnings == []
-    assert (dest / "wire-brain").is_symlink()
+    assert (dest / "discovery-test").is_symlink()
     assert any(line.startswith("global: linked") for line in result.logs)
 
 
@@ -139,7 +139,7 @@ def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_p
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
 
     assert any("skill not found" in warning for warning in result.warnings)
-    assert result.logs == [f"global: linked {len(skills.GLOBAL_BASELINE)} skill(s) into {dest}"]
+    assert result.logs == [f"global: linked 0 skill(s) into {dest}"]
 
 
 def test_link_global_skills_expands_windows_tilde_target(
@@ -153,7 +153,7 @@ def test_link_global_skills_expands_windows_tilde_target(
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert result.warnings == []
-    assert (fake_home / r".codex\skills" / "wire-brain").is_symlink()
+    assert (fake_home / r".codex\skills").is_dir()
 
 
 def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
@@ -262,43 +262,39 @@ def test_wire_project_installs_hook_via_python(
 # --------------------------------------------------------------------------- per-project skills
 
 
-def test_skills_link_project_creates_symlinks_after_wire(
+def test_skills_link_project_creates_selected_symlinks_after_wire(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """After wire_project, dotbrain skills link --scope project creates baseline skill symlinks."""
+    """Project linking materializes only the declared selection."""
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = _fresh_repo(tmp_path, "skilltest")
     _wire(dotbrain_home, repo, fake_home)
 
+    project_yaml = paths.brainspace(dotbrain_home, "skilltest") / ".brain" / "project.yaml"
+    project_yaml.write_text(project_yaml.read_text() + "\nskills:\n  - misc/discovery-test\n")
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
 
-    brainspace = paths.brainspace(dotbrain_home, "skilltest")
-    for skill in skills.project_baseline(dotbrain_home):
-        name = Path(skill).name
-        assert (repo / ".claude" / "skills" / name).is_symlink(), \
-            f"expected .claude/skills/{name} to be linked"
-        assert (repo / ".codex" / "skills" / name).is_symlink(), \
-            f"expected .codex/skills/{name} to be linked"
+    assert (repo / ".claude" / "skills" / "discovery-test").is_symlink()
+    assert (repo / ".codex" / "skills" / "discovery-test").is_symlink()
 
 
-def test_skills_link_project_prunes_stale_after_baseline_change(
+def test_skills_link_project_prunes_stale_selection(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """Re-running skills link after a baseline change removes stale symlinks."""
+    """Re-running skills link removes stale dotbrain-owned symlinks."""
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     repo = _fresh_repo(tmp_path, "prunetest")
     _wire(dotbrain_home, repo, fake_home)
 
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 
-    # Plant a stale symlink pointing into skills/ (simulates a removed baseline entry)
-    brainspace = paths.brainspace(dotbrain_home, "prunetest")
+    # Plant a stale symlink pointing into skills/.
     skills_dir = repo / ".claude" / "skills"
     stale = skills_dir / "old-skill"
-    stale.symlink_to((dotbrain_home / "skills" / "brain" / "wire-brain").resolve())
+    stale.symlink_to((dotbrain_home / "skills" / "misc" / "discovery-test").resolve())
 
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 

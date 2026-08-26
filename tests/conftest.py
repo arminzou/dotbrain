@@ -71,7 +71,7 @@ def fake_home(tmp_path: Path) -> Path:
 def dotbrain_home(tmp_path: Path) -> Path:
     """A minimal dotbrain checkout skeleton: brainspaces/, skills/, a git repo.
 
-    Seeds the operating-baseline skill dirs plus one extra skill so the linker has real targets.
+    Seeds packaged skill text plus one operator-owned skill for linking tests.
     """
     root = tmp_path / "dotbrain"
     for sub in ("brainspaces", "skills"):
@@ -92,7 +92,6 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/write-skills",
     ):
         shutil.copytree(bundled_skills_root / skill, root / "skills" / skill)
-
     skill_dir = root / "skills" / "misc" / "discovery-test"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("# discovery-test\n")

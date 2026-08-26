@@ -135,8 +135,8 @@ Name each file under `references/` for what it holds (this skill's own [`referen
 
 A **bucket** (`skills/<bucket>/`) is storage-only grouping; it does not decide a skill's reach. Reach is one of two classes:
 
-- **Brain-coupled skill** — subject matter is operating the brain system itself (this skill is one). Packaged in the `brain/` bucket and force-wired into every project via `core.yaml` (`global_required` for `wire-brain`, `project_required` for the rest). Adopters cannot remove them. New Brain-coupled skills are a product decision, added to `core.yaml`.
-- **Personal skill** — operator-owned and opt-in, in any other bucket. Reached only when the operator lists it: `global_extra:` in `skills/skills.yaml` (every session) or a project's `project.yaml` `skills:` list (one Brainspace).
+- **Brain-coupled skill** — subject matter is operating the Brain system itself (this skill is one). Packaged in the `brain/` bucket and delivered by the dotbrain plugin. New Brain-coupled skills are a product decision and become available when the plugin updates.
+- **Personal skill** — operator-owned and opt-in, in any bucket. Reached only when the operator lists it: `global_extra:` in `skills/skills.yaml` (every session) or a project's `project.yaml` `skills:` list (one Brainspace).
 
 Materialise a declaration with **linking**: `dotbrain skills link --scope global` for a personal global skill, `--scope project --project <name>` for one scoped to a single Brainspace. Linking is idempotent — it creates missing symlinks and prunes deselected ones. Suggest the command scoped to where the skill belongs; never run it automatically.
 
