@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 from typing import Optional
 
 import typer
 
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, subagents, workflows
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, skills, subagents, workflows
 
 app = typer.Typer(
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
@@ -26,24 +25,11 @@ app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
 
 
-def _delegate_to_script(root: Path, script: str, args: list[str]) -> None:
-    path = root / "scripts" / script
-    if not path.is_file():
-        raise typer.BadParameter(f"{path} not found")
-    subprocess.run([str(path), *args], cwd=root, check=True)
-
-
-def _run_packaged_hook(script: str, args: list[str]) -> None:
-    raise_code = resource_loader.run_script(f"scripts/{script}", tuple(args))
-    if raise_code:
-        raise typer.Exit(raise_code)
-
-
 @hook_app.command("session-start")
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
-    """Run the dotbrain SessionStart hook."""
+    """Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is none."""
 
-    _run_packaged_hook("brain-sessionstart.sh", args or [])
+    hooks.emit_brain_context()
 
 
 @app.command()

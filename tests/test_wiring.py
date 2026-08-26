@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from dotbrain import hooks
 from dotbrain import beads, config, paths, resource_loader, workflows
 
 
@@ -287,25 +288,11 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
 
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    fake_dotbrain = fake_bin / "dotbrain"
-    fake_dotbrain.write_text("#!/usr/bin/env bash\nexit 0\n")
-    fake_dotbrain.chmod(0o755)
-    env = {**os.environ, "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"}
-    with resource_loader.resource_file("scripts/brain-sessionstart.sh") as script:
-        hook = subprocess.run(
-            [resource_loader.resolve_bash(), str(script)],
-            cwd=repo,
-            env=env,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    assert "## dotbrain convention" in hook.stdout
-    assert "## Project brain" in hook.stdout
-    assert "adopter" in hook.stdout
-    assert "Private agent context for this project" in hook.stdout
+    injected = hooks.brain_context(cwd=repo).decode("utf-8")
+    assert "## dotbrain convention" in injected
+    assert "## Project brain" in injected
+    assert "adopter" in injected
+    assert "Private agent context for this project" in injected
 
 
 def test_wire_project_materializes_workspaces_without_touching_tracked_files(

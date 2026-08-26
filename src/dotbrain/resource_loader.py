@@ -2,43 +2,13 @@
 
 from __future__ import annotations
 
-import shutil
-import subprocess
-import sys
 from contextlib import contextmanager
 from importlib.resources import as_file, files
 from importlib.resources.abc import Traversable
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Iterator
 
 RESOURCE_PACKAGE = "dotbrain.resources"
-
-
-def resolve_bash() -> str:
-    """Locate a real bash, preferring Git Bash over Windows' WSL-launcher ``bash.exe`` stub.
-
-    Modern Windows ships a ``System32\\bash.exe`` that launches WSL, present even when no distro
-    is installed (it just errors). If that shim resolves ahead of Git Bash on PATH, invoking
-    ``bash`` blindly runs the wrong one. Git for Windows installs ``git.exe`` and ``bash.exe`` in
-    the same ``bin`` directory, so a working ``git`` is a reliable anchor back to the real bash.
-
-    Uses ``PureWindowsPath`` for the stub check (syntactic only, no filesystem access) so the
-    logic is exercised the same way in tests regardless of the host OS running them.
-    """
-    if sys.platform != "win32":
-        return "bash"
-
-    found = shutil.which("bash")
-    if found and PureWindowsPath(found).parent.name.lower() != "system32":
-        return found
-
-    git_exe = shutil.which("git")
-    if git_exe:
-        candidate = Path(git_exe).resolve().parent.parent / "bin" / "bash.exe"
-        if candidate.is_file():
-            return str(candidate)
-
-    return found or "bash"
 
 
 def resource(path: str) -> Traversable:
@@ -75,11 +45,3 @@ def resource_file(path: str) -> Iterator[Path]:
 
     with as_file(resource(path)) as resolved:
         yield resolved
-
-
-def run_script(path: str, args: tuple[str, ...] = ()) -> int:
-    """Run a packaged shell script and return its exit code."""
-
-    with resource_file(path) as script:
-        completed = subprocess.run([resolve_bash(), str(script), *args], check=False)
-    return completed.returncode
