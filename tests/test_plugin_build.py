@@ -77,6 +77,22 @@ def test_plugin_owns_session_start_registration_for_both_runtimes():
     assert codex_manifest["hooks"] == "./hooks/hooks.json"
 
 
+def test_codex_marketplace_exposes_the_plugin_from_the_repository_root():
+    marketplace_path = _plugin_build._REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
+    marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+
+    assert marketplace["name"] == "dotbrain"
+    assert marketplace["interface"]["displayName"] == "dotbrain"
+    assert marketplace["plugins"] == [
+        {
+            "name": "dotbrain",
+            "source": {"source": "local", "path": "./plugin"},
+            "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+            "category": "Productivity",
+        }
+    ]
+
+
 def test_first_run_installers_pin_the_plugin_cli_version():
     version = tomllib.loads((_plugin_build._REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
     scripts = _plugin_build.PLUGIN_ROOT / "scripts"
