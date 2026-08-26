@@ -85,7 +85,10 @@ def test_first_run_installers_pin_the_plugin_cli_version():
     for name in ("install.sh", "install.ps1"):
         text = (scripts / name).read_text(encoding="utf-8")
         assert version in text
-        assert re.search(r"git\+https://github\.com/arminzou/dotbrain@[0-9a-f]{40}", text)
+        # The ref must be a release tag, not a branch SHA: a SHA on a feature branch resolves
+        # for nobody, and a squash-merge rewrites it, breaking the pin permanently.
+        assert "git+https://github.com/arminzou/dotbrain@v" in text
+        assert not re.search(r"dotbrain@[0-9a-f]{40}", text), "pin is a commit SHA, not a tag"
         assert "dotbrain bootstrap" in text
 
 

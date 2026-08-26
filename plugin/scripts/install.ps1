@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $DotbrainVersion = "0.1.0"
-$DotbrainRef = "git+https://github.com/arminzou/dotbrain@9ffb85a18ea3c51feed84d5051d7ab202c25c68f"
+$DotbrainRef = "git+https://github.com/arminzou/dotbrain@v$DotbrainVersion"
 
 function Write-Die($Message) {
     Write-Host "[dotbrain] error: $Message" -ForegroundColor Red

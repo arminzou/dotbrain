@@ -4,7 +4,7 @@
 set -euo pipefail
 
 readonly DOTBRAIN_VERSION="0.1.0"
-readonly DOTBRAIN_REF="git+https://github.com/arminzou/dotbrain@9ffb85a18ea3c51feed84d5051d7ab202c25c68f"
+readonly DOTBRAIN_REF="git+https://github.com/arminzou/dotbrain@v${DOTBRAIN_VERSION}"
 
 log() { printf '[dotbrain] %s\n' "$*"; }
 die() { printf '[dotbrain] error: %s\n' "$*" >&2; exit 1; }
