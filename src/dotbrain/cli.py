@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -64,17 +65,38 @@ def bootstrap(
             raise typer.BadParameter(str(exc)) from exc
 
 
+# Doctor's glyphs, with an ASCII fallback. A Windows console still running a legacy
+# code page (cp1252) cannot encode these, and typer.echo raises UnicodeEncodeError
+# mid-report — a health check that crashes on the machine least likely to be healthy.
+_GLYPHS = {"ok": "✓", "warn": "⚠", "error": "✖", "rule": "─", "arrow": "→"}
+_ASCII_GLYPHS = {"ok": "+", "warn": "!", "error": "x", "rule": "-", "arrow": "->"}
+
+
+def _glyphs() -> dict[str, str]:
+    """Unicode glyphs when stdout can encode them, ASCII when it cannot."""
+
+    encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+    try:
+        "".join(_GLYPHS.values()).encode(encoding)
+    except (UnicodeEncodeError, LookupError):
+        return _ASCII_GLYPHS
+    return _GLYPHS
+
+
 def _render_doctor(report: doctor_mod.DoctorReport) -> None:
     ok, warn, err = 0, 0, 0
+    glyph = _glyphs()
+    rule = glyph["rule"]
+    arrow = glyph["arrow"]
 
     def _icon(status: str) -> str:
-        return {"ok": "✓", "warn": "⚠", "error": "✖"}.get(status, "?")
+        return glyph.get(status, "?")
 
     typer.echo("\ndotbrain doctor")
-    typer.echo("─" * 60)
+    typer.echo(rule * 60)
 
     typer.echo("\nMachine readiness")
-    typer.echo("─" * 40)
+    typer.echo(rule * 40)
     for f in report.machine:
         if f.status == "ok":
             ok += 1
@@ -84,11 +106,11 @@ def _render_doctor(report: doctor_mod.DoctorReport) -> None:
             err += 1
         typer.echo(f"  {_icon(f.status)} {f.message}")
         if f.suggestion:
-            typer.echo(f"    → {f.suggestion}")
+            typer.echo(f"    {arrow} {f.suggestion}")
 
     if report.projects:
         typer.echo(f"\nProjects ({len(report.projects)})")
-        typer.echo("─" * 40)
+        typer.echo(rule * 40)
         for name, findings in report.projects.items():
             for f in findings:
                 if f.status == "ok":
@@ -99,9 +121,9 @@ def _render_doctor(report: doctor_mod.DoctorReport) -> None:
                     err += 1
                 typer.echo(f"  {_icon(f.status)} [{name}] {f.message}")
                 if f.suggestion:
-                    typer.echo(f"    → {f.suggestion}")
+                    typer.echo(f"    {arrow} {f.suggestion}")
 
-    typer.echo(f"\n{'─' * 60}")
+    typer.echo(f"\n{rule * 60}")
     typer.echo(f"  {ok} ok  {warn} warnings  {err} errors")
 
     if err > 0:

@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import io
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import config, doctor, paths
+from dotbrain import cli, config, doctor, paths
 from dotbrain.cli import app
 
 from conftest import set_fake_home
@@ -89,6 +91,11 @@ def test_check_repo_file_missing(brainspace: Path):
     assert f.status == "error"
     assert ".repo" in f.message
     assert resolved is None
+    # An undeclared Brainspace may be intended as brain-only; suggesting only
+    # '--repo' sends the operator down a path that cannot resolve the finding.
+    assert f.suggestion is not None
+    assert "--repo" in f.suggestion
+    assert "--no-repo" in f.suggestion
 
 
 def test_check_repo_file_bad_target(brainspace: Path):
@@ -421,3 +428,28 @@ def test_doctor_cli_in_help_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "doctor" in result.output
+
+
+def test_doctor_renders_on_a_legacy_windows_code_page(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    """A cp1252 console must not crash the health check.
+
+    Doctor's box-drawing and status glyphs are not encodable in cp1252, which is still
+    the default on Windows consoles that have not been switched to UTF-8. Rendering must
+    fall back to ASCII rather than raising UnicodeEncodeError mid-report.
+    """
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+
+    with capsys.disabled():
+        buffer = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
+        monkeypatch.setattr(sys, "stdout", buffer)
+        report = doctor.run_doctor(dotbrain_home)
+        cli._render_doctor(report)
+        buffer.flush()
+        rendered = buffer.buffer.getvalue().decode("cp1252")
+
+    assert "Machine readiness" in rendered
+    assert "ok" in rendered
+    for glyph in cli._GLYPHS.values():
+        assert glyph not in rendered

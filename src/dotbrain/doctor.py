@@ -102,8 +102,12 @@ def _check_repo_file(brainspace: Path) -> tuple[Finding | None, Path | None]:
     """
     repo_file = brainspace / ".repo"
     if not repo_file.is_file():
+        # Undeclared: the Brainspace names neither a repo nor brain-only. Both are
+        # resolvable, and only the operator knows which was intended, so name both.
         return (Finding("error", f".repo file missing in {brainspace.name}",
-                        "run 'dotbrain wire --repo <repo>' to wire a code repo"),
+                        f"run 'dotbrain wire --repo <repo>' to wire a code repo, "
+                        f"or 'dotbrain wire --name {brainspace.name} --no-repo' "
+                        f"to declare it brain-only"),
                 None)
     content = repo_file.read_text(encoding="utf-8").strip()
     if content.startswith("(brain-only)"):
