@@ -35,7 +35,7 @@ def _make_runner(calls=None):
 def _wire(dotbrain_home, repo, fake_home):
     workflows.wire_project(
         dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=False, home=fake_home, run=_make_runner(),
+        home=fake_home, run=_make_runner(),
     )
 
 
@@ -94,21 +94,6 @@ def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path
     result = bootstrap_mod.ensure_data_root(root)
     assert not result.skills_seeded
     assert (root / "skills" / "skills.yaml").read_text() == custom
-
-
-# --------------------------------------------------------------------------- claude hook install
-
-
-def test_install_global_claude_hook_writes_settings_json(
-    dotbrain_home: Path, fake_home: Path, tmp_path: Path
-):
-    """install_global_claude_hook writes the SessionStart hook to settings.json via Python."""
-    import json
-    settings = tmp_path / ".claude" / "settings.json"
-    bootstrap_mod.install_global_claude_hook(dotbrain_home, settings=settings, home=fake_home)
-    data = json.loads(settings.read_text())
-    commands = [h["command"] for e in data["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert any("dotbrain hook claude-worktree-bootstrap" in c for c in commands)
 
 
 def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path):
@@ -240,23 +225,6 @@ def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path):
     result = bootstrap_mod.link_global_skills(dotbrain_home)
 
     assert not result.warnings
-
-
-def test_wire_project_installs_hook_via_python(
-    dotbrain_home: Path, fake_home: Path, tmp_path: Path
-):
-    """wire_project with install_global_hook=True writes the hook to settings.json directly."""
-    import json
-    repo = _fresh_repo(tmp_path, "hooktest")
-    workflows.wire_project(
-        dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=True, home=fake_home, run=_make_runner(),
-    )
-    settings = fake_home / ".claude" / "settings.json"
-    assert settings.is_file()
-    data = json.loads(settings.read_text())
-    commands = [h["command"] for e in data["hooks"]["SessionStart"] for h in e["hooks"]]
-    assert any("dotbrain hook claude-worktree-bootstrap" in c for c in commands)
 
 
 # --------------------------------------------------------------------------- per-project skills

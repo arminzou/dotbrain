@@ -18,14 +18,12 @@ Use the narrowest command that matches the job:
 - `dotbrain wire --name <project> --no-repo`: create a Brain-only Brainspace.
 - `dotbrain wire --all`: reconcile every existing Brainspace with its adopter repo under the repo
   base.
-- `dotbrain worktrees wire [path]`: repair an existing git worktree so its Brainspace links reuse
-  the main checkout's links.
 - `dotbrain refresh`: refresh an existing Brainspace; use `--name <project>` to select one project.
 - `dotbrain refresh --name <project>`: refresh one existing Brainspace after config, skill, agent,
   template, or CLI changes.
 - `dotbrain refresh --all`: refresh every Brainspace without creating new projects.
-- `dotbrain bootstrap`: install or reconcile machine-global hooks and global skills.
-- `dotbrain doctor`: inspect machine readiness, project wiring, hooks, and beads health.
+- `dotbrain bootstrap`: reconcile global skills and subagents.
+- `dotbrain doctor`: inspect machine readiness, project wiring, and beads health.
 - `dotbrain unwire`: detach an adopter repo and keep, archive, or delete the private Brainspace.
 
 Do not recreate these steps by hand unless the CLI reports a concrete obstruction that must be
@@ -99,12 +97,11 @@ Symlinks whose targets are outside the repo must remain untracked.
 Use repair commands by symptom:
 
 - Broken or missing symlinks in the main checkout: `dotbrain wire --repo <path>`.
-- Broken or missing symlinks in a git worktree: `dotbrain worktrees wire [path]`.
+- Broken or missing `.brain` or `.beads` in a git worktree: invoke `wire-worktree`.
 - Existing Brainspaces need repo link reconciliation: `dotbrain wire --all`.
 - Skills, agents, hooks, templates, or legacy skill manifests changed: `dotbrain refresh --name
   <project>` or `dotbrain refresh --all`.
-- Machine-global hooks or global skills are stale: `dotbrain bootstrap`, or `dotbrain bootstrap
-  --only claude-hook`, `--only codex-hook`, or `--only skills`.
+- Global skills or subagents are stale: `dotbrain bootstrap` or `dotbrain bootstrap --only skills`.
 - Need a health report before deciding: `dotbrain doctor`.
 
 `refresh` does not create projects. `wire --all` reconciles known Brainspaces and warns when it
@@ -112,21 +109,9 @@ cannot find an adopter repo.
 
 ## Worktrees
 
-dotbrain worktree support reuses the main checkout's Brainspace links. Session-start hooks and the
-worktree bootstrap commands repair worktree links so worker sessions see the same Brain, beads, and
-agent workspaces as the main checkout.
-
-After creating a worktree manually, run this before dispatching work into it:
-
-```bash
-dotbrain worktrees wire /path/to/worktree
-```
-
-A fresh standalone Claude or Codex session normally runs the same reconciliation through its
-SessionStart hook. An in-session collaboration agent does not start a new session, so its manually
-created worktree must be wired explicitly. Verify `.brain`, `.beads`, and the active agent-workspace
-links resolve through the main checkout. Use `dotbrain wire` only for adopter-repo/Brainspace
-wiring; a git worktree reuses the existing Brainspace rather than creating another one.
+dotbrain does not manage worktree creation or repair. In a worktree without `.brain` or `.beads`,
+invoke the plugin-delivered `wire-worktree` skill. It derives the main checkout from Git and creates
+only those two links. Use `dotbrain wire` only for adopter-repo/Brainspace wiring.
 
 ## Offboarding
 

@@ -10,14 +10,16 @@ For the first-run setup, start with
 
 Wiring connects a code repo to a private Brainspace under your dotbrain data root.
 
-The repo gets local, gitignored links such as:
+The repo gets local, gitignored wiring entries such as:
 
 - `.brain`
 - `.beads`
 - `.claude`
 - `.codex`
 
-Those links point at the private Brainspace, typically under `~/dotbrain/brainspaces/<name>/`.
+`.brain` and `.beads` point at the private Brainspace; `.claude` and `.codex` are real project
+directories containing individually ignored dotbrain resource links. The Brainspace typically lives
+under `~/dotbrain/brainspaces/<name>/`.
 An existing `~/dotbrain/projects/<name>/` layout (the pre-rename name) is still recognized; new
 Brainspaces are created under `brainspaces/`.
 
@@ -91,15 +93,13 @@ If a project uses a server beads backend, dropping that remote database is a sep
 
 Worktrees do not get separate Brains or separate execution stores.
 
-They reuse the same Brainspace wiring model as the main checkout, so a worktree still points back
-to the same:
+They reuse the main checkout's Brain and execution store through:
 
 - `.brain`
 - `.beads`
-- `.claude`
-- `.codex`
 
-That is why worktree sessions still see the same Brain context and live execution state.
+When either link is absent, invoke the `wire-worktree` skill. It derives the main checkout from Git
+and creates only those links.
 
 ## Troubleshooting
 
@@ -108,7 +108,7 @@ Common wiring problems are usually one of these:
 - missing local links
 - links pointing at the wrong Brainspace
 - a repo that was cloned fresh and never wired
-- a worktree that was created without reconciling dotbrain wiring
+- a worktree missing its `.brain` or `.beads` link
 
 Start with:
 

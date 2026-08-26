@@ -48,9 +48,10 @@ the notes did not come with it; when I cloned the project onto another machine, 
 either. The context I needed most was the context that never followed the work.
 
 Dotbrain keeps the Brain and issue tracker private and versioned under a project's Brainspace, then
-links selected agent resources into the repo's workspaces. A worktree picks it up automatically. A new machine is one clone and bootstrap away
-from having every project wired. The notes are there wherever you work the project, instead of
-sitting beside it.
+links selected agent resources into the repo's workspaces. A worktree can restore its `.brain` and
+`.beads` links with the `wire-worktree` skill. A new machine is one clone and bootstrap away from
+having every project wired. The notes are there wherever you work the project, instead of sitting
+beside it.
 
 ## "But my agent already remembers, and I have CLAUDE.md/AGENTS.md"
 
@@ -156,15 +157,12 @@ See [docs/skills.md](docs/skills.md) for the full set.
 
 Most work runs in place in the main checkout, reviewed as it happens. When work needs isolation,
 such as genuine parallelism or a long-running loop you want off your interactive tree, run it in a
-git worktree instead. A worktree shares the same Brainspace, Brain, and execution state as the main
-checkout through the same symlinks, with no separate Brain and no re-wiring.
+git worktree instead. A worktree shares the main checkout's Brain and execution state, with no
+separate Brain.
 
-`operate-execution` recommends when to isolate; the agent runtime provides the worktree. Start a
-full worker session in one with the launcher:
-
-```bash
-dotbrain codex --worktree <bead-id>-<slug>
-```
+`operate-execution` recommends when to isolate; the agent runtime creates the worktree. If it has
+no `.brain` or `.beads`, invoke the `wire-worktree` skill to link those two directories back to the
+main checkout.
 
 ## Install
 

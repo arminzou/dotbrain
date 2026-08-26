@@ -60,15 +60,13 @@ product skills coexist safely with an operator's own private skills on the same 
 
 Connecting a repo is one command: `dotbrain wire` creates or repairs the Brainspace, writes its two
 links, materializes the agent workspaces, and records per-link ignore rules. A one-time
-`dotbrain bootstrap` installs the agent hooks for the machine and links global skills and
-subagents.
+`dotbrain bootstrap` links global skills and subagents.
 
 At the start of every agent session, a hook injects the shared operating rules and the project's own
 Brain context into the session, so the agent begins already knowing the project's conventions without
 anyone pasting them in. Project-selected skills and vendor-native subagents are linked into the
-matching workspaces from the same Brainspace declarations. Worktrees reach the same Brain through
-their own links — never a
-per-worktree copy.
+matching workspaces from the same Brainspace declarations. A worktree with no `.brain` or `.beads`
+uses the plugin-delivered `wire-worktree` skill to link them back to the main checkout.
 
 ## Public / private boundary
 

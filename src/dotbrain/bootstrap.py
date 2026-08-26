@@ -1,17 +1,14 @@
 """Machine-readiness bootstrap.
 
-This module owns machine-global setup: data-root seeding, Claude/Codex
-worktree-bootstrap hooks, and the shared subprocess seam.
+This module owns machine-global setup: data-root seeding and global runtime links.
 """
 
 from __future__ import annotations
 
-import subprocess
-from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import adopter_repos, brainspaces, resource_loader, skills, subagents
+from dotbrain import adopter_repos, resource_loader, skills, subagents
 
 # --------------------------------------------------------------------------- data-root seeding
 
@@ -101,62 +98,10 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
     return result
 
 
-# A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
-Runner = Callable[..., "subprocess.CompletedProcess[str]"]
-
-
 @dataclass
 class GlobalSkillBootstrapResult:
     logs: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-
-
-def _default_run(
-    argv: Sequence[str], *, cwd: Path | None = None, env: dict | None = None, check: bool = True
-) -> "subprocess.CompletedProcess[str]":
-    return subprocess.run(
-        list(argv), cwd=cwd, env=env, check=check, capture_output=True, encoding="utf-8"
-    )
-
-
-def _global_hook_command(script_name: str, dotbrain_home: Path, home: Path | None = None) -> str:
-    command_by_script = {
-        "claude-worktree-bootstrap.sh": "dotbrain hook claude-worktree-bootstrap",
-        "codex-worktree-bootstrap.sh": "dotbrain hook codex-worktree-bootstrap",
-    }
-    return command_by_script.get(script_name, f"dotbrain hook {Path(script_name).stem}")
-
-
-def install_global_claude_hook(
-    dotbrain_home: Path,
-    *,
-    settings: Path | None = None,
-    home: Path | None = None,
-) -> None:
-    h = Path(home) if home is not None else Path.home()
-    target = Path(settings) if settings is not None else h / ".claude" / "settings.json"
-    brainspaces.ensure_json_hook(
-        target,
-        "SessionStart",
-        _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_home, h),
-    )
-
-
-def install_global_codex_hook(
-    dotbrain_home: Path,
-    *,
-    hooks: Path | None = None,
-    home: Path | None = None,
-) -> None:
-    h = Path(home) if home is not None else Path.home()
-    target = Path(hooks) if hooks is not None else h / ".codex" / "hooks.json"
-    brainspaces.ensure_json_hook(
-        target,
-        "SessionStart",
-        _global_hook_command("codex-worktree-bootstrap.sh", dotbrain_home, h),
-        "startup|resume|clear",
-        "Bootstrapping dotbrain worktree",
-    )
 
 
 def link_global_skills(

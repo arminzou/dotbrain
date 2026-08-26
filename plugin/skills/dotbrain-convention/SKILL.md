@@ -25,7 +25,6 @@ Brain template propagate to every brain.
 - Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
 - Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
   per worktree.
-- Create worktrees outside the repo with `git worktree add ../worktrees/<name> -b <name>`.
 - In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
 - In a git worktree with no `.brain`, invoke the plugin-delivered `wire-worktree` skill. It derives
   the main checkout from Git and creates real `.brain` and `.beads` symlinks without the CLI.

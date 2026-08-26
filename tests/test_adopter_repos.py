@@ -130,35 +130,6 @@ def test_reconcile_reraises_unrelated_oserror(tmp_path: Path, monkeypatch) -> No
     assert raised
 
 
-def test_reconcile_worktree_repairs_wrong_targets(tmp_path: Path) -> None:
-    repo = tmp_path / "main-repo"
-    repo.mkdir()
-    _git(repo, "init", "-q", "-b", "main")
-    _git(repo, "config", "user.email", "t@t")
-    _git(repo, "config", "user.name", "t")
-    for name in paths.BRAINSPACE_LINKS:
-        (repo / name).mkdir()
-    (repo / "README.md").write_text("# main\n")
-    _git(repo, "add", "README.md")
-    _git(repo, "commit", "-q", "-m", "initial commit")
-
-    worktree = repo / ".codex" / "worktrees" / "slice"
-    _git(repo, "worktree", "add", "-b", "slice", str(worktree))
-
-    wrong = tmp_path / "wrong"
-    wrong.mkdir()
-    (worktree / ".brain").symlink_to(wrong)
-
-    result = adopter_repos.reconcile_worktree(worktree)
-
-    assert ".brain" in result.repaired
-    assert set(result.created) == set(paths.BRAINSPACE_LINKS) - {".brain"}
-    assert result.skipped == []
-    assert result.collisions == []
-    for name in paths.BRAINSPACE_LINKS:
-        assert (worktree / name).resolve() == (repo / name).resolve()
-
-
 # --------------------------------------------------------------------------- expand_path
 
 

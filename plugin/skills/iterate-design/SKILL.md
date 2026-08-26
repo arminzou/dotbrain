@@ -35,11 +35,9 @@ Before starting the loop, confirm all four hold. If any is missing, stay in ordi
 ## Worktree Preparation
 
 A dedicated branch may run in place or in a git worktree. Before planning in a worktree, verify
-that `.brain`, `.beads`, and the active agent-workspace links resolve through the main checkout. A
-fresh standalone agent session normally reconciles them through SessionStart. When an in-session
-collaboration agent uses a manually created worktree, run `dotbrain worktrees wire <path>` before
-dispatch. `dotbrain wire` attaches an adopter repo to a Brainspace; it is not the worktree repair
-command.
+that `.brain` and `.beads` resolve through the main checkout. When they are absent, invoke the
+plugin-delivered `wire-worktree` skill before dispatch. `dotbrain wire` attaches an adopter repo to
+a Brainspace; it is not the worktree repair command.
 
 ## Read Order
 

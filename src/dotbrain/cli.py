@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, subagents, workflows, worktrees
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, migrate, paths, resource_loader, skills, subagents, workflows
 
 app = typer.Typer(
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
@@ -46,29 +46,13 @@ def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     _run_packaged_hook("brain-sessionstart.sh", args or [])
 
 
-@hook_app.command("claude-worktree-bootstrap")
-def hook_claude_worktree_bootstrap(args: list[str] = typer.Argument(None)) -> None:
-    """Run the global Claude first-worktree bootstrap hook."""
-
-    _run_packaged_hook("claude-worktree-bootstrap.sh", args or [])
-
-
-@hook_app.command("codex-worktree-bootstrap")
-def hook_codex_worktree_bootstrap(args: list[str] = typer.Argument(None)) -> None:
-    """Run the global Codex first-worktree bootstrap hook."""
-
-    _run_packaged_hook("codex-worktree-bootstrap.sh", args or [])
-
-
 @app.command()
 def bootstrap(
-    only: Optional[str] = typer.Option(None, "--only", help="claude-hook | codex-hook | skills"),
-    skip_claude_hook: bool = typer.Option(False, "--skip-claude-hook"),
-    skip_codex_hook: bool = typer.Option(False, "--skip-codex-hook"),
+    only: Optional[str] = typer.Option(None, "--only", help="skills"),
     skip_skills: bool = typer.Option(False, "--skip-skills"),
 ) -> None:
-    """Prepare this machine for dotbrain: global hooks and global skill links."""
-    if only and only not in {"claude-hook", "codex-hook", "skills"}:
+    """Prepare this machine for dotbrain: global skill and subagent links."""
+    if only and only != "skills":
         raise typer.BadParameter(f"invalid --only: {only}")
 
     root = paths.resolve_dotbrain_home()
@@ -84,22 +68,15 @@ def bootstrap(
     if dr_result.agents_seeded:
         typer.echo(f"[bootstrap] seeded agents/agents.yaml into {root}")
 
-    run_claude = only == "claude-hook" or (only is None and not skip_claude_hook)
-    run_codex = only == "codex-hook" or (only is None and not skip_codex_hook)
     run_skills = only == "skills" or (only is None and not skip_skills)
 
-    if run_claude:
-        bootstrap_mod.install_global_claude_hook(root)
-        typer.echo(f"[bootstrap] installed Claude global bootstrap hook in {Path.home() / '.claude' / 'settings.json'}")
-    if run_codex:
-        bootstrap_mod.install_global_codex_hook(root)
-        typer.echo(f"[bootstrap] installed Codex global bootstrap hook in {Path.home() / '.codex' / 'hooks.json'}")
     if run_skills:
         try:
             _render_global_skill_link(root, "all")
             _render_global_agent_link(root, "all")
         except RuntimeError as exc:
             raise typer.BadParameter(str(exc)) from exc
+
 
 def _render_doctor(report: doctor_mod.DoctorReport) -> None:
     ok, warn, err = 0, 0, 0
@@ -146,7 +123,7 @@ def _render_doctor(report: doctor_mod.DoctorReport) -> None:
         raise typer.Exit(1)
     elif warn > 0:
         typer.echo("\nNext: 'dotbrain wire --all' (wire projects)")
-        typer.echo("      'dotbrain bootstrap' (install hooks/links)")
+        typer.echo("      'dotbrain bootstrap' (link global skills and subagents)")
         typer.echo("      'dotbrain beads load --all' (hydrate beads)")
     else:
         typer.echo("\nMachine is healthy. Run 'bd ready' for available work.")
@@ -162,13 +139,11 @@ def doctor() -> None:
 
 @app.command()
 def wire(
-    all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its Brainspace (brain seeding, symlinks, hooks)."),  # noqa: A002
+    all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its Brainspace (brain seeding and symlinks)."),  # noqa: A002
     repo: Optional[str] = typer.Option(None, "--repo", help="Repo to wire. Defaults to the current git repo."),
     name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name. Defaults to repo dir name."),
     dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
     skip_beads: bool = typer.Option(False, "--skip-beads", help="Do not initialize .beads when missing."),
-    install_global_hook: bool = typer.Option(False, "--install-global-hook", help="Also install the global Claude SessionStart hook. Prefer `dotbrain bootstrap` for machine setup."),
-    skip_global_hook: bool = typer.Option(False, "--skip-global-hook", help="Compatibility no-op; global hooks are no longer installed by default.", hidden=True),
     remote: str = typer.Option("", "--beads-remote", help="Initialize beads from this Dolt remote."),
     server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Init beads against an external Dolt sql-server. Defaults to beads.server.host in config.yaml."),
     server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
@@ -205,7 +180,6 @@ def wire(
             project=name,
             no_repo=no_repo,
             run_beads=not skip_beads,
-            install_global_hook=install_global_hook and not skip_global_hook,
             remote=remote,
             server_host=server_host,
             server_port=server_port,
@@ -219,8 +193,6 @@ def wire(
         typer.echo(f"[wire] {line}")
     for warning in result.warnings:
         typer.echo(f"[wire] warning: {warning}", err=True)
-    if not install_global_hook:
-        typer.echo("[wire] global hooks are machine reconciliation; run `dotbrain bootstrap --only claude-hook` if needed")
 
 
 @app.command()
@@ -464,65 +436,6 @@ def beads_load(
         typer.echo(f"[beads load] {line}")
     for warning in result.warnings:
         typer.echo(f"[beads load] warning: {warning}", err=True)
-
-
-worktrees_app = typer.Typer(help="Worktree utilities.", no_args_is_help=True)
-app.add_typer(worktrees_app, name="worktrees", hidden=True)
-
-
-@worktrees_app.command("wire")
-def worktrees_wire(
-    path: Optional[str] = typer.Argument(None, help="Worktree path (defaults to cwd)"),
-) -> None:
-    """Reconcile Brainspace links inside a git worktree."""
-    target = Path(path) if path else Path.cwd()
-    result = adopter_repos.reconcile_worktree(target)
-    for name in result.created:
-        typer.echo(f"linked {name}")
-    for name in result.repaired:
-        typer.echo(f"repaired {name}")
-
-
-@app.command()
-def codex(
-    worktree: str = typer.Option(
-        ..., "--worktree", "-w", help="Branch/worktree name, e.g. feature-auth"
-    ),
-    repo: Optional[Path] = typer.Option(
-        None, "--repo", "-C", help="Repo path; defaults to the current git repo"
-    ),
-    base: str = typer.Option("main", "--base", help="Base ref for a new worktree"),
-    prompt: Optional[str] = typer.Option(None, "--prompt", help="Initial Codex prompt"),
-    codex_arg: list[str] = typer.Option(
-        [], "--codex-arg", help="Extra argument passed to Codex; repeatable"
-    ),
-    print_only: bool = typer.Option(
-        False, "--print", help="Print commands instead of running them"
-    ),
-) -> None:
-    """Create or reuse a dotbrain-wired git worktree and start Codex there."""
-
-    try:
-        root = worktrees.repo_root(repo or Path.cwd())
-        plan = worktrees.codex_worktree_plan(
-            root,
-            worktree,
-            base=base,
-            prompt=prompt,
-            codex_args=codex_arg,
-        )
-    except (subprocess.CalledProcessError, ValueError) as exc:
-        raise typer.BadParameter(str(exc)) from exc
-
-    if print_only:
-        typer.echo(worktrees.shell_join(plan.create_command))
-        typer.echo(worktrees.shell_join(plan.codex_command))
-        return
-
-    typer.echo(f"worktree: {plan.worktree}")
-    worktrees.create_codex_worktree(plan)
-    adopter_repos.reconcile_worktree(plan.worktree)
-    worktrees.launch_codex(plan)
 
 
 _AGENT_WORKSPACES = {

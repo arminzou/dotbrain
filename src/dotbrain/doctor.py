@@ -5,7 +5,6 @@ Self-contained diagnostic module. No filesystem mutations — pure inspections o
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -14,8 +13,6 @@ from pathlib import Path
 
 from dotbrain import config, paths, resource_loader
 from dotbrain.adopter_repos import is_dotbrain_repo
-from dotbrain.brainspaces import _hook_command_present
-from dotbrain.bootstrap import _global_hook_command
 
 # Same shape as bootstrap.Runner; injected so tests can record without real subprocess calls.
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -83,27 +80,6 @@ def _check_templates(root: Path) -> Finding:
                    "installed package is missing bundled templates")
 
 
-def _check_global_hook(home: Path, settings_rel: str, script_name: str,
-                       dotbrain_home: Path, label: str) -> Finding:
-    target = home / settings_rel
-    if not target.is_file():
-        return Finding("warn", f"{label} settings not found at {target}",
-                       f"run 'dotbrain bootstrap' to install hooks")
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return Finding("warn", f"{label} settings unreadable",
-                       f"check {target} for syntax errors")
-    if not isinstance(data, dict):
-        return Finding("warn", f"{label} settings malformed")
-    entries = data.get("hooks", {}).get("SessionStart", [])
-    expected = _global_hook_command(script_name, dotbrain_home, home)
-    if _hook_command_present(entries, expected):
-        return Finding("ok", f"{label} SessionStart hook installed")
-    return Finding("warn", f"{label} SessionStart hook missing",
-                   f"run 'dotbrain bootstrap' or 'dotbrain wire --all'")
-
-
 def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings: list[Finding] = [
         _check_binary("bd"),
@@ -111,10 +87,6 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         _check_dotbrain_config(root),
         _check_global_skills_config(root),
         _check_templates(root),
-        _check_global_hook(home, ".claude/settings.json",
-                          "claude-worktree-bootstrap.sh", root, "Claude"),
-        _check_global_hook(home, ".codex/hooks.json",
-                          "codex-worktree-bootstrap.sh", root, "Codex"),
     ]
     return findings
 

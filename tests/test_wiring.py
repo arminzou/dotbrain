@@ -216,7 +216,6 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_brainspace_mutatio
             dotbrain_home=dotbrain_home,
             repo=repo,
             run_beads=False,
-            install_global_hook=False,
             home=fake_home,
             run=make_runner([]),
         )
@@ -239,7 +238,6 @@ def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -265,7 +263,6 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -335,7 +332,6 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
@@ -370,7 +366,6 @@ def test_wire_project_workspace_can_become_project_owned_without_force(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
@@ -392,7 +387,6 @@ def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
         project="brainonly",
         no_repo=True,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -426,7 +420,7 @@ def test_wire_project_unarchives_automatically(dotbrain_home: Path, fake_home: P
 
     result = workflows.wire_project(
         dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=False, home=fake_home, run=make_runner([]),
+        home=fake_home, run=make_runner([]),
     )
 
     brainspace = dotbrain_home / "brainspaces" / "archived-proj"
@@ -446,7 +440,7 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_home: Path, fake_ho
 
     workflows.wire_project(
         dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=False, home=fake_home, run=make_runner([]),
+        home=fake_home, run=make_runner([]),
     )
 
     from dotbrain import config, skills
@@ -470,7 +464,6 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -500,7 +493,7 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
     (repo / "AGENTS.md").write_text("# Project\n")
 
     kwargs = dict(dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-                  install_global_hook=False, home=fake_home, run=make_runner([]))
+                  home=fake_home, run=make_runner([]))
 
     workflows.wire_project(**kwargs)
     assert (repo / ".brain").is_symlink()
@@ -527,7 +520,6 @@ def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home:
         project="fork",
         no_repo=True,
         remote="https://example.com/fork",
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -559,7 +551,6 @@ def test_wire_project_server_host_records_server_mode(
         project="plain",
         no_repo=True,
         server_host="db.local",
-        install_global_hook=False,
         home=fake_home,
         run=_runner_creating_beads(brainspace),
     )
@@ -576,7 +567,6 @@ def test_wire_project_records_custom_database(dotbrain_home: Path, fake_home: Pa
         no_repo=True,
         server_host="db.local",
         database="legacy_name",
-        install_global_hook=False,
         home=fake_home,
         run=_runner_creating_beads(brainspace),
     )
@@ -596,7 +586,6 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
@@ -622,7 +611,6 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     brainspace = dotbrain_home / "brainspaces" / "downgraded-project"
@@ -632,7 +620,6 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     assert (repo / ".codex").is_dir()
@@ -643,7 +630,6 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 

@@ -14,8 +14,9 @@ project's Brain plus agent/runtime adapters such as `.beads`, `.claude`, and `.c
 
 ### Brainspace links
 
-The gitignored links placed in a repo or worktree that point back to the private Brainspace.
-Typical links are `.brain`, `.beads`, `.claude`, and `.codex`.
+The gitignored links placed in a repo that point back to the private Brainspace. Typical links are
+`.brain` and `.beads`; `.claude` and `.codex` are project-owned directories with individually
+ignored dotbrain resources.
 
 ### Brain
 
@@ -54,8 +55,8 @@ The coding agent environment dotbrain wires into, such as Claude Code or Codex.
 
 ### agent workspace
 
-The runtime-specific workspace config dotbrain links into a repo or worktree, such as `.claude/` or
-`.codex/`.
+The runtime-specific workspace directory in a repo, such as `.claude/` or `.codex/`. dotbrain links
+only its selected resources inside it.
 
 ### public tracker
 
@@ -66,13 +67,13 @@ tracking issues; a PR can provide a public review surface without one.
 
 ### worktree
 
-A git worktree that shares the same repo history but has its own working directory. In dotbrain, a
-worktree can be wired to the same Brainspace as the main checkout.
+A git worktree that shares the same repo history but has its own working directory. In dotbrain, the
+`wire-worktree` skill can link its `.brain` and `.beads` back to the main checkout.
 
 ### bootstrap
 
-The machine-level setup step run by `dotbrain bootstrap`. It seeds global config, installs global
-hooks, and links global skills.
+The machine-level setup step run by `dotbrain bootstrap`. It seeds global config and links global
+skills.
 
 ### skill
 

@@ -4,10 +4,6 @@
 # Guarded, idempotent, fail-open: always exits 0, with a clean no-op outside a
 # repo. Stdout is limited to bootstrap-only session context.
 #
-# Responsibilities:
-# 1. In a git worktree, ensure control links point at the main checkout.
-# 2. In a worktree, print the worker self-identification banner.
-#
 # Beads lives in project hooks:
 # - Claude Code: `bd prime --hook-json`
 # - Codex: `bd codex-hook SessionStart`
@@ -19,23 +15,6 @@ set -uo pipefail
 repo_root() {
   command -v git >/dev/null 2>&1 || return 0
   git rev-parse --show-toplevel 2>/dev/null
-}
-
-ensure_worktree_links() {
-  local root
-  root="$(repo_root)" || return 0
-  command -v dotbrain >/dev/null 2>&1 || return 0
-  dotbrain worktrees wire "$root" 2>/dev/null || true
-}
-
-worker_self_identify() {
-  local root branch
-  root="$(repo_root)" || return 0
-  [ -f "$root/.git" ] || return 0
-
-  branch="$(git -C "$root" branch --show-current 2>/dev/null)" || branch="unknown"
-  printf '## Worker agent\n\n'
-  printf 'You are a worker agent in worktree branch **%s**.\n\n' "$branch"
 }
 
 # Inject brain context for any dotbrain-wired repo: the shared dotbrain
@@ -59,7 +38,5 @@ inject_brain_context() {
   fi
 }
 
-ensure_worktree_links
 inject_brain_context
-worker_self_identify
 exit 0

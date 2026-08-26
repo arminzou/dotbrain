@@ -71,26 +71,6 @@ def test_check_templates_ignores_data_root_templates(tmp_path: Path):
     assert f.status == "ok"
 
 
-def test_check_global_hook_installed(dotbrain_home: Path, fake_home: Path):
-    from dotbrain.brainspaces import ensure_json_hook
-    from dotbrain.bootstrap import _global_hook_command
-
-    target = fake_home / ".claude" / "settings.json"
-    cmd = _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_home, fake_home)
-    ensure_json_hook(target, "SessionStart", cmd)
-
-    f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
-    assert f.status == "ok"
-
-
-def test_check_global_hook_missing(dotbrain_home: Path, fake_home: Path):
-    f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
-    assert f.status == "warn"
-    assert "not found" in f.message.lower()
-
-
 # --------------------------------------------------------------------------- project wiring
 
 

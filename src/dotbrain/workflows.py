@@ -3,7 +3,7 @@
 These are the bodies behind ``dotbrain wire``, ``wire --all``, ``unwire``, and ``unwire --all``:
 cross-concept orchestration that stitches together ``adopter_repos`` (repo links),
 ``brainspaces`` (Brain/workspace preparation, offboarding), ``beads`` (tracker init), ``skills``
-(skill manifest), and ``wiring`` (global hooks). ``cli.py`` stays a thin Typer parsing/rendering
+(skill manifest). ``cli.py`` stays a thin Typer parsing/rendering
 layer over these.
 
 The subprocess seams take an injected ``run`` callable so tests record argv instead of invoking
@@ -131,7 +131,6 @@ def wire_project(
     server_user: str = "beads",
     database: str = "",
     home: Path | None = None,
-    install_global_hook: bool = True,
     run: Runner = _default_run,
 ) -> WireResult:
     """Create/repair a Brainspace and wire an adopter repo. Mirrors wire-project.sh's main()."""
@@ -187,8 +186,6 @@ def wire_project(
     result.warnings += workspace_warnings + skill_result.warnings + subagent_result.warnings
     result.logs += [f"pruned skill {entry}" for entry in skill_result.pruned]
     result.logs += [f"pruned subagent {entry}" for entry in subagent_result.pruned]
-    if install_global_hook:
-        bootstrap.install_global_claude_hook(dotbrain_home, home=home)
     beads_log = beads.init_beads(
         brainspace, project, dotbrain_home,
         run_beads=run_beads, remote=remote,

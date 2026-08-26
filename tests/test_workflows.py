@@ -144,7 +144,6 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=Path.home(),
         run=real_git_runner,
     )
@@ -463,7 +462,6 @@ def test_refresh_project_honors_declared_agent_workspaces(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
@@ -507,7 +505,6 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     brainspace = paths.brainspace(dotbrain_home, "refresh-downgraded")
@@ -516,7 +513,6 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     assert (repo / ".codex").is_dir()

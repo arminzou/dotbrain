@@ -3,7 +3,7 @@
 A Brainspace is a project's private context store; an adopter repo is an external checkout wired
 into it. This module owns everything repo-facing:
 
-- Brainspace link reconciliation (the symlink primitive shared by repo and worktree wiring);
+- Brainspace link reconciliation;
 - repo path resolution for a Brainspace (``repo_for_brainspace``);
 - the foreign-dotbrain guards that refuse to hijack a repo already wired elsewhere;
 - ``.git/info/exclude`` and agent-context pointer (AGENTS.md/CLAUDE.md) management;
@@ -91,32 +91,6 @@ def reconcile(directory: Path, targets: dict[str, Path]) -> ReconcileResult:
         result.created.append(name)
 
     return result
-
-
-def reconcile_worktree(worktree_root: Path, run: Runner = _default_run) -> ReconcileResult:
-    """Repair a worktree's Brainspace links so they point at the main checkout."""
-    worktree_root = Path(worktree_root).resolve()
-    if not (worktree_root / ".git").is_file():
-        return ReconcileResult()
-
-    try:
-        result = run(
-            ["git", "rev-parse", "--git-common-dir"],
-            cwd=worktree_root,
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        return ReconcileResult()
-
-    common_dir_raw = result.stdout.strip()
-    common_dir = (
-        Path(common_dir_raw)
-        if Path(common_dir_raw).is_absolute()
-        else (worktree_root / common_dir_raw).resolve()
-    )
-    main_root = common_dir.parent
-    targets = {name: main_root / name for name in paths.BRAINSPACE_LINKS}
-    return reconcile(worktree_root, targets)
 
 
 # --------------------------------------------------------------------------- repo path resolution
