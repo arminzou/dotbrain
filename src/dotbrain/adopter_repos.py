@@ -276,17 +276,49 @@ def ensure_exclude_line(exclude_file: Path, line: str) -> None:
     exclude_file.write_text(body + line + "\n", encoding="utf-8", newline="\n")
 
 
-def _git_dir(repo: Path, run: Runner) -> Path:
-    res = run(["git", "-C", str(repo), "rev-parse", "--git-dir"], check=False)
+def remove_exclude_line(exclude_file: Path, line: str) -> None:
+    exclude_file = Path(exclude_file)
+    if not exclude_file.is_file():
+        return
+    lines = exclude_file.read_text(encoding="utf-8").splitlines(keepends=True)
+    filtered = [existing for existing in lines if existing.rstrip("\r\n") != line]
+    if len(filtered) != len(lines):
+        exclude_file.write_text("".join(filtered), encoding="utf-8", newline="\n")
+
+
+def git_exclude_file(repo: Path, run: Runner = _default_run) -> Path | None:
+    """Return the shared exclude file used by a repo and all its worktrees."""
+    res = run(["git", "-C", str(repo), "rev-parse", "--git-common-dir"], check=False)
     raw = (res.stdout or "").strip() if res.returncode == 0 else ""
     if not raw:
-        return Path(repo) / ".git"
-    git_dir = Path(raw)
-    return git_dir if git_dir.is_absolute() else Path(repo) / git_dir
+        return None
+    common_dir = Path(raw)
+    if not common_dir.is_absolute():
+        common_dir = Path(repo) / common_dir
+    return common_dir.resolve() / "info" / "exclude"
 
 
 def ensure_local_exclude_line(repo: Path, line: str, run: Runner = _default_run) -> None:
-    ensure_exclude_line(_git_dir(repo, run) / "info" / "exclude", line)
+    exclude_file = git_exclude_file(repo, run)
+    if exclude_file is not None:
+        ensure_exclude_line(exclude_file, line)
+
+
+def reconcile_link_excludes(
+    repo: Path,
+    *,
+    linked: Sequence[str] = (),
+    pruned: Sequence[str] = (),
+    run: Runner = _default_run,
+) -> None:
+    """Add and remove exact repo-relative excludes for reconciled links."""
+    exclude_file = git_exclude_file(repo, run)
+    if exclude_file is None:
+        return
+    for entry in linked:
+        ensure_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
+    for entry in pruned:
+        remove_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
 
 
 def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:

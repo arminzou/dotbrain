@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from dotbrain import resource_loader, skills
+from dotbrain import adopter_repos, resource_loader, skills
 
 BASE = skills.project_baseline()
 
@@ -172,25 +173,61 @@ def test_prunes_stale(dotbrain_home: Path, brainspace: Path):
     skills_dir = brainspace / ".claude" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     stale = skills_dir / "old-skill"
-    stale.symlink_to("../nowhere")
+    stale.symlink_to(dotbrain_home / "skills" / "misc" / "discovery-test")
     result = skills.link_project(
         dotbrain_home, brainspace, (".claude",), skills.project_baseline(dotbrain_home)
     )
     assert not stale.is_symlink()
-    assert ".claude/old-skill" in result.pruned
+    assert ".claude/skills/old-skill" in result.pruned
 
 
-def test_collision_moved_not_deleted(dotbrain_home: Path, brainspace: Path):
+def test_project_collision_warns_and_skips(dotbrain_home: Path, brainspace: Path):
     skills_dir = brainspace / ".claude" / "skills"
     skills_dir.mkdir(parents=True, exist_ok=True)
     real = skills_dir / "operate-execution"
     real.write_text("real file, do not delete")
     result = skills.link_project(dotbrain_home, brainspace, (".claude",), ("brain/operate-execution",))
-    assert (skills_dir / "operate-execution").is_symlink()
-    assert result.stashed
-    moved = result.stashed[0]
-    assert moved.parent.name == ".tmp"
-    assert moved.read_text() == "real file, do not delete"
+    assert real.read_text() == "real file, do not delete"
+    assert not result.stashed
+    assert any("was not created by dotbrain" in warning for warning in result.warnings)
+
+
+def test_project_linking_preserves_foreign_symlinks(dotbrain_home: Path, brainspace: Path, tmp_path: Path):
+    skills_dir = brainspace / ".claude" / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    foreign_target = tmp_path / "foreign"
+    foreign_target.mkdir()
+    foreign = skills_dir / "foreign"
+    foreign.symlink_to(foreign_target)
+
+    skills.link_project(dotbrain_home, brainspace, (".claude",), ())
+
+    assert foreign.is_symlink()
+    assert foreign.resolve() == foreign_target.resolve()
+
+
+def test_project_link_results_reconcile_per_entry_excludes(
+    dotbrain_home: Path, brainspace: Path, tmp_path: Path
+):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+
+    linked = skills.link_project(
+        dotbrain_home,
+        brainspace,
+        (".codex",),
+        ("misc/discovery-test",),
+    )
+    adopter_repos.reconcile_link_excludes(repo, linked=linked.linked)
+    exclude = repo / ".git" / "info" / "exclude"
+    assert "/.codex/skills/discovery-test" in exclude.read_text().splitlines()
+    assert "/.codex" not in exclude.read_text().splitlines()
+    assert "/.codex/" not in exclude.read_text().splitlines()
+
+    pruned = skills.link_project(dotbrain_home, brainspace, (".codex",), ())
+    adopter_repos.reconcile_link_excludes(repo, pruned=pruned.pruned)
+    assert "/.codex/skills/discovery-test" not in exclude.read_text().splitlines()
 
 
 def test_missing_skill_warns(dotbrain_home: Path, brainspace: Path):

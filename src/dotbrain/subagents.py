@@ -153,6 +153,7 @@ def link_files_into(
     files: Sequence[Path],
     *,
     label: str,
+    preserve_collisions: bool = False,
 ) -> skills.LinkResult:
     target_dir = Path(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -165,6 +166,12 @@ def link_files_into(
     for src in files:
         dest = target_dir / src.name
         wanted.add(dest.name)
+        owned = dest.is_symlink() and (
+            skills._points_into(dest, private_root) or skills._points_into(dest, cache_root)
+        )
+        if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
+            result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
+            continue
         if dest.exists() and not dest.is_symlink():
             result.stashed.append(skills.stash_collision(dest))
         if dest.is_symlink() or dest.exists():
@@ -233,7 +240,8 @@ def link_project_subagents(
             root,
             Path(brainspace) / workspace / "agents",
             files,
-            label=workspace,
+            label=f"{workspace}/agents",
+            preserve_collisions=True,
         )
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned

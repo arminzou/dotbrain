@@ -277,6 +277,7 @@ def link_into(
     *,
     label: str = "",
     prune_owned_only: bool = False,
+    preserve_collisions: bool = False,
 ) -> LinkResult:
     """Link skill paths into an agent runtime skills directory."""
 
@@ -298,6 +299,12 @@ def link_into(
 
         dest = skills_dir / Path(skill_path).name
         wanted.add(dest.name)
+        owned = dest.is_symlink() and (
+            _points_into(dest, private_root) or _points_into(dest, cache_root)
+        )
+        if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
+            result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
+            continue
         if dest.exists() and not dest.is_symlink():
             result.stashed.append(stash_collision(dest))
         if dest.is_symlink() or dest.exists():
@@ -334,7 +341,14 @@ def link_project(
     result = LinkResult()
     for workspace in workspaces:
         skills_dir = brainspace / workspace / "skills"
-        ws_result = link_into(dotbrain_home, skills_dir, skill_paths, label=workspace)
+        ws_result = link_into(
+            dotbrain_home,
+            skills_dir,
+            skill_paths,
+            label=f"{workspace}/skills",
+            prune_owned_only=True,
+            preserve_collisions=True,
+        )
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
         result.stashed += ws_result.stashed

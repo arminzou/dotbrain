@@ -192,7 +192,7 @@ def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brai
 
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
     assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
-    assert result.linked == [".claude/reviewer.md", ".codex/reviewer.toml"]
+    assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
 
 
 def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path, brainspace: Path):
@@ -207,7 +207,24 @@ def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path
 
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
     assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
-    assert result.linked == [".claude/reviewer.md", ".codex/reviewer.toml"]
+    assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
+
+
+def test_project_subagent_collision_warns_and_skips(dotbrain_home: Path, brainspace: Path):
+    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "reviewer")
+    collision = brainspace / ".claude" / "agents" / "reviewer.md"
+    _write(collision, "project-owned")
+
+    result = subagents.link_project_subagents(
+        dotbrain_home,
+        brainspace,
+        (".claude",),
+        ("reviewer",),
+    )
+
+    assert collision.read_text() == "project-owned"
+    assert not result.stashed
+    assert any("was not created by dotbrain" in warning for warning in result.warnings)
 
 
 def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brainspace: Path):

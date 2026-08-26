@@ -276,6 +276,39 @@ def test_ensure_exclude_line_idempotent(tmp_path: Path):
     assert exclude.read_text().splitlines().count("/.brain") == 1
 
 
+def test_link_excludes_use_git_common_dir_and_prune_exact_entries(tmp_path: Path):
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    (repo / "README.md").write_text("# test\n")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-q", "-m", "initial")
+    _git(repo, "worktree", "add", "-q", "-b", "slice", str(worktree))
+
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text("# keep\n/.codex/\n")
+    adopter_repos.reconcile_link_excludes(
+        worktree,
+        linked=(".codex/skills/example",),
+    )
+
+    assert adopter_repos.git_exclude_file(worktree) == exclude.resolve()
+    assert exclude.read_text().splitlines() == [
+        "# keep",
+        "/.codex/",
+        "/.codex/skills/example",
+    ]
+
+    adopter_repos.reconcile_link_excludes(
+        worktree,
+        pruned=(".codex/skills/example",),
+    )
+    assert exclude.read_text().splitlines() == ["# keep", "/.codex/"]
+
+
 def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
