@@ -39,3 +39,13 @@ def test_convention_skill_carries_frontmatter_and_body():
     text = (_plugin_build.SKILLS_DIR / "dotbrain-convention" / "SKILL.md").read_text(encoding="utf-8")
     assert text.startswith("---\nname: dotbrain-convention\n")
     assert "# DOTBRAIN.md" in text, "convention body missing — frontmatter rendered without content"
+
+
+def test_wire_worktree_skill_is_self_contained_and_windows_safe():
+    text = (_plugin_build.SKILLS_DIR / "wire-worktree" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "git rev-parse --path-format=absolute --git-common-dir" in text
+    assert "MSYS=winsymlinks:nativestrict" in text
+    assert "mklink /D" in text
+    assert "Bare `ln -s` can silently copy directories on Windows" in text
+    assert "do not run `dotbrain wire`" in text
