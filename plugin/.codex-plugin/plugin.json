@@ -1,0 +1,32 @@
+{
+  "name": "dotbrain",
+  "version": "0.1.0",
+  "description": "The dotbrain operating manual: brain-coupled skills and the dotbrain convention, plus Brain context injection at session start.",
+  "author": {
+    "name": "Armin Zou",
+    "url": "https://github.com/arminzou"
+  },
+  "homepage": "https://github.com/arminzou/dotbrain",
+  "repository": "https://github.com/arminzou/dotbrain",
+  "license": "MIT",
+  "keywords": [
+    "agent-context",
+    "skills",
+    "brain",
+    "dotbrain"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "dotbrain",
+    "shortDescription": "Brain context and the dotbrain operating manual",
+    "longDescription": "Delivers the dotbrain convention and its brain-coupled skills, and injects a wired project's Brain context at session start.",
+    "developerName": "Armin Zou",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions",
+      "Lifecycle hooks"
+    ],
+    "websiteURL": "https://github.com/arminzou/dotbrain"
+  }
+}
