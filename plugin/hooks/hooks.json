@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v dotbrain >/dev/null 2>&1; then dotbrain hook session-start; fi",
+            "commandWindows": "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook session-start }",
+            "timeout": 15,
+            "statusMessage": "Loading Brain context"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -22,7 +22,7 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "codex", "skills", "agents"):
+    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "skills", "agents"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
@@ -42,10 +42,10 @@ def test_agents_help_hides_low_value_discovery_command():
     assert "list" not in result.output
 
 
-def test_wire_help_makes_global_hook_install_opt_in():
+def test_wire_help_omits_retired_global_hook_support():
     result = runner.invoke(app, ["wire", "--help"])
     assert result.exit_code == 0
-    assert "--install-global-hook" in result.output
+    assert "global-hook" not in result.output
     assert "--skip-global-hook" not in result.output
 
 
@@ -120,7 +120,6 @@ def test_wire_brain_only_creates_brainspace(
         app, ["wire", "--no-repo", "--name", "demo", "--skip-beads"]
     )
     assert result.exit_code == 0, result.output
-    assert "run `dotbrain bootstrap --only claude-hook` if needed" in result.output
     brainspace = dotbrain_home / "brainspaces" / "demo"
     assert (brainspace / ".repo").read_text() == "(brain-only)\n"
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
@@ -177,18 +176,6 @@ def test_wire_passes_explicit_beads_remote(
 
     assert result.exit_code == 0, result.output
     assert captured["remote"] == "https://example.com/beads"
-
-
-def test_bootstrap_only_claude_hook_writes_settings(
-    dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    """--only claude-hook writes the SessionStart hook to settings.json via Python."""
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    monkeypatch.setattr("dotbrain.bootstrap.Path.home", staticmethod(lambda: fake_home))
-    result = runner.invoke(app, ["bootstrap", "--only", "claude-hook"],
-                           env={"DOTBRAIN_HOME": str(dotbrain_home)})
-    assert result.exit_code == 0, result.output
-    assert "[bootstrap] installed Claude" in result.output
 
 
 def test_bootstrap_only_skills_links_global_only(
@@ -280,28 +267,14 @@ def test_unwire_removes_symlinks_and_cleans_repo(
         assert entry not in exclude.read_text()
 
 
-def test_bootstrap_hook_command_uses_home_literal(dotbrain_home: Path, fake_home: Path):
-    """_global_hook_command uses the literal $HOME form when root is the default location."""
-    from dotbrain.bootstrap import _global_hook_command
-    default_root = fake_home / "dotbrain"
-    default_root.mkdir(parents=True, exist_ok=True)
-    cmd = _global_hook_command("claude-worktree-bootstrap.sh", default_root, fake_home)
-    assert cmd == "dotbrain hook claude-worktree-bootstrap"
-
-    other_root = fake_home / "other" / "dotbrain"
-    cmd2 = _global_hook_command("claude-worktree-bootstrap.sh", other_root, fake_home)
-    assert "$HOME" not in cmd2
-    assert cmd2 == "dotbrain hook claude-worktree-bootstrap"
-
-
 def test_skills_link_project_native(
     dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["skills", "link", "--scope", "project"])
     assert result.exit_code == 0, result.output
-    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()
-    assert (brainspace / ".codex" / "skills" / "triage-public").is_symlink()
+    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
+    assert not (brainspace / ".codex" / "skills" / "triage-public").exists()
 
 
 def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch):
@@ -360,7 +333,6 @@ def test_skills_link_global_renders_bootstrap_result(
     result = runner.invoke(app, ["skills", "link", "--scope", "global", "--target", "codex"])
     assert result.exit_code == 0, result.output
     dest = fake_home / ".codex" / "skills"
-    assert (dest / "wire-brain").is_symlink()       # baseline
     assert (dest / "discovery-test").is_symlink()   # extra
 
 
@@ -374,7 +346,7 @@ def test_skills_link_global_uses_default_targets(
         app, ["skills", "link", "--scope", "global", "--target", "claude-code"]
     )
     assert result.exit_code == 0, result.output
-    assert (fake_home / ".claude" / "skills" / "wire-brain").is_symlink()
+    assert (fake_home / ".claude" / "skills").is_dir()
 
 
 def test_skills_link_project_filter_isolates_one_brainspace(
@@ -386,7 +358,7 @@ def test_skills_link_project_filter_isolates_one_brainspace(
 
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert (brainspace / ".claude" / "skills" / "operate-execution").is_symlink()  # named project linked
+    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
     assert not (other / ".claude" / "skills").exists()                          # others untouched
 
 
@@ -396,70 +368,6 @@ def test_skills_link_project_filter_rejects_unknown(
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "nope"])
     assert result.exit_code != 0
-
-
-def test_codex_prints_worktree_commands(disconnected_adopter_repo: Path):
-    result = runner.invoke(
-        app,
-        [
-            "codex",
-            "--worktree",
-            "scaffold blog",
-            "--repo",
-            str(disconnected_adopter_repo),
-            "--base",
-            "develop",
-            "--codex-arg=--sandbox",
-            "--codex-arg=workspace-write",
-            "--prompt",
-            "start here",
-            "--print",
-        ],
-    )
-
-    assert result.exit_code == 0, result.output
-    worktree = disconnected_adopter_repo.parent / "worktrees" / "scaffold-blog"
-    assert f"git worktree add -b scaffold-blog {worktree} develop" in result.output
-    assert (
-        f"codex -C {worktree} --sandbox workspace-write 'start here'"
-        in result.output
-    )
-
-
-def test_codex_wires_worktree_before_launch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    worktree = repo.parent / "worktrees" / "feature"
-    plan = SimpleNamespace(
-        repo=repo,
-        worktree=worktree,
-        create_command=("git", "worktree", "add"),
-        codex_command=("codex", "-C", str(worktree)),
-    )
-    calls: list[tuple[str, object]] = []
-
-    monkeypatch.setattr(cli.worktrees, "repo_root", lambda path: repo)
-    monkeypatch.setattr(cli.worktrees, "codex_worktree_plan", lambda *args, **kwargs: plan)
-    monkeypatch.setattr(
-        cli.worktrees,
-        "create_codex_worktree",
-        lambda got_plan: calls.append(("create", got_plan)),
-    )
-    monkeypatch.setattr(
-        cli.adopter_repos,
-        "reconcile_worktree",
-        lambda got_path: calls.append(("wire", got_path)) or cli.adopter_repos.ReconcileResult(),
-    )
-    monkeypatch.setattr(
-        cli.worktrees,
-        "launch_codex",
-        lambda got_plan: calls.append(("launch", got_plan)),
-    )
-
-    result = runner.invoke(app, ["codex", "--worktree", "feature", "--repo", str(repo)])
-
-    assert result.exit_code == 0, result.output
-    assert calls == [("create", plan), ("wire", worktree), ("launch", plan)]
 
 
 # NOTE: The intake→beads flow (triage-public skill reading issue-tracker.md, calling gh CLI,

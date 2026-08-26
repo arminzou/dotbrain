@@ -51,8 +51,9 @@ def test_unwire_keep_removes_symlinks_and_cleans_repo(tmp_path: Path, dotbrain_h
     for name in paths.BRAINSPACE_LINKS:
         assert not (repo / name).exists()
     assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
-        assert entry not in (repo / ".git" / "info" / "exclude").read_text()
+        assert entry not in exclude_lines
     assert not result.warnings
 
 
@@ -143,7 +144,6 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=Path.home(),
         run=real_git_runner,
     )
@@ -158,13 +158,60 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
 
-    for name in paths.BRAINSPACE_LINKS:
+    for name in (".brain", ".beads"):
         assert not (repo / name).exists()
+    assert not (repo / ".claude").exists()
+    assert not (repo / ".codex").exists()
     assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
-        assert entry not in (repo / ".git" / "info" / "exclude").read_text()
+        assert entry not in exclude_lines
     # Brainspace kept
     assert paths.brainspace(dotbrain_home, "roundtrip").is_dir()
+
+
+def test_unwire_removes_managed_workspace_links_and_preserves_project_files(
+    tmp_path: Path, dotbrain_home: Path
+):
+    repo = tmp_path / "workspace-unwire"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    brainspace = paths.brainspace(dotbrain_home, "workspace-unwire")
+    for name in paths.BRAINSPACE_LINKS:
+        (brainspace / name).mkdir(parents=True)
+        (repo / name).symlink_to(brainspace / name)
+    project_file = repo / ".claude" / "project.json"
+    project_file.parent.mkdir()
+    project_file.write_text("project-owned\n")
+    managed_skill = repo / ".claude" / "skills" / "managed"
+    managed_skill.parent.mkdir()
+    managed_target = dotbrain_home / "skills" / "managed"
+    managed_target.mkdir(parents=True)
+    managed_skill.symlink_to(managed_target)
+    managed_agent = repo / ".codex" / "agents" / "managed.toml"
+    managed_agent.parent.mkdir(parents=True)
+    managed_agent.symlink_to(dotbrain_home / "agents" / "codex" / "managed.toml")
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text(
+        "\n".join((*paths.EXCLUDE_ENTRIES, "/.claude/skills/managed", "/.codex/agents/managed.toml")) + "\n"
+    )
+    subprocess.run(["git", "add", ".claude/project.json"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "project workspace"], cwd=repo, check=True)
+
+    result = workflows.unwire_repo(repo, dotbrain_home=dotbrain_home)
+
+    assert project_file.read_text() == "project-owned\n"
+    assert not managed_skill.exists()
+    assert not (repo / ".codex").exists()
+    assert subprocess.run(
+        ["git", "diff", "--exit-code", "--", ".claude/project.json"], cwd=repo, check=False
+    ).returncode == 0
+    excludes = exclude.read_text().splitlines()
+    assert "/.claude/skills/managed" not in excludes
+    assert "/.codex/agents/managed.toml" not in excludes
+    assert any("removed empty workspace .codex" in log for log in result.logs)
 
 
 # --------------------------------------------------------------------------- missing Brainspace
@@ -339,7 +386,9 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     brainspace = paths.brainspace(dotbrain_home, "refreshme")
     (brainspace / ".repo").write_text(f"{repo}\n")
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n  - codex\n")
-    (repo / ".codex").unlink()
+    legacy_skill = repo / ".claude" / "skills" / "operate-execution"
+    legacy_skill.parent.mkdir(parents=True)
+    legacy_skill.symlink_to(dotbrain_home / "skills" / "brain" / "operate-execution")
     loaded: dict[str, object] = {}
 
     def fake_pull_beads_for_all(dotbrain_home_arg, *, run, projects):
@@ -357,17 +406,17 @@ def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     )
 
     assert result.refreshed == ["refreshme"]
-    assert (repo / ".codex").is_symlink()
-    for skill_path in skills.project_baseline(dotbrain_home):
-        skill_name = Path(skill_path).name
-        assert (brainspace / ".claude" / "skills" / skill_name).is_symlink()
-        assert (brainspace / ".codex" / "skills" / skill_name).is_symlink()
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
+    assert "/.codex" not in paths.exclude_entries(repo)
+    assert not (repo / ".claude" / "skills" / "wire-brain").exists()
+    assert not (repo / ".codex" / "skills" / "wire-brain").exists()
+    assert not legacy_skill.exists()
     assert loaded["projects"] == ["refreshme"]
     assert "beads loaded" in result.logs
     assert "beads warning" in result.warnings
     assert not any(line.startswith("linked skill ") for line in result.logs)
-    linked_count = len(skills.project_baseline(dotbrain_home)) * 2  # .claude + .codex
-    assert f"refreshed refreshme ({linked_count} skills linked)" in result.logs
+    assert "refreshed refreshme (0 skills linked)" in result.logs
 
 
 def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
@@ -393,10 +442,10 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents", repo_base=tmp_path, home=fake_home)
 
     assert result.refreshed == ["refresh-subagents"]
-    assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (brainspace / ".claude" / "agents" / "verifier.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "verifier.toml").is_symlink()
+    assert (repo / ".claude" / "agents" / "reviewer.md").is_symlink()
+    assert (repo / ".claude" / "agents" / "verifier.md").is_symlink()
+    assert (repo / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert (repo / ".codex" / "agents" / "verifier.toml").is_symlink()
     assert "project: linked 8 subagent file(s) into refresh-subagents" in result.logs
 
 
@@ -413,17 +462,15 @@ def test_refresh_project_honors_declared_agent_workspaces(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
     brainspace = paths.brainspace(dotbrain_home, "claude-only")
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    claude_link = repo / ".claude"
-    claude_link.unlink()
+    claude_workspace = repo / ".claude"
     captured: dict[str, tuple[str, ...]] = {}
 
-    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths):
+    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths, **kwargs):
         captured["workspaces"] = tuple(workspaces)
         return skills.LinkResult()
 
@@ -438,8 +485,9 @@ def test_refresh_project_honors_declared_agent_workspaces(
 
     assert result.refreshed == ["claude-only"]
     assert captured["workspaces"] == (".claude",)
-    assert claude_link.is_symlink()
-    assert (repo / ".codex").exists()
+    assert claude_workspace.is_dir()
+    assert not claude_workspace.is_symlink()
+    assert (repo / ".codex").is_dir()
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").exists()
 
@@ -457,7 +505,6 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     brainspace = paths.brainspace(dotbrain_home, "refresh-downgraded")
@@ -466,16 +513,14 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
 
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    (repo / ".codex").unlink()
     captured: dict[str, tuple[str, ...]] = {}
 
-    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths):
+    def fake_link_project(dotbrain_home_arg, brainspace_arg, workspaces, skill_paths, **kwargs):
         captured["workspaces"] = tuple(workspaces)
         return skills.LinkResult()
 
@@ -491,7 +536,7 @@ def test_refresh_project_does_not_rewire_preserved_undeclared_workspace(
     assert result.refreshed == ["refresh-downgraded"]
     assert captured["workspaces"] == (".claude",)
     assert (brainspace / ".codex").is_dir()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").is_dir()
 def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -572,10 +617,10 @@ def test_unwire_all_continues_after_one_project_fails(
     _wired_project(tmp_path, dotbrain_home, "proj-bad")
     real_unwire_repo = workflows.unwire_repo
 
-    def flaky(repo: Path, dry_run: bool = False):
+    def flaky(repo: Path, dry_run: bool = False, **kwargs):
         if repo.name == "proj-bad":
             raise RuntimeError("boom")
-        return real_unwire_repo(repo, dry_run=dry_run)
+        return real_unwire_repo(repo, dry_run=dry_run, **kwargs)
 
     monkeypatch.setattr(workflows, "unwire_repo", flaky)
 

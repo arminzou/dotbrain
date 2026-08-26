@@ -284,9 +284,9 @@ def test_load_project_skills_reads_list(tmp_path: Path):
     assert config.load_project_skills(tmp_path, "p") == ("misc/x", "misc/y")
 
 
-def test_load_project_skills_excludes_required_core(tmp_path: Path):
+def test_load_project_skills_preserves_operator_selection(tmp_path: Path):
     _project_yaml(tmp_path, "p", "skills:\n  - brain/operate-execution\n  - misc/x\n")
-    assert config.load_project_skills(tmp_path, "p") == ("misc/x",)
+    assert config.load_project_skills(tmp_path, "p") == ("brain/operate-execution", "misc/x")
 
 
 def test_load_project_subagents_missing_file_is_empty(tmp_path: Path):

@@ -8,21 +8,20 @@ Brain template propagate to every brain.
 
 - This Brain lives in the private dotbrain home at
   `~/dotbrain/brainspaces/<name>/.brain`, not in the code repo.
-- Repo-root `.brain`, `.beads`, `.claude`, and `.codex` are gitignored symlinks into that
-  Brainspace. They are local machine wiring: never commit them to the code repo.
+- Repo-root `.brain` and `.beads` are gitignored symlinks into that Brainspace. `.claude` and
+  `.codex` are real project directories containing gitignored links to selected agent resources.
+  Those links are local machine wiring: never commit them to the code repo.
 - Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
-- Worktrees reach this same Brain through the same symlinks; never copy it per worktree.
-- Create worktrees outside the repo with `git worktree add ../worktrees/<name> -b <name>`.
-  Never under one of the symlinked harness dirs (`.brain`, `.beads`, `.claude`, `.codex`) — those
-  resolve into the Brainspace, so a worktree path under them escapes the repo and git won't manage
-  it as a worktree.
+- Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
+  per worktree.
 - In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
-- In a git worktree, repair them with `dotbrain worktrees wire` from the worktree root. A fresh
-  standalone agent session normally does this through its SessionStart hook; an in-session
-  collaboration agent using a manually created worktree needs the command run explicitly.
+- In a git worktree with no `.brain`, invoke the plugin-delivered `wire-worktree` skill. It derives
+  the main checkout from Git and creates real `.brain` and `.beads` symlinks without the CLI.
 
 ## Rules
 
+- Read `.brain/AGENTS.md` before substantial work. It holds this project's own rules and is
+  not injected at session start. If it is missing, note the gap and continue.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - Execution lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists.

@@ -18,8 +18,7 @@ public-tracker: none
 #   remote: https://doltremoteapi.dolthub.com/owner/repo
 #   database: custom_name
 
-# Extra skills linked into this project's agent workspaces, on top of the
-# brain-coupled required core (which is always wired). Operator-owned.
+# Skills linked into this project's agent workspaces. Operator-owned.
 # skills:
 #   - some-collection/some-skill
 #

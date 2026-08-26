@@ -1,30 +1,14 @@
 version: 1
 
-# dotbrain's brain-coupled required core (read-only product data).
-# Skills and subagents declared here are force-wired by the tool and cannot be removed by
-# operators. Brain machinery depends on them.
+# dotbrain's packaged subagent core (read-only product data).
+# Subagents declared here are force-wired by the tool and cannot be removed by
+# operators.
 #
-# Operators layer their own additions on top at separate scopes:
-#   - skills/global:      ~/dotbrain/skills/skills.yaml        (global_extra)
+# Operators configure skills and subagents at separate scopes:
+#   - skills/global:      ~/dotbrain/skills/skills.yaml               (global_extra)
 #   - skills/per-project: brainspaces/<name>/.brain/project.yaml      (skills:)
-#   - subagents/global:   ~/dotbrain/agents/agents.yaml        (global:)
+#   - subagents/global:   ~/dotbrain/agents/agents.yaml               (global:)
 #   - subagents/project:  brainspaces/<name>/.brain/project.yaml      (subagents:)
-
-skills:
-  global_required:
-    - brain/wire-brain
-  project_required:
-    - brain/iterate-design
-    - brain/operate-execution
-    - brain/find-unknowns
-    - brain/to-design
-    - brain/close-design
-    - brain/to-issues
-    - brain/triage-public
-    - brain/build-context
-    - brain/review-architecture
-    - brain/grill-decisions
-    - brain/write-skills
 
 subagents:
   project_required:

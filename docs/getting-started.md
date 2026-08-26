@@ -4,8 +4,9 @@ This guide walks through the first local setup:
 
 1. Install dotbrain and its machine prerequisites.
 2. Bootstrap your global dotbrain home.
-3. Wire one code repo to a private Brainspace.
-4. Verify the wiring and inspect the seeded config.
+3. Install the plugin that carries the skills and the convention.
+4. Wire one code repo to a private Brainspace.
+5. Verify the wiring and inspect the seeded config.
 
 ## Before You Start
 
@@ -42,7 +43,35 @@ This seeds your global dotbrain home with:
 - global agent hooks
 - global skill links
 
-## 3. Wire a Repo
+## 3. Install the Plugin
+
+The brain-coupled skills and the dotbrain convention are delivered as a plugin, so
+each agent runtime installs them once per machine rather than per repo.
+
+Claude Code:
+
+```
+/plugin marketplace add arminzou/dotbrain
+/plugin install dotbrain@dotbrain
+```
+
+Send those as two separate prompts. Codex:
+
+```bash
+codex plugin marketplace add arminzou/dotbrain
+codex plugin add dotbrain@dotbrain
+```
+
+**Codex needs one extra step.** It does not run a plugin's lifecycle hooks until you
+approve them: start `codex`, open `/hooks`, review and trust the dotbrain hook, then
+start a new thread. Until you do, the plugin's skills load but Brain context is not
+injected at session start. Claude Code runs the hook as soon as the plugin installs.
+
+Because the plugin installs at user scope, its skills are available in every session,
+including repos that are not wired yet — which is how `wire-brain` is reachable before
+you have wired anything.
+
+## 4. Wire a Repo
 
 Move to the code repo you want to wire and run:
 
@@ -59,7 +88,7 @@ dotbrain wire ~/repos/projects/my-app
 Wiring creates or repairs a private Brainspace for that project and connects the repo to it
 through gitignored local links such as `.brain`, `.beads`, `.claude`, and `.codex`.
 
-## 4. Verify the Result
+## 5. Verify the Result
 
 If you update config or want to repair generated wiring later, run:
 
@@ -79,7 +108,7 @@ At this point you should have:
 - a project Brainspace under `~/dotbrain/brainspaces/<name>/`
 - local wiring in the repo that points at that Brainspace
 
-## 5. Edit Config Only When Needed
+## 6. Edit Config Only When Needed
 
 Most first-time setups can leave the default embedded beads mode alone.
 

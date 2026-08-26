@@ -10,15 +10,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# The four Brainspace links an adopter repo symlinks into its root, in convention order.
-BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads", ".claude", ".codex")
+# The Brainspace links an adopter repo symlinks into its root, in convention order.
+BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads")
 
 # Data-root directory holding the project Brainspaces, in preference order. ``brainspaces`` is
 # the current name; ``projects`` is the legacy name still accepted for back-compat.
 DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
 
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
-EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads", "/.claude", "/.codex")
+EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 
 # Breadcrumb appended to an adopter repo's real AGENTS.md / CLAUDE.md.
 ADOPTER_POINTER: str = (
@@ -122,7 +122,7 @@ def brainspace_link_targets(dotbrain_home: Path, name: str) -> dict[str, Path]:
 
 
 def is_wired(repo: Path) -> bool:
-    """True when ``repo`` has all four Brainspace links present as symlinks."""
+    """True when ``repo`` has all Brainspace links present as symlinks."""
     repo = Path(repo)
     return all((repo / link).is_symlink() for link in BRAINSPACE_LINKS)
 

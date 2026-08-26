@@ -130,13 +130,12 @@ def test_enter_main_agent_not_referenced_in_iterate_design_or_operate_execution(
     assert "enter-main-agent" not in operate_doc
 
 
-def test_execution_skills_wire_manually_created_collaboration_worktrees():
+def test_execution_skills_refer_worktree_repair_to_the_plugin_skill():
     for path in (
         "src/dotbrain/resources/skills/brain/operate-execution/SKILL.md",
         "src/dotbrain/resources/skills/brain/iterate-design/SKILL.md",
     ):
         doc = " ".join(Path(path).read_text(encoding="utf-8").split())
 
-        assert "dotbrain worktrees wire <path>" in doc
-        assert "SessionStart" in doc
-        assert "in-session collaboration agent" in doc
+        assert "wire-worktree" in doc
+        assert "dotbrain worktrees wire" not in doc

@@ -130,35 +130,6 @@ def test_reconcile_reraises_unrelated_oserror(tmp_path: Path, monkeypatch) -> No
     assert raised
 
 
-def test_reconcile_worktree_repairs_wrong_targets(tmp_path: Path) -> None:
-    repo = tmp_path / "main-repo"
-    repo.mkdir()
-    _git(repo, "init", "-q", "-b", "main")
-    _git(repo, "config", "user.email", "t@t")
-    _git(repo, "config", "user.name", "t")
-    for name in paths.BRAINSPACE_LINKS:
-        (repo / name).mkdir()
-    (repo / "README.md").write_text("# main\n")
-    _git(repo, "add", "README.md")
-    _git(repo, "commit", "-q", "-m", "initial commit")
-
-    worktree = repo / ".codex" / "worktrees" / "slice"
-    _git(repo, "worktree", "add", "-b", "slice", str(worktree))
-
-    wrong = tmp_path / "wrong"
-    wrong.mkdir()
-    (worktree / ".brain").symlink_to(wrong)
-
-    result = adopter_repos.reconcile_worktree(worktree)
-
-    assert ".brain" in result.repaired
-    assert set(result.created) == set(paths.BRAINSPACE_LINKS) - {".brain"}
-    assert result.skipped == []
-    assert result.collisions == []
-    for name in paths.BRAINSPACE_LINKS:
-        assert (worktree / name).resolve() == (repo / name).resolve()
-
-
 # --------------------------------------------------------------------------- expand_path
 
 
@@ -276,6 +247,63 @@ def test_ensure_exclude_line_idempotent(tmp_path: Path):
     assert exclude.read_text().splitlines().count("/.brain") == 1
 
 
+def test_link_excludes_use_git_common_dir_and_prune_exact_entries(tmp_path: Path):
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    (repo / "README.md").write_text("# test\n")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-q", "-m", "initial")
+    _git(repo, "worktree", "add", "-q", "-b", "slice", str(worktree))
+
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text("# keep\n/.codex/\n")
+    adopter_repos.reconcile_link_excludes(
+        worktree,
+        linked=(".codex/skills/example",),
+    )
+
+    assert adopter_repos.git_exclude_file(worktree) == exclude.resolve()
+    assert exclude.read_text().splitlines() == [
+        "# keep",
+        "/.codex/",
+        "/.codex/skills/example",
+    ]
+
+    adopter_repos.reconcile_link_excludes(
+        worktree,
+        pruned=(".codex/skills/example",),
+    )
+    assert exclude.read_text().splitlines() == ["# keep", "/.codex/"]
+
+
+def test_unwire_uses_git_common_dir_for_excludes(tmp_path: Path):
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    home = tmp_path / "dotbrain"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    (repo / "README.md").write_text("# test\n")
+    _git(repo, "add", "README.md")
+    _git(repo, "commit", "-q", "-m", "initial")
+    _git(repo, "worktree", "add", "-q", "-b", "slice", str(worktree))
+    for name in paths.BRAINSPACE_LINKS:
+        target = home / "brainspaces" / "example" / name
+        target.mkdir(parents=True)
+        (worktree / name).symlink_to(target)
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text("# keep\n/.brain\n/.beads\n")
+
+    adopter_repos.unwire_repo(worktree, dotbrain_home=home)
+
+    assert exclude.read_text().splitlines() == ["# keep"]
+
+
 def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -343,7 +371,9 @@ def test_wire_repo_excludes_external_symlinks(dotbrain_home: Path, brainspace: P
     for name in paths.BRAINSPACE_LINKS:
         assert (repo / name).is_symlink()
     excludes = paths.exclude_entries(repo)
-    assert {"/.brain", "/.beads", "/.claude", "/.codex"} <= excludes
+    assert {"/.brain", "/.beads"} <= excludes
+    assert "/.claude" not in excludes
+    assert "/.codex" not in excludes
 
 
 def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tmp_path: Path):
@@ -362,8 +392,8 @@ def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tm
     assert warnings == []
     assert not (repo / ".beads").exists()
     assert (repo / ".brain").is_symlink()
-    assert (repo / ".claude").is_symlink()
-    assert (repo / ".codex").is_symlink()
+    assert not (repo / ".claude").exists()
+    assert not (repo / ".codex").exists()
     assert "/.beads" not in paths.exclude_entries(repo)
 
 

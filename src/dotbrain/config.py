@@ -172,9 +172,6 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
 
 def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     """Read the operator's per-project skill list from ``.brain/project.yaml`` ``skills:``.
-
-    Returns deduped extras with the brain-coupled required core excluded; the
-    tool always force-wires the required core on top of these.
     """
     import yaml
 
@@ -186,7 +183,7 @@ def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         return ()
-    return skills._clean(data.get("skills"), exclude=skills.project_baseline())
+    return skills._clean(data.get("skills"))
 
 
 def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
@@ -313,7 +310,7 @@ def migrate_legacy_skill_manifest(dotbrain_home: Path, name: str) -> str | None:
     data = yaml.safe_load(legacy.read_text(encoding="utf-8")) or {}
     extras: tuple[str, ...] = ()
     if isinstance(data, dict):
-        extras = skills._clean(data.get("skills", data.get("extra")), exclude=skills.project_baseline())
+        extras = skills._clean(data.get("skills", data.get("extra")))
     if extras:
         _append_project_skills(dotbrain_home, name, extras)
     legacy.unlink()

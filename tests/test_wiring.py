@@ -7,12 +7,14 @@ real repos) but no-ops ``bd`` and script invocations, so tests stay hermetic and
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from dotbrain import beads, config, paths, workflows
+from dotbrain import hooks
+from dotbrain import beads, config, paths, resource_loader, workflows
 
 
 def make_runner(calls: list[list[str]]):
@@ -215,7 +217,6 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_brainspace_mutatio
             dotbrain_home=dotbrain_home,
             repo=repo,
             run_beads=False,
-            install_global_hook=False,
             home=fake_home,
             run=make_runner([]),
         )
@@ -238,7 +239,6 @@ def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -264,7 +264,6 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -273,13 +272,101 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert result.brainspace == brainspace
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain",):
         assert (repo / name).is_symlink()
         assert (repo / name).resolve() == (brainspace / name).resolve()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert (repo / ".claude").is_dir()
+    assert not (repo / ".claude").is_symlink()
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
+    assert not (repo / ".claude" / "settings.json").exists()
+    assert not (repo / ".codex" / "hooks.json").exists()
+    assert "/.brain" in paths.exclude_entries(repo)
+    assert "/.claude" not in paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert any(".beads is missing" in w for w in result.warnings)
+
+    injected = hooks.brain_context(cwd=repo).decode("utf-8")
+    assert "## dotbrain convention" in injected
+    # The project's own rules are read on instruction, never injected.
+    assert "Read `.brain/AGENTS.md` before substantial work" in injected
+    assert "Private agent context for this project" not in injected
+    assert (repo / ".brain" / "AGENTS.md").is_file()
+
+
+def test_wire_project_materializes_workspaces_without_touching_tracked_files(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
+):
+    repo = tmp_path / "owns-workspaces"
+    claude = repo / ".claude"
+    codex = repo / ".codex"
+    claude.mkdir(parents=True)
+    codex.mkdir(parents=True)
+    claude_tracked = claude / "project.json"
+    codex_tracked = codex / "project.toml"
+    claude_tracked.write_text("project-owned\n")
+    codex_tracked.write_text("project-owned\n")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "add", ".claude/project.json", ".codex/project.toml"], cwd=repo, check=True
+    )
+    subprocess.run(["git", "commit", "-q", "-m", "initial"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_home=dotbrain_home,
+        repo=repo,
+        run_beads=False,
+        home=fake_home,
+    )
+
+    assert claude.is_dir() and not claude.is_symlink()
+    assert codex.is_dir() and not codex.is_symlink()
+    assert claude_tracked.read_text() == "project-owned\n"
+    assert codex_tracked.read_text() == "project-owned\n"
+    assert not (claude / "skills" / "operate-execution").exists()
+    assert (claude / "agents" / "reviewer.md").is_symlink()
+    assert not (codex / "skills" / "operate-execution").exists()
+    assert (codex / "agents" / "reviewer.toml").is_symlink()
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert status.stdout == ""
+
+
+def test_wire_project_workspace_can_become_project_owned_without_force(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
+):
+    repo = tmp_path / "adopts-workspace"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=repo, check=True)
+
+    workflows.wire_project(
+        dotbrain_home=dotbrain_home,
+        repo=repo,
+        run_beads=False,
+        home=fake_home,
+    )
+
+    project_file = repo / ".claude" / "project.json"
+    project_file.write_text("project-owned\n")
+    subprocess.run(["git", "add", ".claude/project.json"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "own workspace"], cwd=repo, check=True)
+
+    assert subprocess.run(
+        ["git", "ls-files", "--error-unmatch", ".claude/project.json"],
+        cwd=repo,
+        capture_output=True,
+    ).returncode == 0
 
 
 def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
@@ -288,7 +375,6 @@ def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
         project="brainonly",
         no_repo=True,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -322,7 +408,7 @@ def test_wire_project_unarchives_automatically(dotbrain_home: Path, fake_home: P
 
     result = workflows.wire_project(
         dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=False, home=fake_home, run=make_runner([]),
+        home=fake_home, run=make_runner([]),
     )
 
     brainspace = dotbrain_home / "brainspaces" / "archived-proj"
@@ -342,15 +428,15 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_home: Path, fake_ho
 
     workflows.wire_project(
         dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-        install_global_hook=False, home=fake_home, run=make_runner([]),
+        home=fake_home, run=make_runner([]),
     )
 
     from dotbrain import config, skills
     brainspace = paths.brainspace(dotbrain_home, "with-manifest")
     assert not (brainspace / ".brain" / "agents" / "skills.yaml").exists()
-    # The link set is the brain-coupled required core plus project.yaml extras (none here).
+    # The link set is the operator's project.yaml selection (none here).
     extras = config.load_project_skills(dotbrain_home, "with-manifest")
-    assert skills.project_link_set(extras) == skills.project_baseline()
+    assert skills.project_link_set(extras) == ()
 
 
 def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
@@ -366,7 +452,6 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -377,9 +462,13 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
     if paths.INJECT_ADOPTER_POINTER:
         assert agents.is_file()
         assert paths.ADOPTER_POINTER in agents.read_text()
-    for name in (".brain", ".claude", ".codex"):
+    for name in (".brain",):
         assert (repo / name).is_symlink()
-    assert {"/.brain", "/.claude", "/.codex"} <= paths.exclude_entries(repo)
+    assert (repo / ".claude").is_dir()
+    assert (repo / ".codex").is_dir()
+    assert "/.brain" in paths.exclude_entries(repo)
+    assert "/.claude" not in paths.exclude_entries(repo)
+    assert "/.codex" not in paths.exclude_entries(repo)
 
 
 def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
@@ -392,7 +481,7 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
     (repo / "AGENTS.md").write_text("# Project\n")
 
     kwargs = dict(dotbrain_home=dotbrain_home, repo=repo, run_beads=False,
-                  install_global_hook=False, home=fake_home, run=make_runner([]))
+                  home=fake_home, run=make_runner([]))
 
     workflows.wire_project(**kwargs)
     assert (repo / ".brain").is_symlink()
@@ -419,7 +508,6 @@ def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home:
         project="fork",
         no_repo=True,
         remote="https://example.com/fork",
-        install_global_hook=False,
         home=fake_home,
         run=make_runner([]),
     )
@@ -451,7 +539,6 @@ def test_wire_project_server_host_records_server_mode(
         project="plain",
         no_repo=True,
         server_host="db.local",
-        install_global_hook=False,
         home=fake_home,
         run=_runner_creating_beads(brainspace),
     )
@@ -468,7 +555,6 @@ def test_wire_project_records_custom_database(dotbrain_home: Path, fake_home: Pa
         no_repo=True,
         server_host="db.local",
         database="legacy_name",
-        install_global_hook=False,
         home=fake_home,
         run=_runner_creating_beads(brainspace),
     )
@@ -488,15 +574,16 @@ def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
     assert (brainspace / ".claude").is_dir()
     assert (brainspace / ".codex").is_dir()
-    assert (repo / ".claude").is_symlink()
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".claude").is_dir()
+    assert not (repo / ".claude").is_symlink()
+    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").is_symlink()
 
 
 def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
@@ -512,7 +599,6 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
     brainspace = dotbrain_home / "brainspaces" / "downgraded-project"
@@ -522,22 +608,19 @@ def test_wire_project_does_not_rewire_preserved_undeclared_workspace(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
-    assert (repo / ".codex").is_symlink()
+    assert (repo / ".codex").is_dir()
     assert (brainspace / ".codex").is_dir()
 
     (brainspace / ".brain" / "project.yaml").write_text("agents:\n  - claude\n")
-    (repo / ".codex").unlink()
     result = workflows.wire_project(
         dotbrain_home=dotbrain_home,
         repo=repo,
         run_beads=False,
-        install_global_hook=False,
         home=fake_home,
     )
 
     assert (brainspace / ".codex").is_dir()
-    assert not (repo / ".codex").exists()
+    assert (repo / ".codex").is_dir()
     assert not any(".codex is not wired" in warning for warning in result.warnings)

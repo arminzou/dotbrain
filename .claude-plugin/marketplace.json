@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dotbrain",
+  "description": "The dotbrain operating manual, delivered as a plugin.",
+  "owner": { "name": "Armin Zou", "url": "https://github.com/arminzou" },
+  "plugins": [
+    {
+      "name": "dotbrain",
+      "description": "Brain-coupled skills, the dotbrain convention, and Brain context injection at session start.",
+      "source": "./plugin",
+      "category": "productivity"
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 These are the bodies behind ``dotbrain wire``, ``wire --all``, ``unwire``, and ``unwire --all``:
 cross-concept orchestration that stitches together ``adopter_repos`` (repo links),
-``brainspaces`` (Brain/workspace seeding, offboarding), ``beads`` (tracker init), ``skills``
-(skill manifest), and ``wiring`` (global hooks). ``cli.py`` stays a thin Typer parsing/rendering
+``brainspaces`` (Brain/workspace preparation, offboarding), ``beads`` (tracker init), ``skills``
+(skill manifest). ``cli.py`` stays a thin Typer parsing/rendering
 layer over these.
 
 The subprocess seams take an injected ``run`` callable so tests record argv instead of invoking
@@ -54,6 +54,67 @@ class RefreshResult:
     refreshed: list[str] = field(default_factory=list)
 
 
+def project_workspace_dirs(
+    brainspace: Path,
+    repo: Path | None,
+    workspaces: Sequence[str],
+    run: Runner = _default_run,
+) -> tuple[dict[str, Path], list[str]]:
+    """Resolve runtime workspace directories, materializing them in the adopter repo."""
+    directories: dict[str, Path] = {}
+    warnings: list[str] = []
+    for workspace in workspaces:
+        if repo is not None:
+            warning = adopter_repos.materialize_workspace(repo, brainspace, workspace, run)
+            if warning:
+                warnings.append(warning)
+                continue
+            directories[workspace] = repo / workspace
+        else:
+            directories[workspace] = brainspace / workspace
+    return directories, warnings
+
+
+def _reconcile_project_asset_excludes(
+    repo: Path | None,
+    *results: skills.LinkResult,
+    run: Runner = _default_run,
+) -> None:
+    if repo is None:
+        return
+    prefixes = (".claude/", ".codex/")
+    linked = [entry for result in results for entry in result.linked if entry.startswith(prefixes)]
+    pruned = [entry for result in results for entry in result.pruned if entry.startswith(prefixes)]
+    adopter_repos.reconcile_link_excludes(repo, linked=linked, pruned=pruned, run=run)
+
+
+def _link_project_assets(
+    dotbrain_home: Path,
+    brainspace: Path,
+    repo: Path | None,
+    workspaces: Sequence[str],
+    run: Runner = _default_run,
+) -> tuple[skills.LinkResult, skills.LinkResult, list[str]]:
+    workspace_dirs, warnings = project_workspace_dirs(brainspace, repo, workspaces, run)
+    active_workspaces = tuple(workspace_dirs)
+    skill_result = skills.link_project(
+        dotbrain_home,
+        brainspace,
+        active_workspaces,
+        skills.project_link_set(config.load_project_skills(dotbrain_home, brainspace.name)),
+        workspace_dirs=workspace_dirs,
+    )
+    subagent_result = subagents.link_project_subagents(
+        dotbrain_home,
+        brainspace,
+        active_workspaces,
+        subagents.project_link_set(config.load_project_subagents(dotbrain_home, brainspace.name)),
+        workspace_dirs=workspace_dirs,
+    )
+    _reconcile_project_asset_excludes(repo, skill_result, subagent_result, run=run)
+    return skill_result, subagent_result, warnings
+
+
 # --------------------------------------------------------------------------- wire one
 
 
@@ -70,7 +131,6 @@ def wire_project(
     server_user: str = "beads",
     database: str = "",
     home: Path | None = None,
-    install_global_hook: bool = True,
     run: Runner = _default_run,
 ) -> WireResult:
     """Create/repair a Brainspace and wire an adopter repo. Mirrors wire-project.sh's main()."""
@@ -120,8 +180,12 @@ def wire_project(
     config.migrate_legacy_skill_manifest(dotbrain_home, project)
     active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
     result.warnings += brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, home)
-    if install_global_hook:
-        bootstrap.install_global_claude_hook(dotbrain_home, home=home)
+    skill_result, subagent_result, workspace_warnings = _link_project_assets(
+        dotbrain_home, brainspace, resolved_repo, active_workspaces, run
+    )
+    result.warnings += workspace_warnings + skill_result.warnings + subagent_result.warnings
+    result.logs += [f"pruned skill {entry}" for entry in skill_result.pruned]
+    result.logs += [f"pruned subagent {entry}" for entry in subagent_result.pruned]
     beads_log = beads.init_beads(
         brainspace, project, dotbrain_home,
         run_beads=run_beads, remote=remote,
@@ -154,11 +218,15 @@ def wire_project(
 
     assert resolved_repo is not None
     result.warnings += adopter_repos.wire_repo(
-        resolved_repo, brainspace, dotbrain_home, run, workspace_links=active_workspaces
+        resolved_repo,
+        brainspace,
+        dotbrain_home,
+        run,
+        workspace_links=(),
     )
     if paths.INJECT_ADOPTER_POINTER:
         result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
-    expected_links = (".brain", *active_workspaces)
+    expected_links = (".brain",)
     if (brainspace / ".beads").exists():
         expected_links += (".beads",)
     result.warnings += adopter_repos.verify_wiring(
@@ -184,7 +252,7 @@ def _repair_adopter_repo_links(
         dotbrain_home,
         run,
         skip_beads_link=skip_beads_link,
-        workspace_links=brainspaces.active_agent_workspaces(brainspace, dotbrain_home),
+        workspace_links=(),
     )
     return [f"wired {brainspace.name} -> {repo}"], warnings
 
@@ -195,7 +263,7 @@ def wire_all_projects(
     home: Path | None = None,
     run: Runner = _default_run,
 ) -> BootstrapResult:
-    """Re-seed brains from templates and repair agent workspace symlinks and hooks for every
+    """Re-seed brains from templates and repair agent workspace links for every
     wired Brainspace.  Dotbrain-owned files (DOTBRAIN.md, README.md) are always
     overwritten so template changes propagate.
 
@@ -209,7 +277,7 @@ def wire_all_projects(
 
     for brainspace in paths.brainspaces(dotbrain_home):
         brainspaces.seed_brain(brainspace, dotbrain_home)
-        # repair per-Brainspace agent workspace hooks and configs
+        # prepare declared agent workspaces before linking their assets
         result.warnings += brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, home)
 
         repo = adopter_repos.repo_for_brainspace(brainspace, dotbrain_home, rb, home)
@@ -219,6 +287,14 @@ def wire_all_projects(
                 f"add {brainspace}/.repo or create {rb}/{brainspace.name}"
             )
             continue
+
+        active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
+        skill_result, subagent_result, workspace_warnings = _link_project_assets(
+            dotbrain_home, brainspace, repo, active_workspaces, run
+        )
+        result.warnings += workspace_warnings + skill_result.warnings + subagent_result.warnings
+        result.logs += [f"pruned skill {entry}" for entry in skill_result.pruned]
+        result.logs += [f"pruned subagent {entry}" for entry in subagent_result.pruned]
 
         logs, warnings = _repair_adopter_repo_links(
             brainspace, repo, dotbrain_home, run,
@@ -284,23 +360,16 @@ def refresh_projects(
         migrate_log = config.migrate_legacy_skill_manifest(dotbrain_home, brainspace.name)
         if migrate_log:
             result.logs.append(migrate_log)
-        extras = config.load_project_skills(dotbrain_home, brainspace.name)
-        skill_paths = skills.project_link_set(extras)
         declared_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
-        link_result = skills.link_project(dotbrain_home, brainspace, active_workspaces, skill_paths)
+        repo = repo_for_brainspace(brainspace, dotbrain_home, rb, home)
+        link_result, subagent_result, workspace_warnings = _link_project_assets(
+            dotbrain_home, brainspace, repo, active_workspaces, run
+        )
+        result.warnings += workspace_warnings
         result.logs += [f"pruned skill {entry}" for entry in link_result.pruned]
         result.logs += [f"stashed collision {path}" for path in link_result.stashed]
         result.warnings += link_result.warnings
-        subagent_names = subagents.project_link_set(
-            config.load_project_subagents(dotbrain_home, brainspace.name)
-        )
-        subagent_result = subagents.link_project_subagents(
-            dotbrain_home,
-            brainspace,
-            active_workspaces,
-            subagent_names,
-        )
         result.logs += [f"pruned subagent {entry}" for entry in subagent_result.pruned]
         result.logs += [f"stashed subagent collision {path}" for path in subagent_result.stashed]
         result.warnings += subagent_result.warnings
@@ -308,7 +377,6 @@ def refresh_projects(
             f"project: linked {len(subagent_result.linked)} subagent file(s) into {brainspace.name}"
         )
 
-        repo = repo_for_brainspace(brainspace, dotbrain_home, rb, home)
         if repo is None:
             if not _is_brain_only_brainspace(brainspace):
                 result.warnings.append(
@@ -411,7 +479,9 @@ def unwire_project(
     else:
         resolved_repo = _repo_root(repo, run)
         project = _resolve_project(resolved_repo, project)
-        result = unwire_repo(resolved_repo, dry_run=dry_run)
+        result = unwire_repo(
+            resolved_repo, dry_run=dry_run, dotbrain_home=dotbrain_home, run=run
+        )
         result.project = project
     result.logs += offboard_brainspace(dotbrain_home, project, offboard, dry_run=dry_run, run=run)
     if offboard in {"archive", "delete"} and not dry_run:
@@ -446,7 +516,7 @@ def unwire_all_projects(
         try:
             repo = repo_for_brainspace(brainspace, dotbrain_home)
             if repo and repo.is_dir():
-                result = unwire_repo(repo, dry_run=dry_run)
+                result = unwire_repo(repo, dry_run=dry_run, dotbrain_home=dotbrain_home, run=run)
             else:
                 result = UnwireResult(project=project, repo=None)
             result.project = project

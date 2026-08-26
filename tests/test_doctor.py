@@ -71,26 +71,6 @@ def test_check_templates_ignores_data_root_templates(tmp_path: Path):
     assert f.status == "ok"
 
 
-def test_check_global_hook_installed(dotbrain_home: Path, fake_home: Path):
-    from dotbrain.brainspaces import ensure_json_hook
-    from dotbrain.bootstrap import _global_hook_command
-
-    target = fake_home / ".claude" / "settings.json"
-    cmd = _global_hook_command("claude-worktree-bootstrap.sh", dotbrain_home, fake_home)
-    ensure_json_hook(target, "SessionStart", cmd)
-
-    f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
-    assert f.status == "ok"
-
-
-def test_check_global_hook_missing(dotbrain_home: Path, fake_home: Path):
-    f = doctor._check_global_hook(fake_home, ".claude/settings.json",
-                                  "claude-worktree-bootstrap.sh", dotbrain_home, "Claude")
-    assert f.status == "warn"
-    assert "not found" in f.message.lower()
-
-
 # --------------------------------------------------------------------------- project wiring
 
 
@@ -138,6 +118,8 @@ def test_check_brainspace_links_all_ok(
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     brainspace = dotbrain_home / "brainspaces" / "myrepo"
+    (repo / ".claude").mkdir()
+    (repo / ".codex").mkdir()
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(brainspace / link)
@@ -156,7 +138,7 @@ def test_check_brainspace_links_missing(
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
     findings = doctor._check_brainspace_links(repo, brainspace)
-    assert len(findings) == len(paths.BRAINSPACE_LINKS)
+    assert len(findings) == len(paths.BRAINSPACE_LINKS) + 2
     assert all(f.status == "warn" for f in findings)
 
 
@@ -169,6 +151,8 @@ def test_check_brainspace_links_broken(
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     brainspace = dotbrain_home / "brainspaces" / "brokenlinks"
     brainspace.mkdir(parents=True, exist_ok=True)
+    (repo / ".claude").mkdir()
+    (repo / ".codex").mkdir()
     for link in paths.BRAINSPACE_LINKS:
         (brainspace / link).mkdir(parents=True, exist_ok=True)
         (repo / link).symlink_to(brainspace / link)

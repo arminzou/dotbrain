@@ -6,7 +6,7 @@ import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from dotbrain import resource_loader, skills
 
@@ -153,6 +153,7 @@ def link_files_into(
     files: Sequence[Path],
     *,
     label: str,
+    preserve_collisions: bool = False,
 ) -> skills.LinkResult:
     target_dir = Path(target_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -165,6 +166,12 @@ def link_files_into(
     for src in files:
         dest = target_dir / src.name
         wanted.add(dest.name)
+        owned = dest.is_symlink() and (
+            skills._points_into(dest, private_root) or skills._points_into(dest, cache_root)
+        )
+        if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
+            result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
+            continue
         if dest.exists() and not dest.is_symlink():
             result.stashed.append(skills.stash_collision(dest))
         if dest.is_symlink() or dest.exists():
@@ -217,6 +224,8 @@ def link_project_subagents(
     brainspace: Path,
     workspaces: Sequence[str],
     names: Sequence[str],
+    *,
+    workspace_dirs: Mapping[str, Path] | None = None,
 ) -> skills.LinkResult:
     root = Path(dotbrain_home)
     resolved = {name: _resolve_subagent_files(root, name) for name in names}
@@ -231,9 +240,10 @@ def link_project_subagents(
         files = [resolved[name][runtime] for name in names if runtime in resolved[name]]
         ws_result = link_files_into(
             root,
-            Path(brainspace) / workspace / "agents",
+            ((workspace_dirs.get(workspace) if workspace_dirs else None) or Path(brainspace) / workspace) / "agents",
             files,
-            label=workspace,
+            label=f"{workspace}/agents",
+            preserve_collisions=True,
         )
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned

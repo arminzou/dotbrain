@@ -1,0 +1,20 @@
+{
+  "name": "dotbrain",
+  "interface": {
+    "displayName": "dotbrain"
+  },
+  "plugins": [
+    {
+      "name": "dotbrain",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
