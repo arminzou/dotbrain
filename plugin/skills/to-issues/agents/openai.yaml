@@ -1,0 +1,3 @@
+interface:
+  display_name: "Design to Issues"
+  short_description: "Split a design into executable work items"

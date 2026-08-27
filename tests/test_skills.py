@@ -22,8 +22,8 @@ def _write(path: Path, text: str) -> None:
 def test_discover_skills_finds_all(dotbrain_home: Path):
     found = skills.discover_skills(dotbrain_home / "skills")
     assert found == [
-        "brain/build-context",
         "brain/close-design",
+        "brain/curate-project-context",
         "brain/find-unknowns",
         "brain/grill-decisions",
         "brain/iterate-design",
@@ -33,7 +33,7 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
         "brain/to-issues",
         "brain/triage-public",
         "brain/wire-brain",
-        "brain/write-skills",
+        "brain/write-agent-docs",
         "misc/discovery-test",
     ]
 

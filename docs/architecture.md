@@ -66,7 +66,7 @@ At the start of every agent session, a hook injects the shared operating rules a
 Brain context into the session, so the agent begins already knowing the project's conventions without
 anyone pasting them in. Project-selected skills and vendor-native subagents are linked into the
 matching workspaces from the same Brainspace declarations. A worktree with no `.brain` or `.beads`
-uses the plugin-delivered `wire-worktree` skill to link them back to the main checkout.
+uses `wire-brain`'s worktree repair branch to link them back to the main checkout.
 
 ## Public / private boundary
 

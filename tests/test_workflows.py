@@ -83,8 +83,8 @@ def _seed_byproducts(brainspace: Path) -> list[Path]:
     runtime.write_text("{}")
     skills = brainspace / ".claude" / "skills"
     skills.mkdir(parents=True, exist_ok=True)
-    link = skills / "build-context"
-    link.symlink_to("/tmp/build-context")
+    link = skills / "curate-project-context"
+    link.symlink_to("/tmp/curate-project-context")
     return [runtime, link]
 
 
@@ -100,7 +100,7 @@ def test_offboard_archive_strips_byproducts_and_stages_git_mv(dotbrain_home: Pat
     assert archive.is_dir()
     assert (archive / ".brain" / "AGENTS.md").exists()  # tracked content moved
     assert not (archive / ".beads" / "metadata.json").exists()  # litter not dragged along
-    assert not (archive / ".claude" / "skills" / "build-context").exists()
+    assert not (archive / ".claude" / "skills" / "curate-project-context").exists()
     assert any("archived" in l for l in logs)
     assert not (dotbrain_home / "brainspaces" / "proj-archive").exists()
 

@@ -98,8 +98,8 @@ They reuse the main checkout's Brain and execution store through:
 - `.brain`
 - `.beads`
 
-When either link is absent, invoke the `wire-worktree` skill. It derives the main checkout from Git
-and creates only those links.
+When either link is absent, use `wire-brain`'s worktree repair branch. It derives the main checkout
+from Git and creates only those links.
 
 ## Troubleshooting
 

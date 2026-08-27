@@ -81,8 +81,8 @@ when a driver forces it.
 - **Worktree** — when the work needs a second working tree at once: genuine parallelism (two or
   more trees in flight), an automation handoff you want off the interactive tree, or a long-running
   worker session returned to later. A worktree isolates the working directory on top of history.
-  After manual creation, invoke `wire-worktree` if `.brain` or `.beads` is absent, so those links
-  reuse the main checkout. Agent workspaces remain project-owned directories.
+  After manual creation, use `wire-brain`'s worktree repair branch if `.brain` or `.beads` is
+  absent, so those links reuse the main checkout. Agent workspaces remain project-owned directories.
 - **Skip** — the item needs a decision you want to make; leave it for later triage.
 
 Advisory, not a gate; always include a one-line reason. Stop after the recommendation and wait for

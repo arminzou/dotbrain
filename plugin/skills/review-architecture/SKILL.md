@@ -25,7 +25,7 @@ from a plan, and anything multi-step it produces joins the main pipeline at `to-
 
 ## Glossary
 
-Use these terms exactly in every suggestion. Consistent language is the point — don't drift into "component," "service," "API," or "boundary." Full definitions in [LANGUAGE.md](LANGUAGE.md).
+Use these terms exactly in every suggestion. Consistent language is the point — don't drift into "component," "service," "API," or "boundary." Full definitions in [language](references/language.md).
 
 - **Module** — anything with an interface and an implementation (function, class, package, slice).
 - **Interface** — everything a caller must know to use the module: types, invariants, error modes, ordering, config. Not just the type signature.
@@ -36,10 +36,10 @@ Use these terms exactly in every suggestion. Consistent language is the point �
 - **Leverage** — what callers get from depth.
 - **Locality** — what maintainers get from depth: change, bugs, knowledge concentrated in one place.
 
-Deepening a cluster safely depends on what it depends on: [DEEPENING.md](DEEPENING.md) covers the
+Deepening a cluster safely depends on what it depends on: [deepening](references/deepening.md) covers the
 dependency categories, seam discipline, and replace-don't-layer testing.
 
-Key principles (see [LANGUAGE.md](LANGUAGE.md) for the full list):
+Key principles (see [language](references/language.md) for the full list):
 
 - **Deletion test**: imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
 - **The interface is the test surface.**
@@ -91,7 +91,7 @@ Present a numbered list of deepening opportunities. For each candidate:
 Rating each candidate forces the list to differentiate. A flat list where everything reads as
 equally worth doing pushes the choice back onto the user with no information attached.
 
-**Use CONTEXT.md vocabulary for the domain, and [LANGUAGE.md](LANGUAGE.md) vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
+**Use CONTEXT.md vocabulary for the domain, and [language](references/language.md) vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly (e.g. _"contradicts that ADR — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
@@ -100,7 +100,7 @@ the user wants a strong read, not a menu.
 
 Do NOT propose interfaces yet. Ask the user: "Which of these would you like to explore?"
 
-Completion: every candidate carries all five fields, uses `CONTEXT.md` and `LANGUAGE.md`
+Completion: every candidate carries all five fields, uses `CONTEXT.md` and the [language reference](references/language.md)
 vocabulary, and any ADR conflict is marked. A top recommendation is named, and the user has been
 asked to pick.
 
@@ -110,10 +110,10 @@ Once the user picks a candidate, drop into a grilling conversation. Walk the des
 
 Side effects happen inline as decisions crystallize:
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-decisions` (see [CONTEXT-FORMAT.md](../grill-decisions/CONTEXT-FORMAT.md)). Create the file lazily if it doesn't exist.
+- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md` — same discipline as `/grill-decisions` (see [context format](../grill-decisions/references/context-format.md)). Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Apply the three-part test in [ADR-FORMAT.md](../grill-decisions/ADR-FORMAT.md), which is the single source for when any skill offers an ADR — a rejection that fails it ("not worth it right now") is ephemeral, not durable.
-- **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Apply the three-part test in [ADR format](../grill-decisions/references/adr-format.md), which is the single source for when any skill offers an ADR — a rejection that fails it ("not worth it right now") is ephemeral, not durable.
+- **Want to explore alternative interfaces for the deepened module?** See [interface design](references/interface-design.md).
 
 Completion: the picked candidate has an agreed shape, every new concept it names is in
 `CONTEXT.md`, and any load-bearing rejection was offered as an ADR.

@@ -1,6 +1,6 @@
 ---
 name: wire-brain
-description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace using the current dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
+description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links in a main checkout or linked Git worktree, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
 ---
 
 # Wire Brain
@@ -9,6 +9,16 @@ Connect an adopter repo to its private Brainspace through `dotbrain`. The CLI ow
 scaffolding, symlink reconciliation, hooks, skill links, agent links, and beads setup. Agents using
 this skill choose the right CLI command, inspect the result, and hand Brain content changes to the
 skill that owns that content.
+
+## Choose The Wiring Branch
+
+Route worktree repair before checking installation or choosing a CLI command. When the request
+concerns a linked Git worktree, or the current checkout lacks `.brain` or `.beads` and may share its
+Git directory with another checkout, read [Worktree repair](references/worktree.md). That reference
+owns detection, link creation, platform safeguards, and verification. Follow only that branch and
+stop when it completes; do not enter First Run or create or repair a Brainspace.
+
+For a main checkout or Brain-only project, continue below.
 
 ## First Run
 
@@ -85,9 +95,10 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 - `public-tracker` and `public-tracker-id`: public intake and contributor-collaboration metadata,
   never a mirror of private execution.
 
-The CLI seeds missing Brain scaffolding and links runtime assets. Agents author Brain knowledge only
-through the relevant Brain skills: context through `build-context`, execution through
-`operate-execution`, design through `to-design`, and public intake through `triage-public`.
+The CLI seeds missing Brain scaffolding and links runtime assets. Agents maintain Brain knowledge
+through the relevant Brain skills: context health through `curate-project-context`, execution
+through `operate-execution`, design through `to-design`, and public intake through
+`triage-public`.
 
 ## Wiring Contract
 
@@ -141,7 +152,8 @@ Symlinks whose targets are outside the repo must remain untracked.
 Use repair commands by symptom:
 
 - Broken or missing symlinks in the main checkout: `dotbrain wire --repo <path>`.
-- Broken or missing `.brain` or `.beads` in a git worktree: invoke `wire-worktree`.
+- Broken or missing `.brain` or `.beads` in a linked Git worktree: use
+  [Worktree repair](references/worktree.md).
 - Existing Brainspaces need repo link reconciliation: `dotbrain wire --all`.
 - Skills, agents, hooks, templates, or legacy skill manifests changed: `dotbrain refresh --name
   <project>` or `dotbrain refresh --all`.
@@ -150,12 +162,6 @@ Use repair commands by symptom:
 
 `refresh` does not create projects. `wire --all` reconciles known Brainspaces and warns when it
 cannot find an adopter repo.
-
-## Worktrees
-
-dotbrain does not manage worktree creation or repair. In a worktree without `.brain` or `.beads`,
-invoke the plugin-delivered `wire-worktree` skill. It derives the main checkout from Git and creates
-only those two links. Use `dotbrain wire` only for adopter-repo/Brainspace wiring.
 
 ## Offboarding
 

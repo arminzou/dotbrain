@@ -49,9 +49,9 @@ either. The context I needed most was the context that never followed the work.
 
 Dotbrain keeps the Brain and issue tracker private and versioned under a project's Brainspace, then
 links selected agent resources into the repo's workspaces. A worktree can restore its `.brain` and
-`.beads` links with the `wire-worktree` skill. A new machine is one clone and bootstrap away from
-having every project wired. The notes are there wherever you work the project, instead of sitting
-beside it.
+`.beads` links through `wire-brain`'s worktree repair branch. A new machine is one clone and
+bootstrap away from having every project wired. The notes are there wherever you work the project,
+instead of sitting beside it.
 
 ## "But my agent already remembers, and I have CLAUDE.md/AGENTS.md"
 
@@ -137,7 +137,8 @@ automatically at session start and are available as slash commands.
 - **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
 - **`grill-decisions`** — stress-test a plan against the project's vocabulary and existing
   decisions, then write clarified choices into `CONTEXT.md` and `adr/`.
-- **`build-context`** — draft or normalize `AGENTS.md` and related agent context files.
+- **`curate-project-context`** — organize and maintain public and private project context as it
+  accumulates.
 - **`operate-execution`** — inspect the ready frontier, claim a work item, and record discoveries
   back into the execution graph. This is the primary skill for driving daily work.
 - **`to-design`** — formalize a multi-step initiative into a design doc, save it to the Brain, and
@@ -148,8 +149,8 @@ automatically at session start and are available as slash commands.
   findings back into the Brain.
 - **`triage-public`** — intake public issues (GitHub, Linear, Jira), classify them, and link
   accepted work to private execution items.
-- **`write-skills`** — create a new agent skill or improve an existing one: invocation choice,
-  description writing, information hierarchy, and pruning.
+- **`write-agent-docs`** — write public project docs, private Brain material, and user-owned
+  skills so agents retrieve and follow them predictably.
 
 See [docs/skills.md](docs/skills.md) for the full set.
 
@@ -161,8 +162,8 @@ git worktree instead. A worktree shares the main checkout's Brain and execution 
 separate Brain.
 
 `operate-execution` recommends when to isolate; the agent runtime creates the worktree. If it has
-no `.brain` or `.beads`, invoke the `wire-worktree` skill to link those two directories back to the
-main checkout.
+no `.brain` or `.beads`, use `wire-brain`'s worktree repair branch to link those two directories
+back to the main checkout.
 
 ## Install
 

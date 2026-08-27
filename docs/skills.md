@@ -11,10 +11,9 @@ Skill linking is operator-managed:
 
 ## Setup
 
-- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain.
-  Installs the `dotbrain` CLI on first use if it is missing.
-- **`wire-worktree`** — link a git worktree's `.brain` and `.beads` back to the main checkout
-- **`build-context`** — draft or normalize `AGENTS.md` and related context files
+- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain,
+  including restoring a linked worktree's `.brain` and `.beads`. Installs the `dotbrain` CLI on
+  first use if it is missing.
 - **`dotbrain-convention`** — the operating convention itself. The session-start hook injects it
   automatically; invoke it directly in runtimes where the hook does not run.
 
@@ -41,13 +40,15 @@ Skill linking is operator-managed:
 
 ## Triage And Review
 
+- **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
+  leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution
 - **`review-architecture`** — review the codebase for architectural deepening opportunities
 
 ## Authoring
 
-- **`write-skills`** — create a new agent skill or improve an existing one: invocation choice,
-  description writing, information hierarchy, and pruning
+- **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
+  user-owned skills, and guidance agents reach through pointers
 
 ## Installing Them
 

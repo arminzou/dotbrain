@@ -67,8 +67,8 @@ tracking issues; a PR can provide a public review surface without one.
 
 ### worktree
 
-A git worktree that shares the same repo history but has its own working directory. In dotbrain, the
-`wire-worktree` skill can link its `.brain` and `.beads` back to the main checkout.
+A git worktree that shares the same repo history but has its own working directory. In dotbrain,
+`wire-brain`'s worktree repair branch can link its `.brain` and `.beads` back to the main checkout.
 
 ### bootstrap
 

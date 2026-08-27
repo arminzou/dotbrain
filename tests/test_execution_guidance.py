@@ -112,12 +112,13 @@ def test_enter_main_agent_not_referenced_in_iterate_design_or_operate_execution(
     assert "enter-main-agent" not in operate_doc
 
 
-def test_execution_skills_refer_worktree_repair_to_the_plugin_skill():
+def test_execution_skills_refer_worktree_repair_to_wire_brain():
     for path in (
         SKILLS / "operate-execution/SKILL.md",
         SKILLS / "iterate-design/SKILL.md",
     ):
         doc = " ".join(path.read_text(encoding="utf-8").split())
 
-        assert "wire-worktree" in doc
+        assert "wire-brain" in doc
+        assert "worktree repair branch" in doc
         assert "dotbrain worktrees wire" not in doc

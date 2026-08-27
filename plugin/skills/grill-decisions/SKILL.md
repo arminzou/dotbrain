@@ -79,8 +79,8 @@ Canon is written during the walk, not batched at the end. A term resolved in que
 written before question four, because a session that ends early still leaves the project better off.
 
 - **Terminology** goes into `CONTEXT.md` the moment it resolves, using
-  [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Keep it to terms meaningful to a domain expert; leave
+  [context format](references/context-format.md). Keep it to terms meaningful to a domain expert; leave
   implementation detail out.
 - **Decisions** become ADRs only when they pass the three-part test in
-  [ADR-FORMAT.md](./ADR-FORMAT.md), which also owns the format and numbering. That test is the
+  [ADR format](references/adr-format.md), which also owns the format and numbering. That test is the
   single source for when any skill offers an ADR.

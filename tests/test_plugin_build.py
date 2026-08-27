@@ -4,12 +4,27 @@ import json
 from pathlib import Path
 import re
 import tomllib
+import yaml
 
 from dotbrain import __version__
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_ROOT = REPO_ROOT / "plugin"
 SKILLS_DIR = PLUGIN_ROOT / "skills"
+
+
+def test_every_bundled_skill_has_codex_interface_metadata():
+    skill_dirs = sorted(
+        path for path in SKILLS_DIR.iterdir() if (path / "SKILL.md").is_file()
+    )
+    for skill_dir in skill_dirs:
+        metadata_path = skill_dir / "agents" / "openai.yaml"
+        assert metadata_path.is_file(), f"{skill_dir.name} has no agents/openai.yaml"
+
+        interface = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))["interface"]
+        assert interface["display_name"]
+        assert 25 <= len(interface["short_description"]) <= 64
+        assert "default_prompt" not in interface
 
 
 def test_convention_skill_carries_frontmatter_and_body():
@@ -21,9 +36,13 @@ def test_convention_skill_carries_frontmatter_and_body():
     assert text.endswith(template), "convention body does not match the Brain template"
 
 
-def test_wire_worktree_skill_is_self_contained_and_windows_safe():
-    text = (SKILLS_DIR / "wire-worktree" / "SKILL.md").read_text(encoding="utf-8")
+def test_wire_brain_worktree_reference_is_self_contained_and_windows_safe():
+    skill = (SKILLS_DIR / "wire-brain" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SKILLS_DIR / "wire-brain" / "references/worktree.md").read_text(
+        encoding="utf-8"
+    )
 
+    assert "references/worktree.md" in skill
     assert "git rev-parse --path-format=absolute --git-common-dir" in text
     assert "MSYS=winsymlinks:nativestrict" in text
     assert "mklink /D" in text

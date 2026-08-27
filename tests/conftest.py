@@ -85,11 +85,11 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/close-design",
         "brain/to-issues",
         "brain/triage-public",
-        "brain/build-context",
+        "brain/curate-project-context",
         "brain/review-architecture",
         "brain/grill-decisions",
         "brain/wire-brain",
-        "brain/write-skills",
+        "brain/write-agent-docs",
     ):
         name = Path(skill).name
         shutil.copytree(plugin_skills_root / name, root / "skills" / skill)

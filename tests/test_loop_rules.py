@@ -36,5 +36,5 @@ def test_seeded_brain_distinguishes_main_checkout_and_worktree_wiring(
     assert "main checkout" in doc
     assert "`dotbrain wire`" in doc
     assert "git worktree" in doc
-    assert "`wire-worktree` skill" in doc
+    assert "`wire-brain`'s worktree repair branch" in doc
     assert "with no `.brain`" in doc

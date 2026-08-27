@@ -70,13 +70,13 @@ maintainer pick.
    or missing information.
 4. **Grill if needed.** Use `grill-decisions` when the issue needs design or terminology clarification.
 5. **Apply the outcome.**
-   - `ready-for-agent`: post an agent brief (see [references/AGENT-BRIEF.md](references/AGENT-BRIEF.md));
+   - `ready-for-agent`: post an agent brief (see [agent brief](references/agent-brief.md));
      promote to a private work item via `operate-execution`.
    - `ready-for-human`: post a brief-style summary and explain why it needs human work.
    - `needs-info`: ask specific reporter questions; summarize what is already established.
    - `wontfix` bug: explain and close.
    - `wontfix` enhancement: write/update `.out-of-scope/` (see
-     [references/OUT-OF-SCOPE.md](references/OUT-OF-SCOPE.md)), link it from the issue, close.
+     [out-of-scope guide](references/out-of-scope.md)), link it from the issue, close.
    - `needs-triage`: apply the state, with a comment only if useful.
 
 ## Quick override

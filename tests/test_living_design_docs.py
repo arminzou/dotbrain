@@ -218,7 +218,7 @@ def test_grill_decisions_has_a_checkable_stopping_condition(dotbrain_home: Path)
 
 
 def test_adr_offer_test_is_single_sourced(dotbrain_home: Path):
-    """The three-part test lives only in ADR-FORMAT.md; skills that offer ADRs point at it."""
+    """The three-part test lives only in adr-format.md; skills that offer ADRs point at it."""
     brain = dotbrain_home / "skills" / "brain"
     owners = [
         p
@@ -226,9 +226,9 @@ def test_adr_offer_test_is_single_sourced(dotbrain_home: Path):
         if "hard to reverse" in p.read_text(encoding="utf-8").lower()
     ]
 
-    assert [p.name for p in owners] == ["ADR-FORMAT.md"]
+    assert [p.name for p in owners] == ["adr-format.md"]
     for skill in ("grill-decisions", "review-architecture"):
-        assert "ADR-FORMAT.md" in (brain / skill / "SKILL.md").read_text(encoding="utf-8")
+        assert "references/adr-format.md" in (brain / skill / "SKILL.md").read_text(encoding="utf-8")
 
 
 def test_stepped_skills_declare_their_boundaries(dotbrain_home: Path):
@@ -236,7 +236,7 @@ def test_stepped_skills_declare_their_boundaries(dotbrain_home: Path):
     into each other and the seams are where work gets duplicated or dropped."""
     brain = dotbrain_home / "skills" / "brain"
     for name in (
-        "build-context",
+        "curate-project-context",
         "close-design",
         "find-unknowns",
         "grill-decisions",
@@ -259,7 +259,7 @@ def test_review_architecture_scopes_before_scanning(dotbrain_home: Path):
     assert "git log --oneline" in skill
     assert "Strength" in skill and "Speculative" in skill
     assert "top recommendation" in skill.lower()
-    assert "DEEPENING.md" in skill, "dependency categories must be reachable from the skill"
+    assert "references/deepening.md" in skill, "dependency categories must be reachable from the skill"
 
 
 def test_review_architecture_is_user_invoked(dotbrain_home: Path):

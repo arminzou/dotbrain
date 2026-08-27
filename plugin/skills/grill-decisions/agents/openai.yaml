@@ -1,0 +1,3 @@
+interface:
+  display_name: "Grill Decisions"
+  short_description: "Stress-test plans against project decisions"

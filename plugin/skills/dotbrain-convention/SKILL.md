@@ -26,8 +26,8 @@ Brain template propagate to every brain.
 - Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
   per worktree.
 - In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
-- In a git worktree with no `.brain`, invoke the plugin-delivered `wire-worktree` skill. It derives
-  the main checkout from Git and creates real `.brain` and `.beads` symlinks without the CLI.
+- In a git worktree with no `.brain`, use `wire-brain`'s worktree repair branch. It derives the main
+  checkout from Git and creates real `.brain` and `.beads` symlinks without the CLI.
 
 ## Rules
 
