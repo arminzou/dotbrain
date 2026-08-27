@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-readonly DOTBRAIN_VERSION="0.1.1"
+readonly DOTBRAIN_VERSION="0.1.2"
 readonly DOTBRAIN_REF="git+https://github.com/arminzou/dotbrain@v${DOTBRAIN_VERSION}"
 
 log() { printf '[dotbrain] %s\n' "$*"; }
