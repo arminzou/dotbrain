@@ -1,44 +1,28 @@
-"""Drift guard for the plugin's generated ``skills/`` tree.
-
-The committed tree is what a marketplace install ships, so it must match the packaged
-resources it was generated from. Editing a brain skill or the ``DOTBRAIN.md`` template
-without regenerating fails here. Regenerate with:
-``uv run python -m dotbrain._plugin_build``
-"""
+"""Plugin packaging checks."""
 
 import json
 from pathlib import Path
 import re
 import tomllib
 
-from dotbrain import __version__, _plugin_build
+from dotbrain import __version__
 
-
-def _tree(root: Path) -> dict[str, str]:
-    return {
-        p.relative_to(root).as_posix(): p.read_text(encoding="utf-8")
-        for p in sorted(root.rglob("*"))
-        if p.is_file()
-    }
-
-
-def test_plugin_skills_match_resources(tmp_path):
-    generated_root = tmp_path / "skills"
-    _plugin_build.build(generated_root)
-    assert _tree(generated_root) == _tree(_plugin_build.SKILLS_DIR), (
-        "plugin/skills is stale. "
-        "Regenerate with: uv run python -m dotbrain._plugin_build"
-    )
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PLUGIN_ROOT = REPO_ROOT / "plugin"
+SKILLS_DIR = PLUGIN_ROOT / "skills"
 
 
 def test_convention_skill_carries_frontmatter_and_body():
-    text = (_plugin_build.SKILLS_DIR / "dotbrain-convention" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SKILLS_DIR / "dotbrain-convention" / "SKILL.md").read_text(encoding="utf-8")
+    template = (REPO_ROOT / "src/dotbrain/resources/templates/brain/DOTBRAIN.md").read_text(
+        encoding="utf-8"
+    )
     assert text.startswith("---\nname: dotbrain-convention\n")
-    assert "# DOTBRAIN.md" in text, "convention body missing — frontmatter rendered without content"
+    assert text.endswith(template), "convention body does not match the Brain template"
 
 
 def test_wire_worktree_skill_is_self_contained_and_windows_safe():
-    text = (_plugin_build.SKILLS_DIR / "wire-worktree" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SKILLS_DIR / "wire-worktree" / "SKILL.md").read_text(encoding="utf-8")
 
     assert "git rev-parse --path-format=absolute --git-common-dir" in text
     assert "MSYS=winsymlinks:nativestrict" in text
@@ -48,7 +32,7 @@ def test_wire_worktree_skill_is_self_contained_and_windows_safe():
 
 
 def test_plugin_owns_session_start_registration_for_both_runtimes():
-    hooks_path = _plugin_build.PLUGIN_ROOT / "hooks" / "hooks.json"
+    hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
     hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
     entries = [hook for entry in hooks["hooks"]["SessionStart"] for hook in entry["hooks"]]
 
@@ -67,18 +51,18 @@ def test_plugin_owns_session_start_registration_for_both_runtimes():
     # Claude Code auto-discovers hooks/hooks.json; declaring it in the manifest too makes the
     # runtime reject the whole plugin with "Duplicate hooks file detected", skills included.
     claude_manifest = json.loads(
-        (_plugin_build.PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+        (PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
     assert "hooks" not in claude_manifest
     # Codex does not auto-discover, so its manifest still points at the same file.
     codex_manifest = json.loads(
-        (_plugin_build.PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        (PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
     assert codex_manifest["hooks"] == "./hooks/hooks.json"
 
 
 def test_codex_marketplace_exposes_the_plugin_from_the_repository_root():
-    marketplace_path = _plugin_build._REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
+    marketplace_path = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
     marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
 
     assert marketplace["name"] == "dotbrain"
@@ -94,12 +78,12 @@ def test_codex_marketplace_exposes_the_plugin_from_the_repository_root():
 
 
 def test_first_run_installers_pin_the_plugin_cli_version():
-    version = tomllib.loads((_plugin_build._REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
-    scripts = _plugin_build.PLUGIN_ROOT / "scripts"
+    version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
+    scripts = PLUGIN_ROOT / "scripts"
 
     for manifest_dir in (".claude-plugin", ".codex-plugin"):
         manifest = json.loads(
-            (_plugin_build.PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
+            (PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
         )
         assert manifest["version"] == version
     assert __version__ == version
@@ -116,7 +100,7 @@ def test_first_run_installers_pin_the_plugin_cli_version():
 
 def test_wire_brain_installs_only_when_the_cli_is_absent():
     text = " ".join(
-        (_plugin_build.SKILLS_DIR / "wire-brain" / "SKILL.md").read_text(encoding="utf-8").split()
+        (SKILLS_DIR / "wire-brain" / "SKILL.md").read_text(encoding="utf-8").split()
     )
 
     assert "If it is, continue without installing anything." in text

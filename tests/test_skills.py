@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import adopter_repos, resource_loader, skills
+from dotbrain import adopter_repos, skills
 
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -271,7 +271,7 @@ def test_link_into_raises_translated_windows_privilege_error(dotbrain_home: Path
 
 
 def test_wire_brain_skill_tracks_current_cli_wiring_model():
-    text = resource_loader.resource("skills/brain/wire-brain/SKILL.md").read_text()
+    text = Path("plugin/skills/wire-brain/SKILL.md").read_text(encoding="utf-8")
 
     for command in (
         "dotbrain wire",

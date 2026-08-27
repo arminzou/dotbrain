@@ -76,7 +76,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
     root = tmp_path / "dotbrain"
     for sub in ("brainspaces", "skills"):
         (root / sub).mkdir(parents=True)
-    bundled_skills_root = _REPO_ROOT / "src" / "dotbrain" / "resources" / "skills"
+    plugin_skills_root = _REPO_ROOT / "plugin" / "skills"
     for skill in (
         "brain/iterate-design",
         "brain/operate-execution",
@@ -91,7 +91,8 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/wire-brain",
         "brain/write-skills",
     ):
-        shutil.copytree(bundled_skills_root / skill, root / "skills" / skill)
+        name = Path(skill).name
+        shutil.copytree(plugin_skills_root / name, root / "skills" / skill)
     skill_dir = root / "skills" / "misc" / "discovery-test"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("# discovery-test\n")

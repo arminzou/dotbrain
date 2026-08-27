@@ -222,12 +222,7 @@ To install a CLI from your checkout rather than a release tag, run `./install.sh
 `.\install.ps1` on Windows) from the repo root, then `dotbrain bootstrap`. That is the contributor
 path; users get the CLI from the plugin.
 
-The plugin's `skills/` tree is generated. After editing anything under
-`src/dotbrain/resources/skills/`, regenerate it or the drift guard fails:
-
-```bash
-uv run python -m dotbrain._plugin_build
-```
+The plugin's `skills/` tree is the source of truth for dotbrain's bundled skills.
 
 Version lives in `pyproject.toml` and is mirrored into `src/dotbrain/__init__.py`, both plugin
 manifests, and both first-run installers; `tests/test_plugin_build.py` enforces that they agree.

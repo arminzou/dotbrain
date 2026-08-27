@@ -55,5 +55,4 @@ The skills arrive with the plugin, installed once per agent runtime rather than 
 [getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
 user scope, its skills are available in every session, including repos that are not wired yet.
 
-The plugin's `skills/` tree is generated from `src/dotbrain/resources/skills/`; regenerate it with
-`uv run python -m dotbrain._plugin_build` after editing a source skill.
+Edit bundled skills directly in [`plugin/skills/`](../plugin/skills/).
