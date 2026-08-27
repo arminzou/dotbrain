@@ -1,6 +1,6 @@
 {
   "name": "dotbrain",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Keeps your project's context private and your code repo clean.",
   "author": {
     "name": "Armin Zou",
