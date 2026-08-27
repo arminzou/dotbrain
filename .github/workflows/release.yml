@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A tag pushed ahead of the version bump ships installers that pin the previous
+      # release. Fail the release rather than publish a mismatched one.
+      - name: Verify the tag matches the pinned version
+        run: |
+          pinned=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$pinned" != "$tag" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $pinned — run scripts/bump.py $tag"
+            exit 1
+          fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      # Guards the other five version pins (plugin manifests, installers, __version__).
+      - name: Verify version pins are in lockstep
+        run: uv run pytest tests/test_plugin_build.py
+
+      - name: Create the GitHub release
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
