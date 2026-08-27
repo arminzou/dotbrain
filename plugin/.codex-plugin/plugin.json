@@ -1,7 +1,7 @@
 {
   "name": "dotbrain",
   "version": "0.1.2",
-  "description": "The dotbrain operating manual: brain-coupled skills and the dotbrain convention, plus Brain context injection at session start.",
+  "description": "Keeps your project's context private and your code repo clean.",
   "author": {
     "name": "Armin Zou",
     "url": "https://github.com/arminzou"
@@ -10,23 +10,32 @@
   "repository": "https://github.com/arminzou/dotbrain",
   "license": "MIT",
   "keywords": [
-    "agent-context",
-    "skills",
-    "brain",
-    "dotbrain"
+    "agent-context-management",
+    "private-project-context",
+    "engineering-skills",
+    "skill-management"
   ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
-    "displayName": "dotbrain",
-    "shortDescription": "Brain context and the dotbrain operating manual",
-    "longDescription": "Delivers the dotbrain convention and its brain-coupled skills, and injects a wired project's Brain context at session start.",
+    "displayName": "Dotbrain",
+    "shortDescription": "Private project context, loaded every session",
+    "longDescription": "Your project's decisions, domain vocabulary, and design rationale live in a private Brain outside the code repo, and reach every session automatically — so you stop re-explaining the project and it never leaks into a public repo. Bundled with engineering skills for design docs, decision records, and issue tracking.",
     "developerName": "Armin Zou",
     "category": "Productivity",
     "capabilities": [
       "Instructions",
       "Lifecycle hooks"
     ],
-    "websiteURL": "https://github.com/arminzou/dotbrain"
+    "websiteURL": "https://github.com/arminzou/dotbrain",
+    "defaultPrompt": [
+      "Wire this repo with dotbrain.",
+      "What am I missing before I start?",
+      "Turn this plan into a design doc and issues.",
+      "What's ready to work on?"
+    ],
+    "brandColor": "#111111",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
   }
 }

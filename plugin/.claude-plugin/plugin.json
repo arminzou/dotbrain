@@ -1,7 +1,7 @@
 {
   "name": "dotbrain",
   "version": "0.1.2",
-  "description": "The dotbrain operating manual: brain-coupled skills and the dotbrain convention, plus Brain context injection at session start.",
+  "description": "Keeps your project's context private and your code repo clean.",
   "author": {
     "name": "Armin Zou",
     "url": "https://github.com/arminzou"
@@ -10,9 +10,9 @@
   "repository": "https://github.com/arminzou/dotbrain",
   "license": "MIT",
   "keywords": [
-    "agent-context",
-    "skills",
-    "brain",
-    "dotbrain"
+    "agent-context-management",
+    "private-project-context",
+    "engineering-skills",
+    "skill-management"
   ]
 }
