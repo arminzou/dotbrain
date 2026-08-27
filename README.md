@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.jpg" alt="Dotbrain" width="100%">
+  <img src="assets/banner.jpg" alt="Dotbrain" width="100%">
 </p>
 
 # Dotbrain
