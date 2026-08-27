@@ -71,6 +71,17 @@ Code, following the shape of the entries already there.
 The plugin delivers skills and Brain context; the `dotbrain` CLI does the wiring. They are
 separate installs.
 
+**Already have a dotbrain home?** If you have used dotbrain on another machine, your `~/dotbrain`
+is a git repo holding every Brainspace. Clone it before anything else, so this machine picks up
+your existing Brains instead of starting an empty one:
+
+```bash
+git clone <your-remote> ~/dotbrain
+```
+
+`wire-brain` asks about this when it finds no dotbrain home, but cloning first saves the round
+trip.
+
 **Let your agent do it.** Ask it to wire the repo, or invoke `wire-brain` directly. The skill
 checks whether `dotbrain` is on `PATH` and, if it is missing, runs the installer shipped inside
 the plugin — which provides `uv`, `bd` (Beads), the CLI version pinned to this plugin release, and

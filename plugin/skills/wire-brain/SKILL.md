@@ -13,13 +13,46 @@ skill that owns that content.
 ## First Run
 
 Before choosing a CLI command, check whether `dotbrain` is on `PATH`. If it is, continue without
-installing anything. If it is absent, run the installer shipped beside this skill:
+installing anything.
+
+If it is absent, this is a machine that has never run dotbrain — so resolve the dotbrain home
+before installing anything.
+
+### Ask before creating a dotbrain home
+
+Check for the dotbrain home: `$DOTBRAIN_HOME` when set, otherwise `~/dotbrain`. If it already
+exists, say nothing and move on to the installer.
+
+If it does not exist, **stop and ask the operator** before creating one:
+
+> No dotbrain home on this machine. Do you already have one in git? Give me the remote and I'll
+> clone it. Otherwise I'll create a fresh one.
+
+The home holds every Brainspace — the Brain, the execution graph, the whole private history — and
+it is normally a git repo the operator pushes somewhere. Creating a fresh one on a machine whose
+operator already has a populated one elsewhere leaves them with an empty, diverged home, and they
+usually do not find out until they notice their projects are missing. Nothing on the machine
+distinguishes the two cases, so asking is the only way to tell them apart.
+
+When they name a remote, clone it first, into that exact path:
+
+```bash
+git clone <remote> ~/dotbrain
+```
+
+Then run the installer. `dotbrain bootstrap` is idempotent: it seeds only the files the clone is
+missing and leaves the existing git checkout alone.
+
+### Install the CLI
+
+Run the installer shipped beside this skill:
 
 - On macOS or Linux: `${CLAUDE_PLUGIN_ROOT}/scripts/install.sh`.
 - On Windows: `pwsh -NoProfile -File "$env:CLAUDE_PLUGIN_ROOT/scripts/install.ps1"`.
 
 The installer provides `uv`, `bd`, the CLI version pinned to this plugin release, and runs
-`dotbrain bootstrap`. Then resume this skill's normal wiring flow in the current repo.
+`dotbrain bootstrap` — which creates and git-initializes the dotbrain home when it is absent. Then
+resume this skill's normal wiring flow in the current repo.
 
 ## Command Choice
 
