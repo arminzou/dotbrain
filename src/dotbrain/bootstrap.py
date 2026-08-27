@@ -5,10 +5,25 @@ This module owns machine-global setup: data-root seeding and global runtime link
 
 from __future__ import annotations
 
+import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from dotbrain import adopter_repos, resource_loader, skills, subagents
+
+Runner = Callable[..., "subprocess.CompletedProcess[str]"]
+
+
+def _default_run(
+    argv: Sequence[str], *, cwd: Path | None = None, check: bool = True
+) -> "subprocess.CompletedProcess[str]":
+    return subprocess.run(
+        list(argv), cwd=cwd, check=check,
+        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
+    )
+
 
 # --------------------------------------------------------------------------- data-root seeding
 
@@ -21,6 +36,7 @@ class DataRootResult:
     config_seeded: bool = False
     skills_seeded: bool = False
     agents_seeded: bool = False
+    git_initialized: bool = False
     logs: list[str] = field(default_factory=list)
 
 
@@ -35,7 +51,7 @@ def ensure_root_gitignore(dotbrain_home: Path) -> bool:
     return True
 
 
-def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
+def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> DataRootResult:
     """Create the data root and seed ``config.yaml`` from the packaged template.
 
     Idempotent — if ``config.yaml`` already exists it is left untouched.
@@ -47,6 +63,23 @@ def ensure_data_root(dotbrain_home: Path) -> DataRootResult:
         root.mkdir(parents=True)
         result.created = True
         result.logs.append(f"created data root: {root}")
+
+    # wire/refresh/unwire all require the data root to be a git checkout — Brain and
+    # execution state are versioned there. Seeding the files without initializing the
+    # repo left every fresh install failing on the first 'dotbrain wire'.
+    if not (root / ".git").exists():
+        try:
+            run(["git", "init", "--quiet"], cwd=root)
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                f"git is required to initialize the dotbrain data root at {root}; install git"
+            ) from exc
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or "").strip() or "git init failed"
+            raise RuntimeError(f"could not initialize {root} as a git checkout: {detail}") from exc
+        result.git_initialized = True
+        result.logs.append(f"initialized git checkout: {root}")
+
     if ensure_root_gitignore(root):
         result.logs.append(f"seeded .gitignore into {root}")
 

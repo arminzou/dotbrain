@@ -45,9 +45,14 @@ def bootstrap(
     root = paths.resolve_dotbrain_home()
 
     # Seed data root (config.yaml, skills/skills.yaml) if missing.
-    dr_result = bootstrap_mod.ensure_data_root(root)
+    try:
+        dr_result = bootstrap_mod.ensure_data_root(root)
+    except RuntimeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     if dr_result.created:
         typer.echo(f"[bootstrap] created data root: {root}")
+    if dr_result.git_initialized:
+        typer.echo(f"[bootstrap] initialized git checkout: {root}")
     if dr_result.config_seeded:
         typer.echo(f"[bootstrap] seeded config.yaml into {root}")
     if dr_result.skills_seeded:

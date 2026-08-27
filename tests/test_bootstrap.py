@@ -267,3 +267,37 @@ def test_skills_link_project_prunes_stale_selection(
     runner.invoke(app, ["skills", "link", "--scope", "project"])
 
     assert not stale.exists(), "stale symlink should have been pruned"
+
+
+def test_ensure_data_root_initializes_a_git_checkout(tmp_path: Path):
+    """A seeded data root must be a git checkout.
+
+    wire, refresh, and unwire all reject a data root without .git, so seeding the files
+    without initializing the repo left every fresh install failing on the first wire.
+    """
+    root = tmp_path / "dr"
+
+    result = bootstrap_mod.ensure_data_root(root)
+
+    assert result.git_initialized
+    assert (root / ".git").exists()
+
+
+def test_ensure_data_root_leaves_an_existing_checkout_alone(tmp_path: Path):
+    root = tmp_path / "dr"
+    bootstrap_mod.ensure_data_root(root)
+    marker = root / ".git" / "dotbrain-marker"
+    marker.write_text("kept", encoding="utf-8")
+
+    result = bootstrap_mod.ensure_data_root(root)
+
+    assert not result.git_initialized
+    assert marker.read_text(encoding="utf-8") == "kept"
+
+
+def test_ensure_data_root_reports_a_missing_git_binary(tmp_path: Path):
+    def _no_git(argv, *, cwd=None, check=True):
+        raise FileNotFoundError(argv[0])
+
+    with pytest.raises(RuntimeError, match="git is required"):
+        bootstrap_mod.ensure_data_root(tmp_path / "dr", run=_no_git)
