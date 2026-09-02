@@ -1,0 +1,15 @@
+# LF in the working tree on every platform.
+#
+# The codebase already treats LF as an invariant — brainspaces.py seeds Brain files
+# with newline="\n", and test_brainspaces.py asserts the result carries no CRLF — but
+# without this file a Windows checkout (core.autocrlf=true, the runner default) hands
+# back the packaged templates with CRLF. Anything comparing a seeded file against its
+# packaged source then fails on Windows only, which is a slow bug to find.
+#
+# Shell scripts must be LF to run at all; the hook writes bytes straight to stdout and
+# counts them against a payload limit, so line endings there change a measured size.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.png binary
+*.jpg binary
