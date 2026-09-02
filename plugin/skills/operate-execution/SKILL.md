@@ -19,40 +19,33 @@ is no separate coordination mechanism.
   issue tracker.
 - **Public issue tracker** — handled by `triage-public`; existing public collaboration may be
   promoted inward with a provenance link, but private work is never published outward for tracking.
+  See [references/public-provenance.md](references/public-provenance.md) when work crosses that
+  boundary.
 - **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`; owned by other skills.
-
-## Context files
-
-Read at session start, before inspecting the graph:
-
-1. **`.brain/AGENTS.md`** (Project section) — project tracker conventions shared with
-   `triage-public`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
-2. **[references/beads.md](references/beads.md)** — engine mechanics and native-modeling rules:
-   commands, types, dependencies, status, labels. Swap for the active engine's reference if it changes.
-3. **[references/work-intake.md](references/work-intake.md)** — work intake pipeline: when to create a
-   issue directly vs when to suggest a design doc + epic. Read to decide how new work enters the graph.
 
 ## What this skill owns
 
 - shape epics, tasks, dependencies, and acceptance criteria
 - choose the ready frontier and recommend the smallest useful continuation
-- recommend an execution mode for ready work (below)
 - record handoff context that lets another agent work autonomously
 - preserve provenance when an existing public issue is promoted into private execution
+  ([references/public-provenance.md](references/public-provenance.md))
 - absorb discoveries back into the graph when work reveals new reality
 - update the active design doc when discoveries change the initiative design rather than only the
   execution graph
+- record a code review's findings as a review bead
+  ([references/review-beads.md](references/review-beads.md))
 
-It recommends how to isolate work (below) but does **not** run it: turn-by-turn work happens in the
-session, an automation handoff runs through `iterate-design`, and worktree isolation is a runtime
-capability, not a mode this skill enters.
+It does not decide where implementation happens — branch, worktree, or the main checkout in place.
+That choice belongs to the user or the session; this skill hands off whatever item is next and
+picks back up once work returns to the graph.
 
 ## Who uses it
 
 Any session, from the main checkout or from a worktree. From the main checkout you shape work,
-inspect readiness, recommend mode, and maintain the graph. A worktree session may claim, update,
-split, create, and close related items as discoveries emerge. That autonomy is intentional: stay
-anchored to the assigned item or epic, but do not freeze when work reveals missing scope.
+inspect readiness, and maintain the graph. A worktree session may claim, update, split, create, and
+close related items as discoveries emerge. That autonomy is intentional: stay anchored to the
+assigned item or epic, but do not freeze when work reveals missing scope.
 
 ## Human gate
 
@@ -67,37 +60,18 @@ Flag an item for human review when it genuinely needs a decision — scope ambig
 trade-offs, cross-cutting impact, or anything you want to see before work starts. Leave
 everything else unflagged so the agent can flow through the ready frontier.
 
-## Execution-mode recommendation
-
-When a human-gated ready item is under consideration, recommend where to run it. Isolation is a
-per-item choice, not a mode the session enters: pick the cheapest rung that fits, and climb only
-when a driver forces it.
-
-- **Main checkout, in place** — the default: one line of work, reviewed as it happens, landing
-  local. Most work stays here.
-- **Branch in place** (`git switch -c`) — when you want a review surface or the work is safe to
-  abandon, but it is still one line of work at a time. A branch isolates history without a second
-  working tree.
-- **Worktree** — when the work needs a second working tree at once: genuine parallelism (two or
-  more trees in flight), an automation handoff you want off the interactive tree, or a long-running
-  worker session returned to later. A worktree isolates the working directory on top of history.
-  After manual creation, use `wire-brain`'s worktree repair branch if `.brain` or `.beads` is
-  absent, so those links reuse the main checkout. Agent workspaces remain project-owned directories.
-- **Skip** — the item needs a decision you want to make; leave it for later triage.
-
-Advisory, not a gate; always include a one-line reason. Stop after the recommendation and wait for
-the user to respond. Skip means the item stays in the human queue. You recommend the rung; the user
-confirms; then the work is cut at that rung — a branch or an `isolation: worktree` dispatch by the
-runtime. Autonomous (unflagged) items need no mode recommendation: claim and work them directly.
-
 ## Operating loop
 
-1. Read the context files above, then project Brain context and relevant ADRs.
-2. Inspect the graph: ready frontier, list, and item detail (commands in `references/beads.md`).
+1. Read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty means
+   pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
+   rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
+   project Brain context and relevant ADRs.
+2. Inspect the graph: ready frontier, list, and item detail (commands in
+   [references/beads.md](references/beads.md)).
 3. Check for human-gated items among the ready set (engine reference covers the command). Recheck
    every iteration: the gated set changes as items close and new ones are created.
 4. Select the next ready item:
-   - **Human-gated** — recommend mode and stop for sign-off before claiming.
+   - **Human-gated** — stop for sign-off before claiming.
    - **Autonomous** — claim directly and proceed.
 5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
    implementing. Beads carry execution facts; the design doc carries the design,
@@ -105,51 +79,33 @@ runtime. Autonomous (unflagged) items need no mode recommendation: claim and wor
    alone.
 6. Implement, update notes, and close when acceptance criteria are satisfied. This is manual,
    turn-by-turn work — the human reviews each edit and each `bd close` as it happens — so it
-   lands local by default, epic or not. Work originating from an existing public issue may land
-   through its public PR collaboration flow. `bd close` remains the private close signal.
+   lands local by default, epic or not. Present what was done and confirm before closing, unless
+   the user explicitly asked you to close it. Work originating from an existing public issue may
+   land through its public PR collaboration flow
+   ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
+   private close signal.
 7. If that close emptied a design-linked epic — no open slices left under an epic carrying
    `spec-id design:<slug>` — run `close-design` before moving on. The design doc is still marked
    `active` and its residue is still unharvested; that is the moment to settle both.
-8. If discoveries change reality, update the graph instead of forcing stale plans to stand.
+8. When implementation exposes hidden requirements or follow-up work: do the obvious in-scope work
+   directly; create or update related items when new work becomes explicit; split or re-slice the
+   current item when it is no longer the right shape; adjust dependencies or acceptance when the
+   graph is wrong. Put discoveries back into the graph, never into ad hoc todo files.
 9. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
 
-## Discoveries and re-slicing
-
-When implementation exposes hidden requirements or follow-up work: do the obvious in-scope work
-directly; create or update related items when new work becomes explicit; split or re-slice the
-current item when it is no longer the right shape; adjust dependencies or acceptance when the graph
-is wrong. Put discoveries back into the graph, never into ad hoc todo files.
-
 ## Handoff context
 
-When recommending worktree execution or handing work off, record enough that the worker can act
-without being spoon-fed: work-item ID, anchor epic (if any), branch/worktree name, intended scope,
-required checks, and review/landing expectations. Agent-created branches use the canonical name
-`<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart anchor inference.
+When work moves to another agent or session before it closes, record enough that the worker can
+act without being spoon-fed: work-item ID, anchor epic (if any), intended scope, required checks,
+and review/landing expectations. A branch created for the work uses the canonical name
+`<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart
+anchor inference.
 
-## Public provenance and PRs
+## Review beads
 
-The link has one direction: promote an existing public issue inward by creating a private item that
-references it. The public issue exists for reporter or contributor collaboration; the private item
-exists for execution. A private bead, epic, or design never causes a public tracking issue to be
-created. A PR may surface any change for review without a companion public issue.
-
-When a PR closes an existing public issue, `Closes #N` closes only that issue; the private item still
-needs an explicit close. Mechanics live in [references/beads.md](references/beads.md).
-
-When a private item's work lands through a public PR, the PR body must carry a `Verification`
-section restating the verification evidence in audience-safe, plain terms — no `.brain/` paths,
-ADR numbers, or `design:` spec-ids. The private item may keep the full evidence in its own notes
-or the linked design doc; the PR gets the public rendering only.
-
-Landing here is local review by default because manual, turn-by-turn work is reviewed continuously.
-Use a PR when the user wants a review surface or the work is already part of public collaboration;
-do not create an issue merely to justify the PR.
-
-## Working habits
-
-- **Check for existing branches first.** Run `git branch -a | grep -i <topic>`; if one exists, ask
-  whether to use it or start fresh.
-- **Summarize before closing.** Present what was done and confirm, unless the user explicitly asked
-  you to close it.
+Once any code review's findings need to survive the session — the user asks for a review bead, or
+it's the natural next step after a review pass, whatever skill or process ran it — see
+[references/review-beads.md](references/review-beads.md). It covers the single-pass and multi-pass
+shapes a review bead can take, one generalized recipe regardless of which review produced the
+findings, and how to recognize an existing bead's shape before operating on it.
