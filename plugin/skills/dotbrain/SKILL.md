@@ -1,13 +1,27 @@
 ---
-name: dotbrain-convention
+name: dotbrain
 description: >
   The dotbrain operating convention — how a Brain, its execution graph, and agent
-  workspaces fit together, and the rules that bind work in a dotbrain-wired project.
-  Use when working in a repo that has a .brain directory, when a session did not
-  receive the convention as injected context (Cowork, Claude Desktop, or an untrusted
-  Codex hook), or when checking what dotbrain expects before changing wiring,
-  designs, ADRs, or issues.
+  workspaces fit together, and the rules that bind work in a wired project. Invoke it
+  to hand an agent the convention when the session-start hook did not.
+disable-model-invocation: true
 ---
+
+*States the convention; changes nothing.* The document below is the exact text the
+session-start hook injects as `.brain/DOTBRAIN.md`. Some harnesses never run that hook
+(Cowork, Claude Desktop, an untrusted Codex hook), which is what this skill is for —
+same document, delivered by hand.
+
+## Who owns what
+
+The convention describes the model; these skills act on it.
+
+| To do this | Use |
+|---|---|
+| Create or repair `.brain` / `.beads` links | `wire-brain` |
+| Create, claim, or close work items | `operate-execution` |
+| Formalize an initiative, or record a decision | `to-design`, `grill-decisions` |
+| Edit a project's own rules in `.brain/AGENTS.md` | `curate-project-context` |
 
 # DOTBRAIN.md
 

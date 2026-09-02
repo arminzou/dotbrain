@@ -1,0 +1,5 @@
+interface:
+  display_name: "Dotbrain Convention"
+  short_description: "The dotbrain operating convention, on demand"
+policy:
+  allow_implicit_invocation: false

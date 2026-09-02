@@ -28,11 +28,11 @@ def test_every_bundled_skill_has_codex_interface_metadata():
 
 
 def test_convention_skill_carries_frontmatter_and_body():
-    text = (SKILLS_DIR / "dotbrain-convention" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SKILLS_DIR / "dotbrain" / "SKILL.md").read_text(encoding="utf-8")
     template = (REPO_ROOT / "src/dotbrain/resources/templates/brain/DOTBRAIN.md").read_text(
         encoding="utf-8"
     )
-    assert text.startswith("---\nname: dotbrain-convention\n")
+    assert text.startswith("---\nname: dotbrain\n")
     assert text.endswith(template), "convention body does not match the Brain template"
 
 

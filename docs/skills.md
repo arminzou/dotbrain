@@ -14,7 +14,7 @@ Skill linking is operator-managed:
 - **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain,
   including restoring a linked worktree's `.brain` and `.beads`. Installs the `dotbrain` CLI on
   first use if it is missing.
-- **`dotbrain-convention`** — the operating convention itself. The session-start hook injects it
+- **`dotbrain`** — the operating convention itself. The session-start hook injects it
   automatically; invoke it directly in runtimes where the hook does not run.
 
 ## Planning
