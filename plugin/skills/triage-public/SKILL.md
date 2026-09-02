@@ -1,6 +1,6 @@
 ---
 name: triage-public
-description: Triage public issue tracker items through labels, reproduction, scope decisions, and agent briefs, then promote ready work into the private execution engine. Use when the user wants to review incoming issues, classify bugs or enhancements, ask reporters for info, publish agent briefs, or promote public work into private execution.
+description: Triages public issue tracker items — classify, reproduce, ask reporters for information, decide scope, publish agent briefs — then promotes accepted work inward to the private execution engine. Inward only. Use when reviewing incoming public issues or promoting one into private execution.
 ---
 
 # Triage Public
@@ -61,23 +61,50 @@ maintainer pick.
 
 ## Intake a specific issue
 
-1. **Gather context.** Read the issue body, comments, labels, reporter, and dates. Parse previous
-   intake notes. Explore the codebase with the project vocabulary and ADRs. Check `.out-of-scope/`
-   for similar rejected enhancements.
-2. **Recommend.** Recommend category and state with reasoning. Wait for maintainer direction before
-   any public write.
-3. **Reproduce bugs.** Attempt reproduction before grilling; report confirmed repro, failed repro,
-   or missing information.
-4. **Grill if needed.** Use `grill-decisions` when the issue needs design or terminology clarification.
-5. **Apply the outcome.**
-   - `ready-for-agent`: post an agent brief (see [agent brief](references/agent-brief.md));
-     promote to a private work item via `operate-execution`.
-   - `ready-for-human`: post a brief-style summary and explain why it needs human work.
-   - `needs-info`: ask specific reporter questions; summarize what is already established.
-   - `wontfix` bug: explain and close.
-   - `wontfix` enhancement: write/update `.out-of-scope/` (see
-     [out-of-scope guide](references/out-of-scope.md)), link it from the issue, close.
-   - `needs-triage`: apply the state, with a comment only if useful.
+### 1. Gather context
+
+Read the issue body, comments, labels, reporter, and dates. Parse previous intake notes. Explore the
+codebase with the project vocabulary and ADRs. Check `.out-of-scope/` for similar rejected
+enhancements.
+
+Completion: the issue's history, the code it touches, and any prior rejection of the same idea are
+each accounted for — or explicitly noted as absent.
+
+### 2. Reproduce the bug
+
+For a bug, attempt reproduction before recommending anything. Grilling an issue nobody has tried to
+reproduce spends the reporter's patience on a question the codebase may already answer.
+
+Completion: the attempt is reported as confirmed repro, failed repro, or missing information, with
+the steps run.
+
+### 3. Grill if needed
+
+Use `grill-decisions` when the issue needs design or terminology clarification.
+
+Completion: every ambiguity blocking a category or state call is resolved or named as a question for
+the reporter.
+
+### 4. Recommend
+
+Recommend category and state with reasoning. Wait for maintainer direction before any public write.
+
+Completion: one category and one state are proposed with their evidence, and the maintainer has
+answered. No public mutation has happened yet.
+
+### 5. Apply the outcome
+
+- `ready-for-agent`: post an agent brief (see [agent brief](references/agent-brief.md));
+  promote to a private work item via `operate-execution`.
+- `ready-for-human`: post a brief-style summary and explain why it needs human work.
+- `needs-info`: ask specific reporter questions; summarize what is already established.
+- `wontfix` bug: explain and close.
+- `wontfix` enhancement: write/update `.out-of-scope/` (see
+  [out-of-scope guide](references/out-of-scope.md)), link it from the issue, close.
+- `needs-triage`: apply the state, with a comment only if useful.
+
+Completion: the issue carries exactly one category and one state, every public comment opens with
+the AI-generated marker, and any promoted work item references the public origin.
 
 ## Quick override
 

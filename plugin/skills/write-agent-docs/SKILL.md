@@ -1,6 +1,6 @@
 ---
 name: write-agent-docs
-description: Write documents agents consume across project repositories, private Brains, and user-owned skills. Use when creating or editing AGENTS.md or CLAUDE.md, public project docs agents rely on, Brain context, design or ADR docs, skills, or referenced guidance.
+description: Supplies the writing discipline for any document an agent consumes — context pointers, information hierarchy, completion criteria, leading words, pruning. Use when creating or editing AGENTS.md or CLAUDE.md, public project docs agents rely on, Brain context, design or ADR docs, skills, or referenced guidance.
 ---
 
 # Writing for agents

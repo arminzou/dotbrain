@@ -1,6 +1,6 @@
 ---
 name: grill-decisions
-description: Grilling session that challenges a plan against the existing domain model, sharpens terminology, and writes decisions into CONTEXT.md and ADRs inline as they crystallise. Use when the user wants to stress-test a plan against their project's language and documented decisions, or arrives from find-unknowns with open questions to resolve.
+description: Challenges a plan against the project's existing domain model, sharpens its terminology, and writes what settles into CONTEXT.md and ADRs as it settles. Use to stress-test a plan against the project's language and documented decisions, or when arriving from find-unknowns with open questions to resolve.
 ---
 
 # Grill Decisions
@@ -9,17 +9,13 @@ Interview the user relentlessly about a plan until every branch of the decision 
 Challenge it against the project's existing domain language and recorded decisions, and write what
 settles into canon as it settles.
 
-## Boundaries
+## Stop before you start
 
-- **vs `find-unknowns`**: that surfaces what you did not know to ask; this resolves questions
-  already named. Scanner, then resolver.
-- **vs `to-design`**: that captures the settled shape as a design doc; this settles it. Grill first,
-  then formalize.
-- **vs `review-architecture`**: that grills a structural candidate in architecture vocabulary; this
-  grills a plan against domain vocabulary.
+This skill spends the user's attention, so it only runs with a human in the loop.
 
-Pipeline position: `find-unknowns` (surface), then `grill-decisions` (resolve), then `to-design`
-(capture), then `to-issues` (decompose).
+- No human present — an autonomous run cannot grill anyone. Stop and report what needs deciding.
+- Nothing named to resolve — there is no plan or open question yet. Run `find-unknowns` first.
+- The question is answerable from the codebase — read it instead of asking.
 
 ## Process
 
@@ -28,8 +24,8 @@ Pipeline position: `find-unknowns` (surface), then `grill-decisions` (resolve), 
 Read `.brain/CONTEXT.md`, the ADRs bearing on the area, and the nearest `AGENTS.md`. Absent or empty
 canon is a legitimate state: note the gap and grill anyway.
 
-Completion: you can state the project's existing term for every concept the plan touches, and every
-ADR the plan interacts with.
+Completion: every concept the plan touches is paired with the project's existing term or flagged as
+unnamed, and every ADR the plan interacts with is listed.
 
 ### 2. Lay out the decision tree
 
@@ -67,7 +63,7 @@ your place. A branch the user declines to settle is deferred with a reason, not 
 Completion: every branch on the tree is resolved or explicitly deferred with a reason, and the tree
 has no branch you added but never returned to.
 
-### 4. Close
+### 4. Hand off
 
 Report what the session produced: branches resolved, branches deferred and why, terms added or
 sharpened in `CONTEXT.md`, and ADRs written. Recommend `to-design` when the resolved shape is a

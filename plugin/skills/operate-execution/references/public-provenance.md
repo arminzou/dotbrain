@@ -10,7 +10,7 @@ exists for execution. A private bead, epic, or design never causes a public trac
 created. A PR may surface any change for review without a companion public issue.
 
 When a PR closes an existing public issue, `Closes #N` closes only that issue; the private item
-still needs an explicit close. Mechanics live in [beads.md](beads.md).
+still needs an explicit close.
 
 ## PR body verification section
 

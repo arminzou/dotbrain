@@ -1,22 +1,22 @@
 ---
 name: operate-execution
-description: Create, claim, work on, and close issues in the project's private execution graph. Use when filing issues, creating work items, claiming tasks, inspecting the ready frontier, updating work status, or closing completed work — any interaction with the project issue tracker.
+description: Creates, claims, works on, and closes issues in the project's private execution graph. Use for any interaction with the project issue tracker — filing work items, claiming tasks, inspecting the ready frontier, updating status, closing completed work. NOT for decomposing a design doc into an epic (to-issues), formalizing an initiative (to-design), closing one out (close-design), or triaging public issues (triage-public).
 ---
 
 # Operate Execution
 
 Operate the Brainspace's private execution layer: a typed, prioritized **dependency graph** of
-work items. The engine is declared in `project.yaml` (`execution-engine:`). This skill
-is engine-agnostic — it owns the model and workflow; the engine's CLI mechanics and native-modeling
-rules live in `references/<engine>.md` ([references/beads.md](references/beads.md) for beads).
+work items. The engine is declared in `project.yaml` (`execution-engine:`) and is beads in practice:
+this skill and the design-lifecycle skills use `bd` directly. This file owns the model and workflow;
+[references/beads.md](references/beads.md) owns how to express work in beads' native fields.
 
 The dependency graph is the concurrency contract: the **ready frontier** (open items with no open
 blockers) is the set safe to claim and run in parallel; blocking edges are the serialization. There
 is no separate coordination mechanism.
 
 - **Private execution graph** — work items in the engine's store; this skill owns it and it is the
-  source of truth. Never mirror work state into markdown docs, ROADMAPs, task lists, or a public
-  issue tracker.
+  source of truth. Never mirror work state into markdown docs, ROADMAPs, TodoWrite/task lists, or
+  a public issue tracker.
 - **Public issue tracker** — handled by `triage-public`; existing public collaboration may be
   promoted inward with a provenance link, but private work is never published outward for tracking.
   See [references/public-provenance.md](references/public-provenance.md) when work crosses that
@@ -36,9 +36,16 @@ is no separate coordination mechanism.
 - record a code review's findings as a review bead
   ([references/review-beads.md](references/review-beads.md))
 
-It does not decide where implementation happens — branch, worktree, or the main checkout in place.
-That choice belongs to the user or the session; this skill hands off whatever item is next and
-picks back up once work returns to the graph.
+## Stop before you start
+
+- The work is a multi-slice initiative, not a single item — it needs a design doc first. The call
+  between a direct bead and that path is [references/work-intake.md](references/work-intake.md).
+- An epic exists but has no slices — it has not been decomposed yet; run `to-issues`.
+- The item is human-gated — stop for sign-off before claiming it (see below).
+
+Deciding *where* implementation happens — branch, worktree, or the main checkout in place — is not
+this skill's call. That belongs to the user or the session; this skill hands off whatever item is
+next and picks back up once work returns to the graph.
 
 ## Who uses it
 

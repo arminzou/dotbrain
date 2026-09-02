@@ -1,6 +1,6 @@
 ---
 name: find-unknowns
-description: Surface blind spots and unknowns before implementing. Scan an unfamiliar codebase or feature area against the project Brain, then report the unknown-unknowns and tacit assumptions that would change the approach. Use when entering unfamiliar territory, orienting at the start of an initiative, or before committing to a design or a risky change.
+description: Scans an unfamiliar codebase or feature area against the project Brain and reports the unknown-unknowns and tacit assumptions that would change the approach. Read-only. Use when entering unfamiliar territory, orienting at the start of an initiative, or before committing to a design or a risky change.
 ---
 
 # Find Unknowns
@@ -18,33 +18,38 @@ nothing to the Brain. It surfaces unknowns and hands each one to the skill that 
 answers many known knowns, so this skill spends its budget on **unknown knowns** and **unknown
 unknowns**: the two no planning step catches, because you do not know to ask.
 
+## Stop before you start
+
+Orienting costs a scan the work may not repay. Skip it, and send the work straight to beads, unless
+at least one holds:
+
+- The initiative is unfamiliar territory, or crosses modules.
+- It carries meaningful risk.
+- You cannot yet state its intended shape in one paragraph.
+
+State the decision — orient or skip — with the reason, before going further.
+
 ## Process
 
-### 1. Decide whether to orient
-
-Skip small, obvious, well-scoped work; send it straight to beads. Orient when the initiative is
-unfamiliar, crosses modules, carries meaningful risk, or you cannot yet state its intended shape in
-one paragraph.
-
-Completion: a one-line decision, orient or skip, with the reason.
-
-### 2. Read the map
+### 1. Read the map
 
 Read the nearest `AGENTS.md`, `CONTEXT.md`, relevant `adr/`, and any `.brain/docs/` that bears on the
 area. This collapses the known-unknowns the Brain already settles, so the scan does not re-ask
 documented questions.
 
-Completion: you can state, in a sentence or two, what the Brain already decides about this area.
+Completion: every question the Brain already settles is named alongside the canon entry that
+settles it, so the scan does not re-ask it.
 
-### 3. Scan the territory
+### 2. Scan the territory
 
 Explore the actual modules the initiative touches. Use a fan-out explore tool for broad sweeps if one
 is available; otherwise read directly. Stay grounded: a finding must point at a concrete file,
 behavior, or dependency, never a generic category.
 
-Completion: you can name the specific modules, integration points, and dependencies in play.
+Completion: the modules, integration points, and dependencies in play are listed, each pointing at
+a file you actually read.
 
-### 4. Run the blindspot pass
+### 3. Run the blindspot pass
 
 Now look for what you did not think to ask. Deliberately hunt unknown-unknowns and unknown-knowns:
 
@@ -68,7 +73,7 @@ have produced anyway: drop it rather than padding the list.
 Completion: a triaged list of findings, each grounded in something read and carrying a blast-radius
 call, ordered largest-first.
 
-### 5. Hand off
+### 4. Hand off
 
 This skill does not write the Brain. Route each finding to the skill that owns it:
 
@@ -79,16 +84,4 @@ This skill does not write the Brain. Route each finding to the skill that owns i
 - If the pass shows the work is actually small and obvious: straight to beads, no design doc.
 
 Completion: every finding has a named next action, and you have recommended the next skill.
-
-## Boundaries
-
-- **vs `grill-decisions`**: this skill surfaces what you did not know to ask; grill-decisions resolves
-  known questions through back-and-forth. Scanner, then resolver.
-- **vs `to-design`**: this runs before you commit to a design doc and feeds its `Known Unknowns`. It
-  does not author the doc.
-- **vs `review-architecture`**: that assumes you understand the domain and hunts structural depth
-  problems; this assumes you do not yet understand and hunts comprehension gaps.
-
-Pipeline position: `find-unknowns` (surface), then `grill-decisions` (resolve), then `to-design`
-(capture), then `to-issues` (decompose), then `operate-execution` (build).
 

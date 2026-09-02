@@ -1,6 +1,6 @@
 ---
 name: wire-brain
-description: Wire, repair, refresh, or inspect a repo's dotbrain Brainspace. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links in a main checkout or linked Git worktree, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
+description: Wires, repairs, refreshes, or inspects a repo's dotbrain Brainspace by driving the dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links in a main checkout or linked Git worktree, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
 ---
 
 # Wire Brain
@@ -10,7 +10,7 @@ scaffolding, symlink reconciliation, hooks, skill links, agent links, and beads 
 this skill choose the right CLI command, inspect the result, and hand Brain content changes to the
 skill that owns that content.
 
-## Choose The Wiring Branch
+## Choose the wiring branch
 
 Route worktree repair before checking installation or choosing a CLI command. When the request
 concerns a linked Git worktree, or the current checkout lacks `.brain` or `.beads` and may share its
@@ -20,7 +20,7 @@ stop when it completes; do not enter First Run or create or repair a Brainspace.
 
 For a main checkout or Brain-only project, continue below.
 
-## First Run
+## First run
 
 Before choosing a CLI command, check whether `dotbrain` is on `PATH`. If it is, continue without
 installing anything.
@@ -64,21 +64,24 @@ The installer provides `uv`, `bd`, the CLI version pinned to this plugin release
 `dotbrain bootstrap` — which creates and git-initializes the dotbrain home when it is absent. Then
 resume this skill's normal wiring flow in the current repo.
 
-## Command Choice
+## Command choice
 
-Use the narrowest command that matches the job:
+Use the narrowest command that matches the symptom. `dotbrain --help` carries the current flags;
+this table only carries the routing.
 
-- `dotbrain wire --repo <path>`: create or repair one Brainspace and attach one adopter repo.
-- `dotbrain wire --name <project> --no-repo`: create a Brain-only Brainspace.
-- `dotbrain wire --all`: reconcile every existing Brainspace with its adopter repo under the repo
-  base.
-- `dotbrain refresh`: refresh an existing Brainspace; use `--name <project>` to select one project.
-- `dotbrain refresh --name <project>`: refresh one existing Brainspace after config, skill, agent,
-  template, or CLI changes.
-- `dotbrain refresh --all`: refresh every Brainspace without creating new projects.
-- `dotbrain bootstrap`: reconcile global skills and subagents.
-- `dotbrain doctor`: inspect machine readiness, project wiring, and beads health.
-- `dotbrain unwire`: detach an adopter repo and keep, archive, or delete the private Brainspace.
+| Symptom or job | Command |
+|---|---|
+| Attach a repo, or repair its links in the main checkout | `dotbrain wire --repo <path>` |
+| Broken `.brain`/`.beads` in a linked Git worktree | [Worktree repair](references/worktree.md) |
+| Brain-only project, no adopter repo | `dotbrain wire --name <project> --no-repo` |
+| Existing Brainspaces need repo-link reconciliation | `dotbrain wire --all` |
+| Config, skills, agents, hooks, or templates changed | `dotbrain refresh --name <project>` / `--all` |
+| Global skills or subagents are stale | `dotbrain bootstrap [--only skills]` |
+| Need a health report before deciding | `dotbrain doctor` |
+| Detach a repo from its Brainspace | `dotbrain unwire` |
+
+Two behaviours the flags do not confess: `refresh` never creates a project, and `wire --all`
+reconciles only known Brainspaces, warning when it cannot find an adopter repo.
 
 Do not recreate these steps by hand unless the CLI reports a concrete obstruction that must be
 removed first.
@@ -100,7 +103,7 @@ through the relevant Brain skills: context health through `curate-project-contex
 through `operate-execution`, design through `to-design`, and public intake through
 `triage-public`.
 
-## Wiring Contract
+## Wiring contract
 
 A wired adopter repo points at its Brainspace through local, gitignored symlinks and has real agent workspace directories. Expected wiring is derived from project config:
 
@@ -113,19 +116,9 @@ The repo's `.git/info/exclude` ignores `/.brain`, `/.beads`, and each workspace 
 repo context may contain the standard pointer to `.brain/AGENTS.md`; private Brain paths, ADRs,
 beads details, and tracker operations stay out of public repo files.
 
-## Wire One Repo
+## Wiring one repo
 
-From the adopter repo, run:
-
-```bash
-dotbrain wire
-```
-
-From elsewhere, pass the repo explicitly:
-
-```bash
-dotbrain wire --repo /path/to/repo
-```
+Run `dotbrain wire` from the adopter repo, or pass `--repo <path>` from elsewhere.
 
 Use `--name <project>` only when the Brainspace name should differ from the repo directory name.
 Use beads options only for the initial tracker setup when project config or global config is not
@@ -146,22 +139,6 @@ git -C /path/to/repo status --short
 
 Expected public repo changes are limited to the agent context pointer when it is newly inserted.
 Symlinks whose targets are outside the repo must remain untracked.
-
-## Repair Or Refresh
-
-Use repair commands by symptom:
-
-- Broken or missing symlinks in the main checkout: `dotbrain wire --repo <path>`.
-- Broken or missing `.brain` or `.beads` in a linked Git worktree: use
-  [Worktree repair](references/worktree.md).
-- Existing Brainspaces need repo link reconciliation: `dotbrain wire --all`.
-- Skills, agents, hooks, templates, or legacy skill manifests changed: `dotbrain refresh --name
-  <project>` or `dotbrain refresh --all`.
-- Global skills or subagents are stale: `dotbrain bootstrap` or `dotbrain bootstrap --only skills`.
-- Need a health report before deciding: `dotbrain doctor`.
-
-`refresh` does not create projects. `wire --all` reconciles known Brainspaces and warns when it
-cannot find an adopter repo.
 
 ## Offboarding
 

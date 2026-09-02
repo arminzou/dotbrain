@@ -8,14 +8,7 @@ disable-model-invocation: true
 
 Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
 
-## Boundaries
-
-- **vs `find-unknowns`**: that hunts comprehension gaps and assumes you do not yet understand the
-  domain; this hunts structural depth problems and assumes you do. Orient first, review second.
-- **vs `grill-decisions`**: that grills a plan against domain vocabulary. Step 3 here is a grilling
-  too, but scoped to one deepening candidate and conducted in architecture vocabulary.
-- **vs `to-design`**: this surfaces and shapes a refactor; that formalizes it. A candidate large
-  enough to need slices graduates to a design doc rather than growing inside this skill.
+## What this is
 
 This reviews structure, not a diff: it reads the codebase as it stands rather than the change in
 front of it, and it proposes deepening rather than hunting defects.

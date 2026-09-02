@@ -86,19 +86,15 @@ sure its blockers are closed; if it should not, add the dependency. Let `bd read
 - Resolve with a reason, not a label: `bd close <id> --reason="wontfix: ..."`. The close reason is
   the durable record; a live `wontfix` label on a closed issue is redundant.
 
-## Human gate: the autonomy boundary
+## Human gate: the mechanics
 
-Flag with `bd label add <id> human` when an issue needs a person's decision before an agent can
-proceed. This is the **gate**: the agent picks up unflagged items autonomously and only stops for
-flagged ones. (The `human` label *is* the native gate — `bd human list` filters on it; this is the
-one case where a label encodes a native concept by design. There is no `bd human <id>` flagging
-verb: `bd human` exposes only `list`/`respond`/`dismiss`/`stats`, and bare `bd human <id>` is a
-no-op that prints the help menu.)
+`operate-execution` owns *when* to flag; this covers *how*. Flag with `bd label add <id> human`;
+read the gated set with `bd human list`.
 
-- Flag it when the item has: scope ambiguity, design trade-offs, cross-cutting impact, or anything
-  you want to inspect before work starts.
-- Leave it unflagged for small, routine, well-scoped work the agent can finish without input.
-- Queryable: `bd human list` shows all gated items. The agent checks this before each new item.
+The `human` label *is* the native gate — `bd human list` filters on it; this is the one case where
+a label encodes a native concept by design. There is no `bd human <id>` flagging verb: `bd human`
+exposes only `list`/`respond`/`dismiss`/`stats`, and bare `bd human <id>` is a no-op that prints
+the help menu.
 
 ## Authoring issues: design vs acceptance
 
@@ -175,17 +171,3 @@ Link the promoted bead to its public origin with `--external-ref gh-<number>`. U
 for an issue that already exists as genuine public intake or contributor collaboration; never
 create a public issue to give a private bead an external reference. Keep status independent across
 the two: a PR's `Closes #N` closes the GitHub issue only, and the bead still needs `bd close`.
-
-## Anti-patterns
-
-- **Do not** mirror beads status into markdown docs, ROADMAPs, or TodoWrite/task lists. beads is
-  the source of truth; `bd ready` / `bd list` is the view.
-- **Do not** re-encode `--type` as a `bug`/`enhancement` label.
-- **Do not** create readiness, blocked, or status labels; those are computed or set natively.
-- **Do not** hand-set `blocked`; add a dependency.
-- **Do not** record decisions as `--type decision` beads here; dotbrain keeps decisions as ADRs in
-  `.brain/adr/` (owned by `grill-decisions`).
-- **Do not** carry a triage-label vocabulary in private beads; triage labels are a GitHub-surface
-  concern that `triage-public` maps inward.
-- **Do not** create GitHub issues for private epics, slices, or beads. Public issues enter the graph
-  as provenance-bearing intake; the execution graph is never projected outward as a tracking copy.

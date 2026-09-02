@@ -1,6 +1,6 @@
 ---
 name: iterate-design
-description: Iterate from an active design doc using the coding agent's native loop mode. Use when feature work should repeatedly plan, implement, verify, reflect design-relevant learning, and stop on a clear success or blocked condition.
+description: Iterates from an active design doc using the coding agent's native loop mode — plan, implement, verify, reflect learning back into the doc, stop on success or blocked. Use when a human hands off multi-turn feature work that has a mechanical verifier and a hard stop.
 ---
 
 # Iterate Design
@@ -9,7 +9,7 @@ Use the coding agent's native loop primitive (`/goal`, `/loop`, automation, or r
 Do not build or invoke a dotbrain loop runner. dotbrain supplies context, state boundaries, and
 reflection rules; the coding agent runs the loop.
 
-## When to Use
+## When to use
 
 This loop is human-triggered: the human explicitly hands off to it as an automation handoff (for
 example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main`.
@@ -21,7 +21,7 @@ Use when:
 - A linked bead or epic exists, or the user explicitly points at a design doc.
 
 Do not use for one-off fixes, pure triage, open-ended brainstorming, or work without a verification
-story. Use `operate-execution`, `find-unknowns`, `grill-decisions`, or `to-design` first.
+story. Reach for `operate-execution`, `find-unknowns`, `grill-decisions`, or `to-design` first.
 
 ### Loop-worthiness check
 
@@ -32,14 +32,14 @@ Before starting the loop, confirm all four hold. If any is missing, stay in ordi
 3. A hard stop is set (a retry cap or budget the loop will actually honor).
 4. A human gate covers anything irreversible the loop's checkpoints might touch.
 
-## Worktree Preparation
+## Worktree preparation
 
 A dedicated branch may run in place or in a git worktree. Before planning in a worktree, verify
 that `.brain` and `.beads` resolve through the main checkout. When they are absent, use
 `wire-brain`'s worktree repair branch before dispatch. `dotbrain wire` attaches an adopter repo to a
 Brainspace; it is not the worktree repair command.
 
-## Read Order
+## Read order
 
 Before planning, read:
 
@@ -49,9 +49,7 @@ Before planning, read:
 4. Linked bead or epic, if present.
 5. Relevant `.brain/docs/` references or code files only as needed.
 
-Use `CONTEXT.md` vocabulary exactly. Do not invent synonyms for established project concepts.
-
-## Controlling Instruction Document
+## Controlling instruction document
 
 Treat the active design doc as the loop's controlling instruction document.
 
@@ -61,7 +59,7 @@ and where design-relevant discoveries belong.
 If the design doc lacks a `Success Criteria` section, first propose the smallest useful one. If verification is human/product judgment rather than an automated command, state that and
 treat it as a human decision gate.
 
-## Loop Protocol
+## Loop protocol
 
 Use this protocol inside the agent-native loop:
 
@@ -103,7 +101,7 @@ Two hard guards:
 - The retry cap is a stop condition, not a suggestion. A loop that only stops on success runs until
   it breaks or drains the budget.
 
-## Building Blocks
+## Building blocks
 
 - Automation: Prefer a manual agent-native loop first. Use scheduled/background automation only
   after the prompt has worked manually.
@@ -116,13 +114,13 @@ Two hard guards:
 - Verifier: Prefer automated commands, tests, builds, type checks, lint checks, screenshots, or
   metrics. If none exists, record the verification gap in the active design doc or ask the user.
 
-## Loop Prompt
+## Loop prompt
 
 Paste [`templates/loop-prompt.md`](templates/loop-prompt.md) into the agent's native loop mode,
 filling in the design-doc path and linked bead. It restates the protocol above in prompt form
 because the loop runs from that text, not from this file.
 
-## Completion Criteria
+## Completion criteria
 
 Finish with the checkpoint complete or clearly blocked, verification evidence or a named
 verification gap, design-relevant learning reflected into the active design doc, and bead state

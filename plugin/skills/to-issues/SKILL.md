@@ -1,6 +1,6 @@
 ---
 name: to-issues
-description: Break a design doc into independently-workable bead tasks under an epic. Decomposes the plan into vertical-slice issues with acceptance criteria and dependencies. Use when a design doc is ready and you want to create the execution graph.
+description: Decomposes a settled design doc into independently-workable, vertical-slice bead tasks under its epic, with acceptance criteria and dependencies. Runs once per design doc. NOT for taking work off the ready frontier one item at a time — that is operate-execution.
 ---
 
 # To Issues
@@ -9,20 +9,13 @@ Take a design doc and decompose it into bead tasks under the epic. Each task is 
 slice that cuts through all integration layers - a demoable unit of work. The design doc remains
 the initiative-level design authority; beads carry execution.
 
-## Boundaries
+## Stop before you start
 
-- **vs `to-design`**: that authors the design doc and opens the epic; this fills the epic with
-  slices. Run it once per design doc, after the design is settled enough to cut up.
-- **vs `operate-execution`**: both create beads, at different scales. That takes work in one item at
-  a time as it arrives and runs the ready frontier; this is a single bulk decomposition of a whole
-  initiative. Its `references/work-intake.md` owns the call between the two.
-- **vs `iterate-design`**: that executes slices; this creates them. Decomposition ends where
-  implementation begins.
-- **vs `triage-public`**: that promotes existing public issues inward with provenance. This works
-  from a private design outward into private beads, and never creates public tracking issues.
-
-Pipeline position: `to-design` (capture), then `to-issues` (decompose), then `operate-execution`
-(build).
+- No design doc, or a design still in flux — decomposing an unsettled design produces slices you
+  will re-cut. Wait, or run `to-design`.
+- Work that fits in a single bead — `operate-execution`'s `references/work-intake.md` owns that
+  call.
+- This doc already decomposed — check the epic for existing slices before adding more.
 
 ## Process
 
@@ -38,7 +31,8 @@ ls -t .brain/designs/*.md | head -1
 Read the full design doc, especially `Goals`, `Design`, `Known Unknowns`,
 `Implementation Notes`, `Deviations`, and `Non-goals`.
 
-Completion: you can name the design doc slug and state its goals and non-goals without re-reading.
+Completion: the design doc slug, its goals, and its non-goals are restated to the user before any
+slicing begins.
 
 ### 2. Draft vertical slices
 
@@ -124,7 +118,7 @@ tracking issues.
 Completion: every reviewed slice exists as a bead carrying `--spec-id design:<slug>`, `bd ready`
 lists exactly the unblocked ones, and every human-gated slice carries the `human` label.
 
-### 5. Close
+### 5. Hand off
 
 Summarize what was created: the epic ID, the number of task beads, and any items labeled `human`.
 Recommend reviewing the human-gated items before marking them ready.

@@ -1,6 +1,6 @@
 ---
 name: to-design
-description: Formalize a multi-step initiative as a design doc in the Brain plus a tracking epic bead. Use when the user wants to design an initiative before decomposing it into work items, or arrives from grill-decisions or find-unknowns with a shape worth writing down.
+description: Formalizes a multi-step initiative as a design doc in the Brain plus a tracking epic bead. Use when an initiative is multi-step, crosses modules, or carries meaningful unknowns — before it is decomposed into work items — or when arriving from grill-decisions or find-unknowns with a shape worth writing down.
 ---
 
 # To Design
@@ -9,30 +9,29 @@ Synthesize the current conversation context and codebase understanding into a de
 `.brain/designs/`, then open the epic that tracks it. `DOTBRAIN.md` governs the doc over its whole
 life; this skill covers authoring it.
 
-## Process
+## Stop before you start
 
-### 1. Decide whether a design doc is the right shape
-
-Use `to-design` when the initiative is multi-step, crosses modules or workflows, needs explicit
-scope boundaries, or carries meaningful unknowns. Small, obvious, single-slice changes go straight
-into beads instead.
+A design doc earns its keep only when the initiative is multi-step, crosses modules or workflows,
+needs explicit scope boundaries, or carries meaningful unknowns. Small, obvious, single-slice
+changes go straight into beads instead.
 
 If the initiative warrants an ADR, stop and run `grill-decisions` first. ADRs own durable decision
 rationale; this doc owns the initiative's design, unknowns, and rollout.
 
-Completion: you can state in one sentence why this initiative needs a doc rather than a bead,
-or you have handed off to `grill-decisions`.
+State the one-sentence reason this needs a doc rather than a bead before creating anything.
 
-### 2. Read the local operating context
+## Process
 
-Read the nearest `AGENTS.md`, `DOTBRAIN.md`, `CONTEXT.md`, and the ADRs and design docs relevant to
+### 1. Read the local operating context
+
+Read the nearest `AGENTS.md`, `CONTEXT.md`, and the ADRs and design docs relevant to
 the initiative. If `.brain/docs/` holds runbooks or reference notes bearing on the work, read those
 too.
 
-Completion: you can name the project's existing vocabulary for every concept this initiative
-touches, and every ADR it interacts with.
+Completion: every concept this initiative touches is paired with the project's existing term or
+flagged as needing a new one, and every ADR it interacts with is listed.
 
-### 3. Surface the unknowns before writing
+### 2. Surface the unknowns before writing
 
 Territory you have not inspected produces designs that break on contact. For unfamiliar codebases
 or broad changes, run `find-unknowns` — it is the blind-spot pass, and its output seeds
@@ -47,19 +46,19 @@ Confirm the sketch with the user before creating anything.
 Completion: every module the initiative touches is either inspected or listed as a known
 unknown, and the user has confirmed the sketch.
 
-### 4. Write the design doc
+### 3. Write the design doc
 
 Copy `templates/design.md` to `.brain/designs/<slug>.md` and fill it in. The template carries the
 section set, per-section authoring hints, and the lifecycle rules that apply after authoring.
 
-The doc is born `lifecycle: draft`; flip it to `active` in step 5, once the epic exists.
+The doc is born `lifecycle: draft`; flip it to `active` in step 4, once the epic exists.
 
 Use `CONTEXT.md` vocabulary exactly for every concept it already names.
 
 Completion: every section you kept is filled, every section you dropped is deleted along with
 its hints, and each goal has a matching entry under `Success Criteria`.
 
-### 5. Create the epic bead
+### 4. Create the epic bead
 
 Create the tracking epic and link it back to the design doc:
 
@@ -76,12 +75,12 @@ Set the doc's frontmatter to `lifecycle: active`.
 Completion: the epic exists, its `--spec-id` matches the doc slug, and the doc reads
 `lifecycle: active`.
 
-### 6. Close
+### 5. Hand off
 
 Summarize what was created: the design doc path and the epic bead ID. Recommend `to-issues` as the
 next step.
 
-## Boundaries
+## What goes where
 
 Three artifacts hold different material, and the design doc holds only the middle one:
 

@@ -1,6 +1,6 @@
 ---
 name: curate-project-context
-description: Curate and maintain a project's public and private agent context. Use when checking context health, reorganizing accumulated guidance, repairing AGENTS.md or CLAUDE.md drift, finding stale, duplicated, misplaced or unreachable knowledge, or checking the public/private boundary.
+description: Curates a project's public and private agent context. Use when checking context health, reorganizing accumulated guidance, repairing AGENTS.md or CLAUDE.md drift, finding stale, duplicated, misplaced or unreachable knowledge, or checking the public/private boundary.
 ---
 
 # Curate Project Context
@@ -16,17 +16,20 @@ This skill has two modes:
   maintain, or fix the context authorizes repairs within the named project, but not lifecycle work
   owned by another skill.
 
-## Boundaries
+## Scope limits
 
-- `/init` or the runtime's equivalent owns initial public project scaffolding.
-- `dotbrain doctor` checks mechanical installation and wiring; `wire-brain` repairs Brainspace and
-  workspace wiring. Use their evidence, but do not absorb their jobs.
-- `write-agent-docs` supplies the writing discipline for pointers, hierarchy, completion criteria,
-  and pruning. Apply it when revising prose.
-- `grill-decisions` resolves contested vocabulary and durable decisions. This skill may relocate an
-  already-settled fact but does not invent or adjudicate one.
-- `close-design` owns design closure and residue promotion. `operate-execution` owns Beads state.
-- Credentials belong in the configured secret store, never in public or private context files.
+Fix mode writes files, so these bound what it may change:
+
+- **Relocate settled facts, never adjudicate one.** A contested term or an unmade decision goes to
+  `grill-decisions`; moving a fact is in scope, deciding it is not.
+- **Report wiring, do not repair it.** `dotbrain doctor` supplies the mechanical baseline and
+  `wire-brain` fixes it; use their evidence and route the repair.
+- **Never touch another document's lifecycle.** Design closure and residue promotion are
+  `close-design`'s; Beads state is `operate-execution`'s.
+- **Credentials belong in the configured secret store**, never in public or private context files.
+
+`write-agent-docs` supplies the writing discipline for pointers, hierarchy, completion criteria, and
+pruning. Apply it when revising prose.
 
 ## Authority map
 

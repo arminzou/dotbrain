@@ -1,6 +1,6 @@
 ---
 name: close-design
-description: Drive a design doc to a terminal lifecycle state — record achieved evidence, promote residue to adr/ and CONTEXT.md, stamp frontmatter, close the epic. Use when an initiative ships, gets abandoned or superseded, when a stale `active` doc needs classifying, or when sweeping `.brain/designs/` for docs that never closed out.
+description: Drives a design doc to a terminal lifecycle state — records achieved evidence, promotes residue to adr/ and CONTEXT.md, stamps frontmatter, closes the epic. Use when an initiative ships, is abandoned or superseded, when a stale `active` doc needs classifying, or when sweeping `.brain/designs/` for docs that never closed out.
 ---
 
 # Close Design
@@ -12,19 +12,12 @@ that transition.
 `operate-execution` reaches this skill when the last open slice under a design-linked epic closes.
 It is also invoked directly for the sweep and retroactive cases below.
 
-## Boundaries
+## Stop before you start
 
-- **vs `to-design`**: that opens the doc and takes it from `draft` to `active`; this takes it from
-  `active` to terminal. Opposite ends of the same lifecycle.
-- **vs `iterate-design`**: that works the doc while it is live, reflecting learning into it; this
-  freezes it and decides what outlives it.
-- **vs `operate-execution`**: that owns the execution graph. This closes the epic only as the last
-  act of the doc's transition, never as a way to manage work.
-- **vs `grill-decisions`**: both write ADRs, at opposite times. That records a decision as it
-  crystallises; this harvests decisions already made, retrospectively, from a finished initiative.
-
-Pipeline position: `to-design` (open), `to-issues` (decompose), `iterate-design` or
-`operate-execution` (build), then `close-design` (freeze and harvest).
+- The initiative is still live — a doc with open slices under its epic is `active` by definition,
+  and freezing it strands the work. Only the sweep case below reads a still-`active` doc.
+- You are here to close a bead, not a doc. Closing the epic is the last act of this transition,
+  never a way to manage work.
 
 ## Branches
 
