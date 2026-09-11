@@ -49,14 +49,6 @@ def _check_binary(name: str) -> Finding:
                    f"install {name} or add it to PATH")
 
 
-def _check_binary_dolt() -> Finding:
-    """dolt is a server-hosting dep (server host only), not a client requirement. Warn, not error."""
-    if shutil.which("dolt"):
-        return Finding("ok", "dolt available")
-    return Finding("warn", "dolt not found on PATH",
-                   "dolt is a server-host dependency; install only if this machine hosts beads")
-
-
 def _check_dotbrain_config(root: Path) -> Finding:
     try:
         config.load_config(root)
@@ -83,7 +75,6 @@ def _check_templates(root: Path) -> Finding:
 def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings: list[Finding] = [
         _check_binary("bd"),
-        _check_binary_dolt(),
         _check_dotbrain_config(root),
         _check_global_skills_config(root),
         _check_templates(root),

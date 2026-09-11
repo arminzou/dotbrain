@@ -34,13 +34,6 @@ def test_check_binary_missing():
     assert f.suggestion
 
 
-def test_check_binary_dolt_warns_not_errors():
-    """dolt is a server-host dep — missing is a warning, not a hard error."""
-    f = doctor._check_binary_dolt()
-    if f.status != "ok":
-        assert f.status == "warn", f"dolt missing should be warn, got {f.status}: {f.message}"
-
-
 def test_check_dotbrain_config_valid(dotbrain_home: Path):
     f = doctor._check_dotbrain_config(dotbrain_home)
     assert f.status == "ok"
@@ -393,7 +386,7 @@ def test_run_doctor_machine_always_runs(
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     report = doctor.run_doctor(dotbrain_home)
-    assert len(report.machine) >= 5  # bd, dolt, config, skills, templates, 2 hooks
+    assert len(report.machine) >= 4  # bd, config, skills, templates
 
 
 # --------------------------------------------------------------------------- CLI integration
