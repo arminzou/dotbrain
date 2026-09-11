@@ -1,12 +1,13 @@
 ---
 name: iterate-design
-description: Iterates from an active design doc using the coding agent's native loop mode for an explicit automation handoff with a mechanical verifier and hard stop.
+description: Iterates from an active design doc in Goal mode for an explicit automation handoff with a mechanical verifier and hard stop.
 disable-model-invocation: true
 ---
 
 # Iterate Design
 
-Use the coding agent's native loop primitive (`/goal`, `/loop`, automation, or repeated turns).
+Use the agent harness's Goal mode when available. Otherwise, keep work in the same task and
+make bounded repeated turns.
 Do not build or invoke a dotbrain loop runner. dotbrain supplies context, state boundaries, and
 reflection rules; the coding agent runs the loop.
 
@@ -87,7 +88,7 @@ bead has closed; `review-gate` then owns that final record.
 
 ## Loop protocol
 
-Use this protocol inside the agent-native loop:
+Use this protocol throughout the handoff:
 
 1. PLAN: Reread the active design doc fresh — do not rely on an earlier iteration's memory of it,
    since long runs are where constraints silently drop out of lossy context. Then pick the
@@ -134,7 +135,7 @@ Two hard guards:
 
 ## Building blocks
 
-- Automation: Prefer a manual agent-native loop first. Use scheduled/background automation only
+- Automation: Prefer a direct Goal-mode handoff first. Use scheduled/background automation only
   after the prompt has worked manually.
 - Skill: This file is the reusable workflow wrapper.
 - Sub-agents: Use an explorer for unclear codepaths, an implementer for scoped changes, and a
@@ -147,9 +148,10 @@ Two hard guards:
 
 ## Loop prompt
 
-Paste [`templates/loop-prompt.md`](templates/loop-prompt.md) into the agent's native loop mode,
-filling in the design-doc path and linked bead. It restates the protocol above in prompt form
-because the loop runs from that text, not from this file.
+Start the handoff in the agent harness's Goal mode with
+[`templates/handoff-prompt.md`](templates/handoff-prompt.md), filling in the design-doc path and linked
+bead. It restates the protocol above in prompt form because the handoff runs from that text, not
+from this file.
 
 ## Completion criteria
 

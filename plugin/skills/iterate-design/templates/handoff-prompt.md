@@ -1,4 +1,4 @@
-Use your native goal/loop mode.
+Use Goal mode when available. Otherwise, remain in this task and make bounded repeated turns.
 
 Active design doc:
 <path>
