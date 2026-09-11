@@ -17,6 +17,8 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "hard stop" in doc
     assert "report blocked with the attempt trail" in doc
     assert "end the loop and go to the human" in doc
+    assert "draft-PR authorization" in doc
+    assert "explicit `GO`" in doc
     assert "the active design doc is the spec" in doc
     assert "Reread the spec every iteration" in doc
 

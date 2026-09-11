@@ -69,12 +69,13 @@ everything else unflagged so the agent can flow through the ready frontier.
 
 ## Operating loop
 
-1. Read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty means
+1. On a new session or after context recovery, use the hook-injected `bd prime` protocol; run
+   `bd prime` only when it was not injected. Then read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty means
    pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
    rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
    project Brain context and relevant ADRs.
-2. Inspect the graph: ready frontier, list, and item detail (commands in
-   [references/beads.md](references/beads.md)).
+2. Inspect the graph with structured, non-interactive output: ready frontier, list, and item detail
+   (commands in [references/beads.md](references/beads.md)).
 3. Check for human-gated items among the ready set (engine reference covers the command). Recheck
    every iteration: the gated set changes as items close and new ones are created.
 4. Select the next ready item:
@@ -105,7 +106,7 @@ everything else unflagged so the agent can flow through the ready frontier.
 
 When work moves to another agent or session before it closes, record enough that the worker can
 act without being spoon-fed: work-item ID, anchor epic (if any), intended scope, required checks,
-and review/landing expectations. A branch created for the work uses the canonical name
+review/landing expectations, and the bead's current state: done, next, and any open question. A branch created for the work uses the canonical name
 `<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart
 anchor inference.
 

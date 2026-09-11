@@ -1,3 +1,5 @@
 interface:
   display_name: "Iterate Design"
   short_description: "Implement and verify an active design"
+policy:
+  allow_implicit_invocation: false

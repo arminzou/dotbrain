@@ -80,6 +80,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
     for skill in (
         "brain/iterate-design",
         "brain/operate-execution",
+        "brain/review-gate",
         "brain/find-unknowns",
         "brain/to-design",
         "brain/close-design",

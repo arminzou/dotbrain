@@ -2,8 +2,9 @@
 
 The beads engine reference for `operate-execution`, loaded when `execution-engine: beads`. Covers
 how to model, author, and resume work in beads' own fields, and why that beats inventing a label
-vocabulary on top. This is the opinion layer; for the version-current command list and flags, run
-`bd prime` — it is authoritative, so do not reproduce the full reference here.
+vocabulary on top. On a new session or after context recovery, use the hook-injected `bd prime`
+protocol; run `bd prime` only when it was not injected. It is authoritative for the version-current
+command list and flags, so do not reproduce the full reference here.
 
 The one rule everything below serves: **beads is a typed, prioritized dependency graph. Express
 work in the native fields the graph already has; reach for labels only for a dimension the graph
@@ -13,20 +14,20 @@ source of truth that drifts.
 ## Command quick reference
 
 Run from the repo root or Brainspace; use `bd -C <repo-or-Brainspace> ...` from elsewhere. The
-store lives in the Brainspace's `.beads/`. `bd prime` reloads the session protocol and the
-current command set.
+store lives in the Brainspace's `.beads/`. Agent commands use structured, non-interactive output;
+human use may omit those flags.
 
 ```bash
-bd ready                                   # claimable work: open, no open blockers
-bd list --status open                      # survey
-bd show <id> --long                        # full item detail
-bd create "Title" --type task --description "..."
-bd create "Epic title" --type epic
-bd create "Child" --parent <epic-id> --type task
-bd dep add <blocked-id> <blocker-id>       # "<blocked> depends on <blocker>"
-bd update <id> --claim                     # sets in_progress + ownership
-bd close <id> --reason "..."
-bd dolt pull   /   bd dolt push            # sync the shared store
+bd ready --json --quiet                                   # claimable work: open, no open blockers
+bd list --status open --json --quiet                      # survey
+bd show <id> --long --json --quiet                        # full item detail
+bd create "Title" --type task --description "..." --json --quiet
+bd create "Epic title" --type epic --json --quiet
+bd create "Child" --parent <epic-id> --type task --json --quiet
+bd dep add <blocked-id> <blocker-id> --json --quiet       # "<blocked> depends on <blocker>"
+bd update <id> --claim --json --quiet                     # sets in_progress + ownership
+bd close <id> --reason "..." --json --quiet
+bd dolt pull --json --quiet   /   bd dolt push --json --quiet  # sync the shared store
 ```
 
 ## Choose `--type` deliberately
@@ -130,8 +131,9 @@ beads exists so work survives session boundaries and context compaction; the not
   format (show, do not describe). Skip this weight for simple tasks.
 - On close, document the **actual outcome**, not the original hypothesis: if the design changed,
   say what really happened in the close reason or notes.
-- Recover after compaction with `bd list --status in_progress`, then `bd show <id> --long`;
-  `bd prime` reloads the session protocol.
+- Recover after compaction with the hook-injected `bd prime` protocol (or run `bd prime` if it
+  was not injected), then `bd list --status in_progress --json --quiet` and
+  `bd show <id> --long --json --quiet`.
 
 ## Labels: the one place they earn their keep
 

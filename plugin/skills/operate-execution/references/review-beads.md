@@ -4,7 +4,7 @@ How to persist any code review's findings as a bead and operate that bead afterw
 skill, tool, or ad hoc process produced them. A review's own methodology — what it checks, how
 rigorously, its finding vocabulary — stays owned by that review. This reference only covers turning
 its output into a bead and tracking remediation; it applies uniformly to every review, named skill
-or not.
+or not. `review-gate` selects the review mode; this file owns its shared record.
 
 ## Pick the shape
 
@@ -22,7 +22,7 @@ relative to when the bead exists*, not of what produced the findings:
 
 - **Type and priority** — `task` by default, `bug` when the findings are predominantly defects;
   priority follows the worst finding's severity. `--parent` the epic under review, when there is one.
-- **Description** — the target and the standard: what was reviewed (commit range, PR, files,
+- **Description** — the target, selected review modes, and standard: what was reviewed (commit range, PR, files,
   subsystem) and what it was checked against, when that isn't already obvious from the surrounding
   epic or design doc. For a multi-pass review, the standard goes here **before pass 1 and is never
   revised** — it is the review's premise, and a premise edited mid-review is not a premise.
@@ -64,7 +64,7 @@ relative to when the bead exists*, not of what produced the findings:
   comment, not a rewrite. The newest comment is the current state — there is no status header to
   maintain.
 - **`--metadata`** — a multi-pass review's recognizable signal:
-  `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>"}'`. Update `verdict` when the
+  `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'`. Update `verdict` when the
   call is made, so `bd list --metadata-field verdict=no-go --all` finds every outstanding one.
 
   ```bash
@@ -72,7 +72,7 @@ relative to when the bead exists*, not of what produced the findings:
     --type task --priority 1 --parent <epic-id> \
     --description "<the standard this review checks against — the oracle>" \
     --acceptance "All passes recorded; verdict issued; every finding fixed or filed as its own bead." \
-    --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>"}'
+    --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'
   ```
   A review with no epic — a repo-wide audit, a release gate — is a top-level bead; use `--type
   milestone` if it qualifies a release.
@@ -93,8 +93,16 @@ apply the multi-pass rules above, not the single-pass ones. The two disciplines 
 interchangeable: rewriting a multi-pass bead's notes as "current state," or editing one of its
 comments, destroys the record the shape exists to protect.
 
-## Closing
+## Closing and human review
 
-Close it the same way as any other bead: `bd close --reason` naming the final disposition and any
-surviving follow-up ids, once every finding is fixed, filed as its own bead, or consciously
-declined.
+An open review bead means its **review gate is incomplete**, not only that it has unresolved
+findings. It can therefore mean review in progress, remediation in progress, a clean agent verdict
+awaiting a human, or a draft PR awaiting approval or merge. For the latter two, append the PR or
+review location and verification evidence, then add the native `human` label; never invent a second
+status label.
+
+Close it the same way as any other bead only when every finding is fixed, filed as its own bead, or
+consciously declined **and** any required human review has resolved. The close reason names the
+final disposition and surviving follow-up ids. For an epic gate, make the review bead depend on
+every scoped implementation bead; it becomes claimable only after the graph reaches its final
+review step.
