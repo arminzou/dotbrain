@@ -11,6 +11,7 @@ Reference for the public `dotbrain` CLI.
  dotbrain CLI for wiring project Brainspaces and skills into coding agents.
 
 ┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --version                       Show the dotbrain version.                   │
 │ --install-completion            Install completion for the current shell.    │
 │ --show-completion               Show completion for the current shell, to    │
 │                                 copy it or customize the installation.       │
@@ -21,6 +22,7 @@ Reference for the public `dotbrain` CLI.
 │            links.                                                            │
 │ doctor     Read-only health check: machine readiness, project wiring, beads  │
 │            state drift.                                                      │
+│ update     Update this released CLI to the latest stable GitHub release.     │
 │ wire       Create or repair a project Brainspace and wire an adopter repo.   │
 │ refresh    Refresh Brain/workspace files, repo links, beads state, and       │
 │            project skills.                                                   │
@@ -333,6 +335,19 @@ Reference for the public `dotbrain` CLI.
 │ --delete                 Remove the Brainspace (destructive)                 │
 │ --dry-run                Preview the offboard without performing it.         │
 │ --help     -h            Show this message and exit.                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain update`
+
+```text
+
+ Usage: dotbrain update [OPTIONS]
+
+ Update this released CLI to the latest stable GitHub release.
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --help  -h        Show this message and exit.                                │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 

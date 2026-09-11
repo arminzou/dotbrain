@@ -168,6 +168,15 @@ codex plugin add dotbrain@dotbrain
 Then refresh the CLI to match, either by asking your agent or by re-running the install command
 from step 2 with the new tag.
 
+To update only the released CLI, run:
+
+```bash
+dotbrain update
+```
+
+It installs the latest stable GitHub release and does not update plugins or private dotbrain data. On Windows, wait a moment for the running launcher to exit, then confirm with `dotbrain --version`.
+Contributor checkouts remain editable: update the checkout with Git instead of using this command.
+
 ## Edit Config Only When Needed
 
 Most first-time setups can leave the default embedded beads mode alone.

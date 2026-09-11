@@ -8,12 +8,14 @@ from typing import Optional
 
 import typer
 
+from dotbrain import __version__, updater
 from dotbrain import doctor as doctor_mod
 from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, skills, subagents, workflows
 
 app = typer.Typer(
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
     no_args_is_help=True,
+    invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 skills_app = typer.Typer(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
@@ -24,6 +26,19 @@ app.add_typer(skills_app, name="skills")
 app.add_typer(agents_app, name="agents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
+
+
+@app.callback()
+def main(
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", is_eager=True, help="Show the dotbrain version."),
+) -> None:
+    if version:
+        typer.echo(__version__)
+        raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 @hook_app.command("session-start")
@@ -148,6 +163,22 @@ def doctor() -> None:
     root = paths.resolve_dotbrain_home()
     report = doctor_mod.run_doctor(root)
     _render_doctor(report)
+
+
+@app.command()
+def update() -> None:
+    """Update this released CLI to the latest stable GitHub release."""
+    try:
+        target = updater.update_cli(__version__)
+    except updater.UpdateError as exc:
+        typer.echo(f"dotbrain update: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    if target is None:
+        typer.echo(f"dotbrain {__version__} is already current")
+    elif sys.platform == "win32":
+        typer.echo(f"dotbrain update to {target} is starting; run 'dotbrain --version' in a moment to verify")
+    else:
+        typer.echo(f"dotbrain updated from {__version__} to {target}; run 'dotbrain --version' to verify")
 
 
 @app.command()

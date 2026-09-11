@@ -10,7 +10,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from dotbrain import bootstrap as bootstrap_mod, migrate, paths
+from dotbrain import __version__, bootstrap as bootstrap_mod, migrate, paths, updater
 from dotbrain import cli
 from dotbrain.cli import app
 
@@ -22,10 +22,17 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "wire", "refresh", "unwire", "beads", "skills", "agents"):
+    for command in ("bootstrap", "doctor", "update", "wire", "refresh", "unwire", "beads", "skills", "agents"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
+
+
+def test_version_prints_installed_version():
+    result = runner.invoke(app, ["--version"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output == f"{__version__}\n"
 
 
 def test_skills_help_hides_low_value_discovery_command():
@@ -33,6 +40,27 @@ def test_skills_help_hides_low_value_discovery_command():
     assert result.exit_code == 0
     assert "link" in result.output
     assert "list" not in result.output
+
+
+def test_update_renders_success(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(cli.updater, "update_cli", lambda version: "0.4.0")
+
+    result = runner.invoke(app, ["update"])
+
+    assert result.exit_code == 0, result.output
+    assert "0.4.0" in result.output
+    assert "dotbrain --version" in result.output
+
+
+def test_update_renders_failure(monkeypatch: pytest.MonkeyPatch):
+    def fail(version: str) -> None:
+        raise updater.UpdateError("network unavailable")
+
+    monkeypatch.setattr(cli.updater, "update_cli", fail)
+    result = runner.invoke(app, ["update"])
+
+    assert result.exit_code == 1
+    assert "network unavailable" in result.output
 
 
 def test_agents_help_hides_low_value_discovery_command():
