@@ -56,6 +56,18 @@ def test_private_identifiers_never_reach_a_public_pr():
     assert not re.search(r"`\.brain/` paths, ADR numbers", loop), "second copy will drift"
 
 
+def test_automation_handoff_authorizes_only_an_explicit_draft_pr():
+    """A draft PR is safe only when the human supplied the bounded handoff contract."""
+    convention = _text(CONVENTION)
+    loop = _text(SKILLS / "iterate-design/SKILL.md")
+
+    assert "explicit `GO`" in convention
+    assert "draft-PR authorization" in convention
+    assert "Preflight contract" in loop
+    assert "draft PR" in loop
+    assert "does not authorize merge, deploy, publish, dependency changes" in loop
+
+
 def test_adr_offer_test_is_single_sourced():
     """The three-part test decides when any skill offers an ADR. Two copies means two
     different bars for writing a decision record."""

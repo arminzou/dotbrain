@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Gate"
+  short_description: "Run a durable engineering review gate"
+  default_prompt: "Use $review-gate to review this change before handoff."
