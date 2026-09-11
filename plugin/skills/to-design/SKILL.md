@@ -48,8 +48,11 @@ unknown, and the user has confirmed the sketch.
 
 ### 3. Write the design doc
 
-Copy `templates/design.md` to `.brain/designs/<slug>.md` and fill it in. The template carries the
-section set, per-section authoring hints, and the lifecycle rules that apply after authoring.
+Design docs use the same sequential naming as ADRs: scan `.brain/designs/` for the highest existing
+`NNNN-` prefix and increment by one (`0001` if none exist yet).
+
+Copy `templates/design.md` to `.brain/designs/<NNNN>-<slug>.md` and fill it in. The template carries
+the section set, per-section authoring hints, and the lifecycle rules that apply after authoring.
 
 The doc is born `lifecycle: draft`; flip it to `active` in step 4, once the epic exists.
 
@@ -63,7 +66,7 @@ its hints, and each goal has a matching entry under `Success Criteria`.
 Create the tracking epic and link it back to the design doc:
 
 ```bash
-bd create "<Design title>" --type epic --description "See .brain/designs/<slug>.md" --spec-id design:<slug>
+bd create "<Design title>" --type epic --description "See .brain/designs/<NNNN>-<slug>.md" --spec-id design:<NNNN>-<slug>
 ```
 
 `--spec-id` links the execution graph back to the design doc. The epic stays private even when the
