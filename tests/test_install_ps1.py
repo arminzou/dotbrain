@@ -3,7 +3,7 @@
 from pathlib import Path
 
 
-INSTALLER = Path(__file__).resolve().parent.parent / "install.ps1"
+INSTALLER = Path(__file__).resolve().parent.parent / "scripts" / "dev-install.ps1"
 
 
 def test_beads_path_detection_covers_release_and_go_fallbacks() -> None:

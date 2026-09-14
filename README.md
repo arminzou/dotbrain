@@ -219,9 +219,9 @@ uv run dotbrain --help  # inspect the command tree
 uv run pytest           # run the test suite
 ```
 
-To install a CLI from your checkout rather than a release tag, run `./install.sh` (or
-`.\install.ps1` on Windows) from the repo root, then `dotbrain bootstrap`. That is the contributor
-path; users get the CLI from the plugin.
+To install a CLI from your checkout rather than a release tag, run `./scripts/dev-install.sh` (or
+`.\scripts\dev-install.ps1` on Windows) from the repo root, then `dotbrain bootstrap`. That is the
+contributor path; users get the CLI from PyPI or the plugin.
 
 The plugin's `skills/` tree is the source of truth for dotbrain's bundled skills.
 

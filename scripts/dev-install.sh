@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
-# install.sh - fresh-machine setup for dotbrain.
+# dev-install.sh - fresh-machine setup for dotbrain contributors.
 #
-# Installs uv, Beads (bd), and the dotbrain CLI.
+# Installs uv, Beads (bd), and an editable dotbrain CLI from this checkout.
 #
 # Usage:
-#   ~/dotbrain/install.sh
+#   ~/dotbrain/scripts/dev-install.sh
 #
 # After this script completes, run:
 #   dotbrain bootstrap
 
 set -euo pipefail
 
-# The tool checkout to install from: always this script's own directory, never the
-# $DOTBRAIN_HOME data-home override (a user's data home has no pyproject.toml to install).
-DOTBRAIN_CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# The tool checkout to install from: always this script's parent directory (the repo root),
+# never the $DOTBRAIN_HOME data-home override (a user's data home has no pyproject.toml to
+# install).
+DOTBRAIN_CHECKOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-log() { printf '[install] %s\n' "$*"; }
-warn() { printf '[install] warning: %s\n' "$*" >&2; }
-die() { printf '[install] error: %s\n' "$*" >&2; exit 1; }
+log() { printf '[dev-install] %s\n' "$*"; }
+warn() { printf '[dev-install] warning: %s\n' "$*" >&2; }
+die() { printf '[dev-install] error: %s\n' "$*" >&2; exit 1; }
 
 # Install uv if not already available.
 ensure_uv() {

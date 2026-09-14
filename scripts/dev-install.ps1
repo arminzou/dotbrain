@@ -1,9 +1,9 @@
-# install.ps1 - fresh-machine setup for dotbrain on native Windows.
+# dev-install.ps1 - fresh-machine setup for dotbrain contributors on native Windows.
 #
-# Installs uv, Beads (bd), and the dotbrain CLI.
+# Installs uv, Beads (bd), and an editable dotbrain CLI from this checkout.
 #
 # Usage:
-#   .\install.ps1
+#   .\scripts\dev-install.ps1
 #
 # After this script completes, run:
 #   dotbrain bootstrap
@@ -14,13 +14,14 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# The tool checkout to install from: always this script's own directory, never the
-# $DOTBRAIN_HOME data-home override (a user's data home has no pyproject.toml to install).
-$DotbrainCheckout = $PSScriptRoot
+# The tool checkout to install from: always this script's parent directory (the repo root),
+# never the $DOTBRAIN_HOME data-home override (a user's data home has no pyproject.toml to
+# install).
+$DotbrainCheckout = Split-Path -Parent $PSScriptRoot
 
-function Write-Log($Message)  { Write-Host "[install] $Message" }
-function Write-Warn($Message) { Write-Warning "[install] $Message" }
-function Write-Die($Message)  { Write-Host "[install] error: $Message" -ForegroundColor Red; exit 1 }
+function Write-Log($Message)  { Write-Host "[dev-install] $Message" }
+function Write-Warn($Message) { Write-Warning "[dev-install] $Message" }
+function Write-Die($Message)  { Write-Host "[dev-install] error: $Message" -ForegroundColor Red; exit 1 }
 
 function Add-ProcessPath($Directory) {
     if (-not $Directory) { return }
