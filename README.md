@@ -4,6 +4,8 @@
 
 # Dotbrain
 
+[![PyPI](https://img.shields.io/pypi/v/dotbrain)](https://pypi.org/project/dotbrain/)
+
 > Dotbrain keeps your project's context private and your code repo clean, and makes that discipline effortless.
 
 As an engineer, almost everything I build outgrows my private workspace. A side project I start
@@ -195,6 +197,11 @@ On **Windows**, enable
 first so Dotbrain can create directory symlinks without Administrator privileges. The private
 dotbrain home defaults to `%USERPROFILE%\dotbrain` (for example, `C:\Users\you\dotbrain`). Set
 `DOTBRAIN_HOME` only when you want to use a different location.
+
+Already have `uv` or `pipx` and just want the CLI? `uv tool install dotbrain` (or
+`pipx install dotbrain`, or plain `pip install dotbrain`) installs it from
+[PyPI](https://pypi.org/project/dotbrain/) — this skips `uv`/Beads provisioning, so follow up
+with `dotbrain bootstrap` and `dotbrain doctor`.
 
 See [docs/getting-started.md](docs/getting-started.md) for the full walkthrough, including how to
 install the CLI by hand and what to do if `marketplace add` trips over a Windows file lock.
