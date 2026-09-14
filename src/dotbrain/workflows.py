@@ -282,10 +282,11 @@ def wire_all_projects(
 
         repo = adopter_repos.repo_for_brainspace(brainspace, dotbrain_home, rb, home)
         if repo is None:
-            result.warnings.append(
-                f"no repo found for Brainspace {brainspace.name}; "
-                f"add {brainspace}/.repo or create {rb}/{brainspace.name}"
-            )
+            if not brainspaces.is_brain_only(brainspace):
+                result.warnings.append(
+                    f"no repo found for Brainspace {brainspace.name}; "
+                    f"add {brainspace}/.repo or create {rb}/{brainspace.name}"
+                )
             continue
 
         active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)

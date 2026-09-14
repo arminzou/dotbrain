@@ -122,6 +122,8 @@ def repo_for_brainspace(
     2. <brainspace>/.repo (committed canonical pointer)
     3. dotbrain_home itself when brainspace.name == "dotbrain"
     4. repo_base/<brainspace.name> when the directory exists
+
+    A ``(brain-only)`` pointer resolves to ``None``: the Brainspace declares no adopter repo.
     """
     for pointer_name in (".repo.local", ".repo"):
         pointer = brainspace / pointer_name
@@ -131,6 +133,8 @@ def repo_for_brainspace(
                 if l.strip() and not l.strip().startswith("#")
             ]
             if lines:
+                if lines[0] == "(brain-only)":
+                    return None
                 return expand_path(lines[0], home)
     if brainspace.name == "dotbrain":
         return Path(dotbrain_home).resolve()

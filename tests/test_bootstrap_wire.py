@@ -74,6 +74,17 @@ def test_wire_all_warns_non_git_repo(dotbrain_home: Path, brainspace: Path,
     assert any("not a git repo" in w for w in result.warnings)
 
 
+def test_wire_all_silent_for_brain_only_project(dotbrain_home: Path, brainspace: Path,
+                                                fake_home: Path, tmp_path: Path):
+    (brainspace / ".repo").write_text("(brain-only)\n")
+
+    result = workflows.wire_all_projects(
+        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
+    )
+
+    assert not any("no repo found" in w or "not a git repo" in w for w in result.warnings)
+
+
 # --------------------------------------------------------------------------- ensure_server_beads_metadata
 
 

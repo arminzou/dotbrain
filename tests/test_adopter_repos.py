@@ -209,6 +209,16 @@ def test_repo_for_brainspace_skips_comments(tmp_path: Path, fake_home: Path):
     assert result == fake_home / "repos" / "myproject"
 
 
+def test_repo_for_brainspace_brain_only_returns_none(tmp_path: Path, fake_home: Path):
+    # A brain-only Brainspace stores the sentinel instead of a path; resolving it as a
+    # literal repo path made refresh/bootstrap warn about a nonexistent "(brain-only)" repo.
+    brainspace = tmp_path / "brain-only"
+    brainspace.mkdir()
+    (brainspace / ".repo").write_text("(brain-only)\n")
+    result = adopter_repos.repo_for_brainspace(brainspace, tmp_path, home=fake_home)
+    assert result is None
+
+
 # --------------------------------------------------------------------------- pure helpers
 
 

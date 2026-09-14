@@ -559,6 +559,26 @@ def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     assert "beads loaded" in result.logs
 
 
+def test_refresh_projects_silent_for_brain_only_project(
+    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    brainspace = paths.brainspace(dotbrain_home, "brain-only")
+    (brainspace / ".brain").mkdir(parents=True)
+    (brainspace / ".repo").write_text("(brain-only)\n")
+
+    monkeypatch.setattr(
+        workflows.beads,
+        "pull_beads_for_all",
+        lambda dotbrain_home_arg, *, run, projects: beads.BootstrapResult(logs=[]),
+    )
+
+    result = workflows.refresh_projects(dotbrain_home, projects=["brain-only"])
+
+    assert result.refreshed == ["brain-only"]
+    assert not any("(brain-only)" in warning for warning in result.warnings)
+    assert not any("no repo found" in warning for warning in result.warnings)
+
+
 def _wired_project(tmp_path: Path, dotbrain_home: Path, name: str) -> Path:
     """A wired adopter repo plus a Brainspace .repo pointer so batch unwire can resolve it."""
     repo = _make_wired_repo(tmp_path, dotbrain_home, name)
