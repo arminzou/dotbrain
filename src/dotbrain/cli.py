@@ -167,7 +167,7 @@ def doctor() -> None:
 
 @app.command()
 def update() -> None:
-    """Update this released CLI to the latest stable GitHub release."""
+    """Update this released CLI to the latest stable PyPI release."""
     try:
         target = updater.update_cli(__version__)
     except updater.UpdateError as exc:

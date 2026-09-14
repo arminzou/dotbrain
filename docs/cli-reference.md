@@ -22,7 +22,7 @@ Reference for the public `dotbrain` CLI.
 │            links.                                                            │
 │ doctor     Read-only health check: machine readiness, project wiring, beads  │
 │            state drift.                                                      │
-│ update     Update this released CLI to the latest stable GitHub release.     │
+│ update     Update this released CLI to the latest stable PyPI release.       │
 │ wire       Create or repair a project Brainspace and wire an adopter repo.   │
 │ refresh    Refresh Brain/workspace files, repo links, beads state, and       │
 │            project skills.                                                   │
@@ -344,7 +344,7 @@ Reference for the public `dotbrain` CLI.
 
  Usage: dotbrain update [OPTIONS]
 
- Update this released CLI to the latest stable GitHub release.
+ Update this released CLI to the latest stable PyPI release.
 
 ┌─ Options ────────────────────────────────────────────────────────────────────┐
 │ --help  -h        Show this message and exit.                                │

@@ -87,8 +87,19 @@ checks whether `dotbrain` is on `PATH` and, if it is missing, runs the installer
 the plugin — which provides `uv`, `bd` (Beads), the CLI version pinned to this plugin release, and
 then runs `dotbrain bootstrap`.
 
-**Or install it by hand.** Run the same installer the plugin ships, from the runtime's plugin
-cache:
+**Or install it yourself from PyPI.** Requires `uv` (or `pipx`) already on your machine:
+
+```bash
+uv tool install dotbrain
+```
+
+(`pipx install dotbrain` works too.) This installs the CLI only — it does not install `bd`
+(Beads), which `dotbrain` shells out to for issue tracking. Run `dotbrain bootstrap` afterward,
+then `dotbrain doctor` to see what else is missing; install `bd` yourself from
+[the Beads repo](https://github.com/gastownhall/beads) if it's flagged.
+
+**Or run the plugin's installer by hand.** It provisions `uv` and `bd` for you if either is
+missing, then installs the CLI — no prerequisites needed, from the runtime's plugin cache:
 
 ```bash
 # macOS and Linux
@@ -174,7 +185,9 @@ To update only the released CLI, run:
 dotbrain update
 ```
 
-It installs the latest stable GitHub release and does not update plugins or private dotbrain data. On Windows, wait a moment for the running launcher to exit, then confirm with `dotbrain --version`.
+It installs the latest stable release from PyPI and does not update plugins or private dotbrain
+data. On Windows, wait a moment for the running launcher to exit, then confirm with
+`dotbrain --version`. `uv tool upgrade dotbrain` (or `pipx upgrade dotbrain`) works too.
 Contributor checkouts remain editable: update the checkout with Git instead of using this command.
 
 ## Edit Config Only When Needed

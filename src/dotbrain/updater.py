@@ -1,4 +1,4 @@
-"""Update released dotbrain CLI installations from GitHub."""
+"""Update released dotbrain CLI installations from PyPI."""
 
 from __future__ import annotations
 
@@ -11,10 +11,9 @@ from typing import Any, Callable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-REPOSITORY = "arminzou/dotbrain"
-_RELEASE_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
-_TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
-_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+PACKAGE = "dotbrain"
+_PYPI_URL = f"https://pypi.org/pypi/{PACKAGE}/json"
+_VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 Fetch = Callable[[str], dict[str, Any]]
 Run = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -30,13 +29,11 @@ def update_cli(current_version: str, *, fetch: Fetch | None = None,
         raise UpdateError("editable installs are updated from their checkout; use git pull there")
 
     fetch = fetch or _fetch_json
-    tag = _release_tag(fetch(_RELEASE_URL))
-    target_version = tag[1:]
+    target_version = _latest_version(fetch(_PYPI_URL))
     if _version_parts(target_version) <= _version_parts(current_version):
         return None
 
-    sha = _tag_sha(tag, fetch)
-    command = ["uv", "tool", "install", "--force", f"git+https://github.com/{REPOSITORY}@{sha}"]
+    command = ["uv", "tool", "install", "--force", f"{PACKAGE}=={target_version}"]
     if _is_windows():
         _defer_install(command)
         return target_version
@@ -45,7 +42,7 @@ def update_cli(current_version: str, *, fetch: Fetch | None = None,
     except FileNotFoundError as exc:
         raise UpdateError("uv is not on PATH; install uv and retry") from exc
     if result.returncode:
-        raise UpdateError(f"uv could not install {tag}; the existing CLI was left unchanged")
+        raise UpdateError(f"uv could not install {target_version}; the existing CLI was left unchanged")
     return target_version
 
 
@@ -82,38 +79,27 @@ def _is_editable_install() -> bool:
 
 
 def _fetch_json(url: str) -> dict[str, Any]:
-    request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "dotbrain"})
+    request = Request(url, headers={"Accept": "application/json", "User-Agent": "dotbrain"})
     try:
-        with urlopen(request, timeout=10) as response:  # noqa: S310 - fixed GitHub API URL
+        with urlopen(request, timeout=10) as response:  # noqa: S310 - fixed PyPI URL
             data = json.load(response)
     except (OSError, URLError, ValueError) as exc:
-        raise UpdateError("could not reach GitHub to check for updates") from exc
+        raise UpdateError("could not reach PyPI to check for updates") from exc
     if not isinstance(data, dict):
-        raise UpdateError("GitHub returned an invalid update response")
+        raise UpdateError("PyPI returned an invalid update response")
     return data
 
 
-def _release_tag(release: dict[str, Any]) -> str:
-    tag = str(release.get("tag_name", ""))
-    if release.get("draft") or release.get("prerelease") or not _TAG_RE.fullmatch(tag):
-        raise UpdateError("GitHub did not return a stable dotbrain release")
-    return tag
-
-
-def _tag_sha(tag: str, fetch: Fetch) -> str:
-    ref = fetch(f"https://api.github.com/repos/{REPOSITORY}/git/ref/tags/{tag}")
-    target = ref.get("object", {}) if isinstance(ref, dict) else {}
-    if target.get("type") == "tag":
-        tag_object = fetch(f"https://api.github.com/repos/{REPOSITORY}/git/tags/{target.get('sha', '')}")
-        target = tag_object.get("object", {}) if isinstance(tag_object, dict) else {}
-    sha = str(target.get("sha", ""))
-    if target.get("type") != "commit" or not _SHA_RE.fullmatch(sha):
-        raise UpdateError(f"could not resolve {tag} to a commit")
-    return sha
+def _latest_version(release: dict[str, Any]) -> str:
+    info = release.get("info", {}) if isinstance(release.get("info"), dict) else {}
+    version = str(info.get("version", ""))
+    if not _VERSION_RE.fullmatch(version):
+        raise UpdateError("PyPI did not return a stable dotbrain release")
+    return version
 
 
 def _version_parts(version: str) -> tuple[int, int, int]:
-    match = _TAG_RE.fullmatch(f"v{version}")
+    match = _VERSION_RE.fullmatch(version)
     if not match:
         raise UpdateError(f"unsupported installed version: {version}")
     return tuple(int(part) for part in match.groups())
