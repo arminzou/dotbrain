@@ -56,8 +56,9 @@ you look:
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
-Then explore the codebase with local search/read tools. If a multi-agent explore tool is available,
-use it for broad scans; otherwise inspect directly. Don't follow rigid heuristics — explore
+Then explore the codebase with local search/read tools. For broad sweeps, fan out to an
+`investigator` when available — it returns a map of where the territory is, and you still read the
+parts the candidates depend on; otherwise inspect directly. Don't follow rigid heuristics — explore
 organically and note where you experience friction:
 
 - Where does understanding one concept require bouncing between many small modules?

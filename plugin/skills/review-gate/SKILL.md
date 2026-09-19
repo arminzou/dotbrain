@@ -13,12 +13,16 @@ before creating or resuming one.
 
 | Mode | Target and question | Engine |
 | --- | --- | --- |
-| `code` | A diff, commit, branch, PR, or working tree: is it correct and in scope? | Native `/review` when available; otherwise a read-only reviewer. |
+| `code` | A diff, commit, branch, PR, or working tree: is it correct and in scope? | A read-only `reviewer`, run in a separate session; native `/review` when available. |
 | `simplify` | The same target: what can be deleted, collapsed, or replaced with a native capability? | `ponytail-review`. This is not a correctness review. |
 | `readiness` | A subsystem before a milestone: is it sound enough to build the next thing on? | [Readiness procedure](references/readiness.md), always multi-pass. |
 
 The requester supplies the mode, target/range, and the outcome that the review gates. Do not widen a
 code review into readiness review, or report simplification findings as defects.
+
+A review is judgment and runs in its own session, separate from the work it reviews. The `reviewer`
+produces findings; the `verifier` runs the mechanical gate and returns the evidence the record
+cites. The reviewer supplements the gate, never replaces it.
 
 ## Run the gate
 
@@ -26,7 +30,8 @@ code review into readiness review, or report simplification findings as defects.
    human decision follows. Read the target's relevant context and decisions. For readiness, read
    [the procedure](references/readiness.md) before pass 1.
 2. Keep the reviewed tree read-only. The review bead is the only allowed mutation; findings become
-   execution work only at closeout. Gather executed or traced evidence, not unlocated impressions.
+   execution work only at closeout. Gather executed or traced evidence (`verifier` for the
+   mechanical gate), not unlocated impressions.
 3. Create or resume the review bead in the shape required by the shared contract. A readiness gate
    creates its multi-pass bead before pass 1; an epic-level gate is parented to its epic and depends
    on every scoped implementation bead. Record selected modes in the description and every pass in

@@ -42,9 +42,11 @@ settles it, so the scan does not re-ask it.
 
 ### 2. Scan the territory
 
-Explore the actual modules the initiative touches. Use a fan-out explore tool for broad sweeps if one
-is available; otherwise read directly. Stay grounded: a finding must point at a concrete file,
-behavior, or dependency, never a generic category.
+Explore the actual modules the initiative touches. Read directly: the understanding this scan builds
+is the context the design will be built on, so it stays in this session. A fan-out explore tool, if
+available, may return a *map* — where the territory is and what to look at — never the
+understanding; read the parts the design depends on yourself. Stay grounded: a finding must point at
+a concrete file, behavior, or dependency, never a generic category.
 
 Completion: the modules, integration points, and dependencies in play are listed, each pointing at
 a file you actually read.

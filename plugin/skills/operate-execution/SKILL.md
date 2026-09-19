@@ -87,7 +87,9 @@ everything else unflagged so the agent can flow through the ready frontier.
    alone.
 6. Implement, update notes, and close when acceptance criteria are satisfied. This is manual,
    turn-by-turn work — the human reviews each edit and each `bd close` as it happens — so it
-   lands local by default, epic or not. Present what was done and confirm before closing, unless
+   lands local by default, epic or not. Work the item in this session by default; a spawned
+   specialist is the user's isolation choice, not this skill's, and earns its cost only when the
+   user asks. Present what was done and confirm before closing, unless
    the user explicitly asked you to close it. Work originating from an existing public issue may
    land through its public PR collaboration flow
    ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
