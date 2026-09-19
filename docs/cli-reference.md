@@ -61,6 +61,8 @@ Reference for the public `dotbrain` CLI.
 │ --scope            TEXT  global | project | all [default: all]               │
 │ --project          TEXT  Limit project linking to a single Brainspace by     │
 │                          name.                                               │
+│ --repo             TEXT  Checkout to link into (e.g. a linked worktree).     │
+│                          Requires --project and project scope.               │
 │ --help     -h            Show this message and exit.                         │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -307,6 +309,8 @@ Reference for the public `dotbrain` CLI.
 │ --target           TEXT  claude-code | codex | all [default: all]            │
 │ --scope            TEXT  global | project | all [default: all]               │
 │ --project          TEXT  limit project scope to one Brainspace by name       │
+│ --repo             TEXT  Checkout to link into (e.g. a linked worktree).     │
+│                          Requires --project and project scope.               │
 │ --help     -h            Show this message and exit.                         │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
