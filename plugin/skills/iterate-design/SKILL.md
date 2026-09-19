@@ -27,12 +27,13 @@ story. Reach for `operate-execution`, `find-unknowns`, `grill-decisions`, or `to
 
 ### Loop-worthiness check
 
-Before starting the loop, confirm all four hold. If any is missing, stay in ordinary turns instead:
+Before starting the loop, confirm all five hold. If any is missing, stay in ordinary turns instead:
 
 1. A mechanical gate exists or can be named (a command, test, build, or metric — not just "looks right").
-2. The agent can run what it changes (execute the verifier itself, not wait on an external process).
-3. A hard stop is set (a retry cap or budget the loop will actually honor).
-4. The preflight contract below covers the only permitted delivery action; every other irreversible
+2. The agent can run what it changes (execute the gate itself, not wait on an external process).
+3. The in-loop gate is fast enough to run within the retry budget.
+4. A hard stop is set (a retry cap or budget the loop will actually honor).
+5. The preflight contract below covers the only permitted delivery action; every other irreversible
    action still has a human gate.
 
 ## Preflight contract
@@ -42,8 +43,10 @@ Before changing code, present this contract and wait for the human's explicit `G
 - **Scope:** one named work bead, or every implementation bead under the named design/epic in
   dependency order. An epic is never claimed merely because it anchors the scope.
 - **Branch and base:** dedicated branch name and base branch.
-- **Verification:** narrow checkpoint check, one full Success Criteria gate, and selected final
-  `review-gate` mode (`code` by default; `simplify` or `readiness` only when named).
+- **Verification:** the narrow checkpoint check (run in this session, by whoever made the change);
+  one in-loop Success Criteria gate — the fast tier that must pass for `FINAL`; the full suite at
+  the review surface; and the selected final `review-gate` mode (`code` by default; `simplify` or
+  `readiness` only when named).
 - **Delivery:** draft-PR authorization, plus the available provider and authenticated account.
 
 `GO` authorizes implementation, the agreed verification, pushing the dedicated branch, and creating
@@ -94,8 +97,9 @@ Use this protocol throughout the handoff:
    since long runs are where constraints silently drop out of lossy context. Then pick the
    smallest checkpoint that advances the design.
 2. DO: Implement only that checkpoint.
-3. VERIFY: Run the smallest relevant verifier for that checkpoint, or explain why no automated
-   verifier exists. Reserve the full Success Criteria gate for once, before final review.
+3. VERIFY: Run the narrow check for that checkpoint in this same session — the session that made
+   the change owns its check, so never spawn an agent just to check a checkpoint. Reserve the
+   once-only in-loop gate for before final review.
 4. REFLECT: Update the active design doc only for design-relevant learning:
    - A known unknown was resolved.
    - A new known unknown appeared.
@@ -108,7 +112,7 @@ Use this protocol throughout the handoff:
    mode. The reviewer supplements the verifier, never replaces it — a review pass without a
    mechanical pass/fail check is two optimists agreeing.
 6. DECIDE:
-   - Print `FINAL` only when the scoped work satisfies acceptance, the full gate and final review
+   - Print `FINAL` only when the scoped work satisfies acceptance, the in-loop gate and final review
      have evidence, and the agreed draft PR exists. Create or update the review bead with the PR
      URL and verification, add its `human` label, and leave it open for the human gate.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
@@ -138,13 +142,18 @@ Two hard guards:
 - Automation: Prefer a direct Goal-mode handoff first. Use scheduled/background automation only
   after the prompt has worked manually.
 - Skill: This file is the reusable workflow wrapper.
-- Sub-agents: Use an explorer for unclear codepaths, an implementer for scoped changes, and a
-  reviewer/checker before finalizing meaningful changes. Do not let the implementer be the only
-  judge of correctness.
+- Sub-agents: Use an explorer for unclear codepaths and an implementer for scoped changes. The
+  session that makes a change runs that checkpoint's check; the `verifier` role is reserved for the
+  once-only in-loop gate, and a reviewer supplements the gate before finalizing meaningful changes.
+  Do not let the implementer be the only judge of correctness.
 - Connectors: Use available environment and MCP/plugin connectors directly for project context such
   as issue trackers, GitHub, browser checks, docs, or telemetry.
-- Verifier: Prefer automated commands, tests, builds, type checks, lint checks, screenshots, or
-  metrics. If none exists, record the verification gap in the active design doc or ask the user.
+- Verifier: The `verifier` role runs the once-only in-loop gate and returns evidence — the commands
+  run, their real output, and a pass/fail — not a pass opinion. Prefer automated commands, tests,
+  builds, type checks, lint checks, screenshots, or metrics. The gate is tiered: the fast in-loop
+  tier must pass for `FINAL`, and the full suite runs at the review surface. Evidence belongs to the
+  commit and environment it was produced for; an unchanged, deterministic gate may reuse it rather
+  than re-run. If no gate exists, record the verification gap in the active design doc or ask the user.
 
 ## Loop prompt
 

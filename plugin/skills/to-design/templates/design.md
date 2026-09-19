@@ -11,7 +11,7 @@ Keep every section at the interface and behavior level — exact file paths and 
 stale. `DOTBRAIN.md` carries the lifecycle rules that govern this doc over its whole life.
 
 Frontmatter vocabulary: `lifecycle:` (required), `started:` and `ended:` (dates), `extends:` (a
-design this one builds on), `residue:` (ADR ids this doc produced, e.g. `[ADR-0038]`). Do not
+design this one builds on), `residue:` (ADR ids this doc produced, e.g. `[ADR-NNNN]`). Do not
 invent per-doc fields.
 
 Lifecycle: born `draft`. Flip to `active` when the epic exists and execution can start — from then
@@ -55,8 +55,10 @@ titles, so a later reader can match a bead back to its exact section by title al
 
 <!--
 How completion gets proven, written at authoring time. Prefer mechanical pass/fail checks —
-concrete commands, tests, screenshots, metrics. Where no automated verifier exists, state the
-judgment criterion explicitly as a human decision gate rather than dressing it up as mechanical.
+concrete commands, tests, screenshots, metrics. Name which commands are the fast in-loop tier —
+they must pass before the loop reaches `FINAL` — and which belong to the full run at the review
+surface. Where no automated verifier exists, state the judgment criterion explicitly as a human
+decision gate rather than dressing it up as mechanical.
 
 These are human-owned, which makes them changeable but not silently. A criterion that turns out to
 be wrong, ambiguous, or unmeetable gets raised under `Human Decisions Needed` with what it should
@@ -71,8 +73,10 @@ happens to do.
 Left empty at authoring time; `close-design` fills it in at the terminal transition.
 
 One entry per criterion above, recording what was actually run and what it returned — passed,
-failed, dropped, or never run. Keeping the outcome beside the criterion it answers is what lets a
-later reader check the gate still catches the failure it was written for (gates rot).
+failed, dropped, or never run — stamped with the commit and environment it is true of, so a later
+reader can tell whether it still applies and reuse it rather than re-run a deterministic gate.
+Keeping the outcome beside the criterion it answers is what lets a later reader check the gate
+still catches the failure it was written for (gates rot).
 -->
 
 ## Known Unknowns

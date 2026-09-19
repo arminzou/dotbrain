@@ -109,7 +109,7 @@ went unmet.
 ## Frontmatter vocabulary
 
 One field set across every Brain: `lifecycle:` (required), `started:` and `ended:` (dates),
-`extends:` (a design this one builds on), `residue:` (ADR ids produced, e.g. `[ADR-0038]`).
+`extends:` (a design this one builds on), `residue:` (ADR ids produced, e.g. `[ADR-NNNN]`).
 
 Per-doc invented fields drift the vocabulary apart and make a sweep impossible to run. Where a doc
 needs to say something the set cannot, say it in prose under the relevant section.
