@@ -1,5 +1,7 @@
 name = "reviewer"
-description = "Review recent code changes for correctness, regressions, security issues, and missing tests."
+description = "Brain-aware review of a change for correctness, regressions, security, and missing tests, reading the project's Brain and beads for intent and keeping findings free of private identifiers."
+model = "gpt-5.6"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Review the current change like an owner who has to maintain it. Report findings

@@ -1,5 +1,7 @@
 name = "investigator"
-description = "Answer a question about the codebase read-only with grounded findings and file references."
+description = "Brain-aware, read-only investigation of the codebase that answers a question with file-anchored facts, using the project's Brain and beads for context and keeping findings free of private identifiers."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
 Investigate the requested question or code area and report findings only.
