@@ -1,6 +1,6 @@
 ---
 name: wire-brain
-description: Wires, repairs, refreshes, or inspects a repo's dotbrain Brainspace by driving the dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing .brain/.beads links in a main checkout or linked Git worktree, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
+description: Wires, repairs, refreshes, or inspects a repo's dotbrain Brainspace by driving the dotbrain CLI. Use when starting a project under dotbrain, attaching an existing repo to a Brainspace, repairing wiring in a main checkout or linked Git worktree, reconciling agent workspace resources after an upgrade, or checking bootstrap expectations.
 ---
 
 # Wire Brain
@@ -13,8 +13,9 @@ skill that owns that content.
 ## Choose the wiring branch
 
 Route worktree repair before checking installation or choosing a CLI command. When the request
-concerns a linked Git worktree, or the current checkout lacks `.brain` or `.beads` and may share its
-Git directory with another checkout, read [Worktree repair](references/worktree.md). That reference
+concerns a linked Git worktree, or the current checkout lacks `.brain`, `.beads`, or populated agent
+workspaces and may share its Git directory with another checkout, read
+[Worktree repair](references/worktree.md). That reference
 owns detection, link creation, platform safeguards, and verification. Follow only that branch and
 stop when it completes; do not enter First Run or create or repair a Brainspace.
 
@@ -72,7 +73,7 @@ this table only carries the routing.
 | Symptom or job | Command |
 |---|---|
 | Attach a repo, or repair its links in the main checkout | `dotbrain wire --repo <path>` |
-| Broken `.brain`/`.beads` in a linked Git worktree | [Worktree repair](references/worktree.md) |
+| Missing or broken wiring (`.brain`, `.beads`, agent workspaces) in a linked Git worktree | [Worktree repair](references/worktree.md) |
 | Brain-only project, no adopter repo | `dotbrain wire --name <project> --no-repo` |
 | Existing Brainspaces need repo-link reconciliation | `dotbrain wire --all` |
 | Config, skills, agents, hooks, or templates changed | `dotbrain refresh --name <project>` / `--all` |

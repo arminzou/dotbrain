@@ -322,6 +322,52 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
     assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
 
 
+def test_agents_link_repo_links_into_target_checkout(
+    dotbrain_home: Path, brainspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """--repo links the project's assets into the given checkout (a linked worktree)
+    instead of the recorded main checkout."""
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    checkout = tmp_path / "worktree"
+    checkout.mkdir()
+
+    result = runner.invoke(
+        app,
+        ["agents", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (checkout / ".claude" / "agents" / "verifier.md").is_symlink()
+    assert (checkout / ".codex" / "agents" / "verifier.toml").is_symlink()
+    assert not (brainspace / ".codex" / "agents").exists()
+
+
+def test_skills_link_repo_links_into_target_checkout(
+    dotbrain_home: Path, brainspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    (brainspace / ".brain" / "project.yaml").write_text(
+        "agents:\n  - claude\nskills:\n  - misc/discovery-test\n"
+    )
+    checkout = tmp_path / "worktree"
+    checkout.mkdir()
+
+    result = runner.invoke(
+        app,
+        ["skills", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (checkout / ".claude" / "skills" / "discovery-test").is_symlink()
+    assert not (brainspace / ".claude" / "skills").exists()
+
+
+def test_link_repo_requires_project():
+    result = runner.invoke(app, ["skills", "link", "--scope", "project", "--repo", "x"])
+    assert result.exit_code != 0
+    assert "--repo requires --project" in result.output
+
+
 def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     set_fake_home(monkeypatch, tmp_path)

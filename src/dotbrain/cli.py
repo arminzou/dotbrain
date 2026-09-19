@@ -504,6 +504,11 @@ def skills_link(
     project: Optional[str] = typer.Option(
         None, "--project", help="limit project scope to one Brainspace by name"
     ),
+    repo: Optional[str] = typer.Option(
+        None,
+        "--repo",
+        help="Checkout to link into (e.g. a linked worktree). Requires --project and project scope.",
+    ),
 ) -> None:
     """Link skills into agent runtimes.
 
@@ -516,11 +521,15 @@ def skills_link(
         raise typer.BadParameter(f"invalid --target: {target}")
     if scope not in {"global", "project", "all"}:
         raise typer.BadParameter(f"invalid --scope: {scope}")
+    if repo is not None and not project:
+        raise typer.BadParameter("--repo requires --project <name>")
+    if repo is not None and scope == "global":
+        raise typer.BadParameter("--repo applies to project scope only")
 
     root = paths.resolve_dotbrain_home()
     try:
         if scope in {"project", "all"}:
-            _link_projects_native(root, target, project)
+            _link_projects_native(root, target, project, Path(repo).resolve() if repo else None)
         if scope in {"global", "all"}:
             if project:
                 typer.echo("skill-link: warning: --project is ignored for global scope", err=True)
@@ -529,7 +538,9 @@ def skills_link(
         raise typer.BadParameter(str(exc)) from exc
 
 
-def _link_projects_native(root: Path, target: str, project: Optional[str]) -> None:
+def _link_projects_native(
+    root: Path, target: str, project: Optional[str], repo_override: Optional[Path] = None
+) -> None:
     workspaces = _AGENT_WORKSPACES[target]
     if project:
         brainspace = paths.brainspace(root, project)
@@ -544,7 +555,11 @@ def _link_projects_native(root: Path, target: str, project: Optional[str]) -> No
         skill_paths = skills.project_link_set(extras)
         declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
         active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
-        repo = adopter_repos.repo_for_brainspace(brainspace, root)
+        repo = (
+            repo_override
+            if repo_override is not None
+            else adopter_repos.repo_for_brainspace(brainspace, root)
+        )
         workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
             brainspace, repo, active_workspaces
         )
@@ -608,13 +623,23 @@ def agents_link(
         "--project",
         help="Limit project linking to a single Brainspace by name.",
     ),
+    repo: Optional[str] = typer.Option(
+        None,
+        "--repo",
+        help="Checkout to link into (e.g. a linked worktree). Requires --project and project scope.",
+    ),
 ) -> None:
     if target not in {"claude-code", "codex", "all"}:
         raise typer.BadParameter(f"invalid --target: {target}")
     if scope not in {"global", "project", "all"}:
         raise typer.BadParameter(f"invalid --scope: {scope}")
+    if repo is not None and not project:
+        raise typer.BadParameter("--repo requires --project <name>")
+    if repo is not None and scope == "global":
+        raise typer.BadParameter("--repo applies to project scope only")
 
     root = paths.resolve_dotbrain_home()
+    repo_override = Path(repo).resolve() if repo else None
     if scope in {"project", "all"}:
         brainspaces_to_link = [paths.brainspace(root, project)] if project else paths.brainspaces(root)
         if project and not brainspaces_to_link[0].exists():
@@ -623,9 +648,13 @@ def agents_link(
             names = subagents.project_link_set(config.load_project_subagents(root, brainspace.name))
             declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
             active_workspaces = tuple(ws for ws in _AGENT_WORKSPACES[target] if ws in declared_workspaces)
-            repo = adopter_repos.repo_for_brainspace(brainspace, root)
+            target_repo = (
+                repo_override
+                if repo_override is not None
+                else adopter_repos.repo_for_brainspace(brainspace, root)
+            )
             workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
-                brainspace, repo, active_workspaces
+                brainspace, target_repo, active_workspaces
             )
             result = subagents.link_project_subagents(
                 root,
@@ -634,9 +663,9 @@ def agents_link(
                 names,
                 workspace_dirs=workspace_dirs,
             )
-            if repo is not None:
+            if target_repo is not None:
                 adopter_repos.reconcile_link_excludes(
-                    repo,
+                    target_repo,
                     linked=tuple(entry for entry in result.linked if entry.startswith((".claude/", ".codex/"))),
                     pruned=tuple(entry for entry in result.pruned if entry.startswith((".claude/", ".codex/"))),
                 )
