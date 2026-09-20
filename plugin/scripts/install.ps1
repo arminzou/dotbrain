@@ -3,7 +3,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$DotbrainVersion = "0.3.5"
+$DotbrainVersion = "0.4.0"
 $DotbrainRef = "git+https://github.com/arminzou/dotbrain@v$DotbrainVersion"
 
 function Write-Die($Message) {
