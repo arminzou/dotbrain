@@ -19,6 +19,8 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "end the loop and go to the human" in doc
     assert "draft-PR authorization" in doc
     assert "explicit `GO`" in doc
+    assert "review gate is human-owned at close" in doc
+    assert "never closing its own review" in doc
     assert "the active design doc is the spec" in doc
     assert "Reread the spec every iteration" in doc
 

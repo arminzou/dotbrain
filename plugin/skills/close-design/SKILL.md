@@ -95,11 +95,18 @@ Set `lifecycle:` to the terminal state and `ended:` to the date the work actuall
 today's date, unless they are the same. For `superseded`, the replacing design carries
 `extends: <slug>.md`.
 
-Close the epic if it is still open. Where the initiative had a public collaboration issue, that
-closes through its own public flow; `bd close` remains the private close signal.
+Close the epic if it is still open, and discharge its review beads with it. A review bead closes
+here only when its closeout record shows every finding fixed, filed, or declined; a review bead with
+an unresolved finding stays open, and this close-out reports it as the epic's surviving gate rather
+than burying it under a `shipped` design. Discharging a review bead as part of this terminal
+transition is the one close an agent may perform on one, and it is never a way to manage work.
+
+Where the initiative had a public collaboration issue, that closes through its own public flow;
+`bd close` remains the private close signal.
 
 Completion: the doc carries `lifecycle:` and `ended:`, the epic is closed, and an exact-`spec_id`
-filter over `bd list --spec "design:<slug>"` shows nothing open.
+filter over `bd list --spec "design:<slug>"` shows nothing open except any review bead left as a
+surviving gate.
 
 ### 5. Close
 

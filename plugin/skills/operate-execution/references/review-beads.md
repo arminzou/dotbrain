@@ -6,6 +6,9 @@ rigorously, its finding vocabulary — stays owned by that review. This referenc
 its output into a bead and tracking remediation; it applies uniformly to every review, named skill
 or not. `review-gate` selects the review mode; this file owns its shared record.
 
+A review bead *is* a review gate, and a gate is human-owned at its close: an agent records the
+gate's lifecycle but never closes it. That invariant holds for every shape and every verdict below.
+
 ## Pick the shape
 
 A review bead runs in one of two shapes. The shape is a property of *when the review finishes
@@ -95,14 +98,24 @@ comments, destroys the record the shape exists to protect.
 
 ## Closing and human review
 
-An open review bead means its **review gate is incomplete**, not only that it has unresolved
-findings. It can therefore mean review in progress, remediation in progress, a clean agent verdict
-awaiting a human, or a draft PR awaiting approval or merge. For the latter two, append the PR or
-review location and verification evidence, then add the native `human` label; never invent a second
-status label.
+A review bead is **human-gated by definition**: its lifecycle is a review gate, and only a person
+decides when that gate is discharged. An agent never closes a review bead — not when findings are
+fixed, not when the verdict is GO, not when every acceptance criterion is met. Recording the closeout
+is the agent's terminal act; closing is the human's.
 
-Close it the same way as any other bead only when every finding is fixed, filed as its own bead, or
-consciously declined **and** any required human review has resolved. The close reason names the
-final disposition and surviving follow-up ids. For an epic gate, make the review bead depend on
-every scoped implementation bead; it becomes claimable only after the graph reaches its final
-review step.
+An open review bead therefore means its **review gate is incomplete**, in one of these senses:
+review in progress, remediation in progress, a clean agent verdict awaiting a human, or a draft PR
+awaiting approval or merge.
+
+- **Agent at closeout** — once every finding is fixed, filed as its own bead, or consciously
+  declined, append the `## Closeout @ <commit>` record naming each disposition and surviving
+  follow-up ids, add the native `human` label, and leave the bead open with a one-line close
+  recommendation. The label is the pending-decision signal; never invent a second status label.
+- **Human** — closes it explicitly, or the review bead is discharged by `close-design` as part of a
+  design's terminal transition. `bd close` remains the close signal.
+- **Findings are not the gate** — remediation a review files (defect fixes, follow-up tasks) are
+  ordinary beads: autonomous, agent-claimable, and closable. Only the review bead itself is
+  human-terminal. Never leave review-derived work open just because it came from a review.
+
+For an epic gate, make the review bead depend on every scoped implementation bead; it becomes
+claimable only after the graph reaches its final review step.

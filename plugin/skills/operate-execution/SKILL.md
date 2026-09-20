@@ -90,13 +90,17 @@ everything else unflagged so the agent can flow through the ready frontier.
    lands local by default, epic or not. Work the item in this session by default; a spawned
    specialist is the user's isolation choice, not this skill's, and earns its cost only when the
    user asks. Present what was done and confirm before closing, unless
-   the user explicitly asked you to close it. Work originating from an existing public issue may
-   land through its public PR collaboration flow
+   the user explicitly asked you to close it. Review beads are the exception: never close one —
+   record its closeout and leave it for the human (see Review beads below). Work originating from
+   an existing public issue may land through its public PR collaboration flow
    ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
    private close signal.
 7. If that close emptied a design-linked epic — no open slices left under an epic carrying
-   `spec-id design:<slug>` — run `close-design` before moving on. The design doc is still marked
-   `active` and its residue is still unharvested; that is the moment to settle both.
+   `spec-id design:<slug>`, ignoring its open review beads — run `close-design` before moving on.
+   Review beads never close autonomously, so an epic whose only open children are review beads has
+   reached its final review step, not a stall. The design doc is still marked `active` and its
+   residue is still unharvested; that is the moment to settle both, and `close-design` discharges
+   the review beads with it.
 8. When implementation exposes hidden requirements or follow-up work: do the obvious in-scope work
    directly; create or update related items when new work becomes explicit; split or re-slice the
    current item when it is no longer the right shape; adjust dependencies or acceptance when the

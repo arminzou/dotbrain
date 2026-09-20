@@ -85,6 +85,8 @@ drives it:
   available provider/auth, draft-PR authorization, and an explicit `GO` — authorizes only the
   agreed push of its dedicated branch and creation of a draft PR. Merge, deploy, publish,
   dependency changes, and every other outward action end the loop and go to the human.
+- A review gate is human-owned at close: an agent records the review's closeout and leaves the bead
+  open, never closing its own review. Closing is the human's, or `close-design`'s terminal transition.
 - Automation-handoff / agent-driven loop work runs on a dedicated branch, never directly on
   `main`; manual turn-by-turn work needs no branch — it is reviewed as it happens.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says

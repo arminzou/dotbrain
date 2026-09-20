@@ -39,10 +39,11 @@ cites. The reviewer supplements the gate, never replaces it.
 4. Issue a direct verdict. `GO` means the agent review found no blocking reason to stop; it does not
    merge, release, or erase the human gate. Record findings, evidence, and any uncovered area.
 
-For an automation-handoff draft PR, append the PR URL and verification summary, add the `human`
-label, and leave the review bead open. It represents an incomplete review gate until the human
-approves or declines it and every finding has a disposition. For an ordinary review with no pending
-human gate, close only after the shared closeout conditions hold.
+A review bead is human-gated by definition: never close it, however clean the result. Once every
+finding has a disposition, record the closeout, append the PR URL and verification summary when one
+exists, add the `human` label, and leave the bead open with a one-line close recommendation. It
+stays open until the human closes it or `close-design` discharges it with the design's terminal
+transition — see the shared contract's closing rules.
 
 ## Completion
 

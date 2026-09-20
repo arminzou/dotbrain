@@ -64,5 +64,5 @@ unverified. A correction is a later `## Correction:` comment; never rewrite a fi
 
 The verdict records the readiness call, ordered blockers, and uncovered work. It is not closeout.
 At closeout, every finding and uncovered area must be fixed, filed as its own bead, or consciously
-declined; append the disposition and verification. When the review also gates a draft PR, add the
-`human` label and leave it open until the human gate resolves.
+declined; append the disposition and verification, add the `human` label, and leave the bead open.
+A readiness gate is never closed by an agent — the human closes it, or `close-design` discharges it.
