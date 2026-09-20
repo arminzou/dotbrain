@@ -69,6 +69,29 @@ def test_update_preserves_existing_cli_on_install_failure(monkeypatch: pytest.Mo
         )
 
 
+def test_defer_install_detaches_from_the_console(monkeypatch: pytest.MonkeyPatch):
+    calls: list[tuple[list[str], dict[str, object]]] = []
+    monkeypatch.setattr(
+        updater.subprocess,
+        "Popen",
+        lambda argv, **kwargs: calls.append((argv, kwargs)),
+    )
+
+    updater._defer_install(["uv", "tool", "install", "--force", "dotbrain==0.4.0"])
+
+    assert len(calls) == 1
+    argv, kwargs = calls[0]
+    assert argv[:2] == ["cmd", "/c"]
+    assert "uv tool install --force dotbrain==0.4.0" in argv[2]
+    assert kwargs["stdin"] == subprocess.DEVNULL
+    assert kwargs["stdout"] == subprocess.DEVNULL
+    assert kwargs["stderr"] == subprocess.DEVNULL
+    expected_flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(
+        subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+    )
+    assert kwargs["creationflags"] == expected_flags
+
+
 def test_update_defers_install_on_windows(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(updater, "_is_editable_install", lambda: False)
     monkeypatch.setattr(updater, "_is_windows", lambda: True)

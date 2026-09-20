@@ -51,9 +51,20 @@ def _is_windows() -> bool:
 
 
 def _defer_install(command: list[str]) -> None:
-    """Run after this Windows launcher releases its executable lock."""
+    """Run detached, after this Windows launcher releases its executable lock.
+
+    The child must not share this process's console: otherwise its output and
+    lifetime bleed into the caller's shell, and the prompt looks hung until the
+    install finishes.
+    """
+    script = f"ping -n 2 127.0.0.1 >NUL & {subprocess.list2cmdline(command)}"
     subprocess.Popen(
-        ["cmd", "/c", f"ping -n 2 127.0.0.1 >NUL & {subprocess.list2cmdline(command)}"],
+        ["cmd", "/c", script],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
+        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
 
 
