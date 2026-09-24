@@ -40,8 +40,12 @@ Brain template propagate to every brain.
 - Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
   per worktree.
 - In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
-- In a git worktree with no `.brain`, use `wire-brain`'s worktree repair branch. It derives the main
-  checkout from Git and creates real `.brain` and `.beads` symlinks without the CLI.
+- In a git worktree with no `.brain`, use `wire-brain`'s worktree repair branch. It links `.brain`
+  and `.beads` to the Brainspace by absolute path, then fills `.claude` and `.codex` with
+  `dotbrain skills link` and `dotbrain agents link`, each with `--scope project --project <name>
+  --repo <worktree>`.
+- Never hand-create links under `.claude` or `.codex`. Their targets are relative paths the CLI
+  computes from the checkout's real location; a hand-counted `../` depth dangles without error.
 
 ## Rules
 
