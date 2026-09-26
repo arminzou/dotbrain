@@ -33,7 +33,9 @@ def update_cli(current_version: str, *, fetch: Fetch | None = None,
     if _version_parts(target_version) <= _version_parts(current_version):
         return None
 
-    command = ["uv", "tool", "install", "--force", f"{PACKAGE}=={target_version}"]
+    # The version comes from PyPI directly; uv's cached index may not list it yet.
+    command = ["uv", "tool", "install", "--force", "--refresh-package", PACKAGE,
+               f"{PACKAGE}=={target_version}"]
     if _is_windows():
         _defer_install(command)
         return target_version

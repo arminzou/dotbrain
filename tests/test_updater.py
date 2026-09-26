@@ -27,7 +27,7 @@ def test_update_installs_pinned_version(monkeypatch: pytest.MonkeyPatch):
     )
 
     assert result == "0.4.0"
-    assert calls == [["uv", "tool", "install", "--force", "dotbrain==0.4.0"]]
+    assert calls == [["uv", "tool", "install", "--force", "--refresh-package", "dotbrain", "dotbrain==0.4.0"]]
 
 
 def test_update_is_a_noop_when_current(monkeypatch: pytest.MonkeyPatch):
@@ -104,4 +104,4 @@ def test_update_defers_install_on_windows(monkeypatch: pytest.MonkeyPatch):
     )
 
     assert result == "0.4.0"
-    assert calls == [["uv", "tool", "install", "--force", "dotbrain==0.4.0"]]
+    assert calls == [["uv", "tool", "install", "--force", "--refresh-package", "dotbrain", "dotbrain==0.4.0"]]
