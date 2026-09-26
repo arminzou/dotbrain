@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
+from importlib import metadata
 from pathlib import Path
 from typing import Optional
 
 import typer
 
-from dotbrain import __version__, updater
+from dotbrain import __version__
 from dotbrain import doctor as doctor_mod
 from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, skills, subagents, workflows
 
@@ -167,18 +170,27 @@ def doctor() -> None:
 
 @app.command()
 def update() -> None:
-    """Update this released CLI to the latest stable PyPI release."""
+    """Print the command that upgrades this CLI with the tool that installed it."""
+    typer.echo(_upgrade_hint())
+
+
+def _upgrade_hint() -> str:
     try:
-        target = updater.update_cli(__version__)
-    except updater.UpdateError as exc:
-        typer.echo(f"dotbrain update: {exc}", err=True)
-        raise typer.Exit(1) from exc
-    if target is None:
-        typer.echo(f"dotbrain {__version__} is already current")
-    elif sys.platform == "win32":
-        typer.echo(f"dotbrain update to {target} is starting; run 'dotbrain --version' in a moment to verify")
-    else:
-        typer.echo(f"dotbrain updated from {__version__} to {target}; run 'dotbrain --version' to verify")
+        files = metadata.distribution("dotbrain").files or ()
+        record = next((f for f in files if f.name == "direct_url.json"), None)
+        direct_url = json.loads(record.read_text(encoding="utf-8")) if record else {}
+    except (metadata.PackageNotFoundError, OSError, ValueError):
+        direct_url = {}
+    if direct_url.get("dir_info", {}).get("editable"):
+        return "dotbrain is an editable install; update its checkout with git pull"
+    prefix = Path(sys.prefix)
+    if (prefix / "uv-receipt.toml").exists():
+        # @latest also clears the exact-version pin that `uv tool upgrade` would honor.
+        return "To update dotbrain, run: uv tool install dotbrain@latest"
+    if (prefix / "pipx_metadata.json").exists():
+        return "To update dotbrain, run: pipx upgrade dotbrain"
+    pip = subprocess.list2cmdline([sys.executable, "-m", "pip", "install", "--upgrade", "dotbrain"])
+    return f"To update dotbrain, run: {pip}"
 
 
 @app.command()

@@ -10,7 +10,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from dotbrain import __version__, bootstrap as bootstrap_mod, migrate, paths, updater
+from dotbrain import __version__, bootstrap as bootstrap_mod, migrate, paths
 from dotbrain import cli
 from dotbrain.cli import app
 
@@ -42,25 +42,37 @@ def test_skills_help_hides_low_value_discovery_command():
     assert "list" not in result.output
 
 
-def test_update_renders_success(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(cli.updater, "update_cli", lambda version: "0.4.0")
+@pytest.mark.parametrize(
+    ("marker", "command"),
+    [
+        ("uv-receipt.toml", "uv tool install dotbrain@latest"),
+        ("pipx_metadata.json", "pipx upgrade dotbrain"),
+        (None, "-m pip install --upgrade dotbrain"),
+    ],
+)
+def test_update_prints_the_installer_upgrade_command(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, marker: str | None, command: str
+):
+    if marker:
+        (tmp_path / marker).touch()
+    monkeypatch.setattr(cli.sys, "prefix", str(tmp_path))
+    monkeypatch.setattr(cli.metadata, "distribution", lambda name: SimpleNamespace(files=[]))
 
     result = runner.invoke(app, ["update"])
 
     assert result.exit_code == 0, result.output
-    assert "0.4.0" in result.output
-    assert "dotbrain --version" in result.output
+    assert command in result.output
 
 
-def test_update_renders_failure(monkeypatch: pytest.MonkeyPatch):
-    def fail(version: str) -> None:
-        raise updater.UpdateError("network unavailable")
+def test_update_points_editable_installs_at_git(monkeypatch: pytest.MonkeyPatch):
+    direct_url = '{"url": "file:///src/dotbrain", "dir_info": {"editable": true}}'
+    record = SimpleNamespace(name="direct_url.json", read_text=lambda encoding: direct_url)
+    monkeypatch.setattr(cli.metadata, "distribution", lambda name: SimpleNamespace(files=[record]))
 
-    monkeypatch.setattr(cli.updater, "update_cli", fail)
     result = runner.invoke(app, ["update"])
 
-    assert result.exit_code == 1
-    assert "network unavailable" in result.output
+    assert result.exit_code == 0, result.output
+    assert "git pull" in result.output
 
 
 def test_agents_help_hides_low_value_discovery_command():

@@ -179,16 +179,20 @@ codex plugin add dotbrain@dotbrain
 Then refresh the CLI to match, either by asking your agent or by re-running the install command
 from step 2 with the new tag.
 
-To update only the released CLI, run:
+To update only the released CLI, upgrade it with the tool that installed it:
 
 ```bash
-dotbrain update
+uv tool install dotbrain@latest              # uv
+pipx upgrade dotbrain                        # pipx
+python -m pip install --upgrade dotbrain     # pip, using the Python dotbrain is installed in
 ```
 
-It installs the latest stable release from PyPI and does not update plugins or private dotbrain
-data. On Windows, wait a moment for the running launcher to exit, then confirm with
-`dotbrain --version`. `uv tool upgrade dotbrain` (or `pipx upgrade dotbrain`) works too.
-Contributor checkouts remain editable: update the checkout with Git instead of using this command.
+With uv, use `dotbrain@latest` rather than `uv tool upgrade dotbrain`: an install pinned to one
+version, such as the plugin installer's, stays on that version under `uv tool upgrade`. Not sure
+which tool you used? `dotbrain update` prints the right command for your install.
+
+Updating the CLI does not update plugins or private dotbrain data. Contributor checkouts remain
+editable: update the checkout with Git instead.
 
 ## Edit Config Only When Needed
 
