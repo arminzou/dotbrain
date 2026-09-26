@@ -55,7 +55,8 @@ def _defer_install(command: list[str]) -> None:
 
     The child must not share this process's console: otherwise its output and
     lifetime bleed into the caller's shell, and the prompt looks hung until the
-    install finishes.
+    install finishes. It gets a hidden console rather than none: a console-less
+    cmd makes Windows open a visible window for each console child it runs.
     """
     script = f"ping -n 2 127.0.0.1 >NUL & {subprocess.list2cmdline(command)}"
     subprocess.Popen(
@@ -63,7 +64,7 @@ def _defer_install(command: list[str]) -> None:
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
         | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
 

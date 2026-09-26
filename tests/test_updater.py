@@ -86,7 +86,7 @@ def test_defer_install_detaches_from_the_console(monkeypatch: pytest.MonkeyPatch
     assert kwargs["stdin"] == subprocess.DEVNULL
     assert kwargs["stdout"] == subprocess.DEVNULL
     assert kwargs["stderr"] == subprocess.DEVNULL
-    expected_flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(
+    expected_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0
     )
     assert kwargs["creationflags"] == expected_flags
