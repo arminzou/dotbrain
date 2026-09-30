@@ -8,6 +8,7 @@ import { defineConfig } from 'vitepress'
 const settingsPath = process.env.DOTBRAIN_SITE_SETTINGS
 if (!settingsPath) throw new Error('DOTBRAIN_SITE_SETTINGS is not set: run the site through `dotbrain site`')
 const settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
+const published = new Set<string>(settings.published)
 
 const themeDir = join(dirname(fileURLToPath(import.meta.url)), 'theme')
 const engineRoot = dirname(dirname(fileURLToPath(import.meta.url)))
@@ -29,6 +30,16 @@ export default defineConfig({
   rewrites: settings.rewrites,
   ignoreDeadLinks: 'localhostLinks',
   lastUpdated: true,
+  // srcExclude comes from a walk that does not follow symlinks and runs once, but VitePress's own
+  // scan follows them and `dev` sees pages added later. Fail closed on any page not published.
+  transformPageData(pageData) {
+    if (pageData.filePath && !published.has(pageData.filePath)) {
+      throw new Error(
+        `${pageData.filePath} is not a published page: list it in site.yaml's nav, or remove the ` +
+          'symlink that reaches it; `dotbrain site dev` needs a restart after the nav changes'
+      )
+    }
+  },
   markdown: {
     // A ```mermaid fence becomes the theme's <Mermaid> component, which draws it in the browser.
     config(md) {
