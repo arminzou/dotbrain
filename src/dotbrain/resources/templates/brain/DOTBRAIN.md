@@ -106,6 +106,8 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
   invented fields drift the vocabulary apart; say anything else in prose
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
+- `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,
+  never authoritative; learning paths and parked concepts live in `learn:` beads
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
 `project.yaml` (`skills:`); project tracker conventions live in `AGENTS.md` under Project.
