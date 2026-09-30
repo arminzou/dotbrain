@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
 
@@ -27,7 +27,15 @@ export default defineConfig({
   outDir: settings.outDir,
   cacheDir: settings.cacheDir,
   rewrites: settings.rewrites,
-  ignoreDeadLinks: 'localhostLinks',
+  // A link to a Brain file that is not a page, such as a log kept as evidence, is not dead: it
+  // works in the Brain even though the site does not serve the file. A link to a missing file is.
+  ignoreDeadLinks: [
+    /^(https?:)?\/\/localhost\b/,
+    (url, page) => {
+      const target = url.startsWith('/') ? join(settings.brain, url) : resolve(dirname(page), url)
+      return !/\.md$/.test(target) && existsSync(target) && statSync(target).isFile()
+    }
+  ],
   lastUpdated: true,
   // The home page gets the standard hero (title, tagline, and the Docs, Start learning, and
   // Configure this site buttons) unless its own frontmatter sets one.
@@ -44,6 +52,11 @@ export default defineConfig({
         tokens[index].info.trim() === 'mermaid'
           ? `<Mermaid code="${encodeURIComponent(tokens[index].content)}" />`
           : fence(tokens, index, ...rest)
+      // VitePress protects fenced code from Vue but not inline code, so `{{ x }}` or `${{ secret }}`
+      // in backticks would be evaluated, or break the build. Every Brain page is published, so
+      // inline code is always literal.
+      const code = md.renderer.rules.code_inline!
+      md.renderer.rules.code_inline = (...args) => code(...args).replace(/^<code/, '<code v-pre')
     }
   },
   vite: {
