@@ -12,7 +12,7 @@ const settings = JSON.parse(readFileSync(settingsPath, 'utf8'))
 const themeDir = join(dirname(fileURLToPath(import.meta.url)), 'theme')
 const engineRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const norm = (path: string) => path.replace(/\\/g, '/').toLowerCase()
-const brainRoot = norm(settings.brain)
+const brainRoot = norm(settings.brain).replace(/\/?$/, '/')
 const brainTheme = join(settings.brain, 'site', 'theme')
 const brainFile = (name: string, fallback: string) =>
   existsSync(join(brainTheme, name)) ? join(brainTheme, name) : join(themeDir, fallback)

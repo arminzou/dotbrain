@@ -204,7 +204,7 @@ def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[F
     try:
         site.check_node(run)
     except site.SiteError as exc:
-        return [Finding("warn", f"Brain site: {exc}", "install Node 20 or later to run 'dotbrain site'")]
+        return [Finding("warn", f"Brain site: {exc}", f"install Node {site.MIN_NODE_TEXT} or later to run 'dotbrain site'")]
     return [Finding("ok", "Brain site: Node available")]
 
 
