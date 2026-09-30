@@ -7,6 +7,7 @@ and never install or run VitePress.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -239,6 +240,7 @@ def test_vitepress_runs_against_the_brains_real_path(home: Path, brain: Path, co
     assert (call["argv"][4:] == ["--host", "127.0.0.1"]) is host
     settings = json.loads(Path(call["env"]["DOTBRAIN_SITE_SETTINGS"]).read_text(encoding="utf-8"))
     assert settings["brain"] == str(brain)
+    assert settings["published"] == ["docs/index.md"], "the engine fails closed on any other page"
     assert out == engine / "out" / "demo" and settings["outDir"] == str(out)
 
 
@@ -249,7 +251,10 @@ def test_the_cli_reports_a_brain_without_a_site(home: Path, monkeypatch):
     assert "dotbrain site init" in result.output
 
 
-@pytest.mark.parametrize("link", ["runbooks/release", "runbooks/release.md", "/runbooks/release", "./runbooks/release"])
+@pytest.mark.parametrize("link", [
+    "runbooks/release", "runbooks/release.md", "/runbooks/release", "./runbooks/release", r"runbooks\release",
+    pytest.param("Runbooks/Release", marks=pytest.mark.skipif(os.name != "nt", reason="case-insensitive disk")),
+])
 def test_nav_link_forms_name_the_same_page(brain: Path, link: str):
     _settings(brain, f"nav:\n  - text: R\n    items:\n      - {{ text: Release, link: '{link}' }}\n")
     _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
@@ -294,6 +299,9 @@ def test_init_quotes_a_title_with_yaml_characters(brain: Path):
 
 
 def test_preview_serves_the_last_build_on_localhost_only(home: Path, brain: Path):
+    with pytest.raises(site.SiteError, match="dotbrain site init"):
+        site.run_site("preview", dotbrain_home=home, brain=brain, serve=lambda _out: None)
+    _settings(brain)
     with pytest.raises(site.SiteError, match="dotbrain site build"):
         site.run_site("preview", dotbrain_home=home, brain=brain, serve=lambda _out: None)
 
@@ -307,5 +315,37 @@ def test_preview_serves_the_last_build_on_localhost_only(home: Path, brain: Path
     server = site.preview_server(out, port=0)
     try:
         assert server.server_address[0] == "127.0.0.1"
+        with pytest.raises(site.SiteError, match="another preview"):
+            site.preview_server(out, port=server.server_address[1])
     finally:
         server.server_close()
+
+
+def test_a_nav_link_may_name_a_section(brain: Path):
+    _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Steps, link: 'runbooks/release#steps' }\n")
+    _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
+    assert site.plan(brain)["sidebar"][0]["items"][0]["link"] == "/runbooks/release#steps"
+
+
+def test_a_nav_link_must_match_the_stored_name(brain: Path, monkeypatch):
+    # What a case-insensitive macOS disk does: the link resolves, but to a name not on disk.
+    _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Release, link: Runbooks/Release }\n")
+    _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
+    monkeypatch.setattr(site, "_docs_page", lambda _brain, _link: "Runbooks/Release.md")
+    with pytest.raises(site.SiteError, match="do not exist"):
+        site.plan(brain)
+
+
+def test_two_pages_at_one_address_fail(brain: Path):
+    _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Readme, link: README }\n")
+    _write(brain / "docs" / "index.md", "# Home\n")
+    _write(brain / "docs" / "README.md", "# Readme\n")
+    with pytest.raises(site.SiteError, match="same address"):
+        site.plan(brain)
+
+
+def test_lessons_without_a_mission_fail(brain: Path):
+    _settings(brain)
+    _write(brain / "learning" / "lessons" / "0001-a.md", "---\ntitle: A\ntopic: Ops\n---\n")
+    with pytest.raises(site.SiteError, match="MISSION.md topics"):
+        site.plan(brain)

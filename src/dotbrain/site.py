@@ -187,12 +187,14 @@ def _field(source: str, name: str) -> str | None:
 
 
 def learn_topics(brain: Path) -> list[dict]:
-    """Learn topics in mission order, each with its lessons and references; [] without learning/."""
+    """Learn topics in mission order, each with its lessons and references; [] without learning/.
+
+    A lesson or reference with no matching topic fails, including when MISSION.md is missing, so a
+    page never silently drops out of Learn.
+    """
     learning = brain / "learning"
     mission = learning / "MISSION.md"
-    if not mission.is_file():
-        return []
-    text = mission.read_text(encoding="utf-8")
+    text = mission.read_text(encoding="utf-8") if mission.is_file() else ""
     section = re.search(r"^## Topics\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
     topics = [line[4:].strip() for line in (section.group(1) if section else "").splitlines() if line.startswith("### ")]
 
@@ -233,19 +235,26 @@ def _glob_escape(path: str) -> str:
 def plan(brain: Path) -> dict:
     """Resolve published pages, rewrites, sidebar, and Learn; dead nav links fail here."""
     settings = load_settings(brain)
+    every = sorted(
+        p.relative_to(brain).as_posix()
+        for p in brain.rglob("*.md")
+        if "node_modules" not in p.relative_to(brain).parts
+    )
     published = {"docs/index.md": "index.md"} if (brain / "docs" / "index.md").is_file() else {}
     sidebar: list[dict] = []
     dead: list[str] = []
     for section in settings["nav"]:
         items = []
         for item in section["items"]:
-            page = _docs_page(brain, item["link"])
-            if page is None:
+            link, _, anchor = item["link"].partition("#")
+            page = _docs_page(brain, link)
+            # A page must also be stored under that name: macOS resolves another case to itself.
+            if page is None or f"docs/{page}" not in every:
                 dead.append(f"{section['text']} > {item['text']}: docs/{item['link']}")
                 continue
             target = _docs_target(page)
             published[f"docs/{page}"] = target
-            items.append({"text": item["text"], "link": _route(target)})
+            items.append({"text": item["text"], "link": _route(target) + (f"#{anchor}" if anchor else "")})
         sidebar.append({"text": section["text"], "items": items})
     if dead:
         raise SiteError("nav links to pages that do not exist:\n  " + "\n  ".join(dead))
@@ -273,11 +282,13 @@ def plan(brain: Path) -> dict:
         }
         sidebar.insert(0, learn)
 
-    every = sorted(
-        p.relative_to(brain).as_posix()
-        for p in brain.rglob("*.md")
-        if "node_modules" not in p.relative_to(brain).parts
-    )
+    by_target: dict[str, list[str]] = {}
+    for source, target in published.items():
+        by_target.setdefault(target, []).append(source)
+    clashes = [f"{' and '.join(sources)} -> {target}" for target, sources in by_target.items() if len(sources) > 1]
+    if clashes:
+        raise SiteError("pages would be served at the same address:\n  " + "\n  ".join(clashes))
+
     return {
         "title": settings["title"],
         "description": settings["description"],
@@ -377,7 +388,16 @@ def preview_server(out_dir: Path, port: int = PREVIEW_PORT) -> ThreadingHTTPServ
     private Brain on the network, so dotbrain serves the build itself.
     """
     handler = partial(_QuietHandler, directory=str(out_dir))
-    return ThreadingHTTPServer((PREVIEW_HOST, port), handler)
+    try:
+        return _PreviewServer((PREVIEW_HOST, port), handler)
+    except OSError as exc:
+        raise SiteError(f"cannot serve on {PREVIEW_HOST}:{port} ({exc.strerror or exc}): is another preview running?") from exc
+
+
+class _PreviewServer(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second server bind a port already in use, and requests then
+    # reach either one; elsewhere it only lets a restart reuse a port still in TIME_WAIT.
+    allow_reuse_address = os.name != "nt"
 
 
 class _QuietHandler(SimpleHTTPRequestHandler):
@@ -414,6 +434,7 @@ def run_site(
         raise SiteError(f"unknown site command {command!r}")
     name = brain.parent.name
     if command == "preview":
+        load_settings(brain)
         out_dir = engine_dir(dotbrain_home) / "out" / name
         if not (out_dir / "index.html").is_file():
             raise SiteError(f"{name} has no build to preview: run `dotbrain site build` first")
@@ -425,7 +446,7 @@ def run_site(
     engine = ensure_engine(dotbrain_home, setup_run)
     out_dir = engine / "out" / name
     settings = {
-        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude")},
+        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude", "published")},
         "brain": str(brain),
         "outDir": str(out_dir),
         "cacheDir": str(engine / "vite-cache" / name),
