@@ -32,6 +32,7 @@ Reference for the public `dotbrain` CLI.
 │ agents     Link dotbrain vendor-native subagents into agent runtimes.        │
 │ beads      Manage beads tracker state and backend.                           │
 │ hook       Run dotbrain hook entrypoints.                                    │
+│ site       Set up and run a Brain's private site.                            │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -274,6 +275,87 @@ Reference for the public `dotbrain` CLI.
 │ --name               TEXT  Refresh one project by Brainspace name.           │
 │ --repo-base          PATH  Base directory for repo discovery.                │
 │ --help       -h            Show this message and exit.                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain site`
+
+```text
+
+ Usage: dotbrain site [OPTIONS] COMMAND [ARGS]...
+
+ Set up and run a Brain's private site.
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --help  -h        Show this message and exit.                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌─ Commands ───────────────────────────────────────────────────────────────────┐
+│ init     Give a Brain a site: create .brain/site/site.yaml and a starter     │
+│          docs/index.md.                                                      │
+│ dev      Serve the Brain site locally with live reload (127.0.0.1).          │
+│ build    Build the Brain site; fails on a nav link to a missing page.        │
+│ preview  Serve the last build locally (127.0.0.1).                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain site build`
+
+```text
+
+ Usage: dotbrain site build [OPTIONS]
+
+ Build the Brain site; fails on a nav link to a missing page.
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
+│                       .brain.                                                │
+│ --help  -h            Show this message and exit.                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain site dev`
+
+```text
+
+ Usage: dotbrain site dev [OPTIONS]
+
+ Serve the Brain site locally with live reload (127.0.0.1).
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
+│                       .brain.                                                │
+│ --help  -h            Show this message and exit.                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain site init`
+
+```text
+
+ Usage: dotbrain site init [OPTIONS]
+
+ Give a Brain a site: create .brain/site/site.yaml and a starter docs/index.md.
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --name           TEXT  Brainspace name. Defaults to the current repo's       │
+│                        .brain.                                               │
+│ --title          TEXT  Site title. Defaults to '<name> Brain'.               │
+│ --help   -h            Show this message and exit.                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `dotbrain site preview`
+
+```text
+
+ Usage: dotbrain site preview [OPTIONS]
+
+ Serve the last build locally (127.0.0.1).
+
+┌─ Options ────────────────────────────────────────────────────────────────────┐
+│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
+│                       .brain.                                                │
+│ --help  -h            Show this message and exit.                            │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 

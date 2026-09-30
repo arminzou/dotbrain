@@ -13,7 +13,7 @@ import typer
 
 from dotbrain import __version__
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, skills, subagents, workflows
+from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, site as site_mod, skills, subagents, workflows
 
 app = typer.Typer(
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
@@ -25,10 +25,12 @@ skills_app = typer.Typer(help="Link dotbrain skills into agent runtimes.", no_ar
 agents_app = typer.Typer(help="Link dotbrain vendor-native subagents into agent runtimes.", no_args_is_help=True)
 beads_app = typer.Typer(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = typer.Typer(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
+site_app = typer.Typer(help="Set up and run a Brain's private site.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
 app.add_typer(agents_app, name="agents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
+app.add_typer(site_app, name="site")
 
 
 @app.callback()
@@ -699,3 +701,58 @@ def _render_global_agent_link(root: Path, target: str) -> None:
         typer.echo(f"agent-link: warning: {warning}", err=True)
     for line in result.logs:
         typer.echo(line if line.startswith("global:") else f"  {line}")
+
+
+_SITE_NAME = typer.Option(None, "--name", help="Brainspace name. Defaults to the current repo's .brain.")
+
+
+def _site_brain(name: Optional[str]) -> tuple[Path, Path]:
+    root = paths.resolve_dotbrain_home()
+    try:
+        return root, site_mod.find_brain(root, name)
+    except site_mod.SiteError as exc:
+        typer.echo(f"site: {exc}", err=True)
+        raise typer.Exit(1)
+
+
+@site_app.command("init")
+def site_init(
+    name: Optional[str] = _SITE_NAME,
+    title: Optional[str] = typer.Option(None, "--title", help="Site title. Defaults to '<name> Brain'."),
+) -> None:
+    """Give a Brain a site: create .brain/site/site.yaml and a starter docs/index.md."""
+    _, brain = _site_brain(name)
+    created = site_mod.init(brain, title)
+    for path in created:
+        typer.echo(f"site: created {path}")
+    if not created:
+        typer.echo("site: already set up; nothing changed")
+
+
+def _site_run(command: str, name: Optional[str]) -> None:
+    root, brain = _site_brain(name)
+    try:
+        out = site_mod.run_site(command, dotbrain_home=root, brain=brain)
+    except site_mod.SiteError as exc:
+        typer.echo(f"site: {exc}", err=True)
+        raise typer.Exit(1)
+    if command == "build":
+        typer.echo(f"site: built {brain.parent.name} into {out}")
+
+
+@site_app.command("dev")
+def site_dev(name: Optional[str] = _SITE_NAME) -> None:
+    """Serve the Brain site locally with live reload (127.0.0.1)."""
+    _site_run("dev", name)
+
+
+@site_app.command("build")
+def site_build(name: Optional[str] = _SITE_NAME) -> None:
+    """Build the Brain site; fails on a nav link to a missing page."""
+    _site_run("build", name)
+
+
+@site_app.command("preview")
+def site_preview(name: Optional[str] = _SITE_NAME) -> None:
+    """Serve the last build locally (127.0.0.1)."""
+    _site_run("preview", name)
