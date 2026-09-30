@@ -304,12 +304,51 @@ def git_dates(brain: Path, run: Runner = _default_run) -> dict[str, str]:
     return dates
 
 
+HOME_TILES = 6  # full tiles per home page section; the rest fit on one line
+
+
+def _tile(name: str, summary: str, entries: list[dict], dates: dict[str, str], folder: str | None = None,
+          activity: list[dict] | None = None) -> dict:
+    """A home page tile: its first four entries (``text``, ``link``) with their last commit dates.
+
+    ``latest`` is the newest commit date among ``activity`` (default: every entry), which orders
+    the tiles in their section.
+    """
+    def day(link: str) -> str | None:
+        return dates.get(link.lstrip("/") + ".md")
+
+    def updated(link: str) -> str | None:
+        d = day(link)
+        return f"{_MONTHS[int(d[5:7]) - 1]} {int(d[8:])}, {d[:4]}" if d else None
+
+    shown = [{"text": e["text"], "link": e["link"], "updated": updated(e["link"])} for e in entries[:4]]
+    latest = max(filter(None, (day(e["link"]) for e in activity or entries)), default="")
+    return {"name": name, "summary": summary, "folder": folder, "pages": shown, "more": len(entries) - len(shown),
+            "latest": latest}
+
+
+def _section(tiles: list[dict]) -> dict:
+    """A home page section: the most recently active tiles first, at most ``HOME_TILES`` of them,
+    and the rest as one line of links to each one's first page, so the page stays two rows tall."""
+    ordered = sorted(tiles, key=lambda t: t.pop("latest"), reverse=True)
+    rest = [{"name": t["name"], "summary": t["summary"], "link": t["pages"][0]["link"]}
+            for t in ordered[HOME_TILES:] if t["pages"]]
+    return {"tiles": ordered[:HOME_TILES], "rest": rest}
+
+
+def _plural(count: int, noun: str) -> str:
+    return f"{count} {noun}" + ("" if count == 1 else "s")
+
+
 def _home(brain: Path, settings: dict, pages: list[str], first_nav: str | None, topics: list[dict],
           dates: dict[str, str]) -> dict:
-    """The standard home page: the hero, and one tile per ``docs/`` folder, newest pages first.
+    """The standard home page: the hero, one tile per ``docs/`` folder, and one per Learn topic.
 
     The buttons are always the same three: Docs (the first sidebar page, else the first ``docs/``
-    page), Start learning (the first lesson, when there is one), and Configure this site.
+    page), Start learning (the first lesson, when there is one), and Configure this site. Docs tiles
+    list their most recently updated pages and Learn tiles their latest lessons, and each section
+    keeps its most active tiles, so the page does not grow with the Brain. The sidebar keeps the
+    full lists, in their own order.
     """
     docs = [p for p in pages if p.startswith("docs/") and not re.search(r"(^|/)(README|index)\.md$", p)]
     groups: dict[str, list[str]] = {}
@@ -318,21 +357,18 @@ def _home(brain: Path, settings: dict, pages: list[str], first_nav: str | None, 
         groups.setdefault(rel.split("/")[0] if "/" in rel else "", []).append(page)
     tiles = []
     for key in sorted(groups, key=lambda k: (k != "", k)):
-        entries = sorted(({"text": _title(brain / p), "link": _route(p), "day": dates.get(p)} for p in groups[key]),
-                         key=lambda e: e["text"].lower())
-        entries.sort(key=lambda e: e["day"] or "", reverse=True)
-        shown = [
-            {"text": e["text"], "link": e["link"],
-             "updated": f"{_MONTHS[int(e['day'][5:7]) - 1]} {int(e['day'][8:])}, {e['day'][:4]}" if e["day"] else None}
-            for e in entries[:4]
-        ]
-        tiles.append({
-            "name": key[:1].upper() + key[1:].replace("-", " ") if key else "Docs",
-            "folder": f"docs/{key}/" if key else "docs/",
-            "count": len(entries),
-            "pages": shown,
-            "more": len(entries) - len(shown),
-        })
+        entries = sorted(({"text": _title(brain / p), "link": _route(p)} for p in groups[key]), key=lambda e: e["text"].lower())
+        entries.sort(key=lambda e: dates.get(e["link"][1:] + ".md") or "", reverse=True)
+        tiles.append(_tile(key[:1].upper() + key[1:].replace("-", " ") if key else "Docs",
+                           _plural(len(entries), "page"), entries, dates, f"docs/{key}/" if key else "docs/"))
+    learn = [
+        _tile(topic["name"],
+              " · ".join(filter(None, [_plural(len(topic["lessons"]), "lesson") if topic["lessons"] else "",
+                                       _plural(len(topic["references"]), "reference") if topic["references"] else ""])),
+              list(reversed(topic["lessons"])) or topic["references"], dates,
+              activity=topic["lessons"] + topic["references"])
+        for topic in topics
+    ]
     first_doc = first_nav or (_route(sorted(docs)[0]) if docs else None)
     first_lesson = next((t["lessons"][0]["link"] for t in topics if t["lessons"]), None)
     buttons = [("Docs", first_doc), ("Start learning", first_lesson),
@@ -340,7 +376,8 @@ def _home(brain: Path, settings: dict, pages: list[str], first_nav: str | None, 
     actions = [{"text": text, "link": link} for text, link in buttons if link]
     for index, action in enumerate(actions):
         action["theme"] = "brand" if index == 0 else "alt"
-    return {"hero": {"name": settings["title"], "tagline": settings["description"], "actions": actions}, "docs": tiles}
+    return {"hero": {"name": settings["title"], "tagline": settings["description"], "actions": actions},
+            "docs": _section(tiles), "learn": _section(learn)}
 
 
 def plan(brain: Path, dates: dict[str, str] | None = None) -> dict:
@@ -552,7 +589,7 @@ def run_site(
     engine = ensure_engine(dotbrain_home, setup_run)
     out_dir = engine / "out" / name
     settings = {
-        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude", "home")},
+        **{k: site_plan[k] for k in ("title", "description", "sidebar", "rewrites", "exclude", "home")},
         "brain": str(brain),
         "outDir": str(out_dir),
         "cacheDir": str(engine / "vite-cache" / name),

@@ -7,7 +7,7 @@ site's syntax and checks to the `teach-me` skill's lesson format, and it wins wh
 
 - **Lesson:** `lessons/NNNN-<dash-case-name>.md`, taking the next number in the workspace. The
   number orders lessons within their topic everywhere Learn lists them: the sidebar, the home
-  page's Learn overview, and previous/next links. "3 of 3" is the lesson's place among the lessons
+  page's Learn tiles (newest first), and previous/next links. "3 of 3" is the lesson's place among the lessons
   sharing its topic.
 - **Reference:** `reference/<dash-case-name>.md`. References appear, sorted by title, in their
   topic's folded References subgroup.
@@ -27,12 +27,11 @@ topic: Operations
 ---
 ```
 
-- `title` names the page in the sidebar and the Learn overview. Name the subject in a few words
+- `title` names the page in the sidebar and the Learn tiles. Name the subject in a few words
   (Secret storage, Service identities) so the list can be skimmed; the Your win box says what the
   reader will be able to do. Give a reference a distinct title from its lesson, naming the subject
   and the kind of lookup (Secret access map, Identity roles).
-- `description` is one sentence, shown under the lesson's title in the home page's
-  `<LearnOverview />`.
+- `description` is one sentence summing up the page; the site uses it as the page's description.
 - `topic` must match a `### ` heading under `## Topics` in `MISSION.md` exactly, or the build fails.
   That failure is deliberate: it keeps a page from silently dropping out of Learn.
 

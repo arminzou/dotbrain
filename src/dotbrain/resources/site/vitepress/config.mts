@@ -84,7 +84,7 @@ export default defineConfig({
     search: { provider: 'local' },
     nav: [{ text: 'Home', link: '/' }],
     sidebar: settings.sidebar,
-    learn: settings.learn,
-    docs: settings.home.docs
+    docs: settings.home.docs,
+    learn: settings.home.learn
   }
 })

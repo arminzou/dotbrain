@@ -67,59 +67,67 @@
   margin: 4px 0 0 20px;
 }
 
-/* The home page's docs tiles: one per docs/ folder, newest pages first. */
-/* It sits right under the hero, whose bottom padding already separates the two, so its heading
-   drops the divider and spacing every other h2 on a page gets. */
-.vp-doc .docs-overview h2 {
-  margin: 0 0 24px;
-  padding-top: 0;
-  border-top: 0;
+/* The home page's tiles, shared by <DocsOverview /> and <LearnOverview />. */
+.vp-doc .home-overview h2 {
+  margin: 48px 0 24px;
   font-size: 24px;
   font-weight: 600;
 }
 
-.docs-tiles {
+/* The first section sits right under the hero, whose bottom padding already separates the two, so
+   its heading drops the divider and spacing every other h2 on a page gets. */
+.vp-doc .home-overview:first-child h2 {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.home-overview:last-child {
+  padding-bottom: 64px;
+}
+
+.home-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
-.docs-tile {
+.home-tile {
   padding: 22px 24px;
   border-radius: 12px;
   background: var(--vp-c-bg-soft);
 }
 
-.docs-tile h3 {
-  margin: 0;
+.home-tile h3 {
+  margin: 0 0 10px;
   font-size: 16px;
   font-weight: 600;
 }
 
-.docs-count,
-.docs-date,
-.docs-more {
+.home-tile-summary,
+.home-tile-date,
+.home-tile-more {
   color: var(--vp-c-text-3);
   font-size: 13px;
   font-weight: 500;
 }
 
-.docs-overview code.docs-folder {
+.home-overview code.home-tile-folder {
   display: block;
-  margin: 4px 0 10px;
+  margin: -6px 0 10px;
   padding: 0;
   background: none;
   color: var(--vp-c-text-3);
   font-size: 12px;
 }
 
-.docs-tile ul {
+.home-tile ul {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.docs-tile li {
+.home-tile li {
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -128,7 +136,7 @@
   font-size: 14px;
 }
 
-.docs-tile li a {
+.home-tile li a {
   overflow: hidden;
   color: var(--vp-c-brand-1);
   font-weight: 500;
@@ -136,70 +144,29 @@
   white-space: nowrap;
 }
 
-.docs-tile li a:hover {
+.home-tile li a:hover {
   text-decoration: underline;
 }
 
-.docs-date {
+.home-tile-date {
   flex: none;
   font-variant-numeric: tabular-nums;
 }
 
-.docs-more {
+.home-tile-more {
   margin: 6px 0 0;
 }
 
-.learn-overview {
-  padding: 48px 0 64px;
-}
-
-.learn-overview h2 {
-  margin: 0 0 24px;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.learn-topics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 32px 48px;
-}
-
-.learn-topics h3 {
-  margin: 0 0 12px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.learn-topics ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.learn-topics li {
-  margin: 0 0 12px;
-}
-
-.learn-topics li span {
-  display: block;
-  color: var(--vp-c-text-2);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.learn-topics a {
-  color: var(--vp-c-brand-1);
-  font-weight: 500;
-}
-
-.learn-topics a:hover {
-  text-decoration: underline;
-}
-
-.learn-references {
+.home-rest {
   margin: 16px 0 0;
   color: var(--vp-c-text-2);
   font-size: 14px;
+  line-height: 1.8;
+}
+
+.home-rest a {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
 }
 
 /* Retrieval questions: the summary is the question; the content after it is the answer. */
