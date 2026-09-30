@@ -30,6 +30,7 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
         "brain/operate-execution",
         "brain/review-architecture",
         "brain/review-gate",
+        "brain/teach-me",
         "brain/to-design",
         "brain/to-issues",
         "brain/triage-public",

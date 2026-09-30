@@ -50,6 +50,12 @@ Skill linking is operator-managed:
 - **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
   user-owned skills, and guidance agents reach through pointers
 
+## Learning
+
+- **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in
+  conversation, walk a learning path tracked as a `learn:` bead, record what was demonstrated, and
+  capture approved lessons into `.brain/learning/`
+
 ## Installing Them
 
 The skills arrive with the plugin, installed once per agent runtime rather than per repo. See

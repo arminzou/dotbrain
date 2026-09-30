@@ -35,6 +35,8 @@ is no separate coordination mechanism.
   execution graph
 - record a code review's findings as a review bead
   ([references/review-beads.md](references/review-beads.md))
+- park a concept for later learning on a learning bead
+  ([references/learning-beads.md](references/learning-beads.md))
 
 ## Stop before you start
 
@@ -42,6 +44,8 @@ is no separate coordination mechanism.
   between a direct bead and that path is [references/work-intake.md](references/work-intake.md).
 - An epic exists but has no slices — it has not been decomposed yet; run `to-issues`.
 - The item is human-gated — stop for sign-off before claiming it (see below).
+- The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
+  `teach-me` resumes and updates it.
 
 Deciding *where* implementation happens — branch, worktree, or the main checkout in place — is not
 this skill's call. That belongs to the user or the session; this skill hands off whatever item is
@@ -78,7 +82,7 @@ everything else unflagged so the agent can flow through the ready frontier.
    (commands in [references/beads.md](references/beads.md)).
 3. Check for human-gated items among the ready set (engine reference covers the command). Recheck
    every iteration: the gated set changes as items close and new ones are created.
-4. Select the next ready item:
+4. Select the next ready item, skipping learning beads (label `learning`), which are not work:
    - **Human-gated** — stop for sign-off before claiming.
    - **Autonomous** — claim directly and proceed.
 5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
@@ -123,3 +127,9 @@ it's the natural next step after a review pass, whatever skill or process ran it
 [references/review-beads.md](references/review-beads.md). It covers the single-pass and multi-pass
 shapes a review bead can take, one generalized recipe regardless of which review produced the
 findings, and how to recognize an existing bead's shape before operating on it.
+
+## Learning beads
+
+When the operator asks to park a concept for later learning, see
+[references/learning-beads.md](references/learning-beads.md). It covers the path and backlog bead
+shapes, the concept note, and how to file one without leaving the work underway.
