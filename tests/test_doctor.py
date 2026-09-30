@@ -462,4 +462,4 @@ def test_brain_site_node_check_runs_only_for_brains_with_a_site(tmp_path: Path):
 
     (brainspace / ".brain" / "site").mkdir()
     [finding] = doctor._check_brain_site(brainspace, run=old_node)
-    assert finding.status == "warn" and "Node 20" in finding.message
+    assert finding.status == "warn" and "Node 22.12" in finding.message

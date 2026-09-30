@@ -11,7 +11,7 @@ A **Brain site** is the private site dotbrain renders from one Brain. The Brain 
 page syntax. It never publishes anything: a Brain site is served on `127.0.0.1` only, and a
 project's public docs are not a Brain site.
 
-This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Node 20 or later.
+This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Node 22.12 or later.
 
 ## Choose the branch
 
@@ -42,19 +42,22 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 | Publish a `docs/` page | Add it to a nav section in `site.yaml` by its path relative to `docs/`, then build |
 | Take a page off the site | Remove its nav entry; the page stays in `docs/` |
 | `nav links to pages that do not exist` | The listed page was moved or deleted: fix the link or remove the entry |
-| `topic must be one of the MISSION.md topics` | Match the page's `topic` to a `### ` heading under `## Topics`, or add the topic with the user |
-| `needs Node 20 or later` | Tell the user; nothing else in dotbrain needs Node |
-| `installing the site engine failed` | The first run of a dotbrain version needs network access for `npm ci`; retry once online |
+| ``` `topic` must be one of the MISSION.md topics ``` | Match the page's `topic` to a `### ` heading under `## Topics`, or add the topic with the user |
+| `needs Node 22.12 or later` | Tell the user; nothing else in dotbrain needs Node |
+| `installing the site engine failed` | Read npm's lines in the message: the first run of a dotbrain version needs network access for `npm ci` |
+| `vitepress build failed for <name>` | Read VitePress's error above it: usually a dead internal link or a page that does not compile ([vitepress.md](references/vitepress.md)) |
+| `has no build to preview` | Run `dotbrain site build` first |
 | `no .brain found here` | Run from a wired repo or pass `--name <project>` |
 | A page builds but renders wrongly | [vitepress.md](references/vitepress.md), then [mermaid.md](references/mermaid.md) for diagrams |
 | Change the look | `.brain/site/theme/style.css`, loaded after the defaults |
 | Add a component | `.brain/site/theme/index.ts` exporting `{ enhanceApp({ app }) { ... } }` |
-| Replace the theme | `.brain/site/theme/index.ts` exporting a whole theme; extend `@dotbrain/theme` to keep Mermaid and `<LearnOverview />` |
+| Replace the theme | `.brain/site/theme/index.ts` exporting a whole theme; extend `@dotbrain/theme` to keep Mermaid and `<LearnOverview />`. The default styles still load; override them in `style.css` |
 
 The nav is the allowlist: a `docs/` page not listed in `site.yaml` is not published, and that is not
 an error. `docs/index.md` is always the home page; `<LearnOverview />` there lists the Learn topics.
 Theme extensions can import only what the engine installs (Vue, VitePress, Mermaid) and their own
-local files; a Brain cannot add npm packages. A theme change is a site change: agree it with the
+local files; a Brain cannot add npm packages. `dev` decides the published pages when it starts:
+restart it after changing the nav or adding a page. A theme change is a site change: agree it with the
 user first.
 
 ## Verification

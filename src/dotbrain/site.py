@@ -14,6 +14,8 @@ import os
 import re
 import shutil
 import subprocess
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -23,9 +25,13 @@ from dotbrain import __version__, paths, resource_loader
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
-MIN_NODE_MAJOR = 20
+# The engine's lockfile needs this: Mermaid requires Node 22.12 or later.
+MIN_NODE = (22, 12)
+MIN_NODE_TEXT = "22.12"
 ENGINE_RESOURCE = "site"
 COMMANDS = ("dev", "build", "preview")
+PREVIEW_HOST = "127.0.0.1"
+PREVIEW_PORT = 4173
 
 
 class SiteError(Exception):
@@ -77,7 +83,7 @@ def init(brain: Path, title: str | None = None) -> list[Path]:
     if not settings.exists():
         settings.parent.mkdir(parents=True, exist_ok=True)
         settings.write_text(
-            f"title: {title}\n"
+            f"title: {json.dumps(title)}\n"
             "description: Private project guidance\n"
             "# Sidebar sections. A docs/ page is published only when a section links it,\n"
             "# by its path relative to docs/ (e.g. runbooks/release).\n"
@@ -91,7 +97,7 @@ def init(brain: Path, title: str | None = None) -> list[Path]:
         home.parent.mkdir(parents=True, exist_ok=True)
         home.write_text(
             "---\nlayout: home\n\nhero:\n"
-            f"  name: {title}\n"
+            f"  name: {json.dumps(title)}\n"
             "  tagline: Private project guidance.\n---\n\n<LearnOverview />\n",
             encoding="utf-8",
             newline="\n",
@@ -127,8 +133,14 @@ def load_settings(brain: Path) -> dict:
 
 
 def _docs_page(brain: Path, link: str) -> str | None:
-    """The ``docs/``-relative file a nav link names, or None when no such page exists."""
-    link = link.strip().lstrip("/")
+    """The ``docs/``-relative file a nav link names, as stored on disk; None when no page exists.
+
+    The link is normalized through the real path, so ``./a``, ``a.md``, another case on a
+    case-insensitive disk, and backslashes all name the same page, and a link escaping ``docs/``
+    names none.
+    """
+    docs = (brain / "docs").resolve()
+    link = link.strip().replace("\\", "/").lstrip("/")
     if link.endswith(".md"):
         link = link[:-3]
     if link in ("", "."):
@@ -138,8 +150,12 @@ def _docs_page(brain: Path, link: str) -> str | None:
     else:
         candidates = [f"{link}.md", f"{link}/README.md", f"{link}/index.md"]
     for candidate in candidates:
-        if (brain / "docs" / candidate).is_file():
-            return candidate
+        path = docs / candidate
+        if path.is_file():
+            try:
+                return path.resolve().relative_to(docs).as_posix()
+            except ValueError:
+                return None
     return None
 
 
@@ -153,12 +169,21 @@ def _route(target: str) -> str:
     return "/" + (route[:-3] if route.endswith(".md") else route)
 
 
-_FIELD = r"^{}:\s*(.+?)\s*$"
+def _frontmatter(source: str) -> dict:
+    """The page's YAML frontmatter, or {} when it has none or it does not parse."""
+    match = re.match(r"---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", source, re.S)
+    if not match:
+        return {}
+    try:
+        data = yaml.safe_load(match.group(1))
+    except yaml.YAMLError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _field(source: str, name: str) -> str | None:
-    match = re.search(_FIELD.format(name), source, re.M)
-    return match.group(1).strip("'\"") if match else None
+    value = _frontmatter(source).get(name)
+    return str(value).strip() if value is not None else None
 
 
 def learn_topics(brain: Path) -> list[dict]:
@@ -198,6 +223,11 @@ def learn_topics(brain: Path) -> list[dict]:
         if mine or refs:
             result.append({"name": name, "lessons": mine, "references": refs})
     return result
+
+
+def _glob_escape(path: str) -> str:
+    """VitePress reads ``srcExclude`` as globs; escape so each entry matches only its own file."""
+    return re.sub(r"([\\*?\[\]{}()!+@])", r"\\\1", path)
 
 
 def plan(brain: Path) -> dict:
@@ -254,7 +284,7 @@ def plan(brain: Path) -> dict:
         "sidebar": sidebar,
         "learn": topics,
         "rewrites": {source: target for source, target in published.items() if source != target},
-        "exclude": [p for p in every if p not in published],
+        "exclude": [_glob_escape(p) for p in every if p not in published],
         "published": sorted(published),
     }
 
@@ -289,11 +319,16 @@ def check_node(run: Runner = _default_run) -> None:
     try:
         result = run([node, "--version"], check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise SiteError(f"the Brain site needs Node {MIN_NODE_MAJOR} or later, and none was found") from exc
-    match = re.match(r"v?(\d+)", (result.stdout or "").strip())
-    if not match or int(match.group(1)) < MIN_NODE_MAJOR:
-        found = (result.stdout or "").strip() or "unknown"
-        raise SiteError(f"the Brain site needs Node {MIN_NODE_MAJOR} or later; found {found}")
+        raise SiteError(f"the Brain site needs Node {MIN_NODE_TEXT} or later, and none was found") from exc
+    found = (result.stdout or "").strip()
+    match = re.match(r"v?(\d+)\.(\d+)", found)
+    if not match or (int(match.group(1)), int(match.group(2))) < MIN_NODE:
+        raise SiteError(f"the Brain site needs Node {MIN_NODE_TEXT} or later; found {found or 'unknown'}")
+
+
+def _tail(text: str | None, lines: int = 8) -> str:
+    kept = [line for line in (text or "").strip().splitlines() if line.strip()][-lines:]
+    return ("\n  " + "\n  ".join(kept)) if kept else ""
 
 
 def ensure_engine(dotbrain_home: Path, run: Runner = _default_run) -> Path:
@@ -303,6 +338,7 @@ def ensure_engine(dotbrain_home: Path, run: Runner = _default_run) -> Path:
     engine_stamp = engine / ".engine-sha256"
     engine_hash = _digest([path.encode() + data for path, data in files])
     if not engine_stamp.is_file() or engine_stamp.read_text(encoding="utf-8") != engine_hash:
+        engine_stamp.unlink(missing_ok=True)
         if (engine / ".vitepress").is_dir():
             shutil.rmtree(engine / ".vitepress")
         for rel, data in files:
@@ -315,19 +351,50 @@ def ensure_engine(dotbrain_home: Path, run: Runner = _default_run) -> Path:
     lock_hash = _digest([(engine / "package-lock.json").read_bytes()])
     installed = (engine / "node_modules" / "vitepress").is_dir()
     if not installed or not lock_stamp.is_file() or lock_stamp.read_text(encoding="utf-8") != lock_hash:
+        # Drop the stamp first: a failed or partial install must never look finished next time.
+        lock_stamp.unlink(missing_ok=True)
         npm = shutil.which("npm") or "npm"
         try:
             run([npm, "ci", "--no-audit", "--no-fund"], cwd=engine, check=True)
-        except (OSError, subprocess.CalledProcessError) as exc:
+        except OSError as exc:
+            raise SiteError(f"installing the site engine failed: npm was not found ({exc})") from exc
+        except subprocess.CalledProcessError as exc:
             raise SiteError(
-                f"installing the site engine failed (`npm ci` in {engine}); it needs network access "
-                "the first time for each dotbrain version"
+                f"installing the site engine failed (`npm ci` in {engine}). The first run for each "
+                "dotbrain version needs network access; npm said:" + _tail(exc.stderr or exc.stdout)
             ) from exc
         lock_stamp.write_text(lock_hash, encoding="utf-8", newline="\n")
     return engine
 
 
 # --------------------------------------------------------------------------- running
+
+
+def preview_server(out_dir: Path, port: int = PREVIEW_PORT) -> ThreadingHTTPServer:
+    """A static server for a built site, bound to 127.0.0.1 only.
+
+    ``vitepress preview`` ignores ``--host`` and listens on every interface, which would put a
+    private Brain on the network, so dotbrain serves the build itself.
+    """
+    handler = partial(_QuietHandler, directory=str(out_dir))
+    return ThreadingHTTPServer((PREVIEW_HOST, port), handler)
+
+
+class _QuietHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args) -> None:  # noqa: A002 - base-class signature
+        pass
+
+
+def serve_preview(out_dir: Path) -> None:
+    server = preview_server(out_dir)
+    host, port = server.server_address[:2]
+    print(f"site: serving {out_dir} at http://{host}:{port}/ (Ctrl+C to stop)", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
 
 
 def run_site(
@@ -337,14 +404,25 @@ def run_site(
     brain: Path,
     run: Runner = stream_run,
     setup_run: Runner = _default_run,
+    serve: Callable[[Path], None] = serve_preview,
 ) -> Path:
-    """Run ``vitepress <command>`` for the Brain. Returns the output folder."""
+    """Run the Brain site: ``dev`` and ``build`` through VitePress, ``preview`` from the last build.
+
+    Returns the output folder.
+    """
     if command not in COMMANDS:
         raise SiteError(f"unknown site command {command!r}")
+    name = brain.parent.name
+    if command == "preview":
+        out_dir = engine_dir(dotbrain_home) / "out" / name
+        if not (out_dir / "index.html").is_file():
+            raise SiteError(f"{name} has no build to preview: run `dotbrain site build` first")
+        serve(out_dir)
+        return out_dir
+
     site_plan = plan(brain)
     check_node(setup_run)
     engine = ensure_engine(dotbrain_home, setup_run)
-    name = brain.parent.name
     out_dir = engine / "out" / name
     settings = {
         **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude")},
@@ -358,8 +436,8 @@ def run_site(
 
     node = shutil.which("node") or "node"
     argv = [node, str(engine / "node_modules" / "vitepress" / "bin" / "vitepress.js"), command, str(engine)]
-    if command in ("dev", "preview"):
-        argv += ["--host", "127.0.0.1"]
+    if command == "dev":
+        argv += ["--host", PREVIEW_HOST]
     env = {**os.environ, "DOTBRAIN_SITE_SETTINGS": str(settings_path)}
     try:
         run(argv, cwd=engine, env=env, check=True)
