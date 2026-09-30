@@ -446,3 +446,20 @@ def test_doctor_renders_on_a_legacy_windows_code_page(
     assert "ok" in rendered
     for glyph in cli._GLYPHS.values():
         assert glyph not in rendered
+
+
+def test_brain_site_node_check_runs_only_for_brains_with_a_site(tmp_path: Path):
+    calls: list[list[str]] = []
+
+    def old_node(argv, **_kwargs):
+        calls.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, stdout="v18.0.0\n", stderr="")
+
+    brainspace = tmp_path / "demo"
+    (brainspace / ".brain").mkdir(parents=True)
+    assert doctor._check_brain_site(brainspace, run=old_node) == []
+    assert calls == []
+
+    (brainspace / ".brain" / "site").mkdir()
+    [finding] = doctor._check_brain_site(brainspace, run=old_node)
+    assert finding.status == "warn" and "Node 20" in finding.message
