@@ -46,7 +46,8 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
     so package template changes propagate. All other files, including
     ``project.yaml``, are project-owned and are only written when missing.
     ``site/`` is never seeded: having it opts a Brain into a Brain site, so only
-    ``dotbrain site init`` writes it.
+    ``dotbrain site init`` writes it. In a Brain that has a site, the dotbrain-owned
+    ``site/configure.md`` manual is refreshed like ``DOTBRAIN.md``.
     """
 
     brain = Path(brainspace) / ".brain"
@@ -56,11 +57,12 @@ def seed_brain(brainspace: Path, dotbrain_home: Path) -> None:
         raise FileNotFoundError("package resource templates/brain/AGENTS.md is missing")
 
     for rel, src in resource_loader.iter_resource_files("templates/brain"):
-        if rel.parts[0] == "site":
+        site_manual = rel.as_posix() == "site/configure.md"
+        if rel.parts[0] == "site" and not (site_manual and (brain / "site").is_dir()):
             continue
         dest = brain / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if src.name not in ("DOTBRAIN.md", "README.md") and dest.exists():
+        if src.name not in ("DOTBRAIN.md", "README.md") and not site_manual and dest.exists():
             continue
         content = src.read_text(encoding="utf-8")
         if dest.is_file() and dest.read_bytes() == content.encode("utf-8"):

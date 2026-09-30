@@ -39,6 +39,19 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     assert not (brain / "site").exists()
 
 
+def test_seed_brain_refreshes_the_site_manual_only_in_a_brain_with_a_site(dotbrain_home: Path, tmp_path: Path):
+    brainspace = tmp_path / "brainspace"
+    brain = brainspace / ".brain"
+    (brain / "site").mkdir(parents=True)
+    (brain / "site" / "configure.md").write_text("stale\n", encoding="utf-8")
+    (brain / "site" / "index.md").write_text("mine\n", encoding="utf-8")
+
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+
+    assert (brain / "site" / "configure.md").read_text(encoding="utf-8").startswith("# Configuring this site")
+    assert (brain / "site" / "index.md").read_text(encoding="utf-8") == "mine\n", "the home page is the Brain's own"
+
+
 def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: Path):
     brainspace = tmp_path / "brainspace"
     brainspace.mkdir()

@@ -720,7 +720,7 @@ def site_init(
     name: Optional[str] = _SITE_NAME,
     title: Optional[str] = typer.Option(None, "--title", help="Site title. Defaults to '<name> Brain'."),
 ) -> None:
-    """Give a Brain a site: create .brain/site/site.yaml and a starter home page, site/index.md."""
+    """Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual."""
     _, brain = _site_brain(name)
     created = site_mod.init(brain, title)
     for path in created:
@@ -728,7 +728,7 @@ def site_init(
     if site_mod.site_settings_file(brain) in created:
         typer.echo(
             "site: every docs/ page is in the sidebar; trim or regroup it in site.yaml, then run "
-            "`dotbrain site dev`. The home page, .brain/site/index.md, explains the settings."
+            "`dotbrain site dev`. .brain/site/configure.md, the home page's Configure this site button, explains the settings."
         )
     if not created:
         typer.echo("site: already set up; nothing changed")

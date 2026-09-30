@@ -29,6 +29,13 @@ export default defineConfig({
   rewrites: settings.rewrites,
   ignoreDeadLinks: 'localhostLinks',
   lastUpdated: true,
+  // The home page gets the standard hero (title, tagline, and the Docs, Start learning, and
+  // Configure this site buttons) unless its own frontmatter sets one.
+  transformPageData(pageData) {
+    if (pageData.filePath === 'site/index.md' && pageData.frontmatter.layout === 'home') {
+      pageData.frontmatter.hero ??= settings.home.hero
+    }
+  },
   markdown: {
     // A ```mermaid fence becomes the theme's <Mermaid> component, which draws it in the browser.
     config(md) {
@@ -64,6 +71,7 @@ export default defineConfig({
     search: { provider: 'local' },
     nav: [{ text: 'Home', link: '/' }],
     sidebar: settings.sidebar,
-    learn: settings.learn
+    learn: settings.learn,
+    docs: settings.home.docs
   }
 })

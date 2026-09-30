@@ -91,9 +91,7 @@ def _starter_nav(brain: Path) -> str:
             continue
         folder, _, name = rel.rpartition("/")
         link = f"{folder}/" if name in ("README.md", "index.md") else rel[:-3]
-        source = path.read_text(encoding="utf-8")
-        heading = re.search(r"^# +(.+?)\s*$", source, re.M)
-        text = _field(source, "title") or (heading.group(1) if heading else path.stem)
+        text = _title(path)
         section = folder.split("/")[0].replace("-", " ").capitalize() if folder else "Docs"
         item = f"      - {{ text: {json.dumps(text, ensure_ascii=False)}, link: {json.dumps(link)} }}\n"
         if item not in sections.setdefault(section, []):
@@ -105,8 +103,8 @@ def _starter_nav(brain: Path) -> str:
 
 
 def init(brain: Path, title: str | None = None) -> list[Path]:
-    """Create ``site/site.yaml``, listing every ``docs/`` page, and a starter home page,
-    ``site/index.md``, that explains the site's configuration; never overwrite. Returns created."""
+    """Create ``site/site.yaml``, listing every ``docs/`` page, the home page ``site/index.md``, and
+    the manual ``site/configure.md``; never overwrite. Returns the files created."""
     title = title or f"{brain.parent.name} Brain"
     created: list[Path] = []
     settings = site_settings_file(brain)
@@ -117,18 +115,19 @@ def init(brain: Path, title: str | None = None) -> list[Path]:
             "description: Private project guidance\n"
             "# Every Markdown file in the Brain is on the site; the nav only decides the sidebar. Items\n"
             "# link docs/ pages by their path relative to docs/. init listed every docs/ page; remove,\n"
-            "# group, and rename freely. site/index.md, the home page, explains the rest.\n"
+            "# group, and rename freely. site/configure.md, linked from the home page, explains the rest.\n"
             + _starter_nav(brain),
             encoding="utf-8",
             newline="\n",
         )
         created.append(settings)
-    home = home_page(brain)
-    if not home.exists():
-        home.parent.mkdir(parents=True, exist_ok=True)
-        template = resource_loader.resource("templates/brain/site/index.md").read_text(encoding="utf-8")
-        home.write_text(template.replace("__TITLE__", json.dumps(title)), encoding="utf-8", newline="\n")
-        created.append(home)
+    for name in ("index.md", "configure.md"):
+        page = brain / "site" / name
+        if not page.exists():
+            page.parent.mkdir(parents=True, exist_ok=True)
+            template = resource_loader.resource(f"templates/brain/site/{name}").read_text(encoding="utf-8")
+            page.write_text(template, encoding="utf-8", newline="\n")
+            created.append(page)
     return created
 
 
@@ -279,12 +278,78 @@ def _pages(brain: Path) -> tuple[list[str], list[str]]:
     return sorted(pages), sorted(exclude)
 
 
-def plan(brain: Path) -> dict:
-    """Resolve the pages, the sidebar, and Learn; dead nav links fail here.
+def _title(path: Path) -> str:
+    """A page's title: its frontmatter ``title``, else its first ``#`` heading, else its file name."""
+    source = path.read_text(encoding="utf-8")
+    heading = re.search(r"^# +(.+?)\s*$", source, re.M)
+    return _field(source, "title") or (heading.group(1) if heading else path.stem)
+
+
+_MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+
+
+def git_dates(brain: Path, run: Runner = _default_run) -> dict[str, str]:
+    """Each Brain file's last commit date as ``YYYY-MM-DD``, by Brain-relative path; {} without git."""
+    try:
+        result = run(["git", "-C", str(brain), "log", "--format=@%cs", "--name-only", "--relative", "--", "."], check=False)
+    except OSError:
+        return {}
+    dates: dict[str, str] = {}
+    day = None
+    for line in (result.stdout or "").splitlines():
+        if line.startswith("@"):
+            day = line[1:]
+        elif line and day:
+            dates.setdefault(line, day)
+    return dates
+
+
+def _home(brain: Path, settings: dict, pages: list[str], first_nav: str | None, topics: list[dict],
+          dates: dict[str, str]) -> dict:
+    """The standard home page: the hero, and one tile per ``docs/`` folder, newest pages first.
+
+    The buttons are always the same three: Docs (the first sidebar page, else the first ``docs/``
+    page), Start learning (the first lesson, when there is one), and Configure this site.
+    """
+    docs = [p for p in pages if p.startswith("docs/") and not re.search(r"(^|/)(README|index)\.md$", p)]
+    groups: dict[str, list[str]] = {}
+    for page in docs:
+        rel = page[len("docs/"):]
+        groups.setdefault(rel.split("/")[0] if "/" in rel else "", []).append(page)
+    tiles = []
+    for key in sorted(groups, key=lambda k: (k != "", k)):
+        entries = sorted(({"text": _title(brain / p), "link": _route(p), "day": dates.get(p)} for p in groups[key]),
+                         key=lambda e: e["text"].lower())
+        entries.sort(key=lambda e: e["day"] or "", reverse=True)
+        shown = [
+            {"text": e["text"], "link": e["link"],
+             "updated": f"{_MONTHS[int(e['day'][5:7]) - 1]} {int(e['day'][8:])}, {e['day'][:4]}" if e["day"] else None}
+            for e in entries[:4]
+        ]
+        tiles.append({
+            "name": key[:1].upper() + key[1:].replace("-", " ") if key else "Docs",
+            "folder": f"docs/{key}/" if key else "docs/",
+            "count": len(entries),
+            "pages": shown,
+            "more": len(entries) - len(shown),
+        })
+    first_doc = first_nav or (_route(sorted(docs)[0]) if docs else None)
+    first_lesson = next((t["lessons"][0]["link"] for t in topics if t["lessons"]), None)
+    buttons = [("Docs", first_doc), ("Start learning", first_lesson),
+               ("Configure this site", "/site/configure" if "site/configure.md" in pages else None)]
+    actions = [{"text": text, "link": link} for text, link in buttons if link]
+    for index, action in enumerate(actions):
+        action["theme"] = "brand" if index == 0 else "alt"
+    return {"hero": {"name": settings["title"], "tagline": settings["description"], "actions": actions}, "docs": tiles}
+
+
+def plan(brain: Path, dates: dict[str, str] | None = None) -> dict:
+    """Resolve the pages, the sidebar, Learn, and the home page; dead nav links fail here.
 
     Every Markdown file in the Brain is published at its path in the Brain, so a relative link that
     works in the Brain works on the site; only the home page moves, to ``/``. ``site.yaml``'s nav
-    decides the sidebar, not what is published.
+    decides the sidebar, not what is published. ``dates`` (from ``git_dates``) orders the home
+    page's docs tiles.
     """
     settings = load_settings(brain)
     pages, exclude = _pages(brain)
@@ -303,6 +368,7 @@ def plan(brain: Path) -> dict:
         sidebar.append({"text": section["text"], "items": items})
     if dead:
         raise SiteError("nav links to pages that do not exist:\n  " + "\n  ".join(dead))
+    first_nav = next((items[0]["link"] for section in sidebar if (items := section["items"])), None)
 
     topics = learn_topics(brain)
     if topics:
@@ -336,6 +402,7 @@ def plan(brain: Path) -> dict:
         "rewrites": {"site/index.md": "index.md"} if home else {},
         "exclude": exclude,
         "pages": pages,
+        "home": _home(brain, settings, pages, first_nav, topics, dates or {}),
     }
 
 
@@ -480,12 +547,12 @@ def run_site(
         serve(out_dir)
         return out_dir
 
-    site_plan = plan(brain)
+    site_plan = plan(brain, git_dates(brain, setup_run))
     check_node(setup_run)
     engine = ensure_engine(dotbrain_home, setup_run)
     out_dir = engine / "out" / name
     settings = {
-        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude")},
+        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude", "home")},
         "brain": str(brain),
         "outDir": str(out_dir),
         "cacheDir": str(engine / "vite-cache" / name),
