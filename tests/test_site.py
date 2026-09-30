@@ -438,14 +438,30 @@ def test_home_docs_tiles_group_by_folder_newest_first(brain: Path):
     dates = {"docs/old.md": "2026-01-02", "docs/new.md": "2026-09-30", "docs/mid.md": "2026-05-01",
              "docs/fifth.md": "2025-12-31"}
 
-    [root, deploy] = site.plan(brain, dates)["home"]["docs"]
+    [root, deploy] = site.plan(brain, dates)["home"]["docs"]["tiles"]
 
-    assert root["name"] == "Docs" and root["folder"] == "docs/" and root["count"] == 5 and root["more"] == 1
+    assert root["name"] == "Docs" and root["folder"] == "docs/" and root["summary"] == "5 pages" and root["more"] == 1
     assert [(p["text"], p["updated"]) for p in root["pages"]] == [
         ("New", "Sep 30, 2026"), ("Mid", "May 1, 2026"), ("Old", "Jan 2, 2026"), ("Fifth", "Dec 31, 2025"),
     ]
-    assert deploy == {"name": "Deploy guides", "folder": "docs/deploy-guides/", "count": 1, "more": 0,
+    assert deploy == {"name": "Deploy guides", "summary": "1 page", "folder": "docs/deploy-guides/", "more": 0,
                       "pages": [{"text": "Azure", "link": "/docs/deploy-guides/azure", "updated": None}]}
+
+
+def test_home_learn_tiles_show_each_topics_latest_lessons(brain: Path):
+    _settings(brain)
+    _write(brain / "learning" / "MISSION.md", "## Topics\n\n### Ops\n\n### Dev\n")
+    for n in range(1, 7):
+        _write(brain / "learning" / "lessons" / f"000{n}-l{n}.md", f"---\ntitle: L{n}\ntopic: Ops\n---\n")
+    _write(brain / "learning" / "reference" / "map.md", "---\ntitle: Map\ntopic: Ops\n---\n")
+    _write(brain / "learning" / "reference" / "only.md", "---\ntitle: Only\ntopic: Dev\n---\n")
+
+    [ops, dev] = site.plan(brain, {"learning/lessons/0006-l6.md": "2026-09-30"})["home"]["learn"]["tiles"]
+
+    assert ops["name"] == "Ops" and ops["summary"] == "6 lessons · 1 reference" and ops["more"] == 2
+    assert [(p["text"], p["updated"]) for p in ops["pages"]] == [("L6", "Sep 30, 2026"), ("L5", None), ("L4", None), ("L3", None)]
+    assert dev["summary"] == "1 reference" and [p["text"] for p in dev["pages"]] == ["Only"], \
+        "a topic with only references lists them"
 
 
 def test_git_dates_reads_each_files_latest_commit():
@@ -456,3 +472,20 @@ def test_git_dates_reads_each_files_latest_commit():
     def no_git(argv, **_):
         raise FileNotFoundError("git")
     assert site.git_dates(Path("brain"), no_git) == {}
+
+
+def test_home_sections_put_active_tiles_first_and_list_the_rest(brain: Path):
+    _settings(brain)
+    folders = [f"f{n}" for n in range(1, 9)]
+    for folder in folders:
+        _write(brain / "docs" / folder / "a.md", f"# {folder} A\n")
+    dates = {"docs/f8/a.md": "2026-09-30", "docs/f2/a.md": "2026-09-01"}
+
+    section = site.plan(brain, dates)["home"]["docs"]
+
+    assert [t["name"] for t in section["tiles"]] == ["F8", "F2", "F1", "F3", "F4", "F5"], \
+        "most recently active first, then the usual order, at most six"
+    assert section["rest"] == [
+        {"name": "F6", "summary": "1 page", "link": "/docs/f6/a"},
+        {"name": "F7", "summary": "1 page", "link": "/docs/f7/a"},
+    ]

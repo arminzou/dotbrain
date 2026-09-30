@@ -23,7 +23,10 @@ reads as route templates.
   `learning/` has one, and **Configure this site** opens this page.
 - `<DocsOverview />`: one tile per `docs/` folder, with its page count and most recently updated
   pages.
-- `<LearnOverview />`: the lessons and references by topic, when `learning/` has any.
+- `<LearnOverview />`: one tile per Learn topic, with its latest lessons, when `learning/` has any.
+  The sidebar's Learn section lists every lesson in order.
+- Each section shows its most recently active tiles first, at most six; any more are listed on one
+  line below them, so the home page stays the same size however much the Brain grows.
 
 The home page shows only `docs/` and `learning/`. ADRs, design docs, and every other Brain file are
 on the site too, reached through links and search.

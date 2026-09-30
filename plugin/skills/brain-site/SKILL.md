@@ -67,7 +67,8 @@ Every Markdown file in the Brain is published, except symlinks and names with br
 only decides the sidebar. ADRs show their `status` and design docs their `lifecycle` as a badge.
 `.brain/site/index.md` is the home page and the user's to change. The standard one shows the site's
 title and description with three buttons (Docs; Start learning when there is a lesson; Configure
-this site), then `<DocsOverview />` (one tile per `docs/` folder) and `<LearnOverview />`; it
+this site), then `<DocsOverview />` (one tile per `docs/` folder) and `<LearnOverview />` (one tile per
+Learn topic, latest lessons first), each with its most active six tiles and the rest on one line; it
 shows only `docs/` and `learning/`. A `hero` in its frontmatter replaces the standard hero.
 `.brain/site/configure.md` is dotbrain's manual for the settings: `dotbrain refresh` overwrites
 it, so never edit it. Theme extensions can import only what the engine
