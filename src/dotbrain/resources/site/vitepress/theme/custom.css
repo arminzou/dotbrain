@@ -67,6 +67,88 @@
   margin: 4px 0 0 20px;
 }
 
+/* The home page's docs tiles: one per docs/ folder, newest pages first. */
+/* It sits right under the hero, whose bottom padding already separates the two, so its heading
+   drops the divider and spacing every other h2 on a page gets. */
+.vp-doc .docs-overview h2 {
+  margin: 0 0 24px;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.docs-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.docs-tile {
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+}
+
+.docs-tile h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.docs-count,
+.docs-date,
+.docs-more {
+  color: var(--vp-c-text-3);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.docs-overview code.docs-folder {
+  display: block;
+  margin: 4px 0 10px;
+  padding: 0;
+  background: none;
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+}
+
+.docs-tile ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-tile li {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.docs-tile li a {
+  overflow: hidden;
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docs-tile li a:hover {
+  text-decoration: underline;
+}
+
+.docs-date {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.docs-more {
+  margin: 6px 0 0;
+}
+
 .learn-overview {
   padding: 48px 0 64px;
 }

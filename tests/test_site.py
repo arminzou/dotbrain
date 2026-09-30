@@ -83,7 +83,7 @@ def test_find_brain_explains_what_to_do(home: Path, tmp_path: Path):
 
 def test_init_creates_settings_and_home_and_never_overwrites(brain: Path):
     created = site.init(brain, "Demo Brain")
-    assert {p.name for p in created} == {"site.yaml", "index.md"}
+    assert {p.name for p in created} == {"site.yaml", "index.md", "configure.md"}
     assert site.load_settings(brain)["title"] == "Demo Brain"
 
     (brain / "site" / "index.md").write_text("mine\n", encoding="utf-8")
@@ -387,8 +387,72 @@ def test_init_lists_every_docs_page_in_the_nav(brain: Path):
     assert len(site.plan(brain)["sidebar"]) == 3, "every seeded nav link resolves"
 
 
-def test_init_starts_an_empty_brain_with_an_empty_nav_and_the_manual(brain: Path):
+def test_init_starts_an_empty_brain_with_the_standard_home_and_the_manual(brain: Path):
     site.init(brain, "Demo")
     assert site.load_settings(brain)["nav"] == []
     home = (brain / "site" / "index.md").read_text(encoding="utf-8")
-    assert 'name: "Demo"' in home and "## Configuring this site" in home
+    assert "layout: home" in home and "<DocsOverview />" in home and "<LearnOverview />" in home
+    manual = (brain / "site" / "configure.md").read_text(encoding="utf-8")
+    assert manual.startswith("# Configuring this site")
+
+
+# --------------------------------------------------------------------------- the home page
+
+
+def test_home_buttons_are_docs_then_start_learning_then_configure(brain: Path):
+    site.init(brain, "Demo")
+    _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Release, link: runbooks/release }\n")
+    _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
+    _write(brain / "learning" / "MISSION.md", "## Topics\n\n### Ops\n\n### Dev\n")
+    _write(brain / "learning" / "lessons" / "0001-a.md", "---\ntitle: A\ntopic: Dev\n---\n")
+
+    hero = site.plan(brain)["home"]["hero"]
+
+    assert hero["name"] == "Demo Brain" and hero["tagline"] == "Demo"
+    assert hero["actions"] == [
+        {"text": "Docs", "link": "/docs/runbooks/release", "theme": "brand"},
+        {"text": "Start learning", "link": "/learning/lessons/0001-a", "theme": "alt"},
+        {"text": "Configure this site", "link": "/site/configure", "theme": "alt"},
+    ]
+
+
+def test_home_docs_button_falls_back_to_the_first_docs_page_and_hides_without_one(brain: Path):
+    site.init(brain)
+    _write(brain / "learning" / "MISSION.md", "## Topics\n\n### Ops\n")
+    assert [a["text"] for a in site.plan(brain)["home"]["hero"]["actions"]] == ["Configure this site"], \
+        "no docs pages and a learning/ without lessons: only Configure this site"
+
+    _write(brain / "docs" / "b.md", "# B\n")
+    _write(brain / "docs" / "a.md", "# A\n")
+    [docs, _] = site.plan(brain)["home"]["hero"]["actions"]
+    assert docs == {"text": "Docs", "link": "/docs/a", "theme": "brand"}
+
+
+def test_home_docs_tiles_group_by_folder_newest_first(brain: Path):
+    _settings(brain)
+    _write(brain / "docs" / "README.md", "# Folder notes\n")
+    for name in ("old", "new", "mid", "undated", "fifth"):
+        _write(brain / "docs" / f"{name}.md", f"# {name.title()}\n")
+    _write(brain / "docs" / "deploy-guides" / "README.md", "# Overview\n")
+    _write(brain / "docs" / "deploy-guides" / "azure.md", "# Azure\n")
+    dates = {"docs/old.md": "2026-01-02", "docs/new.md": "2026-09-30", "docs/mid.md": "2026-05-01",
+             "docs/fifth.md": "2025-12-31"}
+
+    [root, deploy] = site.plan(brain, dates)["home"]["docs"]
+
+    assert root["name"] == "Docs" and root["folder"] == "docs/" and root["count"] == 5 and root["more"] == 1
+    assert [(p["text"], p["updated"]) for p in root["pages"]] == [
+        ("New", "Sep 30, 2026"), ("Mid", "May 1, 2026"), ("Old", "Jan 2, 2026"), ("Fifth", "Dec 31, 2025"),
+    ]
+    assert deploy == {"name": "Deploy guides", "folder": "docs/deploy-guides/", "count": 1, "more": 0,
+                      "pages": [{"text": "Azure", "link": "/docs/deploy-guides/azure", "updated": None}]}
+
+
+def test_git_dates_reads_each_files_latest_commit():
+    log = "@2026-09-30\nadr/0001-a.md\n\n@2026-09-01\nadr/0001-a.md\ndocs/b.md\n"
+    run = lambda argv, **_: subprocess.CompletedProcess(argv, 0, stdout=log, stderr="")  # noqa: E731
+    assert site.git_dates(Path("brain"), run) == {"adr/0001-a.md": "2026-09-30", "docs/b.md": "2026-09-01"}
+
+    def no_git(argv, **_):
+        raise FileNotFoundError("git")
+    assert site.git_dates(Path("brain"), no_git) == {}

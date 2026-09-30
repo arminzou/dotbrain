@@ -290,8 +290,8 @@ Reference for the public `dotbrain` CLI.
 │ --help  -h        Show this message and exit.                                │
 └──────────────────────────────────────────────────────────────────────────────┘
 ┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ init     Give a Brain a site: create .brain/site/site.yaml and a starter     │
-│          home page, site/index.md.                                           │
+│ init     Give a Brain a site: create .brain/site/ with site.yaml, the home   │
+│          page, and the manual.                                               │
 │ dev      Serve the Brain site locally with live reload (127.0.0.1).          │
 │ build    Build the Brain site; fails on a nav link to a missing page.        │
 │ preview  Serve the last build locally (127.0.0.1).                           │
@@ -334,8 +334,8 @@ Reference for the public `dotbrain` CLI.
 
  Usage: dotbrain site init [OPTIONS]
 
- Give a Brain a site: create .brain/site/site.yaml and a starter home page,
- site/index.md.
+ Give a Brain a site: create .brain/site/ with site.yaml, the home page, and
+ the manual.
 
 ┌─ Options ────────────────────────────────────────────────────────────────────┐
 │ --name           TEXT  Brainspace name. Defaults to the current repo's       │

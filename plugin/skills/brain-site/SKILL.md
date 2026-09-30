@@ -28,8 +28,8 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 
 1. Run `dotbrain site init` from the wired repo, or `dotbrain site init --name <project>`. It
    creates `.brain/site/site.yaml`, whose nav lists every `docs/` page (root pages under Docs, one
-   section per folder), and the home page `.brain/site/index.md`, whose "Configuring this site"
-   section explains the settings. It never overwrites a file.
+   section per folder), the standard home page `.brain/site/index.md`, and the manual
+   `.brain/site/configure.md`, which explains the settings. It never overwrites a file.
 2. Review the generated sidebar with the user: propose trimming it to the pages read often, and
    grouping and naming sections the way a reader would look for them. Trimming never takes a page
    off the site. Confirm before editing.
@@ -61,12 +61,16 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 | A page builds but renders wrongly | [vitepress.md](references/vitepress.md), then [mermaid.md](references/mermaid.md) for diagrams |
 | Change the look | `.brain/site/theme/style.css`, loaded after the defaults |
 | Add a component | `.brain/site/theme/index.ts` exporting `{ enhanceApp({ app }) { ... } }` |
-| Replace the theme | `.brain/site/theme/index.ts` exporting a whole theme; extend `@dotbrain/theme` to keep Mermaid, `<LearnOverview />`, and the status badge. The default styles still load; override them in `style.css` |
+| Replace the theme | `.brain/site/theme/index.ts` exporting a whole theme; extend `@dotbrain/theme` to keep Mermaid, `<DocsOverview />`, `<LearnOverview />`, and the status badge. The default styles still load; override them in `style.css` |
 
 Every Markdown file in the Brain is published, except symlinks and names with brackets; the nav
 only decides the sidebar. ADRs show their `status` and design docs their `lifecycle` as a badge.
-`.brain/site/index.md` is the home page, and its starter manual is the user's to keep or replace;
-`<LearnOverview />` there lists the Learn topics. Theme extensions can import only what the engine
+`.brain/site/index.md` is the home page and the user's to change. The standard one shows the site's
+title and description with three buttons (Docs; Start learning when there is a lesson; Configure
+this site), then `<DocsOverview />` (one tile per `docs/` folder) and `<LearnOverview />`; it
+shows only `docs/` and `learning/`. A `hero` in its frontmatter replaces the standard hero.
+`.brain/site/configure.md` is dotbrain's manual for the settings: `dotbrain refresh` overwrites
+it, so never edit it. Theme extensions can import only what the engine
 installs (Vue, VitePress, Mermaid) and their own local files; a Brain cannot add npm packages. A
 theme change is a site change: agree it with the user first.
 

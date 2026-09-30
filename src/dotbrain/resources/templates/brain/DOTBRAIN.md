@@ -111,7 +111,7 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
   asks to park a concept for later learning, file it per `operate-execution`'s learning-beads
   reference
 - `site/` — the Brain site's settings (`site.yaml`, whose nav is the sidebar), its home page
-  `index.md`, and optional theme extensions. Optional; `dotbrain site` renders every Markdown file
+  `index.md`, dotbrain's manual `configure.md`, and optional theme extensions. Optional; `dotbrain site` renders every Markdown file
   in the Brain as a page, and `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
