@@ -1,4 +1,4 @@
-"""Tests for the ``site`` module: settings, the published-page allowlist, Learn, and the engine run.
+"""Tests for the ``site`` module: settings, pages and their addresses, Learn, and the engine run.
 
 Everything Node-side goes through the injected runner; these tests assert on the recorded commands
 and never install or run VitePress.
@@ -86,12 +86,22 @@ def test_init_creates_settings_and_home_and_never_overwrites(brain: Path):
     assert {p.name for p in created} == {"site.yaml", "index.md"}
     assert site.load_settings(brain)["title"] == "Demo Brain"
 
-    (brain / "docs" / "index.md").write_text("mine\n", encoding="utf-8")
+    (brain / "site" / "index.md").write_text("mine\n", encoding="utf-8")
     assert site.init(brain) == []
-    assert (brain / "docs" / "index.md").read_text(encoding="utf-8") == "mine\n"
+    assert (brain / "site" / "index.md").read_text(encoding="utf-8") == "mine\n"
+    assert not (brain / "docs").exists(), "init writes nothing into docs/"
 
 
-# --------------------------------------------------------------------------- published pages
+def test_an_old_docs_home_page_is_not_the_home_page(brain: Path):
+    _settings(brain)
+    _write(brain / "docs" / "index.md", "# Old home\n")
+
+    result = site.plan(brain)
+
+    assert "docs/index.md" in result["pages"] and "docs/index.md" not in result["rewrites"]
+
+
+# --------------------------------------------------------------------------- pages and addresses
 
 
 def test_a_brain_without_a_site_is_told_to_init(brain: Path):
@@ -99,29 +109,31 @@ def test_a_brain_without_a_site_is_told_to_init(brain: Path):
         site.plan(brain)
 
 
-def test_nav_is_the_allowlist(brain: Path):
+def test_every_page_is_published_and_the_nav_is_only_the_sidebar(brain: Path):
     _settings(brain, "nav:\n  - text: Runbooks\n    items:\n      - { text: Release, link: runbooks/release }\n")
-    _write(brain / "docs" / "index.md", "# Home\n")
+    _write(brain / "site" / "index.md", "# Home\n")
     _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
     _write(brain / "docs" / "agent-only.md", "# Agent note\n")
+    _write(brain / "adr" / "0001-a.md", "---\nstatus: accepted\n---\n# A\n")
     _write(brain / "AGENTS.md", "# Agents\n")
 
     result = site.plan(brain)
 
-    assert result["published"] == ["docs/index.md", "docs/runbooks/release.md"]
-    assert "docs/agent-only.md" in result["exclude"] and "AGENTS.md" in result["exclude"]
-    assert result["rewrites"] == {"docs/index.md": "index.md", "docs/runbooks/release.md": "runbooks/release.md"}
-    assert result["sidebar"] == [{"text": "Runbooks", "items": [{"text": "Release", "link": "/runbooks/release"}]}]
+    assert result["pages"] == [
+        "AGENTS.md", "adr/0001-a.md", "docs/agent-only.md", "docs/runbooks/release.md", "site/index.md",
+    ]
+    assert result["exclude"] == []
+    assert result["rewrites"] == {"site/index.md": "index.md"}, "every other page keeps its Brain path"
+    assert result["sidebar"] == [{"text": "Runbooks", "items": [{"text": "Release", "link": "/docs/runbooks/release"}]}]
 
 
-def test_a_folder_readme_is_served_as_its_index(brain: Path):
+def test_a_folder_link_names_its_readme(brain: Path):
     _settings(brain, "nav:\n  - text: Deploy\n    items:\n      - { text: Overview, link: deployment/azure/ }\n")
     _write(brain / "docs" / "deployment" / "azure" / "README.md", "# Azure\n")
 
     result = site.plan(brain)
 
-    assert result["rewrites"]["docs/deployment/azure/README.md"] == "deployment/azure/index.md"
-    assert result["sidebar"][0]["items"][0]["link"] == "/deployment/azure/"
+    assert result["sidebar"][0]["items"][0]["link"] == "/docs/deployment/azure/README"
 
 
 def test_a_nav_link_to_a_missing_page_fails(brain: Path):
@@ -143,14 +155,14 @@ def test_learn_groups_lessons_and_references_by_mission_topic(brain: Path):
     assert result["learn"] == [{
         "name": "Ops",
         "lessons": [
-            {"text": "First", "description": "One.", "link": "/learn/lessons/0001-a"},
-            {"text": "Second", "description": None, "link": "/learn/lessons/0002-b"},
+            {"text": "First", "description": "One.", "link": "/learning/lessons/0001-a"},
+            {"text": "Second", "description": None, "link": "/learning/lessons/0002-b"},
         ],
-        "references": [{"text": "Map", "description": None, "link": "/learn/reference/map"}],
+        "references": [{"text": "Map", "description": None, "link": "/learning/reference/map"}],
     }]
     assert result["sidebar"][0]["text"] == "Learn"
-    assert "learning/NOTES.md" in result["exclude"] and "learning/MISSION.md" in result["exclude"]
-    assert result["rewrites"]["learning/lessons/0001-a.md"] == "learn/lessons/0001-a.md"
+    assert "learning/NOTES.md" in result["pages"] and "learning/NOTES.md" not in result["rewrites"]
+    assert "learning/lessons/0001-a.md" in result["pages"] and result["rewrites"] == {}
 
 
 def test_a_lesson_naming_an_unknown_topic_fails(brain: Path):
@@ -228,7 +240,7 @@ def test_a_changed_engine_is_copied_again(home: Path, monkeypatch):
 @pytest.mark.parametrize("command, host", [("build", False), ("dev", True)])
 def test_vitepress_runs_against_the_brains_real_path(home: Path, brain: Path, command: str, host: bool):
     _settings(brain)
-    _write(brain / "docs" / "index.md", "# Home\n")
+    _write(brain / "site" / "index.md", "# Home\n")
     run = FakeRun()
 
     out = site.run_site(command, dotbrain_home=home, brain=brain, run=run, setup_run=run)
@@ -240,7 +252,7 @@ def test_vitepress_runs_against_the_brains_real_path(home: Path, brain: Path, co
     assert (call["argv"][4:] == ["--host", "127.0.0.1"]) is host
     settings = json.loads(Path(call["env"]["DOTBRAIN_SITE_SETTINGS"]).read_text(encoding="utf-8"))
     assert settings["brain"] == str(brain)
-    assert settings["published"] == ["docs/index.md"], "the engine fails closed on any other page"
+    assert settings["rewrites"] == {"site/index.md": "index.md"}
     assert out == engine / "out" / "demo" and settings["outDir"] == str(out)
 
 
@@ -261,8 +273,7 @@ def test_nav_link_forms_name_the_same_page(brain: Path, link: str):
 
     result = site.plan(brain)
 
-    assert "docs/runbooks/release.md" in result["published"]
-    assert result["sidebar"][0]["items"][0]["link"] == "/runbooks/release"
+    assert result["sidebar"][0]["items"][0]["link"] == "/docs/runbooks/release"
 
 
 def test_a_nav_link_escaping_docs_is_dead(brain: Path):
@@ -272,15 +283,19 @@ def test_a_nav_link_escaping_docs_is_dead(brain: Path):
         site.plan(brain)
 
 
-def test_exclude_skips_node_modules_and_escapes_glob_characters(brain: Path):
+def test_pages_skip_node_modules_symlinks_and_bracketed_names(brain: Path, tmp_path: Path):
     _settings(brain)
     _write(brain / "node_modules" / "pkg" / "README.md", "x\n")
     _write(brain / "docs" / "notes [draft].md", "x\n")
+    _write(brain / "AGENTS.md", "# Agents\n")
+    _write(tmp_path / "outside" / "page.md", "x\n")
+    (brain / "CLAUDE.md").symlink_to("AGENTS.md")
+    (brain / "docs" / "linked").symlink_to(tmp_path / "outside", target_is_directory=True)
 
-    exclude = site.plan(brain)["exclude"]
+    result = site.plan(brain)
 
-    assert not any("node_modules" in p for p in exclude)
-    assert r"docs/notes \[draft\].md" in exclude
+    assert result["pages"] == ["AGENTS.md"]
+    assert result["exclude"] == ["CLAUDE.md", "docs/linked/**", r"docs/notes \[draft\].md"]
 
 
 def test_lesson_fields_come_from_frontmatter_only(brain: Path):
@@ -324,7 +339,7 @@ def test_preview_serves_the_last_build_on_localhost_only(home: Path, brain: Path
 def test_a_nav_link_may_name_a_section(brain: Path):
     _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Steps, link: 'runbooks/release#steps' }\n")
     _write(brain / "docs" / "runbooks" / "release.md", "# Release\n")
-    assert site.plan(brain)["sidebar"][0]["items"][0]["link"] == "/runbooks/release#steps"
+    assert site.plan(brain)["sidebar"][0]["items"][0]["link"] == "/docs/runbooks/release#steps"
 
 
 def test_a_nav_link_must_match_the_stored_name(brain: Path, monkeypatch):
@@ -336,11 +351,11 @@ def test_a_nav_link_must_match_the_stored_name(brain: Path, monkeypatch):
         site.plan(brain)
 
 
-def test_two_pages_at_one_address_fail(brain: Path):
-    _settings(brain, "nav:\n  - text: R\n    items:\n      - { text: Readme, link: README }\n")
-    _write(brain / "docs" / "index.md", "# Home\n")
-    _write(brain / "docs" / "README.md", "# Readme\n")
-    with pytest.raises(site.SiteError, match="same address"):
+def test_a_root_index_beside_the_home_page_fails(brain: Path):
+    _settings(brain)
+    _write(brain / "site" / "index.md", "# Home\n")
+    _write(brain / "index.md", "# Also at /\n")
+    with pytest.raises(site.SiteError, match="home page's address"):
         site.plan(brain)
 
 
@@ -349,3 +364,31 @@ def test_lessons_without_a_mission_fail(brain: Path):
     _write(brain / "learning" / "lessons" / "0001-a.md", "---\ntitle: A\ntopic: Ops\n---\n")
     with pytest.raises(site.SiteError, match="MISSION.md topics"):
         site.plan(brain)
+
+
+def test_init_lists_every_docs_page_in_the_nav(brain: Path):
+    _write(brain / "docs" / "README.md", "# Docs folder\n")
+    _write(brain / "docs" / "release-runbook.md", "# Release Runbook\n")
+    _write(brain / "docs" / "adopter.md", "---\ntitle: Adopter guide\n---\n\n# Not this\n")
+    _write(brain / "docs" / "references" / "loops.md", "no heading\n")
+    _write(brain / "docs" / "deploy" / "README.md", "# Deploy ⇄ run\n")
+
+    site.init(brain, "Demo")
+
+    nav = site.load_settings(brain)["nav"]
+    assert nav == [
+        {"text": "Docs", "items": [
+            {"text": "Adopter guide", "link": "adopter"},
+            {"text": "Release Runbook", "link": "release-runbook"},
+        ]},
+        {"text": "Deploy", "items": [{"text": "Deploy ⇄ run", "link": "deploy/"}]},
+        {"text": "References", "items": [{"text": "loops", "link": "references/loops"}]},
+    ]
+    assert len(site.plan(brain)["sidebar"]) == 3, "every seeded nav link resolves"
+
+
+def test_init_starts_an_empty_brain_with_an_empty_nav_and_the_manual(brain: Path):
+    site.init(brain, "Demo")
+    assert site.load_settings(brain)["nav"] == []
+    home = (brain / "site" / "index.md").read_text(encoding="utf-8")
+    assert 'name: "Demo"' in home and "## Configuring this site" in home

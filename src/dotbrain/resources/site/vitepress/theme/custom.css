@@ -261,3 +261,8 @@
   font-size: 12px;
   white-space: pre;
 }
+
+/* The status badge above an ADR or design doc. */
+.page-status {
+  margin: 0 0 16px;
+}

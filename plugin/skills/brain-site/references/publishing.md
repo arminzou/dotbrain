@@ -132,7 +132,7 @@ internal link.
 
 After the user confirms a topic, add its `### ` section under `## Topics` in `MISSION.md` and its
 heading in `RESOURCES.md`, as the lesson format says. Learn's sidebar and the home page's
-`<LearnOverview />` pick it up from its first page. Any hand-written cards on `docs/index.md` are
+`<LearnOverview />` pick it up from its first page. Any hand-written cards on the home page, `.brain/site/index.md`, are
 the Brain's own: add one for the topic if the home page has them.
 
 ## Check
