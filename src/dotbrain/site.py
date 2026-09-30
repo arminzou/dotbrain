@@ -1,8 +1,8 @@
 """Brain site: the private VitePress site dotbrain renders from one Brain.
 
-A Brain opts in with a ``.brain/site/`` folder. Everything Brain-specific is resolved here, in
-Python: which pages are published (the nav in ``site.yaml`` is the allowlist), the sidebar, and the
-Learn topics. The packaged engine (``resources/site``) only renders the result, from a copy in
+A Brain opts in with a ``.brain/site/`` folder. Every Markdown file in the Brain is a page; the site
+is served on this machine only. Everything Brain-specific is resolved here, in Python: where each
+page is served, the sidebar (the nav in ``site.yaml``), and the Learn topics. The packaged engine (``resources/site``) only renders the result, from a copy in
 ``$DOTBRAIN_HOME/.cache/site/<version>/`` that ``npm ci`` fills once per engine version.
 """
 
@@ -72,11 +72,41 @@ def site_settings_file(brain: Path) -> Path:
     return brain / "site" / "site.yaml"
 
 
+def home_page(brain: Path) -> Path:
+    """The site's home page. It lives with the settings, so ``docs/`` holds only project knowledge."""
+    return brain / "site" / "index.md"
+
+
 # --------------------------------------------------------------------------- init
 
 
+def _starter_nav(brain: Path) -> str:
+    """Every ``docs/`` page as nav YAML: root pages under Docs, then one section per folder."""
+    docs = brain / "docs"
+    sections: dict[str, list[str]] = {}
+    for path in sorted(docs.rglob("*.md")) if docs.is_dir() else []:
+        rel = path.relative_to(docs).as_posix()
+        # The root README and index would take the home page's address.
+        if rel in ("index.md", "README.md") or "node_modules" in rel.split("/"):
+            continue
+        folder, _, name = rel.rpartition("/")
+        link = f"{folder}/" if name in ("README.md", "index.md") else rel[:-3]
+        source = path.read_text(encoding="utf-8")
+        heading = re.search(r"^# +(.+?)\s*$", source, re.M)
+        text = _field(source, "title") or (heading.group(1) if heading else path.stem)
+        section = folder.split("/")[0].replace("-", " ").capitalize() if folder else "Docs"
+        item = f"      - {{ text: {json.dumps(text, ensure_ascii=False)}, link: {json.dumps(link)} }}\n"
+        if item not in sections.setdefault(section, []):
+            sections[section].append(item)
+    if not sections:
+        return "nav: []\n"
+    order = sorted(sections, key=lambda name: (name != "Docs", name))
+    return "nav:\n" + "".join(f"  - text: {json.dumps(name)}\n    items:\n" + "".join(sections[name]) for name in order)
+
+
 def init(brain: Path, title: str | None = None) -> list[Path]:
-    """Create ``site/site.yaml`` and a starter ``docs/index.md``; never overwrite. Returns created."""
+    """Create ``site/site.yaml``, listing every ``docs/`` page, and a starter home page,
+    ``site/index.md``, that explains the site's configuration; never overwrite. Returns created."""
     title = title or f"{brain.parent.name} Brain"
     created: list[Path] = []
     settings = site_settings_file(brain)
@@ -85,23 +115,19 @@ def init(brain: Path, title: str | None = None) -> list[Path]:
         settings.write_text(
             f"title: {json.dumps(title)}\n"
             "description: Private project guidance\n"
-            "# Sidebar sections. A docs/ page is published only when a section links it,\n"
-            "# by its path relative to docs/ (e.g. runbooks/release).\n"
-            "nav: []\n",
+            "# Every Markdown file in the Brain is on the site; the nav only decides the sidebar. Items\n"
+            "# link docs/ pages by their path relative to docs/. init listed every docs/ page; remove,\n"
+            "# group, and rename freely. site/index.md, the home page, explains the rest.\n"
+            + _starter_nav(brain),
             encoding="utf-8",
             newline="\n",
         )
         created.append(settings)
-    home = brain / "docs" / "index.md"
+    home = home_page(brain)
     if not home.exists():
         home.parent.mkdir(parents=True, exist_ok=True)
-        home.write_text(
-            "---\nlayout: home\n\nhero:\n"
-            f"  name: {json.dumps(title)}\n"
-            "  tagline: Private project guidance.\n---\n\n<LearnOverview />\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        template = resource_loader.resource("templates/brain/site/index.md").read_text(encoding="utf-8")
+        home.write_text(template.replace("__TITLE__", json.dumps(title)), encoding="utf-8", newline="\n")
         created.append(home)
     return created
 
@@ -159,11 +185,6 @@ def _docs_page(brain: Path, link: str) -> str | None:
     return None
 
 
-def _docs_target(page: str) -> str:
-    """Where a published ``docs/`` page is served, as a source-relative path."""
-    return re.sub(r"(^|/)README\.md$", r"\1index.md", page)
-
-
 def _route(target: str) -> str:
     route = re.sub(r"(^|/)index\.md$", r"\1", target)
     return "/" + (route[:-3] if route.endswith(".md") else route)
@@ -210,7 +231,7 @@ def learn_topics(brain: Path) -> list[dict]:
                 "topic": topic,
                 "text": _field(source, "title") or file.stem,
                 "description": _field(source, "description"),
-                "link": "/learn/" + f"{folder}/{file.stem}",
+                "link": f"/learning/{folder}/{file.stem}",
                 "source": rel,
             })
         return found
@@ -232,15 +253,41 @@ def _glob_escape(path: str) -> str:
     return re.sub(r"([\\*?\[\]{}()!+@])", r"\\\1", path)
 
 
+def _pages(brain: Path) -> tuple[list[str], list[str]]:
+    """Every Markdown page in the Brain, and the ``srcExclude`` globs for what VitePress must skip.
+
+    Skipped: symlinks, which VitePress's scan follows into a duplicate of a Brain page or a folder
+    outside the Brain, where a page cannot import the engine; and names with brackets, which
+    VitePress reads as dynamic routes.
+    """
+    pages: list[str] = []
+    exclude: list[str] = []
+    for folder, dirs, files in os.walk(brain):
+        rel_folder = Path(folder).relative_to(brain)
+        for name in [d for d in dirs if d == "node_modules" or (Path(folder) / d).is_symlink()]:
+            dirs.remove(name)
+            if name != "node_modules":
+                exclude.append(_glob_escape((rel_folder / name).as_posix()) + "/**")
+        for name in files:
+            if not name.endswith(".md"):
+                continue
+            rel = (rel_folder / name).as_posix()
+            if (Path(folder) / name).is_symlink() or re.search(r"\[.+\]", name):
+                exclude.append(_glob_escape(rel))
+            else:
+                pages.append(rel)
+    return sorted(pages), sorted(exclude)
+
+
 def plan(brain: Path) -> dict:
-    """Resolve published pages, rewrites, sidebar, and Learn; dead nav links fail here."""
+    """Resolve the pages, the sidebar, and Learn; dead nav links fail here.
+
+    Every Markdown file in the Brain is published at its path in the Brain, so a relative link that
+    works in the Brain works on the site; only the home page moves, to ``/``. ``site.yaml``'s nav
+    decides the sidebar, not what is published.
+    """
     settings = load_settings(brain)
-    every = sorted(
-        p.relative_to(brain).as_posix()
-        for p in brain.rglob("*.md")
-        if "node_modules" not in p.relative_to(brain).parts
-    )
-    published = {"docs/index.md": "index.md"} if (brain / "docs" / "index.md").is_file() else {}
+    pages, exclude = _pages(brain)
     sidebar: list[dict] = []
     dead: list[str] = []
     for section in settings["nav"]:
@@ -249,20 +296,15 @@ def plan(brain: Path) -> dict:
             link, _, anchor = item["link"].partition("#")
             page = _docs_page(brain, link)
             # A page must also be stored under that name: macOS resolves another case to itself.
-            if page is None or f"docs/{page}" not in every:
+            if page is None or f"docs/{page}" not in pages:
                 dead.append(f"{section['text']} > {item['text']}: docs/{item['link']}")
                 continue
-            target = _docs_target(page)
-            published[f"docs/{page}"] = target
-            items.append({"text": item["text"], "link": _route(target) + (f"#{anchor}" if anchor else "")})
+            items.append({"text": item["text"], "link": _route(f"docs/{page}") + (f"#{anchor}" if anchor else "")})
         sidebar.append({"text": section["text"], "items": items})
     if dead:
         raise SiteError("nav links to pages that do not exist:\n  " + "\n  ".join(dead))
 
     topics = learn_topics(brain)
-    for folder in ("lessons", "reference"):
-        for file in sorted((brain / "learning" / folder).glob("*.md")) if topics else []:
-            published[f"learning/{folder}/{file.name}"] = f"learn/{folder}/{file.name}"
     if topics:
         learn = {
             "text": "Learn",
@@ -282,21 +324,18 @@ def plan(brain: Path) -> dict:
         }
         sidebar.insert(0, learn)
 
-    by_target: dict[str, list[str]] = {}
-    for source, target in published.items():
-        by_target.setdefault(target, []).append(source)
-    clashes = [f"{' and '.join(sources)} -> {target}" for target, sources in by_target.items() if len(sources) > 1]
-    if clashes:
-        raise SiteError("pages would be served at the same address:\n  " + "\n  ".join(clashes))
+    home = "site/index.md" in pages
+    if home and "index.md" in pages:
+        raise SiteError("index.md at the Brain's root takes the home page's address: rename or move it")
 
     return {
         "title": settings["title"],
         "description": settings["description"],
         "sidebar": sidebar,
         "learn": topics,
-        "rewrites": {source: target for source, target in published.items() if source != target},
-        "exclude": [_glob_escape(p) for p in every if p not in published],
-        "published": sorted(published),
+        "rewrites": {"site/index.md": "index.md"} if home else {},
+        "exclude": exclude,
+        "pages": pages,
     }
 
 
@@ -446,7 +485,7 @@ def run_site(
     engine = ensure_engine(dotbrain_home, setup_run)
     out_dir = engine / "out" / name
     settings = {
-        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude", "published")},
+        **{k: site_plan[k] for k in ("title", "description", "sidebar", "learn", "rewrites", "exclude")},
         "brain": str(brain),
         "outDir": str(out_dir),
         "cacheDir": str(engine / "vite-cache" / name),

@@ -35,6 +35,8 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
             f"dotbrain-owned README.md not hydrated to .brain/{sub}/"
     # the agents/ skill-config dir is retired and no longer seeded
     assert not (brain / "agents").exists()
+    # site/ opts a Brain into a Brain site, so only `dotbrain site init` writes it
+    assert not (brain / "site").exists()
 
 
 def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: Path):

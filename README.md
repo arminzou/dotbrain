@@ -153,8 +153,8 @@ automatically at session start and are available as slash commands.
   accepted work to private execution items.
 - **`write-agent-docs`** — write public project docs, private Brain material, and user-owned
   skills so agents retrieve and follow them predictably.
-- **`brain-site`** — give a Brain a private site with `dotbrain site`, and keep its published pages
-  and theme.
+- **`brain-site`** — give a Brain a private site with `dotbrain site`, and keep its sidebar and
+  theme.
 - **`teach-me`** — learn your own project from its Brain over many sessions, with learning records
   and lessons kept in `.brain/learning/`.
 

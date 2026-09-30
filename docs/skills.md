@@ -52,8 +52,8 @@ Skill linking is operator-managed:
 
 ## Brain Site
 
-- **`brain-site`** — set up, maintain, and build a Brain's private site with `dotbrain site`: choose
-  the published docs, preview, fix a failed build, and write pages with VitePress and Mermaid syntax
+- **`brain-site`** — set up, maintain, and build a Brain's private site with `dotbrain site`: arrange
+  the sidebar, preview, fix a failed build, and write pages with VitePress and Mermaid syntax
 
 ## Learning
 
