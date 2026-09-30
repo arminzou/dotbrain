@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import config, paths, resource_loader
+from dotbrain import config, paths, resource_loader, site
 from dotbrain.adopter_repos import is_dotbrain_repo
 
 # Same shape as bootstrap.Runner; injected so tests can record without real subprocess calls.
@@ -194,6 +194,20 @@ def _check_project_wiring(brainspace: Path, dotbrain_home: Path) -> list[Finding
     return findings
 
 
+# --------------------------------------------------------------------------- Brain site
+
+
+def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[Finding]:
+    """Node matters only for a Brain with a site; every other Brain skips this check."""
+    if not (brainspace / ".brain" / "site").is_dir():
+        return []
+    try:
+        site.check_node(run)
+    except site.SiteError as exc:
+        return [Finding("warn", f"Brain site: {exc}", "install Node 20 or later to run 'dotbrain site'")]
+    return [Finding("ok", "Brain site: Node available")]
+
+
 # --------------------------------------------------------------------------- beads state
 
 
@@ -272,6 +286,8 @@ def run_doctor(
 
         if shutil.which("bd"):
             findings += _check_beads_state(brainspace, name, root, run=run)
+
+        findings += _check_brain_site(brainspace, run=run)
 
         if findings:
             report.projects[name] = findings

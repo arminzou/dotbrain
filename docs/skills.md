@@ -50,6 +50,11 @@ Skill linking is operator-managed:
 - **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
   user-owned skills, and guidance agents reach through pointers
 
+## Brain Site
+
+- **`brain-site`** — set up, maintain, and build a Brain's private site with `dotbrain site`: choose
+  the published docs, preview, fix a failed build, and write pages with VitePress and Mermaid syntax
+
 ## Learning
 
 - **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in

@@ -135,6 +135,8 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
   never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
   asks to park a concept for later learning, file it per `operate-execution`'s learning-beads
   reference
+- `site/` — the Brain site's settings (`site.yaml`, whose nav lists the published `docs/` pages) and
+  optional theme extensions. Optional; `dotbrain site` renders it and `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
 `project.yaml` (`skills:`); project tracker conventions live in `AGENTS.md` under Project.
