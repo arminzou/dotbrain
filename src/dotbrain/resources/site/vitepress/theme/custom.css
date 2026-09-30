@@ -1,0 +1,263 @@
+/* A wider reading column: 56rem instead of the default theme's 43rem, so diagrams, tables, and code
+   get room while paragraphs stay a readable width. The theme's styles are scoped, so this override
+   needs !important. */
+.VPDoc .content-container {
+  max-width: 56rem !important;
+}
+
+/* Sidebar scrollbar: thin, and invisible until the pointer is over the sidebar or focus is in it.
+   Transparent rather than removed, so the sidebar keeps its width and the menu does not shift. */
+.VPSidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.VPSidebar:hover,
+.VPSidebar:focus-within {
+  scrollbar-color: var(--vp-c-divider) transparent;
+}
+
+.practice-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 16px 0;
+}
+
+.practice-form input,
+.practice-form button {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.practice-form input {
+  background: var(--vp-c-bg);
+}
+
+.practice-form button {
+  background: var(--vp-c-bg-soft);
+  font-weight: 500;
+}
+
+.practice-form button:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.practice-form #feedback {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.practice-form .ok {
+  color: var(--vp-c-green-1);
+}
+
+.practice-form .no {
+  color: var(--vp-c-red-1);
+}
+
+.vp-doc dt {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.vp-doc dd {
+  margin: 4px 0 0 20px;
+}
+
+.learn-overview {
+  padding: 48px 0 64px;
+}
+
+.learn-overview h2 {
+  margin: 0 0 24px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.learn-topics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px 48px;
+}
+
+.learn-topics h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.learn-topics ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.learn-topics li {
+  margin: 0 0 12px;
+}
+
+.learn-topics li span {
+  display: block;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.learn-topics a {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+}
+
+.learn-topics a:hover {
+  text-decoration: underline;
+}
+
+.learn-references {
+  margin: 16px 0 0;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+/* Retrieval questions: the summary is the question; the content after it is the answer. */
+.vp-doc .custom-block.details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.vp-doc .custom-block.details > summary ~ * {
+  margin: 0;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--vp-c-brand-1);
+}
+
+.vp-doc .custom-block.details > summary + *::before {
+  content: "Answer";
+  display: block;
+  margin-bottom: 4px;
+  color: var(--vp-c-brand-1);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Mermaid diagrams (```mermaid blocks drawn by Mermaid.vue), styled with the site's colours so
+   they follow light and dark mode. Mermaid scopes its own styles to each diagram's id, so these
+   overrides need !important. */
+.mermaid-diagram {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.mermaid-diagram .node rect,
+.mermaid-diagram .node polygon,
+.mermaid-diagram .node path {
+  fill: var(--vp-c-bg-soft) !important;
+  stroke: var(--vp-c-divider) !important;
+  stroke-width: 1px !important;
+}
+
+.mermaid-diagram .node rect {
+  rx: 6px;
+  ry: 6px;
+}
+
+.mermaid-diagram .node,
+.mermaid-diagram .node * {
+  filter: none !important;
+}
+
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .node .label {
+  color: var(--vp-c-text-1) !important;
+  fill: var(--vp-c-text-1) !important;
+}
+
+.mermaid-diagram .flowchart-link {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram marker path,
+.mermaid-diagram .marker {
+  fill: var(--vp-c-text-3) !important;
+  stroke: var(--vp-c-text-3) !important;
+}
+
+.mermaid-diagram .edgeLabel,
+.mermaid-diagram .edgeLabel p,
+.mermaid-diagram .labelBkg {
+  background: var(--vp-c-bg) !important;
+  color: var(--vp-c-text-2) !important;
+  font-size: 12px;
+}
+
+.mermaid-diagram .edgeLabel rect {
+  fill: var(--vp-c-bg) !important;
+}
+
+.mermaid-diagram .actor,
+.mermaid-diagram rect.actor {
+  fill: var(--vp-c-bg-soft) !important;
+  stroke: var(--vp-c-divider) !important;
+  stroke-width: 1px !important;
+}
+
+.mermaid-diagram text.actor,
+.mermaid-diagram text.actor > tspan,
+.mermaid-diagram .messageText,
+.mermaid-diagram .noteText,
+.mermaid-diagram .noteText > tspan {
+  fill: var(--vp-c-text-1) !important;
+  stroke: none !important;
+}
+
+.mermaid-diagram .actor-line {
+  stroke: var(--vp-c-divider) !important;
+}
+
+.mermaid-diagram .messageLine0,
+.mermaid-diagram .messageLine1 {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram #arrowhead path,
+.mermaid-diagram [id$="-arrowhead"] path {
+  fill: var(--vp-c-text-3) !important;
+  stroke: var(--vp-c-text-3) !important;
+}
+
+.mermaid-diagram .note {
+  fill: var(--vp-c-bg-alt) !important;
+  stroke: var(--vp-c-divider) !important;
+}
+
+.mermaid-diagram .transition {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram .state-start,
+.mermaid-diagram .state-end,
+.mermaid-diagram .end-state-inner {
+  fill: var(--vp-c-text-2) !important;
+  stroke: var(--vp-c-text-2) !important;
+}
+
+.mermaid-error {
+  border: 1px solid var(--vp-c-danger-1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  color: var(--vp-c-danger-1);
+  font-size: 14px;
+}
+
+.mermaid-error pre {
+  margin: 8px 0 0;
+  overflow-x: auto;
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  white-space: pre;
+}
