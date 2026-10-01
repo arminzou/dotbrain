@@ -11,6 +11,43 @@ from dotbrain.cli import app
 runner = CliRunner()
 
 
+@pytest.mark.parametrize("command", ["doctor", "skills", "agents"])
+@pytest.mark.parametrize("json_output", [False, True])
+def test_warning_findings_use_current_severity_and_preserve_success(tmp_path, monkeypatch, command, json_output):
+    from dotbrain import doctor
+
+    root = tmp_path / "data"
+    brain = root / "brainspaces/example/.brain"
+    brain.mkdir(parents=True)
+    (brain / "project.yaml").write_text("agents: []\nbeads:\n  mode: none\n", encoding="utf-8")
+    if command == "doctor":
+        report = doctor.DoctorReport(machine=[doctor.Finding("ok", "git available"),
+                                             doctor.Finding("warn", "session unknown", "inspect runtime hooks")])
+        monkeypatch.setattr(doctor, "run_doctor", lambda *args, **kwargs: report)
+        args = ["doctor"]
+        message = "session unknown; inspect runtime hooks"
+        scope, project = "machine", None
+    else:
+        args = [command, "link", "--all"]
+        message = "Brain-only project: no checkout assets"
+        scope, project = "project", "example"
+    args += ["--home", str(root)] + (["--json"] if json_output else [])
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert result.stderr == ""
+    assert "advisory" not in result.stdout
+    if json_output:
+        payload = json.loads(result.stdout)
+        assert payload["status"] == "success" and payload["errors"] == []
+        target, = payload["targets"]
+        assert (target["status"], target["scope"], target["project"]) == ("success", scope, project)
+        assert target["changes"] == [] and target["errors"] == []
+        assert target["findings"] == ([{"severity": "info", "message": "git available"}] if command == "doctor" else []) + [
+            {"severity": "warning", "message": message}]
+    else:
+        assert f"warning: {message}" in result.stdout
+
+
 def test_projects_io_error_is_operational_json_failure(monkeypatch, tmp_path):
     from dotbrain import projects
     def denied(root):

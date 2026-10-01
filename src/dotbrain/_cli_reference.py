@@ -50,6 +50,14 @@ _INTRO = """# CLI Reference
 Every public `dotbrain` command, grouped by task. Run any command with `--help` for the same
 information in the terminal.
 
+Finite reports support `--json`: stdout contains one result with command, overall status,
+per-target results, and errors. Finding severities are `info`, `warning`, and `error`; warnings
+alone do not cause failure. Exit codes are `0` for success, `1` for operational failure or a
+partially failed batch, and `2` for invalid invocation or selection.
+
+JSON consumers must replace checks for `severity: advisory` with `severity: warning`.
+The old severity is no longer emitted; other result fields and exit codes are unchanged.
+
 """
 
 

@@ -35,7 +35,7 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
                 result.targets.append(item)
                 try:
                     if target and target.checkout is None and all_projects:
-                        item.findings.append({"severity": "advisory", "message": "Brain-only project: no checkout assets"})
+                        item.findings.append({"severity": "warning", "message": "Brain-only project: no checkout assets"})
                         continue
                     linked = assets.link_global(root, kind, runtime) if target is None else assets.link_project(root, target, kind, runtime)
                     item.changes = [f"delivered {name}" for name in linked.linked] + [f"pruned {name}" for name in linked.pruned]

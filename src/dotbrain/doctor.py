@@ -285,7 +285,7 @@ def as_result(report: DoctorReport) -> CommandResult:
         item = TargetResult(project=name, checkout=report.checkouts.get(name), scope=scope)
         for finding in findings:
             message = finding.message + (f"; {finding.suggestion}" if finding.suggestion else "")
-            item.findings.append({"severity": {"ok": "info", "warn": "advisory", "error": "error"}[finding.status], "message": message})
+            item.findings.append({"severity": {"ok": "info", "warn": "warning", "error": "error"}[finding.status], "message": message})
         if any(f.status == "error" for f in findings):
             item.status = "failure"
         result.targets.append(item)
