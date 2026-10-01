@@ -19,6 +19,13 @@ from dotbrain import paths
 # templates/brain/ that ships with dotbrain.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
+@pytest.fixture(autouse=True)
+def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Help and error assertions match plain text; a forced-color terminal would inject ANSI codes."""
+    for name in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
+        monkeypatch.delenv(name, raising=False)
+
 # Test fixtures across the suite create symlinks via bare `path.symlink_to(target)`, correct on
 # POSIX (target_is_directory is a no-op there) but wrong on Windows when the target is a directory:
 # without it, Windows creates a file-type reparse point pointing at a directory, which behaves
