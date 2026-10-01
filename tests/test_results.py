@@ -137,7 +137,14 @@ def test_projects_malformed_yaml_is_operational_json_failure(tmp_path, command):
         args.extend(["--project", "example"])
     result = runner.invoke(app, args)
     assert result.exit_code == 1, result.output
-    assert json.loads(result.stdout)["errors"]
+    report = json.loads(result.stdout)
+    assert report["status"] == "failure"
+    if command == "list":
+        target, = report["targets"]
+        assert target["project"] == "example" and target["status"] == "failure"
+        assert target["errors"]
+    else:
+        assert report["errors"]
 
 
 @pytest.mark.parametrize("runtime", ["codex", "all"])
