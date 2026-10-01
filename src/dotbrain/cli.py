@@ -254,18 +254,14 @@ def refresh(
 
 @app.command()
 def unwire(
-    all_projects: bool = typer.Option(False, '--all', help='Detach registered checkouts.'),
     repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout to detach.'),
     project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
     home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Detach checkouts while retaining their Brainspaces and tracker databases."""
+    """Detach a checkout while retaining its Brainspace and tracker databases."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        if all_projects and (repo is not None or project is not None):
-            raise ValueError('--all cannot be combined with --project or --repo')
-        results = (workflows.unwire_all_projects(root) if all_projects else
-                   [workflows.unwire_project(dotbrain_home=root, repo=repo, project=project)])
+        results = [workflows.unwire_project(dotbrain_home=root, repo=repo, project=project)]
     except ValueError as exc:
         render(CommandResult('unwire', 'failure', errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc

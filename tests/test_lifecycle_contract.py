@@ -108,7 +108,8 @@ def test_wire_and_unwire_cli_json_and_clean_break(lifecycle):
     result = runner.invoke(app, ['unwire', '--repo', str(worktree), '--home', str(home), '--json'])
     assert result.exit_code == 0, result.output
     for command, flag in [('wire', '--all'), ('wire', '--name'), ('unwire', '--archive'),
-                          ('unwire', '--delete'), ('unwire', '--no-repo'), ('unwire', '--dry-run')]:
+                          ('unwire', '--delete'), ('unwire', '--no-repo'), ('unwire', '--dry-run'),
+                          ('unwire', '--all')]:
         result = runner.invoke(app, [command, flag, '--json'])
         assert result.exit_code == 2
         assert json.loads(result.stdout)['status'] == 'failure'
