@@ -2,7 +2,6 @@
 name: implementer
 description: Carry out one small, already-scoped change end-to-end in the current checkout, matching the project's Brain and conventions, and report the real result without claiming acceptance evidence.
 tools: Read, Grep, Glob, Edit, Write, Bash
-model: sonnet
 effort: medium
 ---
 

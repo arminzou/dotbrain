@@ -2,7 +2,6 @@
 name: investigator
 description: Brain-aware, read-only investigation of the codebase that answers a question with file-anchored facts, using the project's Brain and beads for context and keeping findings free of private identifiers.
 tools: Read, Grep, Glob, Bash
-model: sonnet
 effort: medium
 ---
 

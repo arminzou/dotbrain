@@ -1,6 +1,5 @@
 name = "verifier"
 description = "Run the mechanical verification gate and return commit-stamped evidence — commands, output, pass/fail, and a public-safe Verification block — never an opinion and never an edit."
-model = "gpt-5.6-luna"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 developer_instructions = """

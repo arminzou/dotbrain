@@ -2,7 +2,6 @@
 name: verifier
 description: Run the mechanical verification gate and return commit-stamped evidence — commands, output, pass/fail, and a public-safe Verification block — never an opinion and never an edit.
 tools: Read, Grep, Glob, Bash
-model: haiku
 effort: low
 ---
 
