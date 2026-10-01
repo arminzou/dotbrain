@@ -290,6 +290,10 @@ outside it, select `--project`. Existing configuration keys such as `targets.cla
 their spelling. Skills and Claude agents remain symlinks; agent reconciliation migrates owned
 Codex agent symlinks into marked real files and preserves foreign entries.
 
+JSON finding severity `advisory` is now `warning`, matching the existing warning results.
+Update scripts that match the old value; it is no longer emitted. Other result fields and exit
+codes are unchanged, and warnings alone still exit successfully. See [CLI Reference](cli-reference.md).
+
 ## Edit Config Only When Needed
 
 Most first-time setups can leave the default embedded beads mode alone.

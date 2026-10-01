@@ -63,7 +63,7 @@ def errors(findings):
     return [f.message for f in findings if f.status == "error"]
 
 
-def test_empty_all_checks_machine_once_and_unknown_session_advisories(tmp_path, monkeypatch):
+def test_empty_all_checks_machine_once_and_unknown_session_warnings(tmp_path, monkeypatch):
     calls = []
     original = doctor._check_machine
     monkeypatch.setattr(doctor, "_check_machine", lambda root, home: calls.append(root) or original(root, home))

@@ -576,7 +576,7 @@ def test_refresh_delegates_and_echoes(
         called.update(kwargs)
         from dotbrain.results import TargetResult
         return SimpleNamespace(errors=[], targets=[TargetResult(project="demo", changes=["updated convention"],
-                               findings=[{"severity": "advisory", "message": "shared Brain"}])])
+                               findings=[{"severity": "warning", "message": "shared Brain"}])])
 
     monkeypatch.setattr("dotbrain.cli.workflows.refresh_projects", fake_refresh)
 
