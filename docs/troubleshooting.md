@@ -28,15 +28,15 @@ dotbrain refresh        # repair links in an already-wired repo
 dotbrain wire           # or reconnect from scratch
 ```
 
-```text [Git worktree]
-Ask your agent: "run wire-brain to repair this worktree"
+```bash [Git worktree]
+dotbrain wire           # attach through the main checkout's existing wiring
+dotbrain refresh        # maintain the current wired worktree
 ```
 
 :::
 
-A worktree uses the main checkout's Brain. `wire-brain` derives the main checkout from Git and
-links only `.brain` and `.beads`. Do not create links under `.claude` or `.codex` by hand: their
-targets are relative paths that the CLI computes.
+A worktree uses the main checkout's Brain. The CLI finds that checkout through Git metadata and
+delivers local runtime resources. Use the CLI to reconcile resources in `.claude` and `.codex`.
 
 ### Symlink creation fails on Windows
 
@@ -57,7 +57,7 @@ provisions both.
 ### The plugin and CLI versions disagree
 
 Update both together, as described in [Staying current](getting-started.md#staying-current).
-`dotbrain update` prints the upgrade command for however the CLI was installed.
+Use the upgrade command for the package manager that installed the CLI.
 
 ### `dotbrain site` fails
 
@@ -68,7 +68,8 @@ line of the broken link or frontmatter. See [Brain site](brain-site.md#what-fail
 
 ### Does anything from my Brain reach the code repo?
 
-No. The repo holds gitignored links, and each link is ignored individually. The Brain and Beads
+The Brain stays private. The repo holds gitignored links and generated Codex agent definitions,
+each ignored individually. The Brain and Beads
 state live under `~/dotbrain`, which is its own Git repository.
 
 ### How do I use dotbrain on a second machine?
@@ -90,16 +91,15 @@ Yes. Set `DOTBRAIN_HOME` to the directory you want.
 
 ### Can I use dotbrain without a code repo?
 
-Yes. `dotbrain wire --no-repo --name <project>` creates a Brain-only Brainspace.
+Yes. `dotbrain wire --no-repo --project <project>` creates a Brain-only Brainspace.
 
 ### How do I stop using dotbrain on a repo?
 
 ```bash
-dotbrain unwire --dry-run   # preview
 dotbrain unwire             # disconnect, keep the Brainspace
 ```
 
-Add `--archive` to move the Brainspace aside or `--delete` to remove it. See
+Archive or delete the retained Brainspace through your own filesystem workflow. See
 [Wiring](wiring.md#unwire).
 
 ### Which agents are supported?

@@ -191,7 +191,7 @@ def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brai
     )
 
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert subagents.is_managed_copy(brainspace / ".codex" / "agents" / "reviewer.toml")
     assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
 
 
@@ -206,7 +206,7 @@ def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path
     )
 
     assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (brainspace / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert subagents.is_managed_copy(brainspace / ".codex" / "agents" / "reviewer.toml")
     assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
 
 

@@ -6,20 +6,16 @@ description: Wires, repairs, refreshes, or inspects a repo's dotbrain Brainspace
 # Wire Brain
 
 Connect an adopter repo to its private Brainspace through `dotbrain`. The CLI owns wiring,
-scaffolding, symlink reconciliation, hooks, skill links, agent links, and beads setup. Agents using
+scaffolding, resource reconciliation, hooks, skill links, agent delivery, and beads setup. Agents using
 this skill choose the right CLI command, inspect the result, and hand Brain content changes to the
 skill that owns that content.
 
 ## Choose the wiring branch
 
-Route worktree repair before checking installation or choosing a CLI command. When the request
-concerns a linked Git worktree, or the current checkout lacks `.brain`, `.beads`, or populated agent
-workspaces and may share its Git directory with another checkout, read
-[Worktree repair](references/worktree.md). That reference
-owns detection, link creation, platform safeguards, and verification. Follow only that branch and
-stop when it completes; do not enter First Run or create or repair a Brainspace.
-
-For a main checkout or Brain-only project, continue below.
+For every checkout, check installation below, then choose a CLI command. When attaching or
+repairing a linked Git worktree, read [Worktree attachment](references/worktree.md) for its shared
+state and verification rules. `dotbrain wire` discovers the main checkout through Git metadata;
+the CLI creates the worktree's wiring.
 
 ## First run
 
@@ -72,17 +68,20 @@ this table only carries the routing.
 
 | Symptom or job | Command |
 |---|---|
-| Attach a repo, or repair its links in the main checkout | `dotbrain wire --repo <path>` |
-| Missing or broken wiring (`.brain`, `.beads`, agent workspaces) in a linked Git worktree | [Worktree repair](references/worktree.md) |
-| Brain-only project, no adopter repo | `dotbrain wire --name <project> --no-repo` |
-| Existing Brainspaces need repo-link reconciliation | `dotbrain wire --all` |
-| Config, skills, agents, hooks, or templates changed | `dotbrain refresh --name <project>` / `--all` |
-| Global skills or subagents are stale | `dotbrain bootstrap [--only skills]` |
+| Attach a main checkout or linked Git worktree | `dotbrain wire --repo <path>` |
+| Repair an existing wired checkout | `dotbrain refresh` from that checkout |
+| Brain-only project, no adopter repo | `dotbrain wire --project <project> --no-repo` |
+| Existing Brainspaces need registered-checkout reconciliation | `dotbrain refresh --all` |
+| Config, skills, agents, hooks, or templates changed | `dotbrain refresh --project <project>` / `--all` |
+| Prepare machine-global resources | `dotbrain bootstrap` |
+| Global skills or subagents are stale | `dotbrain skills link --scope global` / `dotbrain agents link --scope global` |
 | Need a health report before deciding | `dotbrain doctor` |
 | Detach a repo from its Brainspace | `dotbrain unwire` |
 
-Two behaviours the flags do not confess: `refresh` never creates a project, and `wire --all`
-reconciles only known Brainspaces, warning when it cannot find an adopter repo.
+Project operations default to the current wired checkout, including a nested directory or
+worktree. Outside it, use `--project <name>`; named selection respects the project's local checkout
+override. `--all` selects registered projects and conflicts with individual selectors. `--home`
+overrides the private data root. `refresh` maintains existing projects; it never creates one.
 
 Do not recreate these steps by hand unless the CLI reports a concrete obstruction that must be
 removed first.
@@ -113,7 +112,11 @@ A wired adopter repo points at its Brainspace through local, gitignored symlinks
 - `.claude` is a real directory when the `claude` agent workspace is active.
 - `.codex` is a real directory when the `codex` agent workspace is active.
 
-The repo's `.git/info/exclude` ignores `/.brain`, `/.beads`, and each workspace link dotbrain creates. The public
+Skills and Claude agents use symlinks. Codex agent TOML definitions are generated real files with
+the marker `# dotbrain-managed-agent: v1`; customize their source in the private home. Dotbrain
+overwrites or prunes marked copies and preserves unmarked files and foreign links.
+
+The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public
 repo context may contain the standard pointer to `.brain/AGENTS.md`; private Brain paths, ADRs,
 beads details, and tracker operations stay out of public repo files.
 
@@ -121,13 +124,14 @@ beads details, and tracker operations stay out of public repo files.
 
 Run `dotbrain wire` from the adopter repo, or pass `--repo <path>` from elsewhere.
 
-Use `--name <project>` only when the Brainspace name should differ from the repo directory name.
+For initial main-checkout wiring, use `--project <project>` when the Brainspace name should differ
+from the repo directory name. Existing checkouts and worktrees use their established identity.
 Use beads options only for the initial tracker setup when project config or global config is not
 already sufficient:
 
 ```bash
-dotbrain wire --repo /path/to/repo --beads-server-host db.example.internal
-dotbrain wire --repo /path/to/repo --beads-remote https://doltremoteapi.dolthub.com/owner/repo
+dotbrain wire --repo /path/to/repo --server-host db.example.internal
+dotbrain wire --repo /path/to/repo --remote https://doltremoteapi.dolthub.com/owner/repo
 dotbrain wire --repo /path/to/repo --skip-beads
 ```
 
@@ -141,19 +145,18 @@ git -C /path/to/repo status --short
 Expected public repo changes are limited to the agent context pointer when it is newly inserted.
 Symlinks whose targets are outside the repo must remain untracked.
 
-## Offboarding
+## Detachment
 
 Detach through the CLI:
 
 ```bash
 dotbrain unwire --repo /path/to/repo
-dotbrain unwire --repo /path/to/repo --archive
-dotbrain unwire --repo /path/to/repo --delete
-dotbrain unwire --name <project> --no-repo --archive
 ```
 
-Remote beads databases are separate from Brainspace offboarding. Use `dotbrain beads drop-db` only
-when the operator explicitly wants to remove the server-side database.
+Detachment removes the selected checkout's managed wiring and context pointer while keeping the
+Brainspace, registration, user-owned workspace files, and other wired worktrees. Brainspace
+archival or deletion is an operator-owned filesystem action. Remote database deletion remains
+separate: use `dotbrain beads drop-db <database> --yes` only when explicitly requested.
 
 ## Verification
 
@@ -162,7 +165,7 @@ Before declaring wiring fixed:
 - `dotbrain doctor` reports no relevant errors.
 - `readlink <repo>/.brain` resolves into `~/dotbrain/brainspaces/<name>/.brain`.
 - Expected `.beads` links and materialized `.claude` / `.codex` workspaces match `.brain/project.yaml`.
-- `.git/info/exclude` contains the dotbrain link entries.
+- Git's exclusion file contains the dotbrain-managed entries (`git rev-parse --git-path info/exclude`).
 - `git -C <repo> status --short` shows no unexpected tracked changes.
 - If beads are enabled, `bd -C <repo> ready` works or reports a valid empty tracker.
 - Public repo files contain no private Brain content beyond the `.brain/AGENTS.md` pointer.

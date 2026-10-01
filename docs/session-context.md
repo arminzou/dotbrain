@@ -61,8 +61,9 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 
 ## Subagents
 
-`dotbrain bootstrap` and `dotbrain wire` also link four vendor-native subagents into each agent
-workspace. Each one reads the Brain before it acts:
+`dotbrain bootstrap` prepares configured global subagents in runtime homes. `dotbrain wire`
+delivers the four packaged roles plus project extras into declared project workspaces.
+Each reads the Brain before acting:
 
 | Subagent | Does |
 | --- | --- |
@@ -72,3 +73,9 @@ workspace. Each one reads the Brain before it acts:
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
 
 Add project-only subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml).
+
+Claude definitions are symlinks. Codex definitions are real TOML copies generated with
+`# dotbrain-managed-agent: v1`. Customize the private source definition; dotbrain can overwrite
+or prune delivered managed copies. `dotbrain agents link` reconciles the current wired checkout;
+use `--scope global` for global homes. Doctor checks file type and delivered content, while a
+successful role spawn confirms the runtime actually consumed a definition.

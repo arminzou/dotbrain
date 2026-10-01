@@ -189,10 +189,7 @@ def foreign_dotbrain_home_for_symlink(path: Path, link_name: str, dotbrain_home:
     path = Path(path)
     if not path.is_symlink():
         return None
-    try:
-        target = path.resolve(strict=True)
-    except OSError:
-        return None
+    target = path.resolve()
     if target.name != link_name:
         return None
     project_dir = target.parent
@@ -201,8 +198,6 @@ def foreign_dotbrain_home_for_symlink(path: Path, link_name: str, dotbrain_home:
         return None
     inferred_root = data_dir.parent.resolve()
     if inferred_root == Path(dotbrain_home).resolve():
-        return None
-    if not is_dotbrain_checkout(inferred_root):
         return None
     if target != paths.brainspace(inferred_root, project_dir.name) / link_name:
         return None
@@ -224,6 +219,16 @@ def ensure_not_wired_to_foreign_dotbrain(repo: Path, dotbrain_home: Path) -> Non
         )
 
 
+def ensure_wiring_matches(repo: Path, dotbrain_home: Path, project: str) -> None:
+    """Validate required-link identity before attachment can seed or mutate state."""
+    expected = paths.brainspace_link_targets(dotbrain_home, project)
+    ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_home)
+    for name, target in expected.items():
+        link = Path(repo) / name
+        if link.is_symlink() and link.resolve() != target.resolve():
+            raise RuntimeError(f"{link} points to another Brainspace; unwire this checkout before wiring it")
+
+
 def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
     cwd = Path(repo) if repo is not None else None
     argv = ["git", "rev-parse", "--show-toplevel"]
@@ -231,8 +236,31 @@ def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
         res = run(argv, cwd=cwd, check=True)
     except subprocess.CalledProcessError:
         loc = str(cwd) if cwd else "current directory"
-        raise ValueError(f"{loc} is not inside a git repository; run 'git init' first or use --no-repo --name <name>")
+        raise ValueError(f"{loc} is not inside a git repository; select --project <name> or use wire --no-repo --project <name>")
     return Path((res.stdout or "").strip()).resolve()
+
+
+def worktree_checkouts(repo: Path, run: Runner = _default_run) -> list[Path]:
+    """Git's checkout inventory, with the main checkout first (including submodules)."""
+    result = run(["git", "-C", str(repo), "worktree", "list", "--porcelain", "-z"], check=True)
+    return [Path(record[len("worktree "):]).resolve()
+            for record in (result.stdout or "").split("\0") if record.startswith("worktree ")]
+
+
+def linked_worktree_parent(repo: Path, run: Runner = _default_run) -> Path | None:
+    """A linked worktree's main checkout; a .git file alone does not establish this."""
+    result = run(["git", "-C", str(repo), "rev-parse", "--git-dir", "--git-common-dir"], check=True)
+    directories = (result.stdout or "").strip().splitlines()
+    if len(directories) != 2:
+        raise ValueError(f"cannot identify Git checkout metadata for {repo}")
+    resolved = [(repo / value).resolve() if not Path(value).is_absolute() else Path(value).resolve()
+                for value in directories]
+    if resolved[0] == resolved[1]:
+        return None
+    checkouts = worktree_checkouts(repo, run)
+    if not checkouts or repo.resolve() not in checkouts:
+        raise ValueError(f"cannot identify main checkout for {repo}")
+    return checkouts[0]
 
 
 # --------------------------------------------------------------------------- excludes & symlinks
@@ -284,8 +312,14 @@ def ensure_local_exclude_line(repo: Path, line: str, run: Runner = _default_run)
 
 def remove_local_exclude_line(repo: Path, line: str, run: Runner = _default_run) -> None:
     exclude_file = git_exclude_file(repo, run)
-    if exclude_file is not None:
+    if exclude_file is not None and not _exclude_needed_elsewhere(repo, line, run):
         remove_exclude_line(exclude_file, line)
+
+
+def _exclude_needed_elsewhere(repo: Path, line: str, run: Runner) -> bool:
+    relative = line.strip("/")
+    return any(other != repo.resolve() and ((other / relative).exists() or (other / relative).is_symlink())
+               for other in worktree_checkouts(repo, run))
 
 
 def reconcile_link_excludes(
@@ -302,7 +336,9 @@ def reconcile_link_excludes(
     for entry in linked:
         ensure_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
     for entry in pruned:
-        remove_exclude_line(exclude_file, f"/{entry.strip('/').replace(os.sep, '/')}")
+        line = f"/{entry.strip('/').replace(os.sep, '/')}"
+        if not _exclude_needed_elsewhere(repo, line, run):
+            remove_exclude_line(exclude_file, line)
 
 
 def materialize_workspace(
@@ -321,7 +357,7 @@ def materialize_workspace(
     workspace = repo / name
     expected = Path(brainspace) / name
     if workspace.is_symlink():
-        if not paths.symlink_target_matches(os.readlink(workspace), str(expected)):
+        if workspace.resolve() != expected.resolve():
             return f"{workspace} is not a dotbrain workspace link; leaving it unchanged"
         workspace.unlink()
     elif workspace.exists() and not workspace.is_dir():
@@ -418,7 +454,10 @@ def wire_repo(
 ) -> list[str]:
     """Link active Brainspace symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)
-    ensure_not_wired_to_foreign_dotbrain(repo, dotbrain_home)
+    ensure_wiring_matches(repo, dotbrain_home, Path(brainspace).name)
+    expected_brainspace = paths.brainspace(dotbrain_home, Path(brainspace).name)
+    if Path(brainspace).resolve() != expected_brainspace.resolve():
+        raise ValueError(f"Brainspace {brainspace} is outside the selected data root")
     use_local_excludes = not is_dotbrain_repo(repo, dotbrain_home)
     warnings: list[str] = []
     active_links: tuple[str, ...] = (".brain", *(workspace_links or ()))
@@ -467,10 +506,12 @@ class UnwireResult:
     repo: Path | None = None
     logs: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home).resolve()
+    source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents")]
     links: list[Path] = []
     for name in (".claude", ".codex"):
         workspace = Path(repo) / name
@@ -484,57 +525,46 @@ def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
             if not entry.is_symlink():
                 continue
             try:
-                if entry.resolve().is_relative_to(root):
+                destination = entry.resolve()
+                owned_workspace = (entry == workspace and destination.name == name
+                                   and destination.parent.parent == paths.data_dir(root))
+                if owned_workspace or any(destination.is_relative_to(source) for source in source_roots):
                     links.append(entry)
             except OSError:
                 continue
     return links
 
 
-def _remove_empty_workspace_dirs(repo: Path) -> list[Path]:
-    removed: list[Path] = []
-    for name in (".claude", ".codex"):
-        workspace = Path(repo) / name
-        for directory in sorted(
-            (path for path in workspace.rglob("*") if path.is_dir() and not path.is_symlink()),
-            key=lambda path: len(path.parts),
-            reverse=True,
-        ) if workspace.is_dir() and not workspace.is_symlink() else []:
-            if not any(directory.iterdir()):
-                directory.rmdir()
-        if workspace.is_dir() and not workspace.is_symlink() and not any(workspace.iterdir()):
-            workspace.rmdir()
-            removed.append(workspace)
-    return removed
 
 
 def unwire_repo(
     repo: Path,
-    dry_run: bool = False,
     *,
     dotbrain_home: Path | None = None,
     run: Runner = _default_run,
 ) -> UnwireResult:
-    """Remove agent workspace symlinks, exclude entries, and the adopter-context pointer.
-
-    With ``dry_run`` the repo is left untouched; logs report what would be removed.
-    """
+    """Detach this checkout, retaining exclusions still used by sibling checkouts."""
     result = UnwireResult(repo=repo)
-    verb = "would remove" if dry_run else "removed"
+    verb = "removed"
 
     managed_links = _managed_workspace_links(repo, dotbrain_home) if dotbrain_home else []
+    # Agent ownership is the delivery owner's contract, not a second marker implementation.
+    from dotbrain.subagents import is_managed_copy
+    codex_agents = repo / ".codex" / "agents"
+    if codex_agents.is_dir() and not codex_agents.is_symlink() and not (repo / ".codex").is_symlink():
+        managed_links += [entry for entry in codex_agents.iterdir() if is_managed_copy(entry)]
     managed_entries = [link.relative_to(repo).as_posix() for link in managed_links]
 
     for name in paths.BRAINSPACE_LINKS:
         link = repo / name
         if link.is_symlink():
-            if not dry_run:
-                link.unlink()
+            if dotbrain_home and not link.resolve().is_relative_to(Path(dotbrain_home).resolve()):
+                continue
+            link.unlink()
             result.logs.append(f"{verb} symlink {name}")
 
     for link, entry in zip(managed_links, managed_entries):
-        if not dry_run:
-            link.unlink()
+        link.unlink()
         result.logs.append(f"{verb} workspace link {entry}")
 
     exclude = git_exclude_file(repo, run)
@@ -542,15 +572,12 @@ def unwire_repo(
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
         excludes = {*paths.EXCLUDE_ENTRIES, "/.claude", "/.codex"}
         excludes.update(f"/{entry}" for entry in managed_entries)
-        filtered = [l for l in lines if l.rstrip("\r\n") not in excludes]
+        filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
+                    or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]
         if len(filtered) < len(lines):
-            if not dry_run:
-                exclude.write_text("".join(filtered), encoding="utf-8", newline="\n")
+            exclude.write_text("".join(filtered), encoding="utf-8", newline="\n")
             result.logs.append(f"{verb} dotbrain ignore rules from .git/info/exclude")
 
-    if not dry_run:
-        for workspace in _remove_empty_workspace_dirs(repo):
-            result.logs.append(f"removed empty workspace {workspace.name}")
 
     for fname in ("AGENTS.md", "CLAUDE.md"):
         f = repo / fname
@@ -559,15 +586,8 @@ def unwire_repo(
         text = f.read_text(encoding="utf-8")
         pointer_lines = set(paths.ADOPTER_POINTER.strip().splitlines())
         if any(pl in text for pl in pointer_lines):
-            if not dry_run:
-                cleaned = "\n".join(
-                    l for l in text.splitlines() if l.strip() not in pointer_lines
-                ).strip()
-                f.write_text(
-                    cleaned + "\n" if cleaned else "",
-                    encoding="utf-8",
-                    newline="\n",
-                )
+            cleaned = "\n".join(l for l in text.splitlines() if l.strip() not in pointer_lines).strip()
+            f.write_text(cleaned + "\n" if cleaned else "", encoding="utf-8", newline="\n")
             result.logs.append(f"{verb} agent-context pointer from {fname}")
 
     return result

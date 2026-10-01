@@ -11,6 +11,41 @@ Skill linking is operator-managed:
 - global skills are selected in `~/dotbrain/skills/skills.yaml`
 - per-project skills are selected in `brainspaces/<name>/.brain/project.yaml`
 
+## Select and reconcile skills
+
+Both scopes accept an individual skill or a bundle directory:
+
+```yaml
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+skills:
+  - my-collection/specific-skill
+  - another-collection
+```
+
+```yaml
+# ~/dotbrain/skills/skills.yaml
+global_extra:
+  - another-collection
+```
+
+A directory containing `SKILL.md` selects itself, even when it has descendant skills. Otherwise
+dotbrain discovers descendant `SKILL.md` directories recursively, excluding `node_modules`.
+Overlapping selections of the same source are deduplicated. Different sources mapping to the
+same destination name, including case collisions on a case-insensitive filesystem, fail before
+destination changes. Missing paths, non-directories, and empty bundles fail actionably.
+
+```bash
+dotbrain skills list                         # discover sources
+dotbrain skills link                         # current wired checkout
+dotbrain skills link --project my-app         # registered checkout
+dotbrain skills link --scope global           # explicit global homes
+dotbrain skills link --runtime codex           # declared Codex workspace only
+```
+
+Adding or removing skills from a selected bundle takes effect on the next reconciliation; the
+declaration stays unchanged. Removed owned links are pruned, while foreign entries are preserved.
+`projects show`, catalogs, and doctor use the same expanded selection.
+
 ## Setup
 
 - **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain,
@@ -67,7 +102,7 @@ Skill linking is operator-managed:
 
 ## Subagents
 
-Alongside the skills, dotbrain links four Brain-aware subagents into each workspace:
+Alongside the skills, dotbrain delivers four Brain-aware subagents into each workspace:
 `investigator`, `implementer`, `reviewer`, and `verifier`. See
 [Session context](session-context.md#subagents).
 

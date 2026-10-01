@@ -9,7 +9,6 @@ is absent.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -109,7 +108,7 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
 
 def _project_config_path(dotbrain_home: Path, name: str) -> Path:
     """Canonical ``.brain/project.yaml`` path."""
-    return paths.brainspace(dotbrain_home, name) / ".brain" / "project.yaml"
+    return paths.confined_path(paths.brainspace(dotbrain_home, name), ".brain/project.yaml")
 
 
 def default_beads_mode(dotbrain_home: Path) -> str:
@@ -147,12 +146,12 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
             database=str(beads.get("database", name)),
         )
 
-    # Check old dotbrain.yaml — its explicit entries override a default .brain/project.yaml.
+    # Explicit old dotbrain.yaml entries override a default .brain/project.yaml.
     old = _old_config_path(dotbrain_home)
     if old.is_file():
         data: dict[str, Any] = yaml.safe_load(old.read_text(encoding="utf-8")) or {}
         projects = data.get("projects") or {}
-        if name in projects:
+        if name in projects and (projects[name] or {}).get("beads"):
             entry = (projects[name] or {}).get("beads") or {}
             old_beads = ProjectBeads(
                 mode=str(entry.get("mode", default_mode)),
@@ -251,20 +250,16 @@ def write_project_config(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
         database=beads.database if beads.database != name else "",
     )
 
-    doc: dict[str, Any] = {"beads": {"mode": resolved.mode}}
+    doc = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.is_file() else {}
+    if not isinstance(doc, dict) or not isinstance(doc.get("beads", {}), dict):
+        raise ValueError(f"{path}: expected YAML mappings")
+    doc.setdefault("beads", {})["mode"] = resolved.mode
+    doc["beads"].pop("remote", None)
+    doc["beads"].pop("database", None)
     if resolved.remote:
         doc["beads"]["remote"] = resolved.remote
     if resolved.database:
         doc["beads"]["database"] = resolved.database
-
-    # This rewrite drops comments; carry the operator's per-project skills across
-    # so a beads-deviation write never strands them.
-    existing_skills = load_project_skills(dotbrain_home, name)
-    if existing_skills:
-        doc["skills"] = list(existing_skills)
-    existing_subagents = load_project_subagents(dotbrain_home, name)
-    if existing_subagents:
-        doc["subagents"] = list(existing_subagents)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -292,55 +287,6 @@ def record_project_beads(dotbrain_home: Path, name: str, beads: ProjectBeads) ->
     return write_project_config(dotbrain_home, name, beads)
 
 
-def migrate_legacy_skill_manifest(dotbrain_home: Path, name: str) -> str | None:
-    """Fold a legacy ``.brain/agents/skills.yaml`` into ``.brain/project.yaml`` and remove it.
-
-    The per-project skill list used to live in a tool-managed manifest under
-    ``.brain/agents/``; it now lives in ``.brain/project.yaml`` ``skills:``. This folds any
-    extras across (without losing them) and deletes the stale file. Idempotent.
-    """
-    import yaml
-
-    from dotbrain import skills
-
-    legacy = paths.brainspace(dotbrain_home, name) / ".brain" / "agents" / "skills.yaml"
-    if not legacy.is_file():
-        return None
-
-    data = yaml.safe_load(legacy.read_text(encoding="utf-8")) or {}
-    extras: tuple[str, ...] = ()
-    if isinstance(data, dict):
-        extras = skills._clean(data.get("skills", data.get("extra")))
-    if extras:
-        _append_project_skills(dotbrain_home, name, extras)
-    legacy.unlink()
-
-    suffix = f" ({len(extras)} skill(s))" if extras else ""
-    return f"migrated legacy skills manifest for {name} into .brain/project.yaml{suffix}"
-
-
-def _append_project_skills(dotbrain_home: Path, name: str, extras: tuple[str, ...]) -> None:
-    """Append a ``skills:`` block to ``.brain/project.yaml``, preserving existing content.
-
-    No-op when the file already declares ``skills:`` (the operator owns it then).
-    """
-    import re
-
-    path = _project_config_path(dotbrain_home, name)
-    block = "skills:\n" + "".join(f"  - {skill}\n" for skill in extras)
-    if path.is_file():
-        text = path.read_text(encoding="utf-8")
-        if re.search(r"(?m)^skills:", text):
-            return
-        if text and not text.endswith("\n"):
-            text += "\n"
-        path.write_text(text + "\n" + block, encoding="utf-8", newline="\n")
-        return
-    header = "# Per-project skills, linked on top of the brain-coupled required core.\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(header + block, encoding="utf-8", newline="\n")
-
-
 def _is_beads_deviation(dotbrain_home: Path, name: str, beads: ProjectBeads) -> bool:
     return (
         beads.mode != default_beads_mode(dotbrain_home)
@@ -349,80 +295,33 @@ def _is_beads_deviation(dotbrain_home: Path, name: str, beads: ProjectBeads) -> 
     )
 
 
-def remove_project_beads(dotbrain_home: Path, name: str) -> str | None:
-    """Drop a project's per-project config. Returns a log line or None if absent."""
-    path = _project_config_path(dotbrain_home, name)
-    if path.is_file():
-        os.remove(path)
-        return f"removed .brain/project.yaml for {name}"
-
-    # Old-format cleanup: remove from dotbrain.yaml projects section
-    old = _old_config_path(dotbrain_home)
-    if old.is_file():
-        import yaml
-        data: dict[str, Any] = yaml.safe_load(old.read_text(encoding="utf-8")) or {}
-        projects = data.get("projects")
-        if projects and name in projects:
-            return _remove_from_old_projects_section(old, name)
-
-    return None
-
-
 def _remove_from_old_projects_section(path: Path, name: str) -> str | None:
-    """Drop ``projects.<name>`` from a legacy dotbrain.yaml, preserving other text."""
+    """Remove owned legacy Beads keys, preserving unknown configuration values."""
     import yaml
 
     data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     projects: dict[str, Any] = data.get("projects") or {}
     if name not in projects:
         return None
-    del projects[name]
-
-    text = path.read_text(encoding="utf-8")
-    kept: list[str] = []
-    in_section = False
-    in_entry = False
-    for line in text.splitlines():
-        if in_entry:
-            if line and not line[0].isspace():
-                in_entry = False
-            else:
-                continue
-        if in_section:
-            if line.startswith(f"  {name}:"):
-                in_entry = True
-                continue
-            if line and not line[0].isspace():
-                in_section = False
-
-        if line.startswith("projects:"):
-            in_section = True
-            continue
-        kept.append(line)
-
-    while kept and not kept[-1].strip():
-        kept.pop()
-    out = "\n".join(kept) + "\n"
-    if projects:
-        out += "\n" + _render_old_projects_section(projects)
-    path.write_text(out, encoding="utf-8", newline="\n")
+    entry = projects[name] or {}
+    section = entry.get("beads") or {}
+    changed = any(key in section for key in ("mode", "remote", "database"))
+    if not changed:
+        return None
+    for key in ("mode", "remote", "database"):
+        section.pop(key, None)
+    if not section:
+        entry.pop("beads", None)
+    if not entry:
+        projects.pop(name)
+    if not projects:
+        data.pop("projects", None)
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8", newline="\n")
     return f"removed beads deviation for {name} from dotbrain.yaml"
 
 
-def _render_old_projects_section(projects: dict[str, Any]) -> str:
-    lines = ["projects:"]
-    for pname in sorted(projects):
-        entry = projects[pname]
-        beads = (entry or {}).get("beads") or {}
-        lines.append(f"  {pname}:")
-        lines.append("    beads:")
-        mode = beads.get("mode", "embedded")
-        if mode != "embedded":
-            lines.append(f"      mode: {mode}")
-        remote = beads.get("remote", "")
-        if remote:
-            lines.append(f"      remote: {remote}")
-        database = beads.get("database", "")
-        if database:
-            lines.append(f"      database: {database}")
-    return "\n".join(lines) + "\n"
+def remove_legacy_project_beads(dotbrain_home: Path, name: str) -> str | None:
+    """Clear legacy tracker overrides after an explicit backend migration."""
+    paths.validate_project_name(name)
+    old = _old_config_path(dotbrain_home)
+    return _remove_from_old_projects_section(old, name) if old.is_file() else None

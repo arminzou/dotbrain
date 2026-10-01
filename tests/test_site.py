@@ -66,21 +66,6 @@ class FakeRun:
 # --------------------------------------------------------------------------- locating and init
 
 
-def test_find_brain_by_name_and_from_a_wired_repo(home: Path, brain: Path, tmp_path: Path):
-    assert site.find_brain(home, "demo") == brain
-    repo = tmp_path / "repo"
-    (repo / "src").mkdir(parents=True)
-    (repo / ".brain").mkdir()
-    assert site.find_brain(home, cwd=repo / "src") == (repo / ".brain").resolve()
-
-
-def test_find_brain_explains_what_to_do(home: Path, tmp_path: Path):
-    with pytest.raises(site.SiteError, match="no Brain for 'missing'"):
-        site.find_brain(home, "missing")
-    with pytest.raises(site.SiteError, match="pass --name"):
-        site.find_brain(home, cwd=tmp_path / "nowhere")
-
-
 def test_init_creates_settings_and_home_and_never_overwrites(brain: Path):
     created = site.init(brain, "Demo Brain")
     assert {p.name for p in created} == {"site.yaml", "index.md", "configure.md"}
@@ -258,9 +243,99 @@ def test_vitepress_runs_against_the_brains_real_path(home: Path, brain: Path, co
 
 def test_the_cli_reports_a_brain_without_a_site(home: Path, monkeypatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
-    result = CliRunner().invoke(app, ["site", "build", "--name", "demo"])
+    result = CliRunner().invoke(app, ["site", "build", "--project", "demo"])
     assert result.exit_code == 1
     assert "dotbrain site init" in result.output
+
+
+def test_cli_named_brain_only_init_is_repeatable_json(home: Path, brain: Path):
+    (brain.parent / ".repo.local").write_text("(brain-only)", encoding="utf-8")
+    args = ["site", "init", "--project", "demo", "--home", str(home), "--json"]
+    first = CliRunner().invoke(app, args)
+    assert first.exit_code == 0, first.output
+    target = json.loads(first.stdout)["targets"][0]
+    assert target["project"] == "demo" and target["checkout"] is None
+    assert len(target["changes"]) == 3
+    repeat = CliRunner().invoke(app, args)
+    assert repeat.exit_code == 0
+    assert json.loads(repeat.stdout)["targets"][0]["changes"] == []
+
+
+def test_cli_current_nested_worktree_uses_wired_identity(home: Path, brain: Path, tmp_path: Path, monkeypatch):
+    repo = tmp_path / "different-name"
+    repo.mkdir()
+    subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                    "commit", "--allow-empty", "-m", "seed"], check=True, capture_output=True)
+    worktree = tmp_path / "worktree"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "-b", "site-test", str(worktree)],
+                   check=True, capture_output=True)
+    (worktree / ".brain").symlink_to(brain, target_is_directory=True)
+    nested = worktree / "src" / "nested"
+    nested.mkdir(parents=True)
+    monkeypatch.chdir(nested)
+    result = CliRunner().invoke(app, ["site", "init", "--home", str(home), "--json"])
+    assert result.exit_code == 0, result.output
+    target = json.loads(result.stdout)["targets"][0]
+    assert target["project"] == "demo"
+    assert Path(target["checkout"]) == worktree
+
+
+@pytest.mark.parametrize("flag", ["--name", "--all", "--scope", "--repo"])
+def test_cli_site_rejects_retired_and_unsupported_options(home: Path, flag: str):
+    result = CliRunner().invoke(app, ["site", "init", "--home", str(home), flag, "--json"])
+    assert result.exit_code == 2
+    assert json.loads(result.stdout)["status"] == "failure"
+    assert not (home / "brainspaces" / "demo" / ".brain" / "site").exists()
+
+
+@pytest.mark.parametrize("command", ["dev", "preview"])
+def test_cli_streaming_site_commands_reject_json(command: str):
+    result = CliRunner().invoke(app, ["site", command, "--json"])
+    assert result.exit_code == 2
+
+
+@pytest.mark.parametrize("failure", ["missing-site", "missing-node", "subprocess"])
+def test_cli_build_operational_errors_have_one_json_result(home: Path, brain: Path, monkeypatch, failure: str):
+    if failure != "missing-site":
+        site.init(brain)
+    fake = FakeRun(node=None if failure == "missing-node" else "v22.12.0")
+    original = site.run_site
+
+    def failing_run(argv, **kwargs):
+        raise subprocess.CalledProcessError(1, argv)
+
+    monkeypatch.setattr(site, "run_site", lambda command, **kwargs:
+                        original(command, dotbrain_home=kwargs["dotbrain_home"], brain=kwargs["brain"],
+                                 setup_run=fake, run=failing_run))
+    result = CliRunner().invoke(app, ["site", "build", "--project", "demo", "--home", str(home), "--json"])
+    assert result.exit_code == 1, result.output
+    assert json.loads(result.stdout)["status"] == "failure"
+
+
+def test_cli_build_uses_stderr_progress_runner(home: Path, brain: Path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(site, "run_site", lambda command, **kwargs: calls.append(kwargs) or home / "output")
+    result = CliRunner().invoke(app, ["site", "build", "--project", "demo", "--home", str(home), "--json"])
+    assert result.exit_code == 0, result.output
+    assert calls[0]["run"] is site.stderr_run
+    assert json.loads(result.stdout)["targets"][0]["data"]["output"] == str(home / "output")
+
+
+def test_cli_init_rejects_site_symlink_escape_before_writes(home: Path, brain: Path, tmp_path: Path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (brain / "site").symlink_to(outside, target_is_directory=True)
+    result = CliRunner().invoke(app, ["site", "init", "--project", "demo", "--home", str(home), "--json"])
+    assert result.exit_code == 2, result.output
+    assert json.loads(result.stdout)["status"] == "failure"
+    assert list(outside.iterdir()) == []
+
+
+def test_cli_missing_named_project_is_invalid_selection(home: Path):
+    result = CliRunner().invoke(app, ["site", "init", "--project", "missing", "--home", str(home), "--json"])
+    assert result.exit_code == 2
+    assert json.loads(result.stdout)["status"] == "failure"
 
 
 @pytest.mark.parametrize("link", [

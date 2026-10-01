@@ -224,7 +224,7 @@ def test_wire_project_rejects_foreign_dotbrain_symlink_before_brainspace_mutatio
     assert not (dotbrain_home / "brainspaces" / "adopter").exists()
 
 
-def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
+def test_wire_project_preserves_foreign_symlink_even_without_data_root_git(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
     repo = tmp_path / "custom-shaped"
@@ -235,18 +235,19 @@ def test_wire_project_allows_custom_symlink_that_only_matches_dotbrain_shape(
     custom_target.mkdir(parents=True)
     (repo / ".brain").symlink_to(custom_target)
 
-    result = workflows.wire_project(
-        dotbrain_home=dotbrain_home,
-        repo=repo,
-        run_beads=False,
-        home=fake_home,
-        run=make_runner([]),
-    )
+    with pytest.raises(RuntimeError, match="another dotbrain checkout"):
+        workflows.wire_project(
+            dotbrain_home=dotbrain_home,
+            repo=repo,
+            run_beads=False,
+            home=fake_home,
+            run=make_runner([]),
+        )
 
     brainspace = dotbrain_home / "brainspaces" / "custom-shaped"
-    assert result.brainspace == brainspace
+    assert not brainspace.exists()
     assert (repo / ".brain").is_symlink()
-    assert (repo / ".brain").resolve() == (brainspace / ".brain").resolve()
+    assert (repo / ".brain").resolve() == custom_target.resolve()
 
 
 # --------------------------------------------------------------------------- orchestration
@@ -286,7 +287,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert "/.codex" not in paths.exclude_entries(repo)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
-    assert any(".beads is missing" in w for w in result.warnings)
+    assert not any(".beads is missing" in w for w in result.warnings)
 
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
     assert "## dotbrain convention" in injected
@@ -330,7 +331,7 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     assert not (claude / "skills" / "operate-execution").exists()
     assert (claude / "agents" / "reviewer.md").is_symlink()
     assert not (codex / "skills" / "operate-execution").exists()
-    assert (codex / "agents" / "reviewer.toml").is_symlink()
+    assert (codex / "agents" / "reviewer.toml").is_file()
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=repo,
@@ -384,7 +385,7 @@ def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
     assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
-def test_wire_project_unarchives_automatically(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
+def test_wire_project_leaves_archived_directory_user_owned(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     """dotbrain wire on an archived project restores it before wiring."""
     repo = tmp_path / "archived-proj"
     repo.mkdir()
@@ -413,8 +414,8 @@ def test_wire_project_unarchives_automatically(dotbrain_home: Path, fake_home: P
 
     brainspace = dotbrain_home / "brainspaces" / "archived-proj"
     assert brainspace.is_dir()
-    assert not archive.exists()
-    assert any("unarchived" in l for l in result.logs)
+    assert archive.exists()
+    assert not any("unarchived" in l for l in result.logs)
     assert (repo / ".brain").is_symlink()
 
 

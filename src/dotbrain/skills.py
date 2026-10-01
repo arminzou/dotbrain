@@ -49,7 +49,7 @@ def _clean(values: object, *, exclude: Iterable[str] = ()) -> tuple[str, ...]:
     for value in values:
         if not isinstance(value, str):
             continue
-        value = value.strip().strip("/")
+        value = value.strip()
         if not value or value in excluded or value in seen:
             continue
         out.append(value)
@@ -162,12 +162,44 @@ def _points_into(link: Path, root: Path) -> bool:
 
 
 def _resolve_skill_source(dotbrain_home: Path, skill_path: str) -> Path | None:
-    private_src = dotbrain_home / "skills" / skill_path
+    skills_root = paths.confined_path(Path(dotbrain_home), "skills")
+    private_src = paths.confined_path(skills_root, skill_path)
     return private_src if private_src.is_dir() else None
 
 
+def resolve_selection(dotbrain_home: Path, entries: Iterable[str]) -> tuple[str, ...]:
+    """Expand declarations to a complete, confined, collision-free skill set."""
+    root = paths.confined_path(Path(dotbrain_home), "skills")
+    effective: dict[Path, str] = {}
+    for entry in sorted(_clean(list(entries))):
+        source = paths.confined_path(root, entry)
+        if not source.exists():
+            raise ValueError(f"skill not found: {entry}")
+        if not source.is_dir():
+            raise ValueError(f"skill selection is not a directory: {entry}")
+        marker = paths.confined_path(root, str(Path(entry) / "SKILL.md"))
+        candidates = [entry] if marker.is_file() else [str(Path(entry) / child) for child in discover_skills(source)]
+        if not candidates:
+            raise ValueError(f"skill folder contains no skills: {entry}")
+        for candidate in candidates:
+            directory = paths.confined_path(root, candidate)
+            marker = paths.confined_path(root, str(Path(candidate) / "SKILL.md"))
+            if not directory.is_dir() or not marker.is_file():
+                raise ValueError(f"skill has no readable SKILL.md: {candidate}")
+            physical = directory.resolve()
+            effective.setdefault(physical, physical.relative_to(root.resolve()).as_posix())
+    leaves: dict[str, str] = {}
+    for candidate in sorted(effective.values()):
+        # ponytail: portable casefold collision policy; probe receiver filesystems if case-only names are needed.
+        leaf = Path(candidate).name.casefold()
+        if leaf in leaves and leaves[leaf] != candidate:
+            raise ValueError(f"skill destination collision: {leaves[leaf]} and {candidate}")
+        leaves[leaf] = candidate
+    return tuple(sorted(effective.values()))
+
+
 def _remove_legacy_skill_cache(dotbrain_home: Path) -> None:
-    cache = Path(dotbrain_home) / ".cache" / "skills"
+    cache = paths.confined_path(dotbrain_home, ".cache/skills")
     if cache.is_dir() and not cache.is_symlink():
         shutil.rmtree(cache)
     elif cache.exists() or cache.is_symlink():
@@ -187,6 +219,14 @@ def link_into(
 
     dotbrain_home = Path(dotbrain_home)
     skills_dir = Path(skills_dir)
+    # Validate the complete source selection before creating a destination,
+    # deleting the legacy cache, or linking/pruning any workspace entries.
+    try:
+        selected = resolve_selection(dotbrain_home, skill_paths)
+        paths.confined_path(dotbrain_home, ".cache/skills")
+    except ValueError as exc:
+        return LinkResult(warnings=[str(exc)])
+    sources = [(skill_path, _resolve_skill_source(dotbrain_home, skill_path)) for skill_path in selected]
     skills_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = f"{label}/" if label else ""
@@ -196,14 +236,15 @@ def link_into(
     cache_root = (dotbrain_home / ".cache" / "skills").resolve()
     private_root = (dotbrain_home / "skills").resolve()
 
-    for skill_path in skill_paths:
-        src = _resolve_skill_source(dotbrain_home, skill_path)
+    for skill_path, src in sources:
         if src is None or not src.is_dir():
             result.warnings.append(f"skill not found: {skill_path}")
             continue
 
         dest = skills_dir / Path(skill_path).name
         wanted.add(dest.name)
+        if dest.is_symlink() and dest.resolve() == src.resolve():
+            continue
         owned = dest.is_symlink() and (
             _points_into(dest, private_root) or _points_into(dest, cache_root)
         )

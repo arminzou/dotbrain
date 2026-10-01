@@ -23,13 +23,13 @@ REFERENCE_PATH = _REPO_ROOT / "docs" / "cli-reference.md"
 # new command cannot ship without a place on the page. A group is (title, intro, guide, commands).
 GROUPS: list[tuple[str, str, str | None, list[str]]] = [
     ("Setup", "Prepare a machine and check its health.", "getting-started",
-     ["bootstrap", "doctor", "update"]),
+     ["bootstrap", "doctor"]),
     ("Projects", "Connect code repos to Brainspaces and keep them in sync.", "wiring",
-     ["wire", "refresh", "unwire"]),
+     ["wire", "refresh", "unwire", "projects list", "projects show"]),
     ("Skills and agents", "Link skills and vendor-native subagents into agent runtimes.", "skills",
-     ["skills link", "agents link"]),
+     ["skills list", "skills link", "agents list", "agents link"]),
     ("Beads", "Manage the Beads tracker's state and backend.", "beads-backend",
-     ["beads load", "beads migrate", "beads list-db", "beads drop-db"]),
+     ["beads sync", "beads migrate", "beads list-db", "beads drop-db"]),
     ("Brain site", "Set up and run a Brain's private site.", "brain-site",
      ["site init", "site dev", "site build", "site preview"]),
     ("Internal", "Run by the plugin's hooks, not by hand.", "session-context",
@@ -54,7 +54,7 @@ information in the terminal.
 
 
 def _commands() -> dict[str, object]:
-    """Visible leaf commands by path (``"beads load"``), skipping hidden commands and groups."""
+    """Visible leaf commands by path, skipping hidden commands and groups."""
     found: dict[str, object] = {}
 
     def walk(cmd: object, path: list[str]) -> None:

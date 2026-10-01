@@ -1,8 +1,7 @@
-"""Tests for brainspaces.py: Brain seeding, workspace preparation, and offboarding helpers."""
+"""Tests for brainspaces.py: Brain seeding and workspace preparation."""
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -72,19 +71,6 @@ def test_seed_brain_does_not_rewrite_unchanged_owned_files(
     brainspaces.seed_brain(brainspace, dotbrain_home)
 
     assert readme.stat().st_mtime_ns == original_mtime
-
-
-def test_ensure_json_hook_adds_and_dedupes(tmp_path: Path):
-    file = tmp_path / "settings.json"
-    brainspaces.ensure_json_hook(file, "SessionStart", "do-thing")
-    brainspaces.ensure_json_hook(file, "SessionStart", "do-thing")  # idempotent on command
-    brainspaces.ensure_json_hook(file, "SessionStart", "other", "startup", "msg")
-    data = json.loads(file.read_text())
-    entries = data["hooks"]["SessionStart"]
-    commands = [h["command"] for e in entries for h in e["hooks"]]
-    assert commands == ["do-thing", "other"]
-    assert entries[1]["matcher"] == "startup"
-    assert entries[1]["hooks"][0]["statusMessage"] == "msg"
 
 
 def test_seed_agent_workspaces_skips_a_repo_backed_brainspace(

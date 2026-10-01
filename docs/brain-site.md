@@ -7,7 +7,7 @@ published.
 ## Requirements
 
 - Node.js 22.12 or later, with `npm` on `PATH`.
-- A wired project, or `--name <project>` when you run commands from elsewhere.
+- A wired project, or `--project <project>` when you run commands from elsewhere.
 
 The site engine is installed once per dotbrain version into `~/dotbrain/.cache/site/`. Nothing is
 written into the Brain except the `.brain/site/` folder.
@@ -74,6 +74,11 @@ When the Brain has a `learning/` workspace, a Learn section is added above the n
 | `dotbrain site dev` | Serves with live reload; restart after editing `site.yaml` |
 | `dotbrain site build` | Builds into dotbrain's cache, never into the Brain |
 | `dotbrain site preview` | Serves the last build |
+
+Commands default to the current wired project, including a worktree or nested directory. Use
+`--project <name>` from elsewhere and `--home <path>` for another private data root. `site init`
+and `site build` support finite `--json` reports; `site dev` and `site preview` stream server
+output and do not support JSON reporting.
 
 ## What Fails the Build
 

@@ -24,7 +24,7 @@ def make_migrate_runner(calls: list[list[str]], *, pre_total: int = 3, post_tota
     """A fake Runner: records every argv, answers ``bd stats --json`` pre then post."""
     state = {"stats_calls": 0}
 
-    def run(argv, *, cwd=None, env=None, check=True):
+    def run(argv, *, cwd=None, env=None, check=True, timeout=None):
         calls.append(list(argv))
         if argv[:3] == ["bd", "stats", "--json"]:
             state["stats_calls"] += 1
@@ -194,7 +194,7 @@ def test_migrate_unverified_when_stats_unparseable(dotbrain_home: Path):
     _seed_beads(brainspace, "embedded")
     calls: list[list[str]] = []
 
-    def run(argv, *, cwd=None, env=None, check=True):
+    def run(argv, *, cwd=None, env=None, check=True, timeout=None):
         calls.append(list(argv))
         if argv[:3] == ["bd", "stats", "--json"]:
             return subprocess.CompletedProcess(list(argv), 0, "not json", "")
@@ -250,7 +250,7 @@ def test_migrate_non_dotbrain_project_hides_root_beads(dotbrain_home: Path):
     seen = {"hidden_during_run": False}
     base_run = make_migrate_runner(calls)
 
-    def spy(argv, *, cwd=None, env=None, check=True):
+    def spy(argv, *, cwd=None, env=None, check=True, timeout=None):
         if argv[:2] == ["bd", "init"]:
             seen["hidden_during_run"] = not (dotbrain_home / ".beads").exists() or \
                 (dotbrain_home / ".beads").is_symlink() is False
@@ -309,7 +309,7 @@ def test_migrate_all_mixes_embedded_and_server(dotbrain_home: Path):
 def test_safe_migrate_project_reports_ssh_failure_cleanly(dotbrain_home: Path):
     _seed_beads(paths.brainspace(dotbrain_home, "emb"), "embedded")
 
-    def failing_run(argv, *, cwd=None, env=None, check=True):
+    def failing_run(argv, *, cwd=None, env=None, check=True, timeout=None):
         if argv[0] == "ssh":
             raise subprocess.CalledProcessError(255, argv, stderr="Host key verification failed.")
         return subprocess.CompletedProcess(list(argv), 0, _stats_json(3), "")
@@ -338,7 +338,7 @@ def test_migrate_removes_embedded_entry_from_config(dotbrain_home: Path):
         run=make_migrate_runner([], pre_total=3, post_total=3),
     )
 
-    assert not (dotbrain_home / "brainspaces" / "example" / "project.yaml").exists()
+    assert config.load_project_config(dotbrain_home, "example").mode == "server"
 
 
 def test_migrate_records_custom_database_deviation(dotbrain_home: Path):
@@ -356,6 +356,22 @@ def test_migrate_records_custom_database_deviation(dotbrain_home: Path):
     beads = config.load_project_config(dotbrain_home, "example")
     assert beads.mode == "server"
     assert beads.database == "legacy_name"
+
+
+def test_migrate_uses_declared_database_and_bounds_every_runner_call(dotbrain_home: Path):
+    brainspace = paths.brainspace(dotbrain_home, "example")
+    _seed_beads(brainspace, "embedded")
+    config.write_project_config(dotbrain_home, "example", config.ProjectBeads(database="declared-db"))
+    calls = []
+    base_run = make_migrate_runner(calls)
+    def run(argv, **kwargs):
+        assert kwargs.pop("timeout") == 7
+        return base_run(argv, **kwargs)
+    result = migrate.migrate_project(dotbrain_home=dotbrain_home, project="example", server_host="localhost", run=run, bd_timeout=7)
+    assert result.status == "migrated"
+    init = next(argv for argv in calls if argv[:2] == ["bd", "init"])
+    assert init[init.index("--database") + 1] == "declared-db"
+    assert config.load_project_config(dotbrain_home, "example").database == "declared-db"
 
 
 def test_migrate_abort_keeps_embedded_entry(dotbrain_home: Path):

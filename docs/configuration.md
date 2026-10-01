@@ -25,7 +25,8 @@ treeView-beta
 | `~/dotbrain/agents/agents.yaml` | Machine: global subagents | `dotbrain bootstrap` |
 | `brainspaces/<name>/.brain/project.yaml` | One project | `dotbrain wire` |
 
-After editing a file, run `dotbrain refresh` (or `dotbrain refresh --all`) to apply it.
+After editing project declarations, run `dotbrain refresh` (or `dotbrain refresh --all`). Global
+asset changes use `dotbrain skills link --scope global` or `dotbrain agents link --scope global`.
 
 ## Environment
 
@@ -88,7 +89,7 @@ skills:                       # extra skills for this project's workspaces
 | `agents` | `[claude, codex]` | Agent workspaces to wire into the repo |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
-| `beads.mode` | `embedded` | `embedded`, `server`, or `none` |
+| `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
 | `beads.remote` | — | Dolt remote for an embedded tracker |
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
@@ -98,7 +99,9 @@ skills:                       # extra skills for this project's workspaces
 private execution graph or turns private work into public issues; see the `triage-public` skill.
 
 ::: info
-`dotbrain refresh` may rewrite the shared sections of `project.yaml`.
+`dotbrain refresh` preserves project declarations byte-for-byte. Intentional Beads configuration
+updates preserve unrelated keys, unknown nested values, and explicit empty selections; YAML
+comments may be reformatted during those explicit updates.
 :::
 
 ## `skills/skills.yaml`
@@ -114,12 +117,19 @@ targets:
   codex: ~/.codex/skills
 global_extra:
   - my-collection/my-skill
+  - another-collection        # select every descendant skill
 ```
+
+An entry containing `SKILL.md` selects that one skill. Otherwise its directory expands recursively
+to descendants containing `SKILL.md`, excluding `node_modules`. Overlapping entries selecting the
+same source are deduplicated. Distinct sources with the same destination name fail before any
+linking or pruning; missing paths and empty bundles also fail. Adding or removing a skill in a
+selected bundle takes effect on the next reconciliation without rewriting this declaration.
 
 ## `agents/agents.yaml`
 
-Global subagents linked into your personal agent homes. Removing an entry prunes its link on the
-next relink.
+Global subagents delivered into your personal agent homes. Removing an entry prunes its managed
+resource on the next `dotbrain agents link --scope global`.
 
 ```yaml
 # ~/dotbrain/agents/agents.yaml
@@ -129,3 +139,13 @@ next relink.
 global:
   - some-shared-subagent
 ```
+
+Skills and Claude agent definitions are symlinks. Codex agent definitions are disposable real
+TOML copies with the ownership marker `# dotbrain-managed-agent: v1`; edit source definitions under
+the private `agents/` root, not delivered copies. Dotbrain migrates owned Codex symlinks,
+overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
+filename is reported instead of replaced.
+
+Runtime flags use `--runtime claude|codex|all`. YAML target keys retain `claude-code` and `codex`.
+Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
+with project selectors or `--all`.

@@ -1,4 +1,4 @@
-"""Tests for workflow wire-all and bootstrap server beads metadata."""
+"""Tests for registered refresh batches and server tracker metadata."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import beads as beads_mod, bootstrap as bs, paths, workflows
+from dotbrain import beads as beads_mod, brainspaces, paths, workflows
 
 
-# --------------------------------------------------------------------------- wire_all_brainspaces
+# --------------------------------------------------------------------------- registered refresh
 
 
 def _git_runner(calls=None):
@@ -34,18 +34,19 @@ def _make_adopter_repo(path: Path) -> Path:
     return path
 
 
-def test_wire_all_creates_symlinks(dotbrain_home: Path, brainspace: Path,
+def test_refresh_all_creates_symlinks(dotbrain_home: Path, brainspace: Path,
                                    fake_home: Path, tmp_path: Path):
     repo = _make_adopter_repo(tmp_path / "example")
     (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(
         f"{repo}\n"
     )
 
-    result = workflows.wire_all_projects(
-        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    result = workflows.refresh_projects(
+        dotbrain_home, all_projects=True, run=_git_runner()
     )
 
-    assert any("example" in log for log in result.logs)
+    assert result.refreshed == ["example"]
     for link_name in (".brain", ".beads"):
         assert (repo / link_name).is_symlink()
     assert (repo / ".claude").is_dir()
@@ -54,32 +55,35 @@ def test_wire_all_creates_symlinks(dotbrain_home: Path, brainspace: Path,
     assert not (repo / ".codex").is_symlink()
 
 
-def test_wire_all_warns_when_repo_missing(dotbrain_home: Path, brainspace: Path,
+def test_refresh_all_accepts_a_brain_without_a_registered_checkout(dotbrain_home: Path, brainspace: Path,
                                           fake_home: Path, tmp_path: Path):
-    result = workflows.wire_all_projects(
-        dotbrain_home, repo_base=tmp_path / "nonexistent", home=fake_home, run=_git_runner()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    result = workflows.refresh_projects(
+        dotbrain_home, all_projects=True, run=_git_runner()
     )
-    assert any("no repo found" in w or "not a git repo" in w for w in result.warnings)
+    assert result.refreshed == ["example"]
 
 
-def test_wire_all_warns_non_git_repo(dotbrain_home: Path, brainspace: Path,
+def test_refresh_all_fails_registered_non_git_repo(dotbrain_home: Path, brainspace: Path,
                                      fake_home: Path, tmp_path: Path):
     repo = tmp_path / "not-a-repo"
     repo.mkdir()
     (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(f"{repo}\n")
 
-    result = workflows.wire_all_projects(
-        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    result = workflows.refresh_projects(
+        dotbrain_home, all_projects=True, run=_git_runner()
     )
-    assert any("not a git repo" in w for w in result.warnings)
+    assert result.errors
 
 
-def test_wire_all_silent_for_brain_only_project(dotbrain_home: Path, brainspace: Path,
+def test_refresh_all_silent_for_brain_only_project(dotbrain_home: Path, brainspace: Path,
                                                 fake_home: Path, tmp_path: Path):
     (brainspace / ".repo").write_text("(brain-only)\n")
 
-    result = workflows.wire_all_projects(
-        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    result = workflows.refresh_projects(
+        dotbrain_home, all_projects=True, run=_git_runner()
     )
 
     assert not any("no repo found" in w or "not a git repo" in w for w in result.warnings)
@@ -158,7 +162,7 @@ def test_ensure_server_beads_metadata_writes_server_metadata(tmp_path: Path):
     assert ["bd", "-C", str(tmp_path), "dolt", "test"] in calls
 
 
-def test_wire_all_skips_beads_link_silently_for_mode_none(
+def test_refresh_all_skips_beads_link_silently_for_mode_none(
     dotbrain_home: Path, brainspace: Path, fake_home: Path, tmp_path: Path
 ):
     # A declared no-beads project never has a Brainspace .beads; the repos stage
@@ -169,8 +173,9 @@ def test_wire_all_skips_beads_link_silently_for_mode_none(
     repo = _make_adopter_repo(tmp_path / "example")
     (paths.brainspace(dotbrain_home, "example") / ".repo").write_text(f"{repo}\n")
 
-    result = workflows.wire_all_projects(
-        dotbrain_home, repo_base=tmp_path, home=fake_home, run=_git_runner()
+    brainspaces.seed_brain(brainspace, dotbrain_home)
+    result = workflows.refresh_projects(
+        dotbrain_home, all_projects=True, run=_git_runner()
     )
 
     assert not any(".beads is missing" in w for w in result.warnings)

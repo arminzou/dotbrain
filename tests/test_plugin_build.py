@@ -43,11 +43,14 @@ def test_wire_brain_worktree_reference_is_self_contained_and_windows_safe():
     )
 
     assert "references/worktree.md" in skill
-    assert "git rev-parse --path-format=absolute --git-common-dir" in text
-    assert "MSYS=winsymlinks:nativestrict" in text
-    assert "mklink /D" in text
-    assert "Bare `ln -s` can silently copy directories on Windows" in text
-    assert "do not run `dotbrain wire`" in text
+    assert "dotbrain wire --repo <worktree>" in text
+    assert "Git metadata" in text
+    assert "Developer Mode" in text
+    assert "registered main-checkout path and project declarations unchanged" in text
+    assert "dotbrain refresh" in text and "dotbrain unwire" in text
+    assert "Codex agents are marked real TOML files" in text
+    assert "git rev-parse --git-path info/exclude" in text
+    assert "ln -s" not in text and "mklink /D" not in text
 
 
 def test_plugin_owns_session_start_registration_for_both_runtimes():

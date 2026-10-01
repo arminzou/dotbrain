@@ -35,7 +35,7 @@ hero:
 
 ## The repo stays clean
 
-Each project's Brain and issue tracker live under `~/dotbrain/`. The code repo only holds gitignored symlinks, so agents load the context at session start and nothing private reaches a commit.
+Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored links and generated runtime files connect the code repo to that private home, so agents load the context at session start and private material stays out of commits.
 
 </div>
 <div>

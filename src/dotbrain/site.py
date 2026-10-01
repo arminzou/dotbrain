@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -51,21 +52,15 @@ def stream_run(
     return subprocess.run(list(argv), cwd=cwd, env=env, check=check, encoding="utf-8")
 
 
+def stderr_run(
+    argv: Sequence[str], *, cwd: Path | None = None, env: dict | None = None, check: bool = True
+) -> "subprocess.CompletedProcess[str]":
+    """Stream finite build progress to stderr, leaving stdout for the result."""
+    return subprocess.run(list(argv), cwd=cwd, env=env, check=check, encoding="utf-8",
+                          stdout=sys.stderr, stderr=sys.stderr)
+
+
 # --------------------------------------------------------------------------- locating the Brain
-
-
-def find_brain(dotbrain_home: Path, name: str | None = None, cwd: Path | None = None) -> Path:
-    """The real path of the Brain to render: by Brainspace name, or the nearest ``.brain`` link."""
-    if name:
-        brain = paths.brainspace(dotbrain_home, name) / ".brain"
-        if not brain.is_dir():
-            raise SiteError(f"no Brain for '{name}' at {brain}")
-        return brain.resolve()
-    start = (cwd or Path.cwd()).resolve()
-    for folder in (start, *start.parents):
-        if (folder / ".brain").is_dir():
-            return (folder / ".brain").resolve()
-    raise SiteError("no .brain found here: run from a wired repo or pass --name")
 
 
 def site_settings_file(brain: Path) -> Path:
@@ -106,6 +101,8 @@ def init(brain: Path, title: str | None = None) -> list[Path]:
     """Create ``site/site.yaml``, listing every ``docs/`` page, the home page ``site/index.md``, and
     the manual ``site/configure.md``; never overwrite. Returns the files created."""
     title = title or f"{brain.parent.name} Brain"
+    for name in ("site.yaml", "index.md", "configure.md"):
+        paths.confined_path(brain, f"site/{name}")
     created: list[Path] = []
     settings = site_settings_file(brain)
     if not settings.exists():

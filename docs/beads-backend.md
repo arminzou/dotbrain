@@ -34,8 +34,8 @@ If you are unsure, start `embedded`. Moving to `server` later keeps history.
 Two files are involved:
 
 - `~/dotbrain/config.yaml` holds machine-wide server defaults under `beads.server`.
-- `.brain/project.yaml` picks the mode per project with `beads.mode`. Leaving it out means
-  `embedded`.
+- `.brain/project.yaml` picks the mode per project with `beads.mode`. Leaving it out uses
+  `server` when a shared server host is configured, otherwise `embedded`.
 
 ```yaml
 # .brain/project.yaml
@@ -64,22 +64,32 @@ beads:
 Never put passwords or tokens in `config.yaml`. Keep credentials in your secrets store.
 :::
 
-Then set `beads.mode: server` in the project and run `dotbrain wire` or `dotbrain beads load`.
+Then set `beads.mode: server` in the project and run `dotbrain wire` or `dotbrain beads sync`.
 
 ## Commands
 
-### `beads load`
+### `beads sync`
 
-Hydrates local tracker state from the declarations: attaches server trackers, initializes embedded
-ones, then pulls. It only pulls; it never pushes and never touches links or hooks.
+Hydrates local tracker state from declarations: attaches server trackers, initializes embedded
+ones, and pulls only when an embedded remote is declared. Disabled Beads is a no-op; a local
+embedded tracker without a remote is prepared without a pull. Sync never pushes or changes wiring.
 
 ```bash
-dotbrain beads load --dry-run    # preview
-dotbrain beads load              # the current repo's project
-dotbrain beads load --all        # every Brainspace that uses beads
+dotbrain beads sync --dry-run    # preview
+dotbrain beads sync              # the current repo's project
+dotbrain beads sync --all        # every Brainspace that uses beads
 ```
 
 Run it on a fresh machine after cloning your dotbrain home.
+
+Selection uses the wired Brainspace identity, including a worktree or nested directory. From
+elsewhere, use `--project <name>`; `--home <path>` overrides the data root. Custom databases and
+remote URLs come from declarations. A declared URL must match a named tracker remote; otherwise
+sync reports an actionable error rather than pulling another remote. Configure a missing binding
+with `bd dolt remote add <name> <declared-url>`, then repeat sync.
+
+`--json` returns one result with per-project outcomes; independent targets continue after failures.
+Tracker subprocess waits are bounded. Hydration, missing-tool, or pull failures exit unsuccessfully.
 
 ### `beads migrate`
 
@@ -99,9 +109,25 @@ dotbrain beads migrate             # the current repo's project
 dotbrain beads migrate --all       # every embedded Brainspace
 ```
 
+Migration keeps the full Dolt history, embedded data, and a backup for rollback. It verifies issue
+counts before reporting a verified migration and preserves unrelated project configuration. Target
+connection overrides use `--server-host`, `--server-port`, and `--server-user`; `--database` is a
+single-project override. Named selection respects the declared custom database when no override
+is supplied.
+
 ### Cleaning Up
 
 `dotbrain beads list-db` lists the databases on the server. `dotbrain beads drop-db` removes one.
+
+```bash
+dotbrain beads list-db --server-host db.example.internal --json
+dotbrain beads drop-db orphaned_tracker --server-host db.example.internal --dry-run
+dotbrain beads drop-db orphaned_tracker --server-host db.example.internal --yes
+```
+
+Database arguments are identifiers, not project selectors; orphaned databases remain manageable.
+Dropping requires `--yes` or a preview and rejects unsafe or protected names. The same connection
+options apply to administration; `--ssh-host` adds an optional SSH hop.
 
 ::: danger
 `drop-db` deletes the remote database and every issue in it. It is separate from `dotbrain unwire`

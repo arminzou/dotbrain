@@ -13,9 +13,9 @@ flowchart LR
     rb["`*.brain*`"]
     rbd["`*.beads*`"]
     rc["`***.claude/***
-  skill and agent links`"]
+  skills and agents`"]
     rx["`***.codex/***
-  skill and agent links`"]
+  skills and agents`"]
   end
   subgraph space["`*~/dotbrain/brainspaces/my-app*`"]
     sb["`*.brain/*`"]
@@ -27,18 +27,20 @@ flowchart LR
   rb -- symlink --> sb
   rbd -- symlink --> sbd
   rc -. per-resource links .-> sk
-  rx -. per-resource links .-> sk
+  rx -. links and generated copies .-> sk
 ```
 
 | Entry | Kind | Points at |
 | --- | --- | --- |
 | `.brain` | Symlink | The Brainspace's Brain |
 | `.beads` | Symlink | The Brainspace's execution store |
-| `.claude/`, `.codex/` | Real directories | Contain individually ignored links to selected skills and subagents |
+| `.claude/`, `.codex/` | Real directories | Contain individually ignored selected runtime resources |
 
 `.claude` and `.codex` stay real directories so anything the project already keeps there (settings,
-commands) is untouched. Dotbrain adds one ignore rule per link it creates and never claims files it
-did not create.
+commands) is untouched. Skills and Claude agents are symlinks. Codex agents are generated real
+TOML files, marked `# dotbrain-managed-agent: v1`. Dotbrain can overwrite and prune its marked
+copies; customize their source in the private home. Unmarked files and foreign links are preserved.
+Each delivered resource is ignored individually.
 
 Brainspaces live under `~/dotbrain/brainspaces/<name>/`. An older `~/dotbrain/projects/<name>/`
 layout is still recognized; new Brainspaces are created under `brainspaces/`.
@@ -53,12 +55,11 @@ flowchart TD
   config, plugin update, missing link`"}
   q2 -- yes --> refresh["dotbrain refresh"]
   q2 -- "no, I want out" --> unwire["dotbrain unwire"]
-  q1 -- "it's a worktree" --> wb["wire-brain skill"]
 ```
 
 ## `wire`
 
-Connects a repo for the first time, or reconciles it again from the source of truth.
+Creates a Brainspace or attaches a checkout, including a linked Git worktree.
 
 ::: code-group
 
@@ -71,12 +72,8 @@ dotbrain wire
 dotbrain wire --repo ~/repos/my-app
 ```
 
-```bash [Every project]
-dotbrain wire --all
-```
-
 ```bash [Brain only]
-dotbrain wire --no-repo --name research
+dotbrain wire --no-repo --project research
 ```
 
 :::
@@ -86,10 +83,11 @@ dotbrain wire --no-repo --name research
 - the private Brainspace, seeded from the Brain template
 - the repo-root `.brain` and `.beads` links and their ignore rules
 - the project's `project.yaml`
-- skill and subagent links in each agent workspace listed under `agents:`
+- selected skills and subagents in each workspace listed under `agents:`
 - the Beads tracker, unless you pass `--skip-beads`
 
-The Brainspace name defaults to the repo's directory name; pass `--name` to choose another.
+For an initial main-checkout attachment, the Brainspace name defaults to the repo's directory
+name; pass `--project` to choose another. Maintenance uses the existing wiring's identity.
 
 ## `refresh`
 
@@ -97,7 +95,7 @@ Repairs or resyncs an already wired project without treating it as a fresh conne
 
 ```bash
 dotbrain refresh                 # the current repo
-dotbrain refresh --name my-app   # one project, from anywhere
+dotbrain refresh --project my-app   # one project, from anywhere
 dotbrain refresh --all           # every project
 ```
 
@@ -110,29 +108,51 @@ Run it after you:
 
 ## `unwire` {#unwire}
 
-Disconnects a repo from its Brainspace. By default the Brainspace is kept.
+Detaches the selected checkout and keeps its Brainspace and shared tracker.
 
 ```bash
-dotbrain unwire --dry-run        # preview first
-dotbrain unwire                  # disconnect, keep the Brainspace
-dotbrain unwire --archive        # move it to ~/dotbrain/.archive/
-dotbrain unwire --delete         # remove it
+dotbrain unwire                          # current wired checkout
+dotbrain unwire --repo ~/repos/my-app     # explicit checkout
+dotbrain unwire --project my-app         # registered checkout
 ```
 
-::: warning
-`--delete` removes the Brainspace, including its Brain. Commit or push your dotbrain home first if
-you might want it back.
-:::
+User-owned workspace files, main-checkout registration, and other worktrees remain. Shared Git
+exclusion entries are retained while another wired checkout needs them. Archive, restore, or
+delete Brainspace directories through your own filesystem workflow; detachment does none of these.
 
 `unwire` never touches a remote Beads database. For a server-backed project, dropping that database
 is a separate step: [`dotbrain beads drop-db`](beads-backend.md#cleaning-up).
 
 ## Worktrees
 
-A worktree shares the main checkout's Brain and execution store; it never gets its own. When a
-worktree is missing `.brain` or `.beads`, ask your agent to run `wire-brain`. Its worktree branch
-derives the main checkout from Git and links only those two entries, then links skills and
-subagents into the worktree's `.claude` and `.codex`.
+A worktree shares the main checkout's Brain and execution store. `dotbrain wire` resolves the
+main checkout through Git metadata and connects directly to its existing Brainspace. Missing or
+conflicting main-checkout wiring fails rather than creating a project named after the worktree.
+
+```bash
+cd ~/repos/my-app-feature
+dotbrain wire
+dotbrain doctor
+dotbrain refresh
+dotbrain unwire
+```
+
+Attachment creates real local runtime directories, preserves project-owned files, and leaves the
+main-checkout registration and declarations unchanged. Bare maintenance and asset linking inside
+the wired worktree affect that checkout; refresh also maintains shared Brain conventions and
+tracker state. Named selection and `--all` use registered checkouts rather than sweeping worktrees.
+
+## Selection and reports
+
+Project commands default to the current wired checkout, including its subdirectories. Outside
+one, use `--project <name>`. Named selection respects `.repo.local` before `.repo`; Brain-only
+projects are valid for operations that do not need a checkout. Use `dotbrain projects list` and
+`dotbrain projects show` to inspect identities and resolved settings without remote probes.
+
+`--all` conflicts with `--project` and `--repo`. Applicable leaf commands accept `--home <path>`
+and `--json`. JSON is one finite result, retaining per-project outcomes in a partial batch;
+exit codes are 0 for success, 1 for an unmet operation, and 2 for invalid selection or invocation.
+Runtime filters select declared runtimes and never enable an undeclared workspace.
 
 ::: danger Do not hand-create links
 Links under `.claude` and `.codex` use relative targets computed from the checkout's real location.
