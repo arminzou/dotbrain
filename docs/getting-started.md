@@ -5,7 +5,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 ```mermaid
 flowchart LR
-  p["1 · Install · the plugin"] --> c["2 · Get · the CLI"] --> w["3 · Wire · a repo"] --> v["4 · Verify"]
+  p["1 · Install the plugin"] --> c["2 · Get the CLI"] --> w["3 · Wire a repo"] --> b["4 · Back up"] --> v["5 · Verify"]
 ```
 
 | You need | Notes |
@@ -163,7 +163,33 @@ gitignored links. Your repo gains:
 
 [Wiring](wiring.md) explains each entry.
 
-## 4. Verify the Result
+## 4. Back Up Your Dotbrain Home
+
+`dotbrain bootstrap` makes `~/dotbrain` a Git repository, but it never adds a remote. Until you add
+one, every Brain exists on one disk only. Create an empty **private** repository on GitHub, GitLab,
+or your own Git server, then push to it:
+
+```bash
+cd ~/dotbrain
+git remote add origin <private-remote-url>
+git push -u origin HEAD
+```
+
+Push after Brain changes you want to keep. The remote is also how a second machine gets your Brains:
+[clone it there](#_2-get-the-cli) before wiring anything.
+
+::: danger Keep the remote private
+The remote holds every project's Brain, including its decisions and designs. A public remote
+publishes all of it.
+:::
+
+::: warning The remote does not hold your issues
+The Beads tracker's database is ignored by `~/dotbrain/.gitignore`, so pushing backs up the Brain
+but not the issues. To back up or share the issues too, give the project a Dolt remote
+(`beads.remote`) or use a shared server. See [Beads backend](beads-backend.md).
+:::
+
+## 5. Verify the Result
 
 For a read-only health check:
 
