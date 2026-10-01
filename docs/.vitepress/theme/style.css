@@ -1,0 +1,229 @@
+/* Monochrome to match the brand mark, with one teal accent for links and active state. */
+:root {
+  --vp-font-family-base: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --vp-c-bg: #fcfcfc;
+  --vp-c-bg-alt: #f4f4f5;
+  --vp-c-bg-soft: #f4f4f5;
+  --vp-c-text-1: #18181b;
+  --vp-c-text-2: #52525b;
+  --vp-code-lang-color: var(--vp-c-text-2);
+
+  --vp-c-brand-1: #0f766e;
+  --vp-c-brand-2: #115e59;
+  --vp-c-brand-3: #0f766e;
+  --vp-c-brand-soft: rgb(15 118 110 / 0.1);
+
+  /* Primary button is ink, not accent: the accent stays reserved for links. */
+  --vp-button-brand-bg: #18181b;
+  --vp-button-brand-border: #18181b;
+  --vp-button-brand-text: #fafafa;
+  --vp-button-brand-hover-bg: #3f3f46;
+  --vp-button-brand-hover-border: #3f3f46;
+  --vp-button-brand-hover-text: #fafafa;
+  --vp-button-brand-active-bg: #52525b;
+  --vp-button-brand-active-border: #52525b;
+  --vp-button-brand-active-text: #fafafa;
+
+  --vp-home-hero-name-color: var(--vp-c-text-1);
+}
+
+.dark {
+  --vp-c-bg: #0b0b0d;
+  --vp-c-bg-alt: #111114;
+  --vp-c-bg-soft: #18181b;
+  --vp-c-bg-elv: #18181b;
+  --vp-c-text-1: #f4f4f5;
+  --vp-c-text-2: #a1a1aa;
+
+  --vp-c-brand-1: #5eead4;
+  --vp-c-brand-2: #2dd4bf;
+  --vp-c-brand-3: #14b8a6;
+  --vp-c-brand-soft: rgb(45 212 191 / 0.14);
+
+  --vp-button-brand-bg: #f4f4f5;
+  --vp-button-brand-border: #f4f4f5;
+  --vp-button-brand-text: #18181b;
+  --vp-button-brand-hover-bg: #d4d4d8;
+  --vp-button-brand-hover-border: #d4d4d8;
+  --vp-button-brand-hover-text: #18181b;
+  --vp-button-brand-active-bg: #a1a1aa;
+  --vp-button-brand-active-border: #a1a1aa;
+  --vp-button-brand-active-text: #18181b;
+}
+
+.VPHero .image-bg {
+  display: none;
+}
+
+.VPHero .name {
+  font-size: 20px !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0;
+  color: var(--vp-c-text-2) !important;
+}
+.VPHero .text {
+  letter-spacing: -0.03em;
+  max-width: 14ch !important;
+  text-wrap: balance;
+}
+.VPHero .tagline {
+  max-width: 44ch !important;
+}
+
+/* Home sections below the hero. */
+.home {
+  padding-bottom: 64px;
+}
+.home section {
+  padding-top: 80px;
+}
+.home section:first-child {
+  padding-top: 24px;
+}
+.home h2 {
+  border: 0 !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+  font-size: 28px !important;
+  letter-spacing: -0.02em;
+}
+.home p {
+  max-width: 60ch;
+  color: var(--vp-c-text-2);
+}
+
+.home .split {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+}
+.home .split div[class*='language-'] {
+  margin: 0 !important;
+}
+
+.home .steps {
+  list-style: none;
+  padding: 0 !important;
+  margin: 32px 0 0 !important;
+  display: grid;
+  gap: 32px;
+  counter-reset: step;
+}
+.home .steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 16px;
+  margin: 0 !important;
+}
+.home .steps li::before {
+  content: counter(step);
+  grid-row: span 3;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+.home .steps h3 {
+  margin: 4px 0 4px !important;
+  font-size: 18px;
+}
+.home .steps div[class*='language-'] {
+  margin: 12px 0 0 !important;
+}
+
+.home .workflow {
+  list-style: none;
+  padding: 0 !important;
+  margin: 32px 0 24px !important;
+  display: grid;
+  gap: 24px;
+  counter-reset: workflow;
+}
+.home .workflow li {
+  counter-increment: workflow;
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 20px;
+  margin: 0 !important;
+}
+.home .workflow li::before {
+  content: counter(workflow, decimal-leading-zero);
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+  color: var(--vp-c-brand-1);
+}
+.home .workflow h3 {
+  margin: 12px 0 8px !important;
+  font-size: 18px;
+}
+.home .workflow p {
+  margin: 0 !important;
+}
+
+.home .map {
+  display: grid;
+  gap: 40px;
+  margin-top: 32px;
+}
+.home .map h3 {
+  margin: 0 0 8px !important;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+.home .map a {
+  display: block;
+  padding: 12px 0;
+  border-top: 1px solid var(--vp-c-divider);
+  text-decoration: none;
+  transition: padding-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.home .map a:hover {
+  padding-left: 6px;
+}
+.home .map a strong {
+  display: block;
+  color: var(--vp-c-text-1);
+}
+.home .map a span {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+
+@media (min-width: 768px) {
+  .home .split {
+    grid-template-columns: 5fr 7fr;
+    gap: 64px;
+  }
+  .home .map {
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+  .home .workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .home .workflow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home .map a {
+    transition: none;
+  }
+}
+
+/* Let wide code blocks scroll inside their column instead of widening the page. */
+.home .split > div,
+.home .map > div {
+  min-width: 0;
+}

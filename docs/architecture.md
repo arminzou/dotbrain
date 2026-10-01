@@ -2,7 +2,7 @@
 
 This document explains dotbrain's design: Brainspaces, the Brain and execution split, skills, and
 the public/private boundary. For the problem dotbrain solves and how to get started, see the
-[README](../README.md).
+[README](https://github.com/arminzou/dotbrain#readme).
 
 ## Brainspaces
 
