@@ -620,4 +620,3 @@ def test_refresh_outside_wired_checkout_requires_selection(dotbrain_home: Path, 
     result = runner.invoke(app, ["refresh"])
     assert result.exit_code == 2
     assert "select --project" in result.output
-

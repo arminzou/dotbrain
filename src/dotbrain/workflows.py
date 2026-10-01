@@ -404,4 +404,3 @@ def unwire_project(
     result = unwire_repo(target.checkout, dotbrain_home=dotbrain_home, run=run)
     result.project = target.project
     return result
-
