@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from dotbrain import bootstrap as bootstrap_mod, config, paths, resource_loader, skills, subagents, workflows
@@ -72,17 +73,15 @@ def test_ensure_data_root_seeds_skills_config(tmp_path: Path):
     assert skills_config.read_text() == before
 
 
-def test_ensure_data_root_reconciles_root_gitignore_from_template(tmp_path: Path):
+def test_ensure_data_root_preserves_operator_gitignore(tmp_path: Path):
     root = tmp_path / "dr"
     root.mkdir(parents=True)
     gitignore = root / ".gitignore"
     gitignore.write_text("custom-old-entry\n")
 
     result = bootstrap_mod.ensure_data_root(root)
-    desired = resource_loader.resource("templates/gitignore").read_text()
-
-    assert gitignore.read_text() == desired
-    assert f"seeded .gitignore into {root}" in result.logs
+    assert gitignore.read_text() == "custom-old-entry\n"
+    assert f"seeded .gitignore into {root}" not in result.logs
 
 
 def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path):
@@ -109,7 +108,7 @@ def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_pat
 
     assert result.warnings == []
     assert (dest / "discovery-test").is_symlink()
-    assert any(line.startswith("global: linked") for line in result.logs)
+    assert any(line.startswith("delivered global") for line in result.logs)
 
 
 def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_path: Path):
@@ -124,7 +123,7 @@ def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_p
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
 
     assert any("skill not found" in warning for warning in result.warnings)
-    assert result.logs == [f"global: linked 0 skill(s) into {dest}"]
+    assert result.logs == []
 
 
 def test_link_global_skills_expands_windows_tilde_target(
@@ -166,8 +165,9 @@ def test_wire_project_does_not_seed_project_default_subagents(
 
     assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ()
     project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / ".brain" / "project.yaml"
-    assert "agents:\n  - claude\n  - codex\n" in project_yaml.read_text()
-    assert "\nsubagents:\n" not in project_yaml.read_text()
+    declaration = yaml.safe_load(project_yaml.read_text())
+    assert declaration["agents"] == ["claude", "codex"]
+    assert "subagents" not in declaration
 
 
 def test_agents_link_project_target_reports_actual_linked_files(
@@ -179,15 +179,17 @@ def test_agents_link_project_target_reports_actual_linked_files(
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
 
     project_yaml = paths.brainspace(dotbrain_home, "claude-only-agent-link") / ".brain" / "project.yaml"
-    project_yaml.write_text(project_yaml.read_text().replace("agents:\n  - claude\n  - codex\n", "agents:\n  - claude\n"))
+    declaration = yaml.safe_load(project_yaml.read_text())
+    declaration["agents"] = ["claude"]
+    project_yaml.write_text(yaml.safe_dump(declaration, sort_keys=False))
 
     result = runner.invoke(
         app,
-        ["agents", "link", "--scope", "project", "--target", "codex", "--project", "claude-only-agent-link"],
+        ["agents", "link", "--scope", "project", "--runtime", "codex", "--project", "claude-only-agent-link"],
     )
 
-    assert result.exit_code == 0, result.output
-    assert "project: linked 0 subagent file(s) into claude-only-agent-link" in result.output
+    assert result.exit_code == 2, result.output
+    assert "not declared" in result.output
 
 
 def test_link_global_subagents_links_configured_target(
@@ -205,8 +207,8 @@ def test_link_global_subagents_links_configured_target(
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex", home=tmp_path)
 
     assert result.warnings == []
-    assert (dest / "reviewer.toml").is_symlink()
-    assert any(line.startswith("global: linked") for line in result.logs)
+    assert subagents.is_managed_copy(dest / "reviewer.toml")
+    assert any(line.startswith("delivered global") for line in result.logs)
 
 
 def test_link_global_subagents_warns_once_for_missing_name(
@@ -241,7 +243,7 @@ def test_skills_link_project_creates_selected_symlinks_after_wire(
 
     project_yaml = paths.brainspace(dotbrain_home, "skilltest") / ".brain" / "project.yaml"
     project_yaml.write_text(project_yaml.read_text() + "\nskills:\n  - misc/discovery-test\n")
-    result = runner.invoke(app, ["skills", "link", "--scope", "project"])
+    result = runner.invoke(app, ["skills", "link", "--scope", "project", "--repo", str(repo)])
     assert result.exit_code == 0, result.output
 
     assert (repo / ".claude" / "skills" / "discovery-test").is_symlink()
@@ -257,14 +259,14 @@ def test_skills_link_project_prunes_stale_selection(
     repo = _fresh_repo(tmp_path, "prunetest")
     _wire(dotbrain_home, repo, fake_home)
 
-    runner.invoke(app, ["skills", "link", "--scope", "project"])
+    runner.invoke(app, ["skills", "link", "--scope", "project", "--repo", str(repo)])
 
     # Plant a stale symlink pointing into skills/.
     skills_dir = repo / ".claude" / "skills"
     stale = skills_dir / "old-skill"
     stale.symlink_to((dotbrain_home / "skills" / "misc" / "discovery-test").resolve())
 
-    runner.invoke(app, ["skills", "link", "--scope", "project"])
+    runner.invoke(app, ["skills", "link", "--scope", "project", "--repo", str(repo)])
 
     assert not stale.exists(), "stale symlink should have been pruned"
 

@@ -39,6 +39,9 @@ def test_seeded_brain_distinguishes_main_checkout_and_worktree_wiring(
 
     assert "main checkout" in doc
     assert "`dotbrain wire`" in doc
-    assert "git worktree" in doc
-    assert "`wire-brain`'s worktree repair branch" in doc
-    assert "with no `.brain`" in doc
+    assert "Git worktree" in doc
+    assert "Git metadata" in doc
+    assert "without changing registration or declarations" in doc
+    assert "`dotbrain refresh`" in doc
+    assert "`dotbrain unwire`" in doc
+    assert "# dotbrain-managed-agent: v1" in doc

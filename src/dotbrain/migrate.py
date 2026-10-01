@@ -151,10 +151,22 @@ def migrate_project(
     database: str = "",
     dry_run: bool = False,
     run: Runner = _default_run,
+    bd_timeout: int = 60,
 ) -> MigrationResult:
     dotbrain_home = Path(dotbrain_home)
     brainspace = paths.brainspace(dotbrain_home, project)
+    paths.confined_path(brainspace, ".beads")
+    paths.confined_path(brainspace, ".beads/metadata.json")
     result = MigrationResult(project=project, brainspace=brainspace)
+    supplied_run = run
+    def run(argv, **kwargs):
+        return supplied_run(argv, timeout=bd_timeout, **kwargs)
+
+    declared = config.load_project_config(dotbrain_home, project)
+    if declared.mode == "none":
+        result.status = "skipped-no-beads"
+        result.logs.append(f"{project}: Beads disabled by project declaration")
+        return result
 
     mode = beads_mode(brainspace)
     if mode == "server":
@@ -173,8 +185,9 @@ def migrate_project(
         )
         return result
 
-    database = database or project
+    database = database or declared.database or project
     backup = backup_dir_for(brainspace)
+    paths.confined_path(dotbrain_home, backup.relative_to(dotbrain_home))
     commands = _migration_argv(
         project, database, server_host, server_port, server_user, backup
     )
@@ -185,6 +198,7 @@ def migrate_project(
         result.status = "dry-run"
         result.planned_commands = commands
         result.logs.append(f"{project}: dry-run; {len(commands)} bd commands planned")
+        result.logs.extend("would run " + " ".join(argv) for argv in commands)
         return result
 
     env = _beads_env(brainspace)
@@ -238,14 +252,14 @@ def _record_migrated_backend(
     dotbrain_home: Path, project: str, database: str, result: MigrationResult
 ) -> None:
     """The project is on the server now; its dotbrain.yaml entry must say so."""
-    if database != project:
-        log = config.record_project_beads(
-            dotbrain_home, project, config.ProjectBeads(mode="server", database=database)
-        )
-    else:
-        log = config.remove_project_beads(dotbrain_home, project)
+    log = config.write_project_config(
+        dotbrain_home, project, config.ProjectBeads(mode="server", database=database)
+    )
     if log:
         result.logs.append(log)
+    legacy_log = config.remove_legacy_project_beads(dotbrain_home, project)
+    if legacy_log:
+        result.logs.append(legacy_log)
 
 
 def _looks_like_ssh_failure(exc: Exception) -> bool:

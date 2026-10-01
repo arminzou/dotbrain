@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from dotbrain import adopter_repos, resource_loader, skills, subagents
+from dotbrain import adopter_repos, paths, resource_loader, skills, subagents
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -41,11 +41,11 @@ class DataRootResult:
 
 
 def ensure_root_gitignore(dotbrain_home: Path) -> bool:
-    """Ensure the data-root gitignore matches the packaged template."""
+    """Seed the data-root gitignore without replacing operator-owned entries."""
 
-    path = Path(dotbrain_home) / ".gitignore"
+    path = paths.confined_path(Path(dotbrain_home), ".gitignore")
     desired = resource_loader.resource("templates/gitignore").read_text(encoding="utf-8")
-    if path.is_file() and path.read_text(encoding="utf-8") == desired:
+    if path.exists() or path.is_symlink():
         return False
     path.write_text(desired, encoding="utf-8", newline="\n")
     return True
@@ -58,6 +58,11 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
     """
     root = Path(dotbrain_home)
     result = DataRootResult()
+    # Check all owned receivers before seeding any of them.
+    for relative in (".gitignore", "config.yaml", "skills/skills.yaml", "agents/agents.yaml",
+                     *(f"agents/{directory}" for directory, _ in subagents.RUNTIME_SPEC.values()),
+                     ".cache/agents"):
+        paths.confined_path(root, relative)
 
     if not root.exists():
         root.mkdir(parents=True)
@@ -137,63 +142,19 @@ class GlobalSkillBootstrapResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def link_global_skills(
-    dotbrain_home: Path, target: str = "all", *, home: Path | None = None
-) -> GlobalSkillBootstrapResult:
-    root = Path(dotbrain_home)
-    h = Path(home) if home is not None else Path.home()
-    config_path = root / "skills" / "skills.yaml"
-    result = GlobalSkillBootstrapResult()
-    config = skills.reconcile_global_config(config_path)
-    skill_paths = config.global_extra
-    if target == "all":
-        keys = list(config.targets)
-    elif target in config.targets:
-        keys = [target]
-    else:
-        result.warnings.append(f"target '{target}' not configured; skipping")
-        return result
-
-    for key in keys:
-        dest = adopter_repos.expand_path(config.targets[key], home=h)
-        link_result = skills.link_into(root, dest, skill_paths, label=key, prune_owned_only=True)
-        result.warnings += [f"{warning} (global {key})" for warning in link_result.warnings]
-        result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
-        result.logs += [f"pruned stale {pruned}" for pruned in link_result.pruned]
-        result.logs.append(f"global: linked {len(link_result.linked)} skill(s) into {dest}")
-    return result
+def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | None) -> GlobalSkillBootstrapResult:
+    from dotbrain import assets
+    runtime = "claude" if target == "claude-code" else target
+    linked = assets.link_global(Path(dotbrain_home), kind, runtime, user_home=home)
+    return GlobalSkillBootstrapResult(
+        logs=[f"delivered global {name}" for name in linked.linked] + [f"pruned stale {name}" for name in linked.pruned],
+        warnings=linked.warnings,
+    )
 
 
-def link_global_subagents(
-    dotbrain_home: Path, target: str = "all", *, home: Path | None = None
-) -> GlobalSkillBootstrapResult:
-    root = Path(dotbrain_home)
-    h = Path(home) if home is not None else Path.home()
-    result = GlobalSkillBootstrapResult()
-    config = subagents.load_global_config(root)
-    names = config.global_names
-    resolved = {name: subagents._resolve_subagent_files(root, name) for name in names}
-    missing = [name for name, runtime_files in resolved.items() if not runtime_files]
-    result.warnings += [f"subagent not found: {name}" for name in missing]
+def link_global_skills(dotbrain_home: Path, target: str = "all", *, home: Path | None = None) -> GlobalSkillBootstrapResult:
+    return _global_assets(dotbrain_home, target, "skills", home)
 
-    if target == "all":
-        keys = list(config.targets)
-    elif target in config.targets:
-        keys = [target]
-    else:
-        result.warnings.append(f"target '{target}' not configured; skipping")
-        return result
 
-    for key in keys:
-        dest = adopter_repos.expand_path(config.targets[key], home=h)
-        files = [runtime_files[key] for name, runtime_files in resolved.items() if key in runtime_files]
-        link_result = subagents.link_files_into(
-            root,
-            dest,
-            files,
-            label=key,
-        )
-        result.logs += [f"stashed real path aside: {moved}" for moved in link_result.stashed]
-        result.logs += [f"pruned stale {pruned}" for pruned in link_result.pruned]
-        result.logs.append(f"global: linked {len(files)} subagent file(s) into {dest}")
-    return result
+def link_global_subagents(dotbrain_home: Path, target: str = "all", *, home: Path | None = None) -> GlobalSkillBootstrapResult:
+    return _global_assets(dotbrain_home, target, "agents", home)

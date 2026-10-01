@@ -39,17 +39,20 @@ class BootstrapResult:
     pulled: list[str] = field(default_factory=list)
     logs: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    targets: list[dict] = field(default_factory=list)
 
 
 def _default_run(
-    argv: Sequence[str], *, cwd: Path | None = None, env: dict | None = None, check: bool = True
+    argv: Sequence[str], *, cwd: Path | None = None, env: dict | None = None, check: bool = True,
+    timeout: int = 20,
 ) -> "subprocess.CompletedProcess[str]":
     # stdin=DEVNULL is load-bearing: bd auto-enables non-interactive mode on a non-TTY stdin,
     # so destructive steps (e.g. bd init --reinit-local) skip their confirmation prompt instead
     # of blocking forever on terminal input while capture_output swallows the prompt text.
     return subprocess.run(
         list(argv), cwd=cwd, env=env, check=check,
-        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
+        capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL, timeout=timeout,
     )
 
 
@@ -65,6 +68,8 @@ def write_server_beads_metadata(
     otherwise; this matches what ``bd init`` creates.
     """
     beads_dir = Path(beads_dir)
+    paths.confined_path(beads_dir, "metadata.json")
+    paths.confined_path(beads_dir, "dolt-server.port")
     beads_dir.chmod(0o700)
     (beads_dir / "metadata.json").write_text(
         json.dumps({
@@ -88,7 +93,8 @@ def normalize_server_beads_metadata(beads_dir: Path, port: str) -> None:
     ``dolt_server_port`` key from metadata.json (bd warns it can leak data across projects). Edits
     metadata in place so identity fields like ``project_id`` survive."""
     beads_dir = Path(beads_dir)
-    meta_file = beads_dir / "metadata.json"
+    meta_file = paths.confined_path(beads_dir, "metadata.json")
+    paths.confined_path(beads_dir, "dolt-server.port")
     if meta_file.is_file():
         data = json.loads(meta_file.read_text(encoding="utf-8"))
         if data.pop("dolt_server_port", None) is not None:
@@ -128,7 +134,7 @@ def attach_existing_server_beads(
     Dolt remote is configured, so a pull is a no-op, whereas ``test`` actually confirms the attach
     reaches the server and fails cleanly when it can't.
     """
-    beads = Path(brainspace) / ".beads"
+    beads = paths.confined_path(Path(brainspace), ".beads")
     beads.mkdir(parents=True, exist_ok=True)
     write_server_beads_metadata(beads, host=host, port=port, user=user, database=database)
     run(["bd", "dolt", "test"], cwd=brainspace, env=_beads_env(brainspace), check=True)
@@ -160,6 +166,7 @@ def init_beads(
     """
     brainspace = Path(brainspace)
     dotbrain_home = Path(dotbrain_home)
+    paths.confined_path(brainspace, ".beads")
     if not run_beads or (brainspace / ".beads").is_dir():
         return None
     if remote and server_host:
@@ -279,15 +286,16 @@ def ensure_server_beads_metadata(
     server_port: str = "3307",
     server_user: str = "beads",
     database: str = "",
-    run: Callable[..., subprocess.CompletedProcess] = subprocess.run,
+    run: Runner = _default_run,
 ) -> str | None:
     """Hydrate server-mode ``metadata.json`` from config.yaml defaults, if needed.
 
     Creates the ``.beads`` directory when absent: it is never git-tracked, so on a
     fresh clone hydration is what brings it into existence.
     """
-    metadata = repo / ".beads" / "metadata.json"
-    port_file = repo / ".beads" / "dolt-server.port"
+    beads_dir = paths.confined_path(repo, ".beads")
+    metadata = paths.confined_path(beads_dir, "metadata.json")
+    port_file = paths.confined_path(beads_dir, "dolt-server.port")
     if metadata.is_file() or not server_host:
         return None
 
@@ -353,7 +361,8 @@ def _preview_load(brainspace: Path, beads_cfg, cfg) -> list[str]:
             f"would hydrate server beads metadata for {name} "
             f"at {cfg.beads_server.host}:{port}/{database}"
         )
-    lines.append(f"would pull beads for {name}")
+    if beads_cfg.mode == "embedded" and beads_cfg.remote:
+        lines.append(f"would pull beads for {name} from {beads_cfg.remote}")
     return lines
 
 
@@ -379,10 +388,6 @@ def pull_beads_for_all(
     result = BootstrapResult()
     cfg = config.load_config(dotbrain_home)
 
-    if not shutil.which("bd"):
-        result.warnings.append("bd is not installed; skipping beads pulls")
-        return result
-
     brainspaces = paths.brainspaces(dotbrain_home)
     if projects is not None:
         by_name = {c.name: c for c in brainspaces}
@@ -390,26 +395,49 @@ def pull_beads_for_all(
         for name in projects:
             brainspace = by_name.get(name)
             if brainspace is None:
-                result.warnings.append(f"no Brainspace: {paths.data_dir(dotbrain_home).name}/{name}")
+                result.errors.append(f"no Brainspace: {paths.data_dir(dotbrain_home).name}/{name}")
                 continue
             brainspaces.append(brainspace)
 
     for brainspace in brainspaces:
-        beads_cfg = config.load_project_config(dotbrain_home, brainspace.name)
+        target = {"project": brainspace.name, "status": "success", "changes": [], "errors": [], "warnings": []}
+        result.targets.append(target)
+        def bounded_run(argv, **kwargs):
+            return run(argv, timeout=bd_timeout, **kwargs)
+        try:
+            paths.confined_path(brainspace, ".beads")
+            beads_cfg = config.load_project_config(dotbrain_home, brainspace.name)
+            if beads_cfg.mode not in {"none", "embedded", "server"}:
+                raise ValueError(f"unsupported beads mode: {beads_cfg.mode}")
+            if beads_cfg.mode == "server" and not cfg.beads_server.host:
+                raise ValueError("server beads requires beads.server.host in config.yaml")
+        except Exception as exc:
+            target["status"] = "failure"
+            message = f"{brainspace.name}: {exc}"
+            target["errors"].append(message)
+            result.errors.append(message)
+            continue
         if beads_cfg.mode == "none":
+            target["status"] = "skipped"
+            target["changes"].append("Beads disabled by project declaration")
             continue
 
         if dry_run:
-            result.logs += _preview_load(brainspace, beads_cfg, cfg)
+            lines = _preview_load(brainspace, beads_cfg, cfg)
+            result.logs += lines
+            target["changes"] += lines
             continue
 
         try:
+            if not shutil.which("bd") and run is _default_run:
+                raise RuntimeError("bd is not installed; install Beads before syncing")
             if beads_cfg.mode == "embedded":
                 log, warning = ensure_embedded_beads(
-                    brainspace, dotbrain_home, remote=beads_cfg.remote, run=run
+                    brainspace, dotbrain_home, remote=beads_cfg.remote, run=bounded_run
                 )
                 if warning:
                     result.warnings.append(warning)
+                    target["warnings"].append(warning)
             else:
                 log = ensure_server_beads_metadata(
                     brainspace,
@@ -418,24 +446,47 @@ def pull_beads_for_all(
                     server_port=cfg.beads_server.port,
                     server_user=cfg.beads_server.user,
                     database=beads_cfg.database,
-                    run=run,
+                    run=bounded_run,
                 )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
-                OSError, RuntimeError) as exc:
-            result.warnings.append(f"failed to hydrate beads metadata for {brainspace}: {exc}")
+                OSError, RuntimeError, ValueError) as exc:
+            message = f"failed to hydrate beads metadata for {brainspace.name}: {exc}"
+            result.errors.append(message)
+            target["errors"].append(message)
+            target["status"] = "failure"
+            continue
         else:
             if log:
                 result.logs.append(log)
+                target["changes"].append(log)
 
-        if beads_cfg.mode == "embedded":
+        if beads_cfg.mode == "embedded" and beads_cfg.remote:
             try:
-                subprocess.run(
-                    ["bd", "-C", str(brainspace), "dolt", "pull"],
-                    check=True, capture_output=True, encoding="utf-8", timeout=bd_timeout,
+                listed = bounded_run(
+                    ["bd", "-C", str(brainspace), "dolt", "remote", "list", "--json"],
+                    check=True, env=_beads_env(brainspace),
+                )
+                remotes = json.loads(listed.stdout or "")
+                if not isinstance(remotes, list) or any(not isinstance(item, dict) for item in remotes):
+                    raise ValueError("bd dolt remote list returned an invalid JSON array")
+                matching = sorted(str(item["name"]) for item in remotes
+                                  if item.get("url") == beads_cfg.remote and item.get("name"))
+                if not matching:
+                    raise ValueError(
+                        f"declared remote {beads_cfg.remote!r} has no tracker binding; "
+                        "configure it with 'bd dolt remote add <name> <declared-url>' and retry"
+                    )
+                bounded_run(
+                    ["bd", "-C", str(brainspace), "dolt", "pull", "--remote", matching[0]],
+                    check=True, env=_beads_env(brainspace),
                 )
                 result.pulled.append(str(brainspace))
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                result.warnings.append(f"bd dolt pull failed for {brainspace}")
+                target["changes"].append(f"pulled configured remote {beads_cfg.remote}")
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError, ValueError) as exc:
+                message = f"bd dolt pull failed for {brainspace.name}: {exc}"
+                result.errors.append(message)
+                target["errors"].append(message)
+                target["status"] = "failure"
 
     return result
 
@@ -488,7 +539,7 @@ def drop_remote_beads_database(
     )
     if dry_run:
         return f"would drop remote beads database {db} via {via}"
-    run(argv, check=True)
+    run(argv, check=True, timeout=20)
     return f"dropped remote beads database: {db}"
 
 
@@ -505,7 +556,7 @@ def list_remote_beads_databases(
         "SHOW DATABASES;",
         server_host=server_host, server_port=server_port, server_user=server_user, ssh_host=ssh_host,
     )
-    out = run(argv, check=True)
+    out = run(argv, check=True, timeout=20)
     lines = (out.stdout or "").splitlines()
     # mysql prints a "Database" header row; drop it.
     return [l.strip() for l in lines[1:] if l.strip()]

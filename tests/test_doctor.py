@@ -1,465 +1,286 @@
-"""Tests for the dotbrain doctor read-only health check."""
-
-from __future__ import annotations
-
+"""Doctor diagnoses declared truth without touching project or tracker state."""
 import io
 import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
-from dotbrain import cli, config, doctor, paths
+from dotbrain import cli, doctor, paths, projects, skills, subagents
 from dotbrain.cli import app
 
-from conftest import set_fake_home
 
-runner = CliRunner()
-
-
-# --------------------------------------------------------------------------- machine checks
-
-
-def test_check_binary_found():
-    f = doctor._check_binary("python3")
-    assert f.status == "ok"
-
-
-def test_check_binary_missing():
-    f = doctor._check_binary("zzz-nonexistent-xyzzy")
-    assert f.status == "error"
-    assert f.suggestion
-
-
-def test_check_dotbrain_config_valid(dotbrain_home: Path):
-    f = doctor._check_dotbrain_config(dotbrain_home)
-    assert f.status == "ok"
-
-
-def test_check_dotbrain_config_broken(dotbrain_home: Path):
-    (dotbrain_home / "dotbrain.yaml").write_text(": !!bad yaml [[")
-    f = doctor._check_dotbrain_config(dotbrain_home)
-    assert f.status == "error"
-
-
-def test_check_global_skills_config_present(dotbrain_home: Path):
-    (dotbrain_home / "skills" / "skills.yaml").write_text("")
-    f = doctor._check_global_skills_config(dotbrain_home)
-    assert f.status == "ok"
-
-
-def test_check_global_skills_config_missing(tmp_path: Path):
-    f = doctor._check_global_skills_config(tmp_path)
-    assert f.status == "ok"
-
-
-def test_check_templates_present(dotbrain_home: Path):
-    f = doctor._check_templates(dotbrain_home)
-    assert f.status == "ok"
-
-
-def test_check_templates_ignores_data_root_templates(tmp_path: Path):
-    f = doctor._check_templates(tmp_path)
-    assert f.status == "ok"
-
-
-# --------------------------------------------------------------------------- project wiring
-
-
-def test_check_repo_file_brain_only(brainspace: Path):
-    (brainspace / ".repo").write_text("(brain-only)\n")
-    f, resolved = doctor._check_repo_file(brainspace)
-    assert f is not None
-    assert f.status == "ok"
-    assert "brain-only" in f.message
-    assert resolved is None
-
-
-def test_check_repo_file_missing(brainspace: Path):
-    f, resolved = doctor._check_repo_file(brainspace)
-    assert f is not None
-    assert f.status == "error"
-    assert ".repo" in f.message
-    assert resolved is None
-    # An undeclared Brainspace may be intended as brain-only; suggesting only
-    # '--repo' sends the operator down a path that cannot resolve the finding.
-    assert f.suggestion is not None
-    assert "--repo" in f.suggestion
-    assert "--no-repo" in f.suggestion
-
-
-def test_check_repo_file_bad_target(brainspace: Path):
-    (brainspace / ".repo").write_text("/nonexistent/path/x\n")
-    f, resolved = doctor._check_repo_file(brainspace)
-    assert f is not None
-    assert f.status == "error"
-    assert resolved is None
-
-
-def test_check_repo_file_valid_repo(dotbrain_home: Path, tmp_path: Path):
-    brainspace = dotbrain_home / "brainspaces" / "demo"
-    brainspace.mkdir(parents=True)
-    repo = tmp_path / "demo"
-    repo.mkdir()
-    (brainspace / ".repo").write_text(f"{repo}\n")
-    f, resolved = doctor._check_repo_file(brainspace)
-    assert f is None
-    assert resolved == repo
-
-
-def test_check_brainspace_links_all_ok(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "myrepo"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_home / "brainspaces" / "myrepo"
-    (repo / ".claude").mkdir()
-    (repo / ".codex").mkdir()
-    for link in paths.BRAINSPACE_LINKS:
-        (brainspace / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(brainspace / link)
-    findings = doctor._check_brainspace_links(repo, brainspace)
-    assert len(findings) == 0
-
-
-def test_check_brainspace_links_missing(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "bare"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_home / "brainspaces" / "bare"
-    for link in paths.BRAINSPACE_LINKS:
-        (brainspace / link).mkdir(parents=True, exist_ok=True)
-    findings = doctor._check_brainspace_links(repo, brainspace)
-    assert len(findings) == len(paths.BRAINSPACE_LINKS) + 2
-    assert all(f.status == "warn" for f in findings)
-
-
-def test_check_brainspace_links_broken(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "brokenlinks"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    brainspace = dotbrain_home / "brainspaces" / "brokenlinks"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    (repo / ".claude").mkdir()
-    (repo / ".codex").mkdir()
-    for link in paths.BRAINSPACE_LINKS:
-        (brainspace / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(brainspace / link)
-    # Break one
-    (brainspace / ".brain").rmdir()
-    findings = doctor._check_brainspace_links(repo, brainspace)
-    broken = [f for f in findings if f.status == "error"]
-    assert len(broken) == 1
-    assert "broken" in broken[0].message.lower()
-
-
-def test_check_repo_excludes_ok(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "with_excludes"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    exclude = repo / ".git" / "info" / "exclude"
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    exclude.write_text("\n".join(paths.EXCLUDE_ENTRIES) + "\n")
-    findings = doctor._check_repo_excludes(repo)
-    assert len(findings) == 0
-
-
-def test_check_repo_excludes_missing(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "no_excludes"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    findings = doctor._check_repo_excludes(repo)
-    assert len(findings) == len(paths.EXCLUDE_ENTRIES)
-
-
-def test_check_agent_pointer_uses_wire_marker(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    """Doctor uses wire's own idempotency marker: the '.brain/AGENTS.md' substring."""
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "with_pointer"
-    repo.mkdir()
-    # Wire's marker is the substring — the full ADOPTER_POINTER contains it.
-    (repo / "AGENTS.md").write_text(f"# Context\n\n{paths.ADOPTER_POINTER}\n")
-    findings = doctor._check_agent_pointer(repo)
-    assert len(findings) == 0
-
-
-def test_check_agent_pointer_matches_wire_substring(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    """A file with just '.brain/AGENTS.md' (wire's marker) passes — no false positive."""
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "dotbrain_style"
-    repo.mkdir()
-    # Simulates dotbrain's own AGENTS.md — has .brain/AGENTS.md but not the full pointer.
-    (repo / "AGENTS.md").write_text("# Agent Context\n\nDotbrain: read `.brain/AGENTS.md` first.\n")
-    findings = doctor._check_agent_pointer(repo)
-    assert len(findings) == 0, f"wire's marker should suffice, got: {findings}"
-
-
-def test_check_agent_pointer_missing(
-    dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    repo = tmp_path / "no_pointer"
-    repo.mkdir()
-    (repo / "AGENTS.md").write_text("# Context\n\nNo pointer here.\n")
-    findings = doctor._check_agent_pointer(repo)
-    assert len(findings) == 1
-    assert findings[0].status == "warn"
-
-
-def test_dotbrain_repo_skipped_in_wiring(dotbrain_home: Path):
-    """The dotbrain repo itself is not an adopter — wiring checks skip it."""
-    brainspace = dotbrain_home / "brainspaces" / "dotbrain"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    (brainspace / ".repo").write_text(f"{dotbrain_home}\n")
-    findings = doctor._check_project_wiring(brainspace, dotbrain_home)
-    assert len(findings) == 1
-    assert findings[0].status == "ok"
-    assert "not an adopter" in findings[0].message
-
-
-# --------------------------------------------------------------------------- beads state
-
-
-def test_check_beads_state_none_mode(dotbrain_home: Path):
-    config.write_project_config(dotbrain_home, "demo", config.ProjectBeads(mode="none"))
-    findings = doctor._check_beads_state(dotbrain_home / "brainspaces" / "demo", "demo", dotbrain_home)
-    assert len(findings) == 1
-    assert findings[0].status == "ok"
-    assert "disabled" in findings[0].message
-
-
-def test_check_beads_state_missing_dir(dotbrain_home: Path):
-    findings = doctor._check_beads_state(dotbrain_home / "brainspaces" / "demo", "demo", dotbrain_home)
-    assert any(f.status == "warn" and "not initialized" in f.message for f in findings)
-
-
-# --------------------------------------------------------------------------- Runner seam
-
-
-def _recording_run(calls: list[dict[str, Any]]):
-    """Factory: returns a Runner that records every call into `calls` and returns success."""
-
-    def _run(argv, *, cwd=None, check=True, timeout=None):
-        calls.append({"argv": list(argv), "cwd": str(cwd) if cwd else None})
-        return subprocess.CompletedProcess(argv, 0, stdout="ok", stderr="")
-
-    return _run
-
-
-def _recording_run_fails(exit_code: int, stderr: str):
-    """Factory: returns a Runner that fails 'bd dolt test' and succeeds for other calls."""
-
-    def _run(argv, *, cwd=None, check=True, timeout=None):
-        if "dolt" in argv and "test" in argv:
-            raise subprocess.CalledProcessError(exit_code, argv, stderr=stderr)
-        return subprocess.CompletedProcess(argv, 0, stdout="ok", stderr="")
-
-    return _run
-
-
-def test_beads_server_connectivity_calls_bd_dolt_test(dotbrain_home: Path):
-    """With a metadata.json present, server-mode projects run 'bd dolt test'."""
-    brainspace = dotbrain_home / "brainspaces" / "demo"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    beads = brainspace / ".beads"
-    beads.mkdir()
-    (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (brainspace / ".brain").mkdir(exist_ok=True)
-    (brainspace / ".brain" / "project.yaml").write_text("beads:\n  mode: server\n")
-
-    calls: list[dict[str, Any]] = []
-    findings = doctor._check_beads_state(brainspace, "demo", dotbrain_home, run=_recording_run(calls))
-
-    dolt_test = [c for c in calls if "dolt" in c["argv"] and "test" in c["argv"]]
-    assert len(dolt_test) == 1, f"expected bd dolt test call, got: {calls}"
-    assert dolt_test[0]["cwd"] == str(brainspace)
-
-
-def test_beads_no_mutating_commands(dotbrain_home: Path):
-    """Doctor must never issue mutating commands — no bd init, bd dolt set, git, rm, mkdir."""
-    brainspace = dotbrain_home / "brainspaces" / "demo"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    beads = brainspace / ".beads"
-    beads.mkdir()
-    (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-
-    calls: list[dict[str, Any]] = []
-    doctor._check_beads_state(brainspace, "demo", dotbrain_home, run=_recording_run(calls))
-
-    all_argv = [" ".join(c["argv"]) for c in calls]
-    mutators = ["bd init", "bd dolt set", "git ", "rm ", "mkdir", "bd close",
-                "bd update", "bd create"]
-    for argv_line in all_argv:
-        for m in mutators:
-            assert m not in argv_line, f"mutating command found: {argv_line}"
-
-
-def test_beads_connectivity_failure_reports_error(dotbrain_home: Path):
-    """When bd dolt test fails, doctor reports it as an error."""
-    brainspace = dotbrain_home / "brainspaces" / "demo"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    beads = brainspace / ".beads"
-    beads.mkdir()
-    (beads / "metadata.json").write_text(json.dumps({"dolt_mode": "server"}))
-    (brainspace / ".brain").mkdir(exist_ok=True)
-    (brainspace / ".brain" / "project.yaml").write_text("beads:\n  mode: server\n")
-
-    findings = doctor._check_beads_state(
-        brainspace, "demo", dotbrain_home,
-        run=_recording_run_fails(1, "connection refused"),
-    )
-    errors = [f for f in findings if f.status == "error"]
-    assert len(errors) >= 1
-    assert any("unreachable" in e.message.lower() for e in errors)
-
-
-# --------------------------------------------------------------------------- orchestration
-
-
-def test_run_doctor_no_projects(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+def write(path, content=""):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def make_project(root, name="example", repo=None, runtimes=(), mode="none", selected=()):
+    brainspace = root / "brainspaces" / name
+    declaration = {"agents": list(runtimes), "beads": {"mode": mode}, "skills": list(selected)}
+    write(brainspace / ".brain/project.yaml", yaml.safe_dump(declaration))
+    write(brainspace / ".repo", str(repo) if repo else "(brain-only)")
+    if mode != "none":
+        write(brainspace / ".beads/metadata.json", "{}")
+    if repo:
+        repo.mkdir(parents=True, exist_ok=True)
+        (repo / ".brain").symlink_to(brainspace / ".brain", target_is_directory=True)
+        if mode != "none":
+            (repo / ".beads").symlink_to(brainspace / ".beads", target_is_directory=True)
+        for runtime in runtimes:
+            (repo / f".{runtime}").mkdir()
+        write(repo / ".git/info/exclude", "/.brain\n" + ("/.beads\n" if mode != "none" else ""))
+    return brainspace
+
+
+def recording_run(repo, calls, failure=None):
+    def run(argv, **kwargs):
+        recorded = {key: value for key, value in kwargs.items() if key != "env"}
+        if "env" in kwargs:
+            recorded["env"] = {"BEADS_DIR": kwargs["env"]["BEADS_DIR"]}
+        calls.append((list(argv), recorded))
+        assert kwargs.get("timeout") == doctor.PROBE_TIMEOUT
+        if argv[0] == "git":
+            output = str(repo if "--show-toplevel" in argv else repo / ".git")
+        else:
+            if failure:
+                return failure(argv, kwargs)
+            output = "ready"
+        return subprocess.CompletedProcess(argv, 0, output + "\n", "")
+    return run
+
+
+def snapshot(root):
+    return {p.relative_to(root).as_posix(): ("link", str(p.readlink())) if p.is_symlink()
+            else ("file", p.read_bytes()) if p.is_file() else ("dir",)
+            for p in root.rglob("*")}
+
+
+def errors(findings):
+    return [f.message for f in findings if f.status == "error"]
+
+
+def test_empty_all_checks_machine_once_and_unknown_session_advisories(tmp_path, monkeypatch):
+    calls = []
+    original = doctor._check_machine
+    monkeypatch.setattr(doctor, "_check_machine", lambda root, home: calls.append(root) or original(root, home))
+    report = doctor.run_doctor(tmp_path, home=tmp_path / "user", all_projects=True)
+    assert calls == [tmp_path] and report.projects == {}
+    assert any("no registered projects" in f.message for f in report.machine)
+    assert any("session consumption is unknown" in f.suggestion for f in report.machine)
+    assert not errors(report.machine)
+    assert doctor.as_result(report).status == "success"
+
+
+def test_disabled_components_do_not_require_bd_node_dolt(tmp_path, monkeypatch):
+    root = tmp_path / "home"
+    make_project(root)
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "git" if name == "git" else None)
+    calls = []
+    report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(tmp_path, calls))
+    assert calls == [] and not errors(report.machine) and not errors(report.projects["example"])
+    assert any("Brain-only" in f.message for f in report.projects["example"])
+
+
+def test_named_wrong_brainspace_and_beads_destinations_are_errors(tmp_path):
+    root = tmp_path / "home"
+    repo = tmp_path / "repo"
+    make_project(root, repo=repo, mode="embedded")
+    other = make_project(root, "other", mode="embedded")
+    for name in (".brain", ".beads"):
+        (repo / name).unlink()
+        (repo / name).symlink_to(other / name, target_is_directory=True)
+    report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
+    found = errors(report.projects["example"])
+    assert sum("wrong Brainspace" in message for message in found) == 2
+
+
+def test_repo_local_override_is_the_diagnosed_checkout(tmp_path):
+    root = tmp_path / "home"
+    local = tmp_path / "local"
+    brainspace = make_project(root, repo=local)
+    write(brainspace / ".repo", str(tmp_path / "missing-canonical"))
+    write(brainspace / ".repo.local", str(local))
+    report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(local, []))
+    assert report.checkouts["example"] == str(local)
+    assert not errors(report.projects["example"])
+
+
+def test_current_nested_checkout_and_shared_excludes(tmp_path):
+    root = tmp_path / "home"
+    repo = tmp_path / "worktree"
+    make_project(root, repo=repo)
+    nested = repo / "src/nested"
+    nested.mkdir(parents=True)
+    calls = []
+    report = doctor.run_doctor(root, home=tmp_path / "user", cwd=nested, run=recording_run(repo, calls))
+    assert report.checkouts["example"] == str(repo)
+    assert not errors(report.projects["example"])
+    assert any("--git-common-dir" in argv for argv, _ in calls)
+    assert not any(argv[0] == "bd" for argv, _ in calls)
+
+
+def test_real_worktree_uses_git_shared_excludes_read_only(tmp_path):
+    root = tmp_path / "home"
+    main = tmp_path / "main"
+    main.mkdir()
+    subprocess.run(["git", "init", "--quiet", str(main)], check=True)
+    subprocess.run(["git", "-C", str(main), "-c", "user.name=test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "init"], check=True)
+    worktree = tmp_path / "worktree"
+    subprocess.run(["git", "-C", str(main), "worktree", "add", "--detach", str(worktree)], check=True, capture_output=True)
+    brainspace = make_project(root)
+    (worktree / ".brain").symlink_to(brainspace / ".brain", target_is_directory=True)
+    write(brainspace / ".repo", str(main))
+    write(main / ".git/info/exclude", "/.brain\n")
+    before = snapshot(tmp_path)
+    report = doctor.run_doctor(root, home=tmp_path / "user", cwd=worktree)
+    assert not errors(report.projects["example"])
+    assert report.checkouts["example"] == str(worktree)
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("failure", ["timeout", "missing", "nonzero", "called_process"])
+def test_bounded_readonly_beads_failures_do_not_stop_other_projects(tmp_path, failure):
+    root = tmp_path / "home"
+    make_project(root, "failed", mode="server")
+    make_project(root, "healthy")
+    calls = []
+    def fail(argv, kwargs):
+        assert "--readonly" in argv
+        if failure == "timeout":
+            raise subprocess.TimeoutExpired(argv, 15)
+        if failure == "missing":
+            raise FileNotFoundError("bd missing")
+        if failure == "called_process":
+            raise subprocess.CalledProcessError(1, argv, stderr="connection refused")
+        return subprocess.CompletedProcess(argv, 1, "", "connection refused")
+    before = snapshot(tmp_path)
+    report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True, run=recording_run(tmp_path, calls, fail))
+    assert errors(report.projects["failed"]) and not errors(report.projects["healthy"])
+    assert len(calls) == 2
+    assert all("--readonly" in argv for argv, _ in calls)
+    assert all(kwargs["env"]["BEADS_DIR"] == str(root / "brainspaces/failed/.beads") for _, kwargs in calls)
+    assert doctor.as_result(report).status == "partial"
+    assert snapshot(tmp_path) == before
+
+
+def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
+    root = tmp_path / "home"
+    repo = tmp_path / "repo"
+    write(root / "skills/bundle/one/SKILL.md", "skill")
+    brainspace = make_project(root, repo=repo, runtimes=("codex",), selected=("bundle",))
+    selected_agents = subagents.project_link_set(())
+    subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})
+    skills.link_project(root, brainspace, (".codex",), ["bundle"], workspace_dirs={".codex": repo / ".codex"})
+    entries = ["/.brain", "/.codex/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
+    write(repo / ".git/info/exclude", "\n".join(entries) + "\n")
+    # Real-file Codex delivery needs no cache at diagnosis time.
     import shutil
-    projects = dotbrain_home / "brainspaces"
-    for d in list(projects.iterdir()):
-        if d.is_dir() and not d.name.startswith("."):
-            shutil.rmtree(d)
-    report = doctor.run_doctor(dotbrain_home)
-    has_warn = any(f.status == "warn" and "no Brainspaces" in f.message
-                   for f in report.machine)
-    assert has_warn
+    shutil.rmtree(root / ".cache")
+    before = snapshot(tmp_path)
+    report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
+    assert not errors(report.projects["example"])
+    assert snapshot(tmp_path) == before and not (root / ".cache").exists()
+    dest = repo / f".codex/agents/{selected_agents[0]}.toml"
+    dest.write_text(dest.read_text() + "# stale\n")
+    skill = repo / ".codex/skills/one"
+    skill.unlink()
+    write(root / "skills/other/SKILL.md")
+    skill.symlink_to(root / "skills/other", target_is_directory=True)
+    report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
+    assert len(errors(report.projects["example"])) == 2
 
 
-def test_run_doctor_with_wired_project(
-    dotbrain_home: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    set_fake_home(monkeypatch, fake_home)
-
-    repo = tmp_path / "proj"
-    repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-
-    brainspace = dotbrain_home / "brainspaces" / "proj"
-    brainspace.mkdir(parents=True, exist_ok=True)
-    (brainspace / ".repo").write_text(f"{repo}\n")
-    for link in paths.BRAINSPACE_LINKS:
-        (brainspace / link).mkdir(parents=True, exist_ok=True)
-        (repo / link).symlink_to(brainspace / link)
-
-    exclude = repo / ".git" / "info" / "exclude"
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    exclude.write_text("\n".join(paths.EXCLUDE_ENTRIES) + "\n")
-
-    (repo / "AGENTS.md").write_text(f"# Context\n\n{paths.ADOPTER_POINTER}\n")
-
-    report = doctor.run_doctor(dotbrain_home, home=fake_home)
-    assert "proj" in report.projects
-
-    proj_findings = report.projects["proj"]
-    statuses = {f.status for f in proj_findings}
-    assert "error" not in statuses
+def test_claude_expected_link_and_global_selections(tmp_path):
+    root = tmp_path / "home"
+    user = tmp_path / "user"
+    write(root / "agents/claude/custom.md", "custom")
+    write(root / "agents/agents.yaml", "global: [custom]\n")
+    receiver = user / ".claude/agents"
+    receiver.mkdir(parents=True)
+    (receiver / "custom.md").symlink_to(root / "agents/claude/custom.md")
+    make_project(root)
+    report = doctor.run_doctor(root, home=user, project="example")
+    assert any("no definition for runtime 'codex'" in message for message in errors(report.machine))
+    assert not any("custom.md" in message for message in errors(report.machine))
+    (receiver / "custom.md").unlink()
+    write(receiver / "custom.md", "custom")
+    report = doctor.run_doctor(root, home=user, project="example")
+    assert any("custom.md" in message for message in errors(report.machine))
 
 
-def test_run_doctor_machine_always_runs(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    report = doctor.run_doctor(dotbrain_home)
-    assert len(report.machine) >= 4  # bd, config, skills, templates
+def test_missing_asset_sources_and_malformed_project_are_isolated(tmp_path):
+    root = tmp_path / "home"
+    make_project(root, "missing", repo=tmp_path / "repo", selected=("missing-folder",))
+    broken = make_project(root, "broken")
+    write(broken / ".brain/project.yaml", "agents: [")
+    make_project(root, "healthy")
+    report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True, run=recording_run(tmp_path / "repo", []))
+    assert errors(report.projects["missing"]) and errors(report.projects["broken"])
+    assert not errors(report.projects["healthy"])
 
 
-# --------------------------------------------------------------------------- CLI integration
+def test_plugin_installed_hook_is_distinct_from_activation(tmp_path):
+    install = tmp_path / "plugin"
+    write(install / "hooks/hooks.json", json.dumps({"hooks": {"SessionStart": [{"hooks": [{"command": "dotbrain hook session-start"}]}]}}))
+    write(tmp_path / ".codex/plugins/installed_plugins.json", json.dumps({"plugins": {"dotbrain@dotbrain": [{"installPath": str(install)}]}}))
+    findings = doctor._check_plugin(tmp_path, "codex")
+    assert any(f.status == "ok" and "hook files" in f.message for f in findings)
+    assert any(f.status == "warn" and "not verified" in f.message for f in findings)
 
 
-def test_doctor_cli_help():
-    result = runner.invoke(app, ["doctor", "--help"])
-    assert result.exit_code == 0
-    assert "doctor" in result.output.lower()
-    assert "read-only" in result.output.lower()
+def test_site_node_optional_and_bounded(tmp_path):
+    brainspace = tmp_path / "project"
+    calls = []
+    run = recording_run(tmp_path, calls, lambda argv, kwargs: subprocess.CompletedProcess(argv, 0, "v18.0.0", ""))
+    assert doctor._check_brain_site(brainspace, run=run) == [] and calls == []
+    (brainspace / ".brain/site").mkdir(parents=True)
+    findings = doctor._check_brain_site(brainspace, run=run)
+    assert len(calls) == 1 and findings[0].status == "warn"
 
 
-def test_doctor_cli_runs(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    result = runner.invoke(app, ["doctor"])
-    # No errors expected on a fixture checkout (dolt is warn, hooks are warn)
+def test_cli_json_exits_and_outside_selection(tmp_path, monkeypatch):
+    root = tmp_path / "home"
+    make_project(root)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "user"))
+    runner = CliRunner()
+    result = runner.invoke(app, ["doctor", "--home", str(root), "--all", "--json"])
     assert result.exit_code == 0, result.output
-    assert "Machine readiness" in result.output
-    assert "ok" in result.output or "warn" in result.output or "error" in result.output
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "success"
+    assert sum(target["scope"] == "machine" for target in payload["targets"]) == 1
+    for flags in ([], ["--project", "missing"], ["--all", "--project", "example"], ["--scope", "global"]):
+        result = runner.invoke(app, ["doctor", "--home", str(root), "--json", *flags])
+        assert result.exit_code == 2, result.output
+        assert json.loads(result.stdout)["status"] == "failure"
+    write(root / "config.yaml", "beads: [")
+    result = runner.invoke(app, ["doctor", "--home", str(root), "--all", "--json"])
+    assert result.exit_code == 1 and json.loads(result.stdout)["status"] != "success"
 
 
-def test_doctor_cli_exits_nonzero_on_errors(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
-    """When doctor finds errors (not just warnings), exit code is 1."""
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    (dotbrain_home / "dotbrain.yaml").write_text("not: [valid")
-    result = runner.invoke(app, ["doctor"])
-    assert result.exit_code == 1, result.output
-    assert "Next: fix errors" in result.output
+def test_report_renders_under_legacy_windows_encoding(monkeypatch):
+    report = doctor.DoctorReport(machine=[doctor.Finding("warn", "Unicode path \u2603; session unknown")])
+    buffer = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
+    monkeypatch.setattr(sys, "stdout", buffer)
+    cli._render_doctor(report)
+    buffer.flush()
+    assert "doctor: success" in buffer.buffer.getvalue().decode("cp1252")
 
 
-def test_doctor_cli_in_help_tree():
-    result = runner.invoke(app, ["--help"])
+def test_path_resolution_runtime_error_is_a_json_operational_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(doctor, "run_doctor", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("symlink loop")))
+    result = CliRunner().invoke(app, ["doctor", "--home", str(tmp_path), "--all", "--json"])
+    assert result.exit_code == 1
+    assert json.loads(result.stdout)["errors"] == ["symlink loop"]
+
+
+def test_doctor_help_has_current_selectors():
+    result = CliRunner().invoke(app, ["doctor", "--help"])
     assert result.exit_code == 0
-    assert "doctor" in result.output
-
-
-def test_doctor_renders_on_a_legacy_windows_code_page(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-):
-    """A cp1252 console must not crash the health check.
-
-    Doctor's box-drawing and status glyphs are not encodable in cp1252, which is still
-    the default on Windows consoles that have not been switched to UTF-8. Rendering must
-    fall back to ASCII rather than raising UnicodeEncodeError mid-report.
-    """
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-
-    with capsys.disabled():
-        buffer = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
-        monkeypatch.setattr(sys, "stdout", buffer)
-        report = doctor.run_doctor(dotbrain_home)
-        cli._render_doctor(report)
-        buffer.flush()
-        rendered = buffer.buffer.getvalue().decode("cp1252")
-
-    assert "Machine readiness" in rendered
-    assert "ok" in rendered
-    for glyph in cli._GLYPHS.values():
-        assert glyph not in rendered
-
-
-def test_brain_site_node_check_runs_only_for_brains_with_a_site(tmp_path: Path):
-    calls: list[list[str]] = []
-
-    def old_node(argv, **_kwargs):
-        calls.append(list(argv))
-        return subprocess.CompletedProcess(argv, 0, stdout="v18.0.0\n", stderr="")
-
-    brainspace = tmp_path / "demo"
-    (brainspace / ".brain").mkdir(parents=True)
-    assert doctor._check_brain_site(brainspace, run=old_node) == []
-    assert calls == []
-
-    (brainspace / ".brain" / "site").mkdir()
-    [finding] = doctor._check_brain_site(brainspace, run=old_node)
-    assert finding.status == "warn" and "Node 22.12" in finding.message
+    for option in ("--project", "--all", "--home", "--json"):
+        assert option in result.output
+    assert "Read-only" in result.output

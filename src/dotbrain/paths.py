@@ -8,6 +8,7 @@ mutators build on top of these.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 # The Brainspace links an adopter repo symlinks into its root, in convention order.
@@ -95,13 +96,39 @@ def data_dir(dotbrain_home: Path) -> Path:
     root = Path(dotbrain_home)
     for name in DATA_DIRS:
         if (root / name).is_dir():
-            return root / name
-    return root / DATA_DIRS[0]
+            return confined_path(root, name)
+    return confined_path(root, DATA_DIRS[0])
+
+
+def validate_project_name(name: str) -> str:
+    """Validate a portable, single, non-hidden Brainspace directory name."""
+    if (not name or name.startswith(".") or name.endswith((".", " "))
+            or re.search(r'[<>:"/\\|?*\x00-\x1f]', name)
+            or name.split(".", 1)[0].upper() in {
+                "CON", "PRN", "AUX", "NUL",
+                *(f"COM{i}" for i in range(1, 10)),
+                *(f"LPT{i}" for i in range(1, 10)),
+            }):
+        raise ValueError(f"invalid project name: {name!r}; use a single non-hidden directory name")
+    return name
+
+
+def confined_path(root: Path, relative: str | Path) -> Path:
+    """Resolve a source or destination without allowing escape from its root."""
+    raw = str(relative)
+    if (Path(raw).is_absolute() or raw.startswith(("/", "\\")) or ":" in raw
+            or ".." in raw.replace("\\", "/").split("/")):
+        raise ValueError(f"path must remain inside {root}: {raw!r}")
+    base = Path(root).resolve()
+    candidate = Path(root) / relative
+    if not candidate.resolve().is_relative_to(base):
+        raise ValueError(f"path escapes {root}: {raw!r}")
+    return candidate
 
 
 def brainspace(dotbrain_home: Path, name: str) -> Path:
     """Return the Brainspace path for a project: ``<dotbrain_home>/<data-dir>/<name>``."""
-    return data_dir(dotbrain_home) / name
+    return confined_path(data_dir(dotbrain_home), validate_project_name(name))
 
 
 def brainspaces(dotbrain_home: Path) -> list[Path]:
@@ -112,13 +139,14 @@ def brainspaces(dotbrain_home: Path) -> list[Path]:
     base = data_dir(dotbrain_home)
     if not base.is_dir():
         return []
-    return sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("."))
+    return sorted(brainspace(dotbrain_home, p.name) for p in base.iterdir()
+                  if p.is_dir() and not p.name.startswith("."))
 
 
 def brainspace_link_targets(dotbrain_home: Path, name: str) -> dict[str, Path]:
     """Map each Brainspace link name to its target inside the project's Brainspace."""
     root = brainspace(dotbrain_home, name)
-    return {link: root / link for link in BRAINSPACE_LINKS}
+    return {link: confined_path(root, link) for link in BRAINSPACE_LINKS}
 
 
 def is_wired(repo: Path) -> bool:

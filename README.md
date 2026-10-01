@@ -94,8 +94,15 @@ the code repo to that Brainspace; the private files are stored outside the code 
 </picture>
 
 The plugin's session-start hook loads project context. Its skills guide work when invoked,
-and wiring links selected skills and subagents into the repo's agent workspaces.
-Worktrees can connect to the same Brainspace and share its context and execution state.
+and wiring delivers selected skills and subagents into the repo's agent workspaces. Skills and
+Claude agents use symlinks; Codex agents use generated, Git-ignored TOML files.
+`dotbrain wire` connects worktrees to the same Brainspace through Git metadata.
+
+Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,
+`dotbrain refresh` maintains that checkout and `dotbrain unwire` detaches it while retaining the
+shared Brainspace. From elsewhere, select `--project <name>`; use `refresh --all` for registered
+projects. Machine-global asset reconciliation is explicit: `skills link --scope global` or
+`agents link --scope global`.
 
 Git versions the Brain. Back it up to a **private** remote; the Beads database is Git-ignored
 and needs its own Dolt remote or shared server to back up or share issues.

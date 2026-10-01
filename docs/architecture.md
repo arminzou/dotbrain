@@ -41,7 +41,7 @@ Three parts, three owners:
 - **The tool** is public and the same for everyone.
 - **The dotbrain home** is yours and private. It holds every project's Brainspace and is versioned
   as one Git repository.
-- **The code repo** stays the code repo. It gains a few ignored links and nothing else.
+- **The code repo** stays the code repo. It gains ignored local wiring and generated runtime assets.
 
 ## Brainspaces
 
@@ -53,7 +53,8 @@ code itself:
 
 The code repo reaches its Brainspace through the gitignored `.brain` and `.beads` symlinks. Its
 `.claude` and `.codex` agent workspaces are real directories; dotbrain adds individually ignored
-skill and subagent links without claiming project-owned files. The agent sees one tree, the repo
+skill links, Claude agent links, and marked Codex agent files without claiming project-owned
+files. The agent sees one tree, the repo
 stays clean, and the context stays private. [Wiring](wiring.md) covers the details.
 
 ## The Brain
@@ -125,7 +126,7 @@ machine. See [Skills](skills.md).
 
 ## Session Start
 
-A one-time `dotbrain bootstrap` links global skills and subagents. After that, every agent session
+A one-time `dotbrain bootstrap` prepares global skills and subagents. After that, every agent session
 in a wired repo starts with the dotbrain convention injected by the plugin's hook, so the agent
 already knows where the Brain is and how to use it. See [Session context](session-context.md).
 

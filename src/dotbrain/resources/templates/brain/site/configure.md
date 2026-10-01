@@ -84,7 +84,7 @@ controls Learn.
 | `dotbrain site build` | Builds the site into dotbrain's cache, never into the Brain |
 | `dotbrain site preview` | Serves the last build |
 
-Run them from the project repo, or pass `--name <project>` from anywhere.
+Run them from the project repo, or pass `--project <project>` from anywhere.
 
 ## What fails the build
 

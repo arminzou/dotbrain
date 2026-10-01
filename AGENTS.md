@@ -7,12 +7,13 @@ agent you use (Claude Code, Codex). Engineering-centered.
 
 dotbrain separates the durable context an agent needs from the code it works on. For each project
 you keep a **Brainspace** that holds the project's **Brain** (`.brain/` — domain vocabulary,
-decisions, operating rules), an **execution store** (`.beads/`), and **agent workspaces**
-(`.claude/`, `.codex/`). Your code repo gets gitignored symlinks into that Brainspace, so agents
+decisions, operating rules) and an **execution store** (`.beads/`). **Agent workspaces**
+(`.claude/`, `.codex/`) are real directories in the code checkout. Your code repo gets gitignored
+Brainspace links and selected runtime resources, so agents
 pick up project memory and a live issue tracker without that material living in the code repo.
 
 Skills are agent-owned, not project-owned: a Brain only *configures* the skills it uses. The
-bundled `src/dotbrain/resources/skills/brain/` set is dotbrain's own operating manual (wiring, brain authoring, execution).
+bundled `plugin/skills/` set is dotbrain's own operating manual (wiring, brain authoring, execution).
 
 ## Public / private boundary
 
@@ -27,8 +28,8 @@ If you are an agent working in this repo, treat it as a normal public codebase: 
 ## Layout
 
 - `src/dotbrain/` — the Python CLI (`wire`, `unwire`, `bootstrap`, `refresh`, `skills link`, …).
+- `plugin/skills/` — bundled product skills and the shared convention.
 - `src/dotbrain/resources/` — packaged runtime assets:
-  - `skills/brain/` — bundled product skills (the system's own operating manual).
   - `templates/brain/` — Brain scaffold seeded into a new Brainspace.
   - `scripts/` — hook implementations invoked through `dotbrain hook ...`.
   - `config.yaml` — shipped example config; seeded into data root by bootstrap.
@@ -71,14 +72,18 @@ layering under `src/dotbrain/`:
   filesystem mutation here; everything else builds on it and depends *into* it, never the reverse.
 - **Concept modules**, each owning one concept and depending only on `paths` (and sometimes
   `config`): `adopter_repos` (repo-facing symlinks, `.git/info/exclude`, AGENTS.md pointer),
-  `brainspaces` (Brain + agent-workspace seeding, offboarding), `beads` (the `bd` tracker),
-  `skills` and `subagents` (curated symlink linking), `bootstrap` (machine-global setup),
+  `brainspaces` (Brain scaffold seeding), `beads` (the `bd` tracker),
+  `skills` and `subagents` (selected resources: skill/Claude links and managed Codex files),
+  `bootstrap` (machine-global setup),
   `migrate` (embedded→server beads, composing `beads` helpers), `doctor` (read-only health).
-- **`workflows.py`** — cross-concept orchestration; the bodies behind `wire`, `wire --all`,
+- **`projects.py`** — shared project selection and local inspection; uses wiring identity and
+  registered checkout pointers.
+- **`assets.py`** — project/global resource reconciliation shared by lifecycle and asset commands.
+- **`workflows.py`** — cross-concept orchestration; the bodies behind `wire`,
   `unwire`, `refresh`. It stitches the concept modules together.
 - **`cli.py`** — a thin Typer parsing/rendering layer over `workflows` and the modules. Keep logic
   out of here.
-- **`resource_loader.py`** — the only accessor for packaged `dotbrain.resources` (skills,
+- **`resource_loader.py`** — the only accessor for packaged `dotbrain.resources` (agents,
   templates, scripts) via `importlib.resources`.
 
 Two patterns to know before changing anything:

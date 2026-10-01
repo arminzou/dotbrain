@@ -57,9 +57,9 @@ the loop starts.
 ## Worktree preparation
 
 A dedicated branch may run in place or in a git worktree. Before planning in a worktree, verify
-that `.brain` and `.beads` resolve through the main checkout. When they are absent, use
-`wire-brain`'s worktree repair branch before dispatch. `dotbrain wire` attaches an adopter repo to a
-Brainspace; it is not the worktree repair command.
+that `.brain` and `.beads` resolve to the main checkout's Brainspace when enabled. When they are
+absent, run `dotbrain wire` in the worktree, directly or through `wire-brain`, before dispatch.
+The CLI resolves the main checkout through Git metadata and preserves its registration.
 
 ## Read order
 

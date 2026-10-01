@@ -225,7 +225,7 @@ def test_migrate_all_continues_after_project_failure(dotbrain_home: Path):
     _seed_beads(bad, "embedded")
     _seed_beads(good, "embedded")
 
-    def fail_bad_project(argv, *, cwd=None, env=None, check=True):
+    def fail_bad_project(argv, *, cwd=None, env=None, check=True, timeout=None):
         if Path(cwd).name == "bad":
             raise RuntimeError("backup sync failed")
         stdout = _stats_json(3) if list(argv) == ["bd", "stats", "--json"] else ""

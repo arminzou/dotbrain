@@ -161,7 +161,7 @@ treeView-beta
     .brain ## link to the Brainspace's .brain/
     .beads ## link to the Brainspace's .beads/
     .claude/ ## skill and subagent links, individually ignored
-    .codex/ ## skill and subagent links, individually ignored
+    .codex/ ## skill links and generated agent files, individually ignored
 ```
 
 [Wiring](wiring.md) explains each entry.
@@ -256,11 +256,38 @@ python -m pip install --upgrade dotbrain
 :::
 
 With uv, use `dotbrain@latest` rather than `uv tool upgrade dotbrain`: an install pinned to one
-version, such as the plugin installer's, stays on that version under `uv tool upgrade`. Not sure
-which tool you used? `dotbrain update` prints the right command for your install.
+version, such as the plugin installer's, stays on that version under `uv tool upgrade`.
 
 Updating the CLI does not update plugins or private dotbrain data. Contributor checkouts remain
 editable: update the checkout with Git instead.
+
+After updating the matching plugin and CLI, run `dotbrain bootstrap` for machine resources and
+`dotbrain refresh --all` for registered projects. To roll back the code, restore the previous CLI
+and its matching plugin; review generated convention changes before maintaining projects with it.
+
+### CLI migration
+
+The CLI uses one selection vocabulary. Retired invocations fail rather than acting as aliases;
+update existing scripts using this table.
+
+| Previous invocation | Current invocation |
+| --- | --- |
+| `--name <name>` | `--project <name>` |
+| `--dotbrain <path>` | `--home <path>` |
+| `--target claude-code` | `--runtime claude` |
+| `--target codex` or `--target all` | `--runtime codex` or `--runtime all` |
+| `beads load` | `beads sync` |
+| `wire --all` | `refresh --all` |
+| `--beads-server-host`, `--beads-server-port`, `--beads-server-user` | `--server-host`, `--server-port`, `--server-user` |
+| `--beads-ssh-host`, `--beads-database`, `--beads-remote` | `--ssh-host`, `--database`, `--remote` |
+| Asset linking with implicit global scope | `skills link --scope global` or `agents link --scope global` |
+| `update` | Upgrade with the package manager that installed the CLI |
+| Unwire archival, deletion, or preview flags | `unwire` detaches; manage retained directories through filesystem actions |
+
+Hidden command aliases are removed. Bare project commands now target the current wired checkout;
+outside it, select `--project`. Existing configuration keys such as `targets.claude-code` keep
+their spelling. Skills and Claude agents remain symlinks; agent reconciliation migrates owned
+Codex agent symlinks into marked real files and preserves foreign entries.
 
 ## Edit Config Only When Needed
 

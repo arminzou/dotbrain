@@ -1,5 +1,5 @@
 # Per-project identity. Values below are active defaults; edit as needed.
-# The tool reads this file; dotbrain refresh may overwrite shared sections.
+# The tool reads this file; dotbrain refresh preserves project declarations.
 
 execution-engine: beads
 

@@ -34,16 +34,20 @@ Brain template propagate to every brain.
 - This Brain lives in the private dotbrain home at
   `~/dotbrain/brainspaces/<name>/.brain`, not in the code repo.
 - Repo-root `.brain` and `.beads` are gitignored symlinks into that Brainspace. `.claude` and
-  `.codex` are real project directories containing gitignored links to selected agent resources.
-  Those links are local machine wiring: never commit them to the code repo.
+  `.codex` are real project directories containing gitignored selected resources. Skills and
+  Claude agents are symlinks; Codex agents are generated real TOML files marked
+  `# dotbrain-managed-agent: v1`. Customize their private source; delivered copies are disposable.
+  These resources are local machine wiring: never commit them to the code repo.
 - Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
 - Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
   per worktree.
-- In the main checkout, repair missing or dangling links with `dotbrain wire` from the repo root.
-- In a git worktree with no `.brain`, use `wire-brain`'s worktree repair branch. It links `.brain`
-  and `.beads` to the Brainspace by absolute path, then fills `.claude` and `.codex` with
-  `dotbrain skills link` and `dotbrain agents link`, each with `--scope project --project <name>
-  --repo <worktree>`.
+- Attach a main checkout or Git worktree with `dotbrain wire`; Git metadata connects a worktree
+  to its main checkout's existing Brainspace without changing registration or declarations.
+- Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
+  `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
+  `--repo <checkout>`. Global assets require `--scope global`.
+- `dotbrain unwire` detaches the selected checkout while retaining the Brainspace, shared tracker,
+  other worktrees, and user-owned workspace content. Retire Brainspaces through filesystem actions.
 - Never hand-create links under `.claude` or `.codex`. Their targets are relative paths the CLI
   computes from the checkout's real location; a hand-counted `../` depth dangles without error.
 

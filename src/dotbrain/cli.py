@@ -5,17 +5,21 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from importlib import metadata
 from pathlib import Path
 from typing import Optional
 
 import typer
+import yaml
+from dotbrain.options import HomeOption, RuntimeOption, JsonOption
+from dotbrain.results import CommandResult, TargetResult, ResultGroup, render
 
 from dotbrain import __version__
+from dotbrain import projects
 from dotbrain import doctor as doctor_mod
 from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, site as site_mod, skills, subagents, workflows
 
 app = typer.Typer(
+    cls=ResultGroup,
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
     no_args_is_help=True,
     invoke_without_command=True,
@@ -26,11 +30,13 @@ agents_app = typer.Typer(help="Link dotbrain vendor-native subagents into agent 
 beads_app = typer.Typer(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = typer.Typer(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
 site_app = typer.Typer(help="Set up and run a Brain's private site.", no_args_is_help=True)
+projects_app = typer.Typer(help="Discover registered projects and inspect local settings.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
 app.add_typer(agents_app, name="agents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
 app.add_typer(site_app, name="site")
+app.add_typer(projects_app, name="projects")
 
 
 @app.callback()
@@ -53,716 +59,447 @@ def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     hooks.emit_brain_context()
 
 
+def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:
+    try:
+        records = (projects.list_projects(root) if command == "projects list" else
+                   [projects.inspect_project(root, target) for target in
+                    projects.select_projects(root, project=project)])
+    except (yaml.YAMLError, OSError) as exc:
+        render(CommandResult(command, "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    except ValueError as exc:
+        render(CommandResult(command, "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    result = CommandResult(command, targets=[
+        TargetResult(project=record["project"], checkout=record["checkout"], data=record,
+                     status="failure" if "error" in record else "success",
+                     errors=[record["error"]] if "error" in record else [])
+        for record in records
+    ])
+    if any(target.errors for target in result.targets):
+        result.status = "partial" if any(not target.errors for target in result.targets) else "failure"
+    if json_output:
+        render(result, json_output=True)
+        if result.status != "success":
+            raise typer.Exit(1)
+        return
+    lines = [f"{result.command}: {result.status}"]
+    for target in result.targets:
+        record = target.data
+        lines.append(f"  {target.project}: {target.checkout or 'Brain-only'}")
+        if target.errors:
+            lines.extend(f"    error: {error}" for error in target.errors)
+            continue
+        lines.append(f"    runtimes: {', '.join(record['runtimes']) or 'none'}; tracker: {record['beads']['mode']}")
+        lines.append("    wiring: " + (", ".join(f"{name} {status}" for name, status in record['wiring'].items()) or "no checkout"))
+        if command == "projects show":
+            lines.append(f"    Brainspace: {record['brainspace']}")
+            lines.extend(f"    {name}: {value or 'disabled'}" for name, value in record['paths'].items())
+            lines.append("    settings: " + json.dumps(record['settings'], ensure_ascii=True))
+            lines.append("    configured skills: " + (", ".join(record['skills']['configured']) or "none"))
+            lines.append("    effective skills: " + (", ".join(record['skills']['effective']) or "none"))
+            lines.append("    subagents: " + (", ".join(record['subagents']) or "none"))
+    lines.append(f"{len(result.targets)} project(s)")
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    typer.echo("\n".join(lines).encode(encoding, errors="backslashreplace").decode(encoding))
+    if result.status != "success":
+        raise typer.Exit(1)
+
+
+@projects_app.command("list")
+def projects_list(home: HomeOption = None, json_output: JsonOption = False) -> None:
+    """List every registered project using local declarations and wiring."""
+    _project_report("projects list", home or paths.resolve_dotbrain_home(), None, json_output)
+
+
+@projects_app.command("show")
+def projects_show(
+    project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
+    home: HomeOption = None, json_output: JsonOption = False,
+) -> None:
+    """Inspect the current wired project or a named project's registered checkout."""
+    _project_report("projects show", home or paths.resolve_dotbrain_home(), project, json_output)
+
+
 @app.command()
 def bootstrap(
-    only: Optional[str] = typer.Option(
-        None, "--only", help="Limit linking to one step. The only step is skills: global skill and subagent links."
-    ),
-    skip_skills: bool = typer.Option(
-        False, "--skip-skills", help="Seed the data root but skip global skill and subagent links."
-    ),
+    home: HomeOption = None,
+    runtime: RuntimeOption = "all",
+    json_output: JsonOption = False,
 ) -> None:
     """Prepare this machine for dotbrain: global skill and subagent links."""
-    if only and only != "skills":
-        raise typer.BadParameter(f"invalid --only: {only}")
-
-    root = paths.resolve_dotbrain_home()
-
-    # Seed data root (config.yaml, skills/skills.yaml) if missing.
+    report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
+    target = report.targets[0]
+    if runtime not in ("claude", "codex", "all"):
+        report.status = "failure"
+        report.errors.append("--runtime must be claude, codex, or all")
+        render(report, json_output=json_output)
+        raise typer.Exit(2)
+    root = Path(home).expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         dr_result = bootstrap_mod.ensure_data_root(root)
-    except RuntimeError as exc:
-        raise typer.BadParameter(str(exc)) from exc
-    if dr_result.created:
-        typer.echo(f"[bootstrap] created data root: {root}")
-    if dr_result.git_initialized:
-        typer.echo(f"[bootstrap] initialized git checkout: {root}")
-    if dr_result.config_seeded:
-        typer.echo(f"[bootstrap] seeded config.yaml into {root}")
-    if dr_result.skills_seeded:
-        typer.echo(f"[bootstrap] seeded skills/skills.yaml into {root}")
-    if dr_result.agents_seeded:
-        typer.echo(f"[bootstrap] seeded agents/agents.yaml into {root}")
-
-    run_skills = only == "skills" or (only is None and not skip_skills)
-
-    if run_skills:
-        try:
-            _render_global_skill_link(root, "all")
-            _render_global_agent_link(root, "all")
-        except RuntimeError as exc:
-            raise typer.BadParameter(str(exc)) from exc
-
-
-# Doctor's glyphs, with an ASCII fallback. A Windows console still running a legacy
-# code page (cp1252) cannot encode these, and typer.echo raises UnicodeEncodeError
-# mid-report — a health check that crashes on the machine least likely to be healthy.
-_GLYPHS = {"ok": "✓", "warn": "⚠", "error": "✖", "rule": "─", "arrow": "→"}
-_ASCII_GLYPHS = {"ok": "+", "warn": "!", "error": "x", "rule": "-", "arrow": "->"}
-
-
-def _glyphs() -> dict[str, str]:
-    """Unicode glyphs when stdout can encode them, ASCII when it cannot."""
-
-    encoding = getattr(sys.stdout, "encoding", None) or "ascii"
-    try:
-        "".join(_GLYPHS.values()).encode(encoding)
-    except (UnicodeEncodeError, LookupError):
-        return _ASCII_GLYPHS
-    return _GLYPHS
-
-
-def _render_doctor(report: doctor_mod.DoctorReport) -> None:
-    ok, warn, err = 0, 0, 0
-    glyph = _glyphs()
-    rule = glyph["rule"]
-    arrow = glyph["arrow"]
-
-    def _icon(status: str) -> str:
-        return glyph.get(status, "?")
-
-    typer.echo("\ndotbrain doctor")
-    typer.echo(rule * 60)
-
-    typer.echo("\nMachine readiness")
-    typer.echo(rule * 40)
-    for f in report.machine:
-        if f.status == "ok":
-            ok += 1
-        elif f.status == "warn":
-            warn += 1
-        else:
-            err += 1
-        typer.echo(f"  {_icon(f.status)} {f.message}")
-        if f.suggestion:
-            typer.echo(f"    {arrow} {f.suggestion}")
-
-    if report.projects:
-        typer.echo(f"\nProjects ({len(report.projects)})")
-        typer.echo(rule * 40)
-        for name, findings in report.projects.items():
-            for f in findings:
-                if f.status == "ok":
-                    ok += 1
-                elif f.status == "warn":
-                    warn += 1
-                else:
-                    err += 1
-                typer.echo(f"  {_icon(f.status)} [{name}] {f.message}")
-                if f.suggestion:
-                    typer.echo(f"    {arrow} {f.suggestion}")
-
-    typer.echo(f"\n{rule * 60}")
-    typer.echo(f"  {ok} ok  {warn} warnings  {err} errors")
-
-    if err > 0:
-        typer.echo("\nNext: fix errors then re-run 'dotbrain doctor'")
+        target.changes.extend(dr_result.logs)
+        legacy_runtime = "claude-code" if runtime == "claude" else runtime
+        for linker in (bootstrap_mod.link_global_skills, bootstrap_mod.link_global_subagents):
+            linked = linker(root, legacy_runtime)
+            target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
+            target.errors.extend(linked.warnings)
+    except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
+        target.errors.append(str(exc))
+    if target.errors:
+        target.status = "failure"
+        report.status = "partial" if target.changes else "failure"
+    render(report, json_output=json_output)
+    if report.status != "success":
         raise typer.Exit(1)
-    elif warn > 0:
-        typer.echo("\nNext: 'dotbrain wire --all' (wire projects)")
-        typer.echo("      'dotbrain bootstrap' (link global skills and subagents)")
-        typer.echo("      'dotbrain beads load --all' (hydrate beads)")
-    else:
-        typer.echo("\nMachine is healthy. Run 'bd ready' for available work.")
+
+
+def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False) -> None:
+    result = doctor_mod.as_result(report)
+    render(result, json_output=json_output)
+    if result.status != "success":
+        raise typer.Exit(1)
 
 
 @app.command()
-def doctor() -> None:
-    """Read-only health check: machine readiness, project wiring, beads state drift."""
-    root = paths.resolve_dotbrain_home()
-    report = doctor_mod.run_doctor(root)
-    _render_doctor(report)
-
-
-@app.command()
-def update() -> None:
-    """Print the command that upgrades this CLI with the tool that installed it."""
-    typer.echo(_upgrade_hint())
-
-
-def _upgrade_hint() -> str:
+def doctor(home: HomeOption = None,
+           project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
+           all_projects: bool = typer.Option(False, "--all", help="Inspect every registered project."),
+           json_output: JsonOption = False) -> None:
+    """Read-only health check of machine readiness and selected project setup."""
     try:
-        files = metadata.distribution("dotbrain").files or ()
-        record = next((f for f in files if f.name == "direct_url.json"), None)
-        direct_url = json.loads(record.read_text(encoding="utf-8")) if record else {}
-    except (metadata.PackageNotFoundError, OSError, ValueError):
-        direct_url = {}
-    if direct_url.get("dir_info", {}).get("editable"):
-        return "dotbrain is an editable install; update its checkout with git pull"
-    prefix = Path(sys.prefix)
-    if (prefix / "uv-receipt.toml").exists():
-        # @latest also clears the exact-version pin that `uv tool upgrade` would honor.
-        return "To update dotbrain, run: uv tool install dotbrain@latest"
-    if (prefix / "pipx_metadata.json").exists():
-        return "To update dotbrain, run: pipx upgrade dotbrain"
-    pip = subprocess.list2cmdline([sys.executable, "-m", "pip", "install", "--upgrade", "dotbrain"])
-    return f"To update dotbrain, run: {pip}"
+        root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
+        report = doctor_mod.run_doctor(root, project=project, all_projects=all_projects)
+    except ValueError as exc:
+        render(CommandResult("doctor", "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult("doctor", "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    _render_doctor(report, json_output=json_output)
 
 
 @app.command()
 def wire(
-    all: bool = typer.Option(False, "--all", help="Wire every adopter repo to its Brainspace (brain seeding and symlinks)."),  # noqa: A002
-    repo: Optional[str] = typer.Option(None, "--repo", help="Repo to wire. Defaults to the current git repo."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name. Defaults to repo dir name."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
-    skip_beads: bool = typer.Option(False, "--skip-beads", help="Do not initialize .beads when missing."),
-    remote: str = typer.Option("", "--beads-remote", help="Initialize beads from this Dolt remote."),
-    server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Init beads against an external Dolt sql-server. Defaults to beads.server.host in config.yaml."),
-    server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
-    server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user in config.yaml."),
-    database: str = typer.Option("", "--beads-database", help="Dolt database name. Defaults to project name."),
-    no_repo: bool = typer.Option(False, "--no-repo", help="Create a brain-only Brainspace (no code repo). Requires --name."),
-    repo_base: Optional[Path] = typer.Option(None, "--repo-base", help="Base directory for adopter repos (default: ~/repos/projects)."),
+    repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout to attach; defaults to the current Git checkout.'),
+    project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
+    no_repo: bool = typer.Option(False, '--no-repo', help='Create a Brain-only project; requires --project.'),
+    skip_beads: bool = typer.Option(False, '--skip-beads', help='Create without a tracker.'),
+    remote: str = typer.Option('', '--remote', help='Dolt remote for initial tracker creation.'),
+    server_host: Optional[str] = typer.Option(None, '--server-host', help='Dolt server host; defaults to config.'),
+    server_port: Optional[str] = typer.Option(None, '--server-port', help='Dolt server port; defaults to config.'),
+    server_user: Optional[str] = typer.Option(None, '--server-user', help='Dolt server user; defaults to config.'),
+    database: str = typer.Option('', '--database', help='Tracker database; defaults to project name.'),
+    home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Create or repair a project Brainspace and wire an adopter repo.
-
-    Without --all: wire one project. With --all: reconcile every Brainspace.
-    """
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
-    if all:
-        if repo or name or no_repo or remote:
-            raise typer.BadParameter("--all is mutually exclusive with --repo, --name, --no-repo, and --beads-remote")
-        try:
-            result = workflows.wire_all_projects(root, repo_base=repo_base)
-        except (ValueError, RuntimeError) as exc:
-            raise typer.BadParameter(str(exc)) from exc
-        for line in result.logs:
-            typer.echo(f"[wire] {line}")
-        for w in result.warnings:
-            typer.echo(f"[wire] warning: {w}", err=True)
-        return
-    cfg = config.load_config(root)
-    server_host = server_host if server_host is not None else cfg.beads_server.host
-    server_port = server_port if server_port is not None else cfg.beads_server.port
-    server_user = server_user if server_user is not None else cfg.beads_server.user
+    """Create a Brainspace or attach a checkout, including a linked worktree."""
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        result = workflows.wire_project(
-            dotbrain_home=root,
-            repo=Path(repo) if repo else None,
-            project=name,
-            no_repo=no_repo,
-            run_beads=not skip_beads,
-            remote=remote,
-            server_host=server_host,
-            server_port=server_port,
-            server_user=server_user,
-            database=database,
-        )
-    except (ValueError, RuntimeError) as exc:
-        raise typer.BadParameter(str(exc)) from exc
+        cfg = config.load_config(root).beads_server
+        selected_host = cfg.host if server_host is None else server_host
+        if remote and selected_host:
+            raise ValueError('--remote and --server-host are mutually exclusive')
+        result = workflows.wire_project(dotbrain_home=root, repo=repo, project=project, no_repo=no_repo,
+                run_beads=not skip_beads, remote=remote, server_host=selected_host,
+                server_port=cfg.port if server_port is None else server_port,
+                server_user=cfg.user if server_user is None else server_user, database=database)
+    except ValueError as exc:
+        render(CommandResult('wire', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult('wire', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    _render_lifecycle('wire', [result], json_output)
 
-    for line in result.logs:
-        typer.echo(f"[wire] {line}")
-    for warning in result.warnings:
-        typer.echo(f"[wire] warning: {warning}", err=True)
+
+def _render_lifecycle(command, results, json_output):
+    report = CommandResult(command)
+    for result in results:
+        errors = list(result.errors)
+        target = TargetResult(project=result.project, checkout=str(result.repo) if result.repo else None,
+                 changes=result.logs, errors=errors,
+                 findings=[{'severity': 'warning', 'message': warning} for warning in result.warnings],
+                 status='failure' if errors else 'success')
+        report.targets.append(target)
+    if any(target.status == 'failure' for target in report.targets):
+        report.status = 'partial' if any(target.status == 'success' or target.changes for target in report.targets) else 'failure'
+    render(report, json_output=json_output)
+    if report.status != 'success':
+        raise typer.Exit(1)
 
 
 @app.command()
 def refresh(
-    all: bool = typer.Option(False, "--all", help="Refresh every project workspace."),  # noqa: A002
-    name: Optional[str] = typer.Option(None, "--name", help="Refresh one project by Brainspace name."),
-    repo_base: Optional[Path] = typer.Option(None, "--repo-base", help="Base directory for repo discovery."),
+    project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
+    all_projects: bool = typer.Option(False, '--all', help='Refresh all registered projects.'),
+    home: HomeOption = None, runtime: RuntimeOption = 'all', json_output: JsonOption = False,
 ) -> None:
-    """Refresh Brain/workspace files, repo links, beads state, and project skills."""
-    if all and name:
-        raise typer.BadParameter("--all is mutually exclusive with --name")
-    if not all and not name:
-        raise typer.BadParameter("use --all or --name")
-
+    """Repair setup while preserving project declarations and content."""
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        root = paths.resolve_dotbrain_home()
-        if all:
-            result = workflows.refresh_projects(root, repo_base=repo_base)
-        else:
-            assert name is not None
-            result = workflows.refresh_project(root, name, repo_base=repo_base)
-    except (ValueError, RuntimeError) as exc:
-        raise typer.BadParameter(str(exc)) from exc
-
-    for line in result.logs:
-        typer.echo(f"[refresh] {line}")
-    for warning in result.warnings:
-        typer.echo(f"[refresh] warning: {warning}", err=True)
+        result = workflows.refresh_projects(root, project=project, all_projects=all_projects, runtime=runtime)
+    except ValueError as exc:
+        render(CommandResult('refresh', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult('refresh', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    report = CommandResult('refresh', targets=result.targets)
+    if result.errors:
+        report.status = 'partial' if any(target.status == 'success' or target.changes for target in report.targets) else 'failure'
+    render(report, json_output=json_output)
+    if result.errors:
+        raise typer.Exit(1)
 
 
 @app.command()
 def unwire(
-    all: bool = typer.Option(False, "--all", help="Unwire every project Brainspace (keep only; see per-project --archive/--delete for destructive offboard)."),  # noqa: A002
-    repo: Optional[Path] = typer.Option(None, "--repo", help="Adopter repo path; defaults to cwd"),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name"),
-    no_repo: bool = typer.Option(False, "--no-repo", help="Only offboard the named Brainspace; do not edit an adopter repo."),
-    archive: bool = typer.Option(False, "--archive", help="Move Brainspace to <data-dir>/.archive/"),
-    delete: bool = typer.Option(False, "--delete", help="Remove the Brainspace (destructive)"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the offboard without performing it."),
+    all_projects: bool = typer.Option(False, '--all', help='Detach registered checkouts.'),
+    repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout to detach.'),
+    project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
+    home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Disconnect an adopter repo from its Brainspace.
-
-    Offboards the Brainspace only (keep/archive/delete). To drop a server-backend project's
-    remote beads database, use `dotbrain beads drop-db` separately.
-    """
-    if all:
-        if repo or name or no_repo:
-            raise typer.BadParameter("--all is mutually exclusive with --repo, --name, and --no-repo")
-        if archive or delete:
-            raise typer.BadParameter("--all does not support --archive or --delete; use per-project unwire for destructive offboard")
-        results = workflows.unwire_all_projects(
-            dotbrain_home=paths.resolve_dotbrain_home(),
-            dry_run=dry_run,
-        )
-        for result in results:
-            for line in result.logs:
-                typer.echo(f"[{result.project}] {line}")
-            for w in result.warnings:
-                typer.echo(f"[{result.project}] warning: {w}", err=True)
-        return
-    if archive and delete:
-        typer.echo("error: --archive and --delete are mutually exclusive", err=True)
-        raise typer.Exit(2)
-    if no_repo and repo is not None:
-        raise typer.BadParameter("--no-repo is mutually exclusive with --repo")
-    if no_repo and not name:
-        raise typer.BadParameter("--no-repo requires --name")
-    offboard = "archive" if archive else "delete" if delete else "keep"
-    result = workflows.unwire_project(
-        dotbrain_home=paths.resolve_dotbrain_home(),
-        repo=repo,
-        project=name,
-        no_repo=no_repo,
-        offboard=offboard,
-        dry_run=dry_run,
-    )
-    for line in result.logs:
-        typer.echo(line)
-    for w in result.warnings:
-        typer.echo(f"warning: {w}", err=True)
-
-
-def _resolve_beads_server(
-    server_host: Optional[str],
-    server_port: Optional[str],
-    server_user: Optional[str],
-    ssh_host: Optional[str],
-) -> tuple[str, str, str, str]:
-    """Resolve sql-server connection from flags, falling back to config.yaml beads.server."""
-    cfg = config.load_config(paths.resolve_dotbrain_home())
-    host = server_host if server_host is not None else cfg.beads_server.host
-    port = server_port if server_port is not None else cfg.beads_server.port
-    user = server_user if server_user is not None else cfg.beads_server.user
-    ssh = ssh_host if ssh_host is not None else cfg.beads_server.ssh_host
-    if not host:
-        raise typer.BadParameter(
-            "no Dolt sql-server configured; set beads.server.host in config.yaml "
-            "or pass --beads-server-host (embedded-backend projects have no remote database)"
-        )
-    return host, port, user, ssh
-
-
-@app.command("drop-beads-db", hidden=True)
-@beads_app.command("drop-db")
-def drop_beads_db(
-    name: str = typer.Argument(..., help="Beads database name to drop (usually the project name)."),
-    yes: bool = typer.Option(False, "--yes", help="Confirm the destructive drop."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the drop without running it."),
-    ssh_host: Optional[str] = typer.Option(None, "--beads-ssh-host", help="SSH hop that can reach the sql-server; empty connects directly. Defaults to beads.server.ssh_host."),
-    server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Dolt sql-server host. Defaults to beads.server.host."),
-    server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port."),
-    server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user."),
-) -> None:
-    """Drop a project's remote beads database on the shared Dolt sql-server."""
-    if not (yes or dry_run):
-        raise typer.BadParameter("beads drop-db requires --yes (or --dry-run)")
-    host, port, user, ssh = _resolve_beads_server(
-        server_host, server_port, server_user, ssh_host
-    )
+    """Detach checkouts while retaining their Brainspaces and tracker databases."""
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        log = beads_mod.drop_remote_beads_database(
-            name, server_host=host, server_port=port, server_user=user, ssh_host=ssh, dry_run=dry_run
-        )
-    except ValueError as exc:  # unsafe/protected database name
-        raise typer.BadParameter(str(exc)) from exc
-    typer.echo(log)
+        if all_projects and (repo is not None or project is not None):
+            raise ValueError('--all cannot be combined with --project or --repo')
+        results = (workflows.unwire_all_projects(root) if all_projects else
+                   [workflows.unwire_project(dotbrain_home=root, repo=repo, project=project)])
+    except ValueError as exc:
+        render(CommandResult('unwire', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult('unwire', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    _render_lifecycle('unwire', results, json_output)
 
 
-@app.command("list-beads-db", hidden=True)
-@beads_app.command("list-db")
-def list_beads_db(
-    ssh_host: Optional[str] = typer.Option(None, "--beads-ssh-host", help="SSH hop that can reach the sql-server; empty connects directly. Defaults to beads.server.ssh_host."),
-    server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Dolt sql-server host. Defaults to beads.server.host."),
-    server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port."),
-    server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user."),
-) -> None:
-    """List the databases on the shared Dolt sql-server."""
-    host, port, user, ssh = _resolve_beads_server(
-        server_host, server_port, server_user, ssh_host
-    )
-    for db in beads_mod.list_remote_beads_databases(
-        server_host=host, server_port=port, server_user=user, ssh_host=ssh
-    ):
-        typer.echo(db)
-
-
-@app.command("migrate-beads", hidden=True)
-@beads_app.command("migrate")
-def migrate_beads(
-    repo: Optional[str] = typer.Option(None, "--repo", help="Wired repo path; project name is its dir name."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to migrate."),
-    all_projects: bool = typer.Option(False, "--all", help="Migrate every embedded Brainspace."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
-    server_host: Optional[str] = typer.Option(None, "--beads-server-host", help="Target Dolt sql-server host. Defaults to beads.server.host in config.yaml."),
-    server_port: Optional[str] = typer.Option(None, "--beads-server-port", help="Dolt sql-server port. Defaults to beads.server.port in config.yaml."),
-    server_user: Optional[str] = typer.Option(None, "--beads-server-user", help="Dolt sql-server user. Defaults to beads.server.user in config.yaml."),
-    database: str = typer.Option("", "--beads-database", help="Dolt database name (single-project only). Defaults to project name."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print the planned bd sequence without running it."),
-) -> None:
-    """Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server, history intact."""
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
-    cfg = config.load_config(root)
-    host = server_host if server_host is not None else cfg.beads_server.host
-    port = server_port if server_port is not None else cfg.beads_server.port
-    user = server_user if server_user is not None else cfg.beads_server.user
+def _resolve_beads_server(root, server_host, server_port, server_user, ssh_host=None):
+    cfg = config.load_config(root).beads_server
+    host = server_host if server_host is not None else cfg.host
     if not host:
-        raise typer.BadParameter("no --beads-server-host given and none in config.yaml")
-    if all_projects and (repo or name):
-        raise typer.BadParameter("--all is mutually exclusive with --repo/--name")
+        raise ValueError("no Dolt sql-server configured; set beads.server.host or pass --server-host")
+    return (host, server_port if server_port is not None else cfg.port,
+            server_user if server_user is not None else cfg.user,
+            ssh_host if ssh_host is not None else cfg.ssh_host)
 
-    if all_projects:
-        results = migrate.migrate_all(
-            dotbrain_home=root,
-            server_host=host,
-            server_port=port,
-            server_user=user,
-            dry_run=dry_run,
-        )
-    else:
-        project = name or adopter_repos.repo_root(Path(repo) if repo else None).name
-        results = [
-            migrate.safe_migrate_project(
-                dotbrain_home=root,
-                project=project,
-                server_host=host,
-                server_port=port,
-                server_user=user,
-                database=database,
-                dry_run=dry_run,
-            )
-        ]
 
-    for r in results:
-        for line in r.logs:
-            typer.echo(f"[beads migrate] {line}")
-        if dry_run:
-            typer.echo(f"[beads migrate] {r.project}: planned bd sequence:")
-            for argv in r.planned_commands:
-                typer.echo(f"  {' '.join(argv)}")
-        for w in r.warnings:
-            typer.echo(f"[beads migrate] warning: {w}", err=True)
+def _beads_failure(command, exc, json_output, code=1):
+    render(CommandResult(command, "failure", errors=[str(exc)]), json_output=json_output)
+    raise typer.Exit(code) from exc
 
-    failed = [
-        r for r in results
-        if r.status in {"aborted-count-mismatch", "migrated-unverified", "failed"}
-    ]
-    if failed and not dry_run:
+
+def _finish_beads(result, json_output):
+    failed = any(target.status == "failure" for target in result.targets) or bool(result.errors)
+    if failed:
+        result.status = "partial" if any(target.status in {"success", "skipped"} for target in result.targets) else "failure"
+    render(result, json_output=json_output)
+    if failed:
         raise typer.Exit(1)
 
 
-@beads_app.command("load")
-def beads_load(
-    all: bool = typer.Option(False, "--all", help="Load tracker state for every Brainspace."),  # noqa: A002
-    repo: Optional[str] = typer.Option(None, "--repo", help="Repo whose Brainspace to load. Defaults to the current git repo."),
-    name: Optional[str] = typer.Option(None, "--name", help="Project/Brainspace name to load."),
-    dotbrain: Optional[str] = typer.Option(None, "--dotbrain", help="dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview what would be hydrated/pulled without mutating anything."),
+@beads_app.command("drop-db")
+def drop_beads_db(
+    name: str = typer.Argument(..., help="Database identifier, including an orphaned database."),
+    yes: bool = typer.Option(False, "--yes", help="Confirm the destructive drop."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without deleting."),
+    server_host: Optional[str] = typer.Option(None, "--server-host", help="Dolt server host; defaults to config."),
+    server_port: Optional[str] = typer.Option(None, "--server-port", help="Dolt server port; defaults to config."),
+    server_user: Optional[str] = typer.Option(None, "--server-user", help="Dolt server user; defaults to config."),
+    ssh_host: Optional[str] = typer.Option(None, "--ssh-host", help="Optional SSH hop; defaults to config."),
+    home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Hydrate local beads state from tracked declarations: attach server trackers, init embedded
-    ones, then pull. Pull-only reconcile: never pushes, never touches symlinks or hooks.
-
-    Without --all: load one project (by --name, or the --repo/cwd repo). With --all: every brainspace
-    root declared to use beads.
-    """
-    root = Path(dotbrain) if dotbrain else paths.resolve_dotbrain_home()
-    if all:
-        if repo or name:
-            raise typer.BadParameter("--all is mutually exclusive with --repo and --name")
-        projects = None
-    else:
-        if repo and name:
-            raise typer.BadParameter("--repo and --name are mutually exclusive")
-        try:
-            project = name or adopter_repos.repo_root(Path(repo) if repo else None).name
-        except ValueError as exc:
-            raise typer.BadParameter(str(exc)) from exc
-        projects = [project]
-
-    result = beads_mod.pull_beads_for_all(root, projects=projects, dry_run=dry_run)
-    for line in result.logs:
-        typer.echo(f"[beads load] {line}")
-    for warning in result.warnings:
-        typer.echo(f"[beads load] warning: {warning}", err=True)
+    """Explicitly delete a remote database; never infer it from the current project."""
+    try:
+        if not (yes or dry_run):
+            raise ValueError("beads drop-db requires --yes (or --dry-run)")
+        host, port, user, ssh = _resolve_beads_server(home or paths.resolve_dotbrain_home(), server_host, server_port, server_user, ssh_host)
+        log = beads_mod.drop_remote_beads_database(name, server_host=host, server_port=port,
+                                                  server_user=user, ssh_host=ssh, dry_run=dry_run)
+    except ValueError as exc:
+        _beads_failure("beads drop-db", exc, json_output, 2)
+    except (OSError, subprocess.SubprocessError, RuntimeError, yaml.YAMLError) as exc:
+        _beads_failure("beads drop-db", exc, json_output)
+    render(CommandResult("beads drop-db", targets=[TargetResult(scope="remote", changes=[log], data={"database": name})]), json_output=json_output)
 
 
-_AGENT_WORKSPACES = {
-    "all": (".claude", ".codex"),
-    "claude-code": (".claude",),
-    "codex": (".codex",),
-}
+@beads_app.command("list-db")
+def list_beads_db(
+    server_host: Optional[str] = typer.Option(None, "--server-host", help="Dolt server host; defaults to config."),
+    server_port: Optional[str] = typer.Option(None, "--server-port", help="Dolt server port; defaults to config."),
+    server_user: Optional[str] = typer.Option(None, "--server-user", help="Dolt server user; defaults to config."),
+    ssh_host: Optional[str] = typer.Option(None, "--ssh-host", help="Optional SSH hop; defaults to config."),
+    home: HomeOption = None, json_output: JsonOption = False,
+) -> None:
+    """List remote database identifiers, including databases without a Brainspace."""
+    try:
+        host, port, user, ssh = _resolve_beads_server(home or paths.resolve_dotbrain_home(), server_host, server_port, server_user, ssh_host)
+        databases = beads_mod.list_remote_beads_databases(server_host=host, server_port=port, server_user=user, ssh_host=ssh)
+    except ValueError as exc:
+        _beads_failure("beads list-db", exc, json_output, 2)
+    except (OSError, subprocess.SubprocessError, RuntimeError, yaml.YAMLError) as exc:
+        _beads_failure("beads list-db", exc, json_output)
+    render(CommandResult("beads list-db", targets=[TargetResult(scope="remote", changes=databases, data={"databases": databases})]), json_output=json_output)
 
 
-@skills_app.command("list", hidden=True)
-def skills_list() -> None:
-    """List all skills in the skills tree."""
-    root = paths.resolve_dotbrain_home()
-    for skill in skills.discover_skills(root / "skills"):
-        typer.echo(skill)
+@beads_app.command("migrate")
+def migrate_beads(
+    project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
+    all_projects: bool = typer.Option(False, "--all", help="Migrate every registered project."),
+    server_host: Optional[str] = typer.Option(None, "--server-host", help="Target Dolt server host; defaults to config."),
+    server_port: Optional[str] = typer.Option(None, "--server-port", help="Target Dolt server port; defaults to config."),
+    server_user: Optional[str] = typer.Option(None, "--server-user", help="Target Dolt server user; defaults to config."),
+    database: str = typer.Option("", "--database", help="Database override for a single project."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview the history-preserving migration."),
+    home: HomeOption = None, json_output: JsonOption = False,
+) -> None:
+    """Migrate embedded trackers to a server, keeping history and rollback backups."""
+    root = home or paths.resolve_dotbrain_home()
+    try:
+        if all_projects and database:
+            raise ValueError("--database cannot be combined with --all")
+        targets = projects.select_projects(root, project=project, all_projects=all_projects)
+        host, port, user, _ = _resolve_beads_server(root, server_host, server_port, server_user)
+    except ValueError as exc:
+        _beads_failure("beads migrate", exc, json_output, 2)
+    except (OSError, yaml.YAMLError) as exc:
+        _beads_failure("beads migrate", exc, json_output)
+    result = CommandResult("beads migrate")
+    for target in targets:
+        migration = migrate.safe_migrate_project(dotbrain_home=root, project=target.project,
+            server_host=host, server_port=port, server_user=user, database=database, dry_run=dry_run)
+        failure = migration.status in {"aborted-count-mismatch", "migrated-unverified", "failed", "skipped-unknown"}
+        result.targets.append(TargetResult(project=target.project,
+            checkout=str(target.checkout) if target.checkout else None,
+            status="failure" if failure else "skipped" if migration.status.startswith("skipped-") else "success",
+            changes=migration.logs, errors=migration.warnings if failure else [],
+            findings=[] if failure else [{"severity": "warning", "message": w} for w in migration.warnings],
+            data={"migration_status": migration.status, "pre_count": migration.pre_count,
+                  "post_count": migration.post_count, "planned_commands": migration.planned_commands}))
+    _finish_beads(result, json_output)
+
+
+@beads_app.command("sync")
+def beads_sync(
+    project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
+    all_projects: bool = typer.Option(False, "--all", help="Sync every registered project."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview tracker hydration and configured pulls."),
+    home: HomeOption = None, json_output: JsonOption = False,
+) -> None:
+    """Hydrate declared local tracker bindings and pull configured remotes; never push."""
+    root = home or paths.resolve_dotbrain_home()
+    try:
+        targets = projects.select_projects(root, project=project, all_projects=all_projects)
+        sync = beads_mod.pull_beads_for_all(root, projects=[target.project for target in targets], dry_run=dry_run)
+    except ValueError as exc:
+        _beads_failure("beads sync", exc, json_output, 2)
+    except (OSError, RuntimeError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        _beads_failure("beads sync", exc, json_output)
+    checkout_by_project = {target.project: str(target.checkout) if target.checkout else None for target in targets}
+    result = CommandResult("beads sync", targets=[TargetResult(
+        project=item["project"], checkout=checkout_by_project[item["project"]], status=item["status"],
+        changes=item["changes"], errors=item["errors"],
+        findings=[{"severity": "warning", "message": w} for w in item["warnings"]]) for item in sync.targets])
+    result.errors = [error for error in sync.errors if not any(error in item["errors"] for item in sync.targets)]
+    _finish_beads(result, json_output)
+
+
+from dotbrain.asset_cli import report as _asset_report
+
+@skills_app.command("list")
+def skills_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project"), json_output: JsonOption = False) -> None:
+    """Discover locally available skills."""
+    _asset_report("skills", "list", home, runtime, project, json_output)
 
 
 @skills_app.command("link")
-def skills_link(
-    target: str = typer.Option("all", "--target", help="claude-code | codex | all"),
-    scope: str = typer.Option("all", "--scope", help="global | project | all"),
-    project: Optional[str] = typer.Option(
-        None, "--project", help="limit project scope to one Brainspace by name"
-    ),
-    repo: Optional[str] = typer.Option(
-        None,
-        "--repo",
-        help="Checkout to link into (e.g. a linked worktree). Requires --project and project scope.",
-    ),
-) -> None:
-    """Link skills into agent runtimes.
-
-    Both scopes are curated include-lists. Project links each project's
-    ``project.yaml`` ``skills:`` selection into its agent workspaces. Global
-    links the operator's optional global selection into each runtime's skills
-    directory.
-    """
-    if target not in {"claude-code", "codex", "all"}:
-        raise typer.BadParameter(f"invalid --target: {target}")
-    if scope not in {"global", "project", "all"}:
-        raise typer.BadParameter(f"invalid --scope: {scope}")
-    if repo is not None and not project:
-        raise typer.BadParameter("--repo requires --project <name>")
-    if repo is not None and scope == "global":
-        raise typer.BadParameter("--repo applies to project scope only")
-
-    root = paths.resolve_dotbrain_home()
-    try:
-        if scope in {"project", "all"}:
-            _link_projects_native(root, target, project, Path(repo).resolve() if repo else None)
-        if scope in {"global", "all"}:
-            if project:
-                typer.echo("skill-link: warning: --project is ignored for global scope", err=True)
-            _render_global_skill_link(root, target)
-    except RuntimeError as exc:
-        raise typer.BadParameter(str(exc)) from exc
+def skills_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope"), project: Optional[str] = typer.Option(None, "--project"), repo: Optional[Path] = typer.Option(None, "--repo"), all_projects: bool = typer.Option(False, "--all"), json_output: JsonOption = False) -> None:
+    """Reconcile selected skills in project or explicit global scope."""
+    _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, all_projects)
 
 
-def _link_projects_native(
-    root: Path, target: str, project: Optional[str], repo_override: Optional[Path] = None
-) -> None:
-    workspaces = _AGENT_WORKSPACES[target]
-    if project:
-        brainspace = paths.brainspace(root, project)
-        if not brainspace.is_dir():
-            raise typer.BadParameter(f"no Brainspace: {paths.data_dir(root).name}/{project}")
-        brainspace_paths = [brainspace]
-    else:
-        brainspace_paths = paths.brainspaces(root)
-    for brainspace in brainspace_paths:
-        config.migrate_legacy_skill_manifest(root, brainspace.name)
-        extras = config.load_project_skills(root, brainspace.name)
-        skill_paths = skills.project_link_set(extras)
-        declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
-        active_workspaces = tuple(ws for ws in workspaces if ws in declared_workspaces)
-        repo = (
-            repo_override
-            if repo_override is not None
-            else adopter_repos.repo_for_brainspace(brainspace, root)
-        )
-        workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
-            brainspace, repo, active_workspaces
-        )
-        result = skills.link_project(
-            root,
-            brainspace,
-            tuple(workspace_dirs),
-            skill_paths,
-            workspace_dirs=workspace_dirs,
-        )
-        if repo is not None:
-            adopter_repos.reconcile_link_excludes(
-                repo,
-                linked=tuple(entry for entry in result.linked if entry.startswith((".claude/", ".codex/"))),
-                pruned=tuple(entry for entry in result.pruned if entry.startswith((".claude/", ".codex/"))),
-            )
-        for warning in workspace_warnings:
-            typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
-        for warning in result.warnings:
-            typer.echo(f"skill-link: warning: {warning} (project {brainspace.name})", err=True)
-        for pruned in result.pruned:
-            typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
-        typer.echo(f"project: linked {len(result.linked)} skill(s) into {brainspace.name}")
-
-
-def _render_global_skill_link(root: Path, target: str) -> None:
-    result = bootstrap_mod.link_global_skills(root, target)
-    for warning in result.warnings:
-        typer.echo(f"skill-link: warning: {warning}", err=True)
-    for line in result.logs:
-        typer.echo(line if line.startswith("global:") else f"  {line}")
-
-
-@agents_app.command("list", hidden=True)
-def agents_list() -> None:
-    root = paths.resolve_dotbrain_home()
-    names: set[str] = set()
-    for subdir, ext in subagents.RUNTIME_SPEC.values():
-        runtime_dir = root / "agents" / subdir
-        if runtime_dir.is_dir():
-            for path in runtime_dir.glob(f"*{ext}"):
-                names.add(path.stem)
-        try:
-            resource_dir = resource_loader.resource(f"agents/{subdir}")
-        except FileNotFoundError:
-            continue
-        if resource_dir.is_dir():
-            for entry in resource_dir.iterdir():
-                if entry.is_file() and entry.name.endswith(ext):
-                    names.add(Path(entry.name).stem)
-    for name in sorted(names):
-        typer.echo(name)
+@agents_app.command("list")
+def agents_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project"), json_output: JsonOption = False) -> None:
+    """Discover locally available agents."""
+    _asset_report("agents", "list", home, runtime, project, json_output)
 
 
 @agents_app.command("link")
-def agents_link(
-    target: str = typer.Option("all", "--target", help="claude-code | codex | all"),
-    scope: str = typer.Option("all", "--scope", help="global | project | all"),
-    project: Optional[str] = typer.Option(
-        None,
-        "--project",
-        help="Limit project linking to a single Brainspace by name.",
-    ),
-    repo: Optional[str] = typer.Option(
-        None,
-        "--repo",
-        help="Checkout to link into (e.g. a linked worktree). Requires --project and project scope.",
-    ),
-) -> None:
-    """Link vendor-native subagents into agent runtimes."""
-    if target not in {"claude-code", "codex", "all"}:
-        raise typer.BadParameter(f"invalid --target: {target}")
-    if scope not in {"global", "project", "all"}:
-        raise typer.BadParameter(f"invalid --scope: {scope}")
-    if repo is not None and not project:
-        raise typer.BadParameter("--repo requires --project <name>")
-    if repo is not None and scope == "global":
-        raise typer.BadParameter("--repo applies to project scope only")
-
-    root = paths.resolve_dotbrain_home()
-    repo_override = Path(repo).resolve() if repo else None
-    if scope in {"project", "all"}:
-        brainspaces_to_link = [paths.brainspace(root, project)] if project else paths.brainspaces(root)
-        if project and not brainspaces_to_link[0].exists():
-            raise typer.BadParameter(f"unknown project: {project}")
-        for brainspace in brainspaces_to_link:
-            names = subagents.project_link_set(config.load_project_subagents(root, brainspace.name))
-            declared_workspaces = brainspaces.active_agent_workspaces(brainspace, root)
-            active_workspaces = tuple(ws for ws in _AGENT_WORKSPACES[target] if ws in declared_workspaces)
-            target_repo = (
-                repo_override
-                if repo_override is not None
-                else adopter_repos.repo_for_brainspace(brainspace, root)
-            )
-            workspace_dirs, workspace_warnings = workflows.project_workspace_dirs(
-                brainspace, target_repo, active_workspaces
-            )
-            result = subagents.link_project_subagents(
-                root,
-                brainspace,
-                tuple(workspace_dirs),
-                names,
-                workspace_dirs=workspace_dirs,
-            )
-            if target_repo is not None:
-                adopter_repos.reconcile_link_excludes(
-                    target_repo,
-                    linked=tuple(entry for entry in result.linked if entry.startswith((".claude/", ".codex/"))),
-                    pruned=tuple(entry for entry in result.pruned if entry.startswith((".claude/", ".codex/"))),
-                )
-            for warning in workspace_warnings:
-                typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
-            for warning in result.warnings:
-                typer.echo(f"agent-link: warning: {warning} (project {brainspace.name})", err=True)
-            for pruned in result.pruned:
-                typer.echo(f"  pruned stale {brainspace.name}/{pruned}")
-            typer.echo(f"project: linked {len(result.linked)} subagent file(s) into {brainspace.name}")
-
-    if scope in {"global", "all"}:
-        _render_global_agent_link(root, target)
+def agents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope"), project: Optional[str] = typer.Option(None, "--project"), repo: Optional[Path] = typer.Option(None, "--repo"), all_projects: bool = typer.Option(False, "--all"), json_output: JsonOption = False) -> None:
+    """Reconcile selected agents in project or explicit global scope."""
+    _asset_report("agents", "link", home, runtime, project, json_output, scope, repo, all_projects)
 
 
-def _render_global_agent_link(root: Path, target: str) -> None:
-    result = bootstrap_mod.link_global_subagents(root, target)
-    for warning in result.warnings:
-        typer.echo(f"agent-link: warning: {warning}", err=True)
-    for line in result.logs:
-        typer.echo(line if line.startswith("global:") else f"  {line}")
+_SITE_PROJECT = typer.Option(None, "--project", help="Select a named Brainspace.")
 
 
-_SITE_NAME = typer.Option(None, "--name", help="Brainspace name. Defaults to the current repo's .brain.")
-
-
-def _site_brain(name: Optional[str]) -> tuple[Path, Path]:
-    root = paths.resolve_dotbrain_home()
-    try:
-        return root, site_mod.find_brain(root, name)
-    except site_mod.SiteError as exc:
-        typer.echo(f"site: {exc}", err=True)
-        raise typer.Exit(1)
+def _site_target(project: Optional[str], home: Optional[Path]) -> tuple[Path, projects.ProjectTarget, Path]:
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
+    target = projects.select_projects(root, project=project)[0]
+    brain = paths.confined_path(target.brainspace, ".brain")
+    if not brain.is_dir():
+        raise site_mod.SiteError(f"no Brain for '{target.project}' at {brain}")
+    return root, target, brain
 
 
 @site_app.command("init")
 def site_init(
-    name: Optional[str] = _SITE_NAME,
+    project: Optional[str] = _SITE_PROJECT,
     title: Optional[str] = typer.Option(None, "--title", help="Site title. Defaults to '<name> Brain'."),
+    home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
     """Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual."""
-    _, brain = _site_brain(name)
-    created = site_mod.init(brain, title)
-    for path in created:
-        typer.echo(f"site: created {path}")
-    if site_mod.site_settings_file(brain) in created:
-        typer.echo(
-            "site: every docs/ page is in the sidebar; trim or regroup it in site.yaml, then run "
-            "`dotbrain site dev`. .brain/site/configure.md, the home page's Configure this site button, explains the settings."
-        )
-    if not created:
-        typer.echo("site: already set up; nothing changed")
+    _site_operation("init", project, home, json_output, title)
 
 
-def _site_run(command: str, name: Optional[str]) -> None:
-    root, brain = _site_brain(name)
+def _site_operation(command: str, project: Optional[str], home: Optional[Path],
+                    json_output: bool = False, title: Optional[str] = None) -> None:
+    report = CommandResult(f"site {command}")
+    exit_code = 0
     try:
-        out = site_mod.run_site(command, dotbrain_home=root, brain=brain)
-    except site_mod.SiteError as exc:
-        typer.echo(f"site: {exc}", err=True)
-        raise typer.Exit(1)
-    if command == "build":
-        typer.echo(f"site: built {brain.parent.name} into {out}")
+        root, selected, brain = _site_target(project, home)
+        target = TargetResult(project=selected.project,
+                              checkout=str(selected.checkout) if selected.checkout else None)
+        report.targets.append(target)
+        if command == "init":
+            target.changes.extend(f"created {path}" for path in site_mod.init(brain, title))
+        else:
+            kwargs = {"run": site_mod.stderr_run} if command == "build" else {}
+            out = site_mod.run_site(command, dotbrain_home=root, brain=brain, **kwargs)
+            if command == "build":
+                target.changes.append(f"built into {out}")
+                target.data = {"output": str(out)}
+    except ValueError as exc:
+        report.errors.append(str(exc))
+        exit_code = 2
+    except (site_mod.SiteError, OSError, RuntimeError, yaml.YAMLError) as exc:
+        report.errors.append(str(exc))
+        exit_code = 1
+    if exit_code:
+        report.status = "failure"
+        for target in report.targets:
+            target.status = "failure"
+    if command in ("init", "build") or exit_code:
+        render(report, json_output=json_output)
+    if exit_code:
+        raise typer.Exit(exit_code)
 
 
 @site_app.command("dev")
-def site_dev(name: Optional[str] = _SITE_NAME) -> None:
+def site_dev(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None) -> None:
     """Serve the Brain site locally with live reload (127.0.0.1)."""
-    _site_run("dev", name)
+    _site_operation("dev", project, home)
 
 
 @site_app.command("build")
-def site_build(name: Optional[str] = _SITE_NAME) -> None:
+def site_build(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None,
+               json_output: JsonOption = False) -> None:
     """Build the Brain site; fails on a nav link to a missing page."""
-    _site_run("build", name)
+    _site_operation("build", project, home, json_output)
 
 
 @site_app.command("preview")
-def site_preview(name: Optional[str] = _SITE_NAME) -> None:
+def site_preview(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None) -> None:
     """Serve the last build locally (127.0.0.1)."""
-    _site_run("preview", name)
+    _site_operation("preview", project, home)

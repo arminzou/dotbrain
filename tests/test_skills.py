@@ -221,6 +221,44 @@ def test_link_into_links_an_include_list(dotbrain_home: Path, tmp_path: Path):
     assert result.linked == ["codex/discovery-test"]
 
 
+@pytest.mark.parametrize("existing_destination", [False, True])
+def test_escaping_selection_leaves_destination_and_cache_unchanged(
+    dotbrain_home: Path, tmp_path: Path, existing_destination: bool,
+):
+    dest = tmp_path / "global-skills"
+    if existing_destination:
+        dest.mkdir()
+        (dest / "operator.txt").write_text("preserve me")
+        (dest / "old").symlink_to(dotbrain_home / "skills" / "misc" / "discovery-test", target_is_directory=True)
+    cache_file = dotbrain_home / ".cache" / "skills" / "cached" / "SKILL.md"
+    _write(cache_file, "preserve cache")
+
+    result = skills.link_into(dotbrain_home, dest, ("misc/discovery-test", "../escaped"), prune_owned_only=True)
+    assert result.warnings and "inside" in result.warnings[0]
+
+    assert cache_file.read_text() == "preserve cache"
+    assert not (dest / "discovery-test").is_symlink()
+    assert dest.exists() is existing_destination
+    if existing_destination:
+        assert (dest / "operator.txt").read_text() == "preserve me"
+        assert (dest / "old").is_symlink()
+        assert sorted(p.name for p in dest.iterdir()) == ["old", "operator.txt"]
+
+
+def test_missing_source_in_mixed_selection_preserves_links_and_cache(dotbrain_home: Path, tmp_path: Path):
+    dest = tmp_path / "global-skills"
+    dest.mkdir()
+    (dest / "old").symlink_to(dotbrain_home / "skills" / "misc" / "discovery-test", target_is_directory=True)
+    cache_file = dotbrain_home / ".cache" / "skills" / "cached" / "SKILL.md"
+    _write(cache_file, "preserve cache")
+    result = skills.link_into(dotbrain_home, dest, ("misc/discovery-test", "misc/missing"), prune_owned_only=True)
+    assert result.warnings == ["skill not found: misc/missing"]
+    assert result.linked == result.pruned == result.stashed == []
+    assert (dest / "old").is_symlink()
+    assert [p.name for p in dest.iterdir()] == ["old"]
+    assert cache_file.read_text() == "preserve cache"
+
+
 def test_link_into_owned_prune_keeps_foreign_links(dotbrain_home: Path, tmp_path: Path):
     dest = tmp_path / "global-skills"
     dest.mkdir()
@@ -278,14 +316,21 @@ def test_wire_brain_skill_tracks_current_cli_wiring_model():
 
     for command in (
         "dotbrain wire",
-        "dotbrain wire --all",
+        "dotbrain refresh --all",
         "dotbrain refresh",
         "dotbrain bootstrap",
         "dotbrain doctor",
         "dotbrain unwire",
         "dotbrain beads drop-db",
+        "dotbrain skills link --scope global",
+        "dotbrain agents link --scope global",
     ):
         assert command in text
+
+    for retired in ("wire --all", "--name", "--archive", "--delete", "--beads-server-host"):
+        assert retired not in text
+    assert "Git metadata" in text
+    assert "# dotbrain-managed-agent: v1" in text
 
     for phrase in (
         "Expected wiring is derived from project config",

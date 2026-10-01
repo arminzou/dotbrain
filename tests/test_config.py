@@ -5,7 +5,25 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from dotbrain import config
+
+
+def test_project_config_symlink_escape_rejects_reads_and_writes(tmp_path: Path):
+    home = tmp_path / "home"
+    brainspace = home / "brainspaces" / "example"
+    brainspace.mkdir(parents=True)
+    external = tmp_path / "external"
+    external.mkdir()
+    declaration = external / "project.yaml"
+    declaration.write_text("beads:\n  mode: none\n", encoding="utf-8")
+    (brainspace / ".brain").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="escapes"):
+        config.load_project_config(home, "example")
+    with pytest.raises(ValueError, match="escapes"):
+        config.write_project_config(home, "example", config.ProjectBeads(mode="server"))
+    assert declaration.read_text(encoding="utf-8") == "beads:\n  mode: none\n"
 
 
 # --------------------------------------------------------------------------- load_config (config.yaml)
@@ -218,7 +236,7 @@ def test_write_project_config_skips_defaults(tmp_path: Path):
     assert log is None
 
 
-# --------------------------------------------------------------------------- record_project_beads / remove_project_beads
+# --------------------------------------------------------------------------- record_project_beads
 
 
 def test_record_project_beads_delegates_to_project_yaml(tmp_path: Path):
@@ -248,28 +266,11 @@ def test_record_project_beads_does_not_retract_manual_declaration(tmp_path: Path
     assert config.load_project_config(tmp_path, "brain-only").mode == "none"
 
 
-def test_remove_project_beads_deletes_file(tmp_path: Path):
-    config.write_project_config(
-        tmp_path, "fork", config.ProjectBeads(mode="embedded", remote="https://example.com/fork"),
-    )
-    log = config.remove_project_beads(tmp_path, "fork")
-    assert log is not None
-    assert not (tmp_path / "brainspaces" / "fork" / ".brain" / "project.yaml").exists()
-    assert config.remove_project_beads(tmp_path, "fork") is None  # already gone
-
-
 # --------------------------------------------------------------------------- per-project skills
 
 
 def _project_yaml(tmp_path: Path, name: str, body: str) -> Path:
     path = tmp_path / "brainspaces" / name / ".brain" / "project.yaml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(body)
-    return path
-
-
-def _legacy_manifest(tmp_path: Path, name: str, body: str) -> Path:
-    path = tmp_path / "brainspaces" / name / ".brain" / "agents" / "skills.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body)
     return path
@@ -300,34 +301,6 @@ def test_load_project_subagents_reads_list(tmp_path: Path):
         "subagents:\n  - reviewer\n  - reviewer\n  - helper\n",
     )
     assert config.load_project_subagents(tmp_path, "p") == ("reviewer", "helper")
-
-
-def test_migrate_legacy_manifest_absent_is_noop(tmp_path: Path):
-    assert config.migrate_legacy_skill_manifest(tmp_path, "p") is None
-
-
-def test_migrate_legacy_manifest_empty_just_removes_file(tmp_path: Path):
-    legacy = _legacy_manifest(tmp_path, "p", "version: 1\nskills: []\n")
-    log = config.migrate_legacy_skill_manifest(tmp_path, "p")
-    assert log is not None
-    assert not legacy.exists()
-    assert config.load_project_skills(tmp_path, "p") == ()
-
-
-def test_migrate_legacy_manifest_folds_extras_without_loss(tmp_path: Path):
-    legacy = _legacy_manifest(tmp_path, "p", "version: 1\nskills:\n  - misc/x\n  - misc/y\n")
-    config.migrate_legacy_skill_manifest(tmp_path, "p")
-    assert not legacy.exists()
-    assert config.load_project_skills(tmp_path, "p") == ("misc/x", "misc/y")
-
-
-def test_migrate_legacy_manifest_preserves_existing_project_yaml(tmp_path: Path):
-    _project_yaml(tmp_path, "p", "beads:\n  mode: embedded\nskills:\n  - misc/keep\n")
-    _legacy_manifest(tmp_path, "p", "version: 1\nskills:\n  - misc/x\n")
-    config.migrate_legacy_skill_manifest(tmp_path, "p")
-    # Operator already owns skills: in project.yaml, so the legacy fold is a no-op there.
-    assert config.load_project_skills(tmp_path, "p") == ("misc/keep",)
-    assert config.load_project_config(tmp_path, "p").mode == "embedded"
 
 
 def test_write_project_config_preserves_skills(tmp_path: Path):

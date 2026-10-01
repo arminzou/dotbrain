@@ -27,7 +27,7 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 
 ## Setting up a site
 
-1. Run `dotbrain site init` from the wired repo, or `dotbrain site init --name <project>`. It
+1. Run `dotbrain site init` from the wired repo, or `dotbrain site init --project <project>`. It
    creates `.brain/site/site.yaml`, whose nav lists every `docs/` page (root pages under Docs, one
    section per folder), the standard home page `.brain/site/index.md`, and the manual
    `.brain/site/configure.md`, which explains the settings. It never overwrites a file.
@@ -40,6 +40,11 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
    with the user (usually a renamed ADR or a deleted doc), then offer `dotbrain site dev`.
 
 ## Command table
+
+Commands default to the current wired project, including a worktree or nested directory. Use
+`--project <name>` from elsewhere and `--home <path>` for a different private data root. Finite
+`site init` and `site build` reports support `--json`; `site dev` and `site preview` stream the
+server output and do not accept JSON reporting.
 
 | Request or symptom | Do |
 |---|---|
@@ -58,7 +63,7 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 | `vitepress build failed for <name>` | Read VitePress's error above it: usually a dead link, invalid frontmatter, or a page that does not compile ([vitepress.md](references/vitepress.md)) |
 | `has no build to preview` | Run `dotbrain site build` first |
 | `cannot serve on 127.0.0.1:4173` | Another preview holds the port: stop it first |
-| `no .brain found here` | Run from a wired repo or pass `--name <project>` |
+| `no .brain found here` | Run from a wired repo or pass `--project <project>` |
 | A page builds but renders wrongly | [vitepress.md](references/vitepress.md), then [mermaid.md](references/mermaid.md) for diagrams |
 | Change the look | `.brain/site/theme/style.css`, loaded after the defaults |
 | Add a component | `.brain/site/theme/index.ts` exporting `{ enhanceApp({ app }) { ... } }` |
