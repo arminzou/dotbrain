@@ -408,7 +408,7 @@ def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tm
 
 
 def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
-    """The documented migration `mv projects brainspaces && dotbrain wire --all`:
+    """The documented migration `mv projects brainspaces && dotbrain refresh --all`:
     after renaming the data dir, reconcile re-points the now-dangling repo links."""
     root = tmp_path / "dotbrain"
     legacy = root / "projects" / "example"
@@ -427,7 +427,7 @@ def test_legacy_projects_rename_repairs_links_via_reconcile(tmp_path: Path):
     assert paths.data_dir(root) == root / "brainspaces"
     assert not (repo / ".brain").resolve().exists()
 
-    # Reconcile (what `wire --all` does) re-points every link to the new Brainspace.
+    # Reconcile (what `refresh --all` does) re-points every link to the new Brainspace.
     result = adopter_repos.reconcile(repo, paths.brainspace_link_targets(root, "example"))
     assert set(result.repaired) == set(paths.BRAINSPACE_LINKS)
     assert paths.symlink_target_matches(
