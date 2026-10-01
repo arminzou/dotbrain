@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="480" viewBox="0 0 1000 480" role="img" aria-labelledby="title desc">
+  <title id="title">Your code connected to private project context</title>
+  <desc id="desc">Claude Code and Codex work in your code repo. Gitignored links connect the repo to a separate private Brainspace containing the Brain for vocabulary, decisions, and designs, and Beads for issues and execution state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="#117967"/></marker>
+  </defs>
+  <rect width="1000" height="480" rx="20" fill="#f6f8f7"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="32" y="46" font-size="25" font-weight="600" fill="#172824">Your code. Your context.</text>
+    <text x="32" y="74" font-size="17" fill="#52645d">Connected for the agent. Stored separately.</text>
+    <rect x="32" y="108" width="360" height="310" rx="16" fill="#ffffff" stroke="#dce4e0"/>
+    <text x="56" y="147" font-size="23" font-weight="600" fill="#172824">Code repo</text>
+    <rect x="56" y="171" width="312" height="61" rx="10" fill="#edf8f4"/>
+    <path d="M76 193l-7 8 7 8M95 193l7 8-7 8M88 191l-7 20" fill="none" stroke="#117967" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="118" y="207" font-size="20" font-weight="600" fill="#172824">Claude Code / Codex</text>
+    <g fill="none" stroke="#52645d" stroke-width="1.7" stroke-linejoin="round">
+      <path d="M61 257h13l5 5h19v20H61z"/>
+      <path d="M65 300h17l7 7v19H65zM82 300v7h7"/>
+      <path d="M61 346h13l5 5h19v20H61z"/>
+    </g>
+    <g font-size="19" fill="#52645d">
+      <text x="118" y="278">Source files</text>
+      <text x="118" y="322">Public documentation</text>
+      <text x="118" y="367">Agent workspace</text>
+    </g>
+    <rect x="608" y="108" width="360" height="310" rx="16" fill="#ffffff" stroke="#dce4e0"/>
+    <circle cx="637" cy="140" r="5" fill="#117967"/>
+    <text x="652" y="147" font-size="23" font-weight="600" fill="#172824">Private Brainspace</text>
+    <rect x="632" y="171" width="312" height="98" rx="10" fill="#edf8f4" stroke="#dce4e0"/>
+    <text x="652" y="203" font-size="21" font-weight="600" fill="#172824">Brain</text>
+    <text x="652" y="233" font-size="18" fill="#52645d">Vocabulary, decisions, designs</text>
+    <rect x="632" y="285" width="312" height="98" rx="10" fill="#edf8f4" stroke="#dce4e0"/>
+    <text x="652" y="317" font-size="21" font-weight="600" fill="#172824">Beads</text>
+    <text x="652" y="347" font-size="18" fill="#52645d">Issues and execution state</text>
+    <g fill="none" stroke="#7daba0" stroke-width="2" stroke-dasharray="5 6">
+      <path d="M393 276h106"/>
+      <path d="M500 276h38q12 0 12-12v-32q0-12 12-12h43" marker-end="url(#arrow)"/>
+      <path d="M500 276h38q12 0 12 12v34q0 12 12 12h43" marker-end="url(#arrow)"/>
+    </g>
+    <circle cx="500" cy="276" r="5" fill="#117967"/>
+    <text x="500" y="170" text-anchor="middle" font-size="18" font-weight="600" fill="#117967">Gitignored</text>
+    <text x="500" y="194" text-anchor="middle" font-size="18" fill="#117967">links</text>
+    <text x="32" y="453" font-size="17" fill="#52645d">Shared context across sessions and worktrees</text>
+    <text x="968" y="453" text-anchor="end" font-size="17" fill="#52645d">Outside the code repo</text>
+  </g>
+</svg>
