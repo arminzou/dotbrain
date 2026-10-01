@@ -6,8 +6,9 @@ export default defineConfig({
   base: '/dotbrain/',
   cleanUrls: true,
   lastUpdated: true,
-  // README.md is the index for browsing docs/ on GitHub; index.md is the site's home.
-  srcExclude: ['README.md'],
+  // README.md is the index for browsing docs/ on GitHub, and AGENTS.md/CLAUDE.md guide agents
+  // editing docs/; index.md is the site's home.
+  srcExclude: ['README.md', 'AGENTS.md', 'CLAUDE.md'],
   head: [
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/dotbrain/assets/favicon-light-32.png' }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/dotbrain/assets/favicon-light-32.png', media: '(prefers-color-scheme: light)' }],

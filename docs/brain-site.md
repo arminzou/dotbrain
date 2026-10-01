@@ -28,15 +28,16 @@ the site.
 
 ```mermaid
 flowchart LR
-  subgraph Brain[".brain/"]
-    a["docs/release.md"]
-    b["adr/0001-storage.md"]
-    c["site/index.md"]
+  accTitle: Brain files and the site pages they become
+  subgraph Brain["`*.brain/*`"]
+    a["`*docs/release.md*`"]
+    b["`*adr/0001-storage.md*`"]
+    c["`*site/index.md*`"]
   end
   subgraph Site["http://127.0.0.1"]
-    a2["/docs/release"]
-    b2["/adr/0001-storage"]
-    c2["/"]
+    a2["`*/docs/release*`"]
+    b2["`*/adr/0001-storage*`"]
+    c2["`*/*`"]
   end
   a --> a2
   b --> b2
@@ -51,7 +52,8 @@ files with `[brackets]` in their names are skipped.
 `.brain/site/site.yaml` decides what the sidebar lists. A page left out is still on the site,
 reachable by links and search.
 
-```yaml [.brain/site/site.yaml]
+```yaml
+# .brain/site/site.yaml
 title: "My Brain"
 description: Private project guidance
 nav:

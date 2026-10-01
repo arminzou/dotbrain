@@ -8,18 +8,21 @@ private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start 
 
 ```mermaid
 flowchart LR
-  subgraph repo["~/repos/my-app (code repo)"]
-    rb[".brain"]
-    rbd[".beads"]
-    rc[".claude/ · skills · agents links"]
-    rx[".codex/ · skills · agents links"]
+  accTitle: What wiring links into a code repo
+  subgraph repo["`*~/repos/my-app* (code repo)`"]
+    rb["`*.brain*`"]
+    rbd["`*.beads*`"]
+    rc["`***.claude/***
+  skill and agent links`"]
+    rx["`***.codex/***
+  skill and agent links`"]
   end
-  subgraph space["~/dotbrain/brainspaces/my-app"]
-    sb[".brain/"]
-    sbd[".beads/"]
+  subgraph space["`*~/dotbrain/brainspaces/my-app*`"]
+    sb["`*.brain/*`"]
+    sbd["`*.beads/*`"]
   end
-  subgraph home["~/dotbrain"]
-    sk["skills/ · agents/"]
+  subgraph home["`*~/dotbrain*`"]
+    sk["`***skills/*** and ***agents/***`"]
   end
   rb -- symlink --> sb
   rbd -- symlink --> sbd
@@ -44,8 +47,10 @@ layout is still recognized; new Brainspaces are created under `brainspaces/`.
 
 ```mermaid
 flowchart TD
+  accTitle: Choosing wire, refresh, unwire, or wire-brain
   q1{"Is the repo wired?"} -- no --> wire["dotbrain wire"]
-  q1 -- yes --> q2{"Something drifted? · config, plugin update, missing link"}
+  q1 -- yes --> q2{"`**Something drifted?**
+  config, plugin update, missing link`"}
   q2 -- yes --> refresh["dotbrain refresh"]
   q2 -- "no, I want out" --> unwire["dotbrain unwire"]
   q1 -- "it's a worktree" --> wb["wire-brain skill"]

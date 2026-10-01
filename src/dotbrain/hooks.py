@@ -15,8 +15,9 @@ convention. ``DOTBRAIN.md`` carries a rule telling the agent to read it instead.
 Output is assembled as bytes and written to ``stdout.buffer`` so the payload is exactly
 what ``cat`` produced: no newline translation on Windows, no re-encoding of Brain files.
 
-Beads context lives in project hooks (``bd prime --hook-json`` on Claude Code,
-``bd codex-hook SessionStart`` on Codex), so this hook does not set ``BEADS_DIR``.
+Beads context is not injected here, and dotbrain installs no hook that does. Agents run
+``bd prime`` themselves; an operator who wants it injected adds Beads' own hook with
+``bd setup``. This hook therefore does not set ``BEADS_DIR``.
 """
 
 from __future__ import annotations

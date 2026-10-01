@@ -120,7 +120,7 @@
 }
 .home .steps li::before {
   content: counter(step);
-  grid-row: span 3;
+  grid-row: 1;
   width: 32px;
   height: 32px;
   display: grid;
@@ -130,6 +130,10 @@
   font-family: var(--vp-font-family-mono);
   font-size: 14px;
   color: var(--vp-c-text-2);
+}
+/* Content always takes the text column, however many blocks a step has. */
+.home .steps li > * {
+  grid-column: 2;
 }
 .home .steps h3 {
   margin: 4px 0 4px !important;
@@ -277,7 +281,7 @@
 .mermaid-diagram .labelBkg {
   background: var(--vp-c-bg) !important;
   color: var(--vp-c-text-2) !important;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .mermaid-diagram .edgeLabel rect {
@@ -410,4 +414,61 @@
 .mermaid-diagram .cluster-label * {
   color: var(--vp-c-text-2) !important;
   fill: var(--vp-c-text-2) !important;
+}
+
+.vp-doc .flow-steps {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  counter-reset: flow;
+}
+.vp-doc .flow-steps li {
+  counter-increment: flow;
+  margin: 0;
+}
+.vp-doc .flow-steps a {
+  height: 100%;
+  padding: 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.vp-doc .flow-steps a:hover {
+  border-color: var(--vp-c-brand-1);
+}
+.vp-doc .flow-steps a::before {
+  content: counter(flow, decimal-leading-zero);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  color: var(--vp-c-brand-1);
+}
+.vp-doc .flow-steps code {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Mermaid sizes labels at its own line height; keep the page's paragraph line height out of them. */
+.mermaid-diagram foreignObject p {
+  line-height: inherit;
+}
+
+/* Tree views (treeView-beta) keep Mermaid's own style, aligned left like a file listing. Mermaid
+   adds an implicit "/" root above the first entry; it is hidden so a tree starts at its entries. */
+.vp-doc .mermaid-diagram:has(.tree-view) > div {
+  margin-left: 0;
+}
+.mermaid-diagram .tree-view > g:first-of-type,
+.mermaid-diagram .tree-view > line:first-of-type {
+  display: none;
 }

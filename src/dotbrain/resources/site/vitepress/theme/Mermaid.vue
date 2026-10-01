@@ -41,9 +41,10 @@ async function render() {
     theme: isDark.value ? 'neo-dark' : 'neo',
     look: 'neo',
     // Sequence diagrams take their participant, message, and note sizes from this top-level
-    // size (default 16), overriding the per-kind sequence settings; 13 matches the flowcharts.
-    fontSize: 13,
-    themeVariables: { fontFamily, fontSize: '13px' },
+    // size (default 16), overriding the per-kind sequence settings; 15 matches the flowcharts.
+    fontSize: 15,
+    themeVariables: { fontFamily, fontSize: '15px' },
+    treeView: { showIcons: true },
     flowchart: { nodeSpacing: 24, rankSpacing: 28, padding: 8, minNodeWidth: 0, wrappingWidth: 400 },
     sequence: {
       wrap: true,

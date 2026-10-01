@@ -1,6 +1,7 @@
-# Mermaid diagrams in lessons
+# Mermaid diagrams
 
-Read this before drawing a diagram in a lesson or reference. Diagrams are fenced `mermaid` blocks;
+Read this before drawing a diagram on a Brain site page, or in any project doc rendered with
+Mermaid. Diagrams are fenced `mermaid` blocks;
 the official [syntax reference](https://mermaid.js.org/intro/syntax-reference.html) holds the full
 grammar for each type.
 
@@ -24,6 +25,28 @@ diagram contains structure only:
 - Diagram text is not in the site search. Name the key steps in the surrounding prose too.
 - A trace whose steps are whole sentences reads better as a numbered list or a `text` block.
 
+## Labels
+
+One label style across every diagram, so readers learn it once:
+
+- **Two lines: a bold name, then what it holds or does.** Write it as a markdown string, a quoted
+  label wrapped in backticks:
+
+  ```text
+  plugin["`**Plugin**
+    skills, convention, hook`"]
+  ```
+
+- **One line stays plain.** Bold only the first line of a two-line label; when everything is bold,
+  nothing stands out.
+- **Paths and file names are italic:** `*.brain/*`, `*~/dotbrain*`, `*AGENTS.md*`; on a bold line,
+  `***.brain/***`. Backticks cannot appear inside a markdown string, so a path cannot be code.
+  Sequence diagrams do not format text; paths stay plain there.
+- **Arrow labels are plain verb phrases:** `reads and writes`, `wires`, `records decisions`.
+- **Join phrases with words, commas, or a line break**, never a separator such as `·` or `|`.
+- **An action is an arrow, not a note.** In a sequence diagram, the agent reading a file is a
+  message to that file's participant; keep notes for commentary.
+
 ## Pick the type
 
 | The reader needs to see | Type |
@@ -31,6 +54,7 @@ diagram contains structure only:
 | A branch, a fan-in, shared steps, or what travels along an arrow | `flowchart` |
 | A request passing between participants: browser, API, identity provider | `sequenceDiagram` |
 | A lifecycle: a revision, a delivery, a message's settlement | `stateDiagram-v2` |
+| A folder layout: what lives where | `treeView-beta` |
 
 ## Flowcharts
 
@@ -44,7 +68,11 @@ flowchart LR
 
 Mermaid keeps the direction you write, so choose it for the page. The content column is about
 600px on a laptop and wider on larger screens: use `LR` for fans and chains of up to five short
-steps, and `TB` for longer chains, long labels, or graphs. Write a branch or a merge as another
+steps, and `TB` for longer chains, long labels, or graphs. A diagram that is too wide as `LR` usually
+fits as `TB` with `direction LR` inside each subgraph, one row per group.
+
+Arrows are drawn as straight runs with rounded corners. Mermaid ignores curve settings for them, so
+leave those out. Write a branch or a merge as another
 line that reuses an id. Label an arrow with `-->|label|`.
 
 ## Sequence diagrams
@@ -84,6 +112,28 @@ stateDiagram-v2
 
 `[*]` marks the start; `State --> Other: event` labels a transition.
 
+## Tree views
+
+```mermaid
+treeView-beta
+  accTitle: Where configuration lives
+  ~/dotbrain/
+    config.yaml ## machine defaults
+    brainspaces/
+      my-app/
+        .brain/
+          project.yaml ## one project
+```
+
+- Use a tree view for any folder layout, never a hand-drawn `├──` block.
+- Indentation is the hierarchy. End a folder with `/`; it is drawn bold with a folder icon.
+- `## text` after a name is its description. Keep descriptions short; they line up in one column
+  after the longest name, so one long name pushes them all right.
+- Keep roots short (`repos/my-app/`), and give the full location in the prose.
+- A symlink is a plain entry whose description names its target: `.brain ## link to .brain/`.
+- The site supplies icons and colours, and hides Mermaid's implicit `/` root. The label rules above
+  do not apply: every entry is a path, so none is italic.
+
 ## Pitfalls
 
 | Avoid | Use instead | Why |
@@ -92,3 +142,5 @@ stateDiagram-v2
 | `a[Worker (Processor)]` | `a["Worker (Processor)"]` | Parentheses, brackets, and braces end an unquoted label |
 | Styling directives | Structure only | The site theme owns colours and fonts |
 | Trusting a passing build | Opening the page | Parse errors appear only in the browser |
+| `` `code` `` inside a markdown-string label | `*italic*` | Backticks end the markdown string; the diagram fails to parse |
+| A step list with no branches as a diagram | A numbered list | A straight chain of boxes adds height, not meaning |

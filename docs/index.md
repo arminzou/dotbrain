@@ -40,18 +40,19 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. The code repo o
 </div>
 <div>
 
-```text
-~/dotbrain/brainspaces/my-project/
-├── .brain/
-│   ├── CONTEXT.md   # domain vocabulary
-│   ├── adr/         # architecture decisions
-│   ├── designs/     # design docs
-│   └── docs/        # derived reference
-└── .beads/          # issue tracker
-
-~/repos/my-project/
-├── .brain  ──► ~/dotbrain/brainspaces/my-project/.brain
-└── .beads  ──► ~/dotbrain/brainspaces/my-project/.beads
+```mermaid
+treeView-beta
+  accTitle: A Brainspace and the code repo that links to it
+  brainspaces/my-project/
+    .brain/
+      CONTEXT.md ## domain vocabulary
+      adr/ ## architecture decisions
+      designs/ ## design docs
+      docs/ ## derived reference
+    .beads/ ## issue tracker
+  repos/my-project/
+    .brain ## link to the Brainspace's .brain/
+    .beads ## link to the Brainspace's .beads/
 ```
 
 </div>

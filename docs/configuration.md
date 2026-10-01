@@ -3,6 +3,21 @@
 Most setups never edit configuration. When you do, there are four files, all in your private
 dotbrain home:
 
+```mermaid
+treeView-beta
+  accTitle: Where dotbrain's configuration files live
+  ~/dotbrain/
+    config.yaml ## machine: shared infrastructure
+    skills/
+      skills.yaml ## machine: global skills
+    agents/
+      agents.yaml ## machine: global subagents
+    brainspaces/
+      my-app/
+        .brain/
+          project.yaml ## one project
+```
+
 | File | Scope | Seeded by |
 | --- | --- | --- |
 | `~/dotbrain/config.yaml` | Machine: shared infrastructure | `dotbrain bootstrap` |
@@ -23,11 +38,14 @@ After editing a file, run `dotbrain refresh` (or `dotbrain refresh --all`) to ap
 Only needed for [server-mode](beads-backend.md#server-mode) Beads. The seeded file has the block
 commented out.
 
-```yaml [~/dotbrain/config.yaml]
+```yaml
+# ~/dotbrain/config.yaml
+version: 3
+
 beads:
   server:
     host: db.example.internal
-    port: 3307
+    port: "3307"
     user: beads
     ssh_host: bastion.example.internal   # optional SSH hop, used by beads drop-db
 ```
@@ -36,27 +54,29 @@ beads:
 Never put credentials in `config.yaml`. Keep them in your secrets store.
 :::
 
-## `project.yaml` {#project-yaml}
+## `project.yaml`
 
-Project identity and deviations from the global defaults. The seeded file looks like this:
+Project identity and deviations from the global defaults. A project using server-mode Beads and one
+extra skill looks like this:
 
-```yaml [.brain/project.yaml]
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
 execution-engine: beads
 
 agents:            # which agent workspaces dotbrain wires
   - claude
   - codex
 
-public-tracker: none          # none | gh | linear
-# public-tracker-id: owner/repo
+public-tracker: gh            # none | gh | linear
+public-tracker-id: owner/repo
 
-# beads:                      # deviations from global defaults only
-#   mode: embedded            # embedded | server | none
-#   remote: https://doltremoteapi.dolthub.com/owner/repo
-#   database: custom_name
+beads:                        # deviations from global defaults only
+  mode: server                # embedded | server | none
+  remote: https://doltremoteapi.dolthub.com/owner/repo
+  database: project_beads
 
-# skills:                     # extra skills for this project's workspaces
-#   - some-collection/some-skill
+skills:                       # extra skills for this project's workspaces
+  - some-collection/some-skill
 
 # subagents:                  # project-only subagents; the packaged four are always wired
 #   - some-project-only-subagent
@@ -86,7 +106,8 @@ private execution graph or turns private work into public issues; see the `triag
 Your global skills, linked into every agent session on this machine. List paths to skill folders
 under `~/dotbrain/skills/`:
 
-```yaml [~/dotbrain/skills/skills.yaml]
+```yaml
+# ~/dotbrain/skills/skills.yaml
 version: 1
 targets:
   claude-code: ~/.claude/skills
@@ -100,7 +121,8 @@ global_extra:
 Global subagents linked into your personal agent homes. Removing an entry prunes its link on the
 next relink.
 
-```yaml [~/dotbrain/agents/agents.yaml]
+```yaml
+# ~/dotbrain/agents/agents.yaml
 # targets:
 #   claude-code: ~/.claude/agents
 #   codex: ~/.codex/agents

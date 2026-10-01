@@ -7,29 +7,33 @@ skills, and the public/private boundary.
 
 ```mermaid
 flowchart TB
+  accTitle: How dotbrain, the code repo, and the private Brainspace connect
   subgraph tool["Public: the dotbrain tool"]
-    plugin["Plugin · skills · convention · hook"]
-    cli["CLI · wire · refresh · doctor"]
+    direction LR
+    plugin["`**Plugin**
+  skills, convention, hook`"]
+    cli["`**CLI**
+  wire, refresh, doctor`"]
   end
-  subgraph home["Private: ~/dotbrain (a Git repo)"]
-    cfg["config.yaml"]
-    subgraph bs["brainspaces/my-app"]
-      brain[".brain/ · knowledge"]
-      beads[".beads/ · execution"]
-    end
-  end
+  agent(["Coding agent"])
   subgraph repo["Your code repo"]
+    direction LR
     code["source code"]
-    links[".brain · .beads · gitignored links"]
+    links["`***.brain***, ***.beads***
+  gitignored links`"]
   end
-  agent(("Coding agent"))
-  cli -- creates --> bs
-  cli -- writes --> links
-  links -.-> brain
-  links -.-> beads
-  plugin -- "session-start context" --> agent
-  agent -- reads --> code
-  agent -- "reads · writes" --> links
+  subgraph home["`Private: *~/dotbrain/brainspaces/my-app*`"]
+    direction LR
+    brain["`***.brain/***
+  knowledge`"]
+    beads["`***.beads/***
+  execution`"]
+  end
+  plugin -- "injects context" --> agent
+  cli -- wires --> links
+  agent --> code
+  agent -- "reads and writes" --> links
+  links -. symlinks .-> home
 ```
 
 Three parts, three owners:
@@ -55,6 +59,20 @@ stays clean, and the context stays private. [Wiring](wiring.md) covers the detai
 ## The Brain
 
 Each element of a Brain has one purpose:
+
+```mermaid
+treeView-beta
+  accTitle: The files and folders of a Brain
+  .brain/
+    CONTEXT.md ## domain vocabulary
+    adr/ ## decision records
+    designs/ ## one design doc per initiative
+    AGENTS.md ## this project's agent conventions
+    DOTBRAIN.md ## shared convention, owned by dotbrain
+    project.yaml ## runtime, tracker, skill selection
+    docs/ ## derived runbooks and reference
+    learning/ ## optional learning workspace
+```
 
 | Element | Holds | Changes when |
 | --- | --- | --- |
@@ -82,7 +100,9 @@ Multi-step work is an epic with `blocks` dependencies, so "what is ready" is a q
 
 ```mermaid
 flowchart LR
-  d["design doc · (the spec)"] -. "spec-id" .- e["epic"]
+  accTitle: A design doc and its epic of dependent issues
+  d["`**Design doc**
+  the spec`"] -. "spec-id" .- e["epic"]
   e --> t1["issue A"]
   e --> t2["issue B"]
   e --> t3["issue C"]

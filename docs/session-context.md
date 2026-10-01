@@ -7,17 +7,14 @@ explains what gets injected, how, and what the agent reads on its own.
 
 ```mermaid
 sequenceDiagram
-  participant A as Agent runtime
-  participant H as dotbrain hook
-  participant R as Repo (.brain link)
-  participant B as Beads hook
-  A->>H: SessionStart (startup, resume, clear, compact)
-  H->>R: git rev-parse --show-toplevel
-  H->>R: read .brain/DOTBRAIN.md
-  H-->>A: "## dotbrain convention" + DOTBRAIN.md
-  A->>B: SessionStart
-  B-->>A: ready work and tracker primer
-  Note over A: The agent reads .brain/AGENTS.md<br/>itself before substantial work
+  accTitle: What an agent loads when a session starts
+  participant A as Agent
+  participant D as dotbrain hook
+  participant B as .brain/
+  A->>D: Session starts
+  D-->>A: dotbrain convention (wired repos only)
+  A->>B: Read AGENTS.md, before substantial work
+  B-->>A: The project's own rules
 ```
 
 The plugin registers one `SessionStart` hook that runs `dotbrain hook session-start`. It fires on
@@ -37,7 +34,10 @@ The project's own files are not injected:
 | `.brain/AGENTS.md` | Read by the agent; the convention tells it to |
 | `.brain/CONTEXT.md`, `adr/`, `designs/` | Read by the agent when the work needs them |
 | `.brain/docs/` | Searched by the agent before it answers how the project works |
-| Beads ready work | Injected by the Beads project hook |
+| Beads workflow primer | Not injected by dotbrain; the agent runs `bd prime` when it needs it |
+
+To have the Beads primer injected too, add Beads' own hook with `bd setup claude` or
+`bd setup codex`. Dotbrain does not install it.
 
 ::: info Why not inject everything?
 Agent runtimes cap hook output at roughly 10 KB. Past that, the output is written to a file and the

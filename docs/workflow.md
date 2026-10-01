@@ -11,19 +11,42 @@ open questions.
 
 ```mermaid
 flowchart TD
-  ctx["Brain context · vocabulary · decisions"] --> orient["Orient · find-unknowns"]
-  orient --> grill["Settle decisions · grill-decisions"]
-  grill --> design["Write the design · to-design"]
-  design --> issues["Split into issues · to-issues"]
-  issues --> work["Work the issues · operate-execution"]
-  work --> review["Review · review-gate"]
-  review --> close["Close the design · close-design"]
+  accTitle: The workflow loop from Brain context to closed design
+  ctx(["Brain context"]) --> orient["`**Orient**
+  find-unknowns`"]
+  orient --> grill["`**Settle decisions**
+  grill-decisions`"]
+  grill --> design["`**Write the design**
+  to-design`"]
+  design --> issues["`**Split into issues**
+  to-issues`"]
+  issues --> work["`**Work the issues**
+  operate-execution or iterate-design`"]
+  work --> review["`**Review**
+  review-gate`"]
+  review --> close["`**Close the design**
+  close-design`"]
   work -. discoveries .-> design
-  close -- "ADRs · vocabulary" --> ctx
+  close -- "ADRs & vocabulary" --> ctx
 ```
 
-Each arrow is a hand-off through a file or a tracker entry, not through chat history. A new session
-can pick up at any box because the state it needs is in the Brain or in Beads.
+<ol class="flow-steps">
+<li><a href="#_1-orient"><strong>Orient</strong><code>find-unknowns</code></a></li>
+<li><a href="#_2-settle-decisions"><strong>Settle decisions</strong><code>grill-decisions</code></a></li>
+<li><a href="#_3-write-the-design"><strong>Write the design</strong><code>to-design</code></a></li>
+<li><a href="#_4-split-into-issues"><strong>Split into issues</strong><code>to-issues</code></a></li>
+<li><a href="#_5-work-the-issues"><strong>Work the issues</strong><code>operate-execution</code><code>iterate-design</code></a></li>
+<li><a href="#_6-review"><strong>Review</strong><code>review-gate</code></a></li>
+<li><a href="#_7-close-the-design"><strong>Close the design</strong><code>close-design</code></a></li>
+</ol>
+
+
+
+Two loops close the circle: discoveries during the work flow back into the design, and closing a
+design feeds its decisions back into the Brain.
+
+Each step hands off through a file or a tracker entry, not through chat history. A new session can
+pick up at any step because the state it needs is in the Brain or in Beads.
 
 ## 1. Orient
 
@@ -53,7 +76,8 @@ A design moves through a fixed set of states:
 
 ```mermaid
 stateDiagram-v2
-  direction LR
+  accTitle: Design doc lifecycle
+  direction TB
   [*] --> draft
   draft --> active : approved
   active --> shipped : evidence recorded
@@ -81,7 +105,7 @@ bd ready
 hold. When the build reveals something the design did not expect, the discovery is written back
 into the design and the affected issues, so the next session sees it.
 
-For an unattended run against an active design, `iterate-design` drives the agent's loop mode with
+**Or hand it off.** For an unattended run against an active design, `iterate-design` drives the agent's loop mode with
 a mechanical verifier and a hard stop. It runs on a dedicated branch and stops at a draft pull
 request; merging stays with you.
 

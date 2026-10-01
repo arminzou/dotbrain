@@ -3,10 +3,11 @@
 Dotbrain ships as a plugin. Install it into your coding agent first, and the plugin's
 `wire-brain` skill installs the CLI for you on first use. This guide walks that path in about five minutes:
 
-```mermaid
-flowchart LR
-  p["1 · Install the plugin"] --> c["2 · Get the CLI"] --> w["3 · Wire a repo"] --> b["4 · Back up"] --> v["5 · Verify"]
-```
+1. Install the plugin.
+2. Get the CLI.
+3. Wire a repo.
+4. Back up your dotbrain home.
+5. Verify the result.
 
 | You need | Notes |
 | --- | --- |
@@ -153,12 +154,14 @@ Or from anywhere, with `dotbrain wire --repo ~/repos/my-app`.
 Wiring creates or repairs a private Brainspace for that project and connects the repo to it through
 gitignored links. Your repo gains:
 
-```text
-~/repos/my-app/
-├── .brain  ──► ~/dotbrain/brainspaces/my-app/.brain
-├── .beads  ──► ~/dotbrain/brainspaces/my-app/.beads
-├── .claude/    skill and subagent links (individually ignored)
-└── .codex/     skill and subagent links (individually ignored)
+```mermaid
+treeView-beta
+  accTitle: What wiring adds to a code repo
+  ~/repos/my-app/
+    .brain ## link to the Brainspace's .brain/
+    .beads ## link to the Brainspace's .beads/
+    .claude/ ## skill and subagent links, individually ignored
+    .codex/ ## skill and subagent links, individually ignored
 ```
 
 [Wiring](wiring.md) explains each entry.

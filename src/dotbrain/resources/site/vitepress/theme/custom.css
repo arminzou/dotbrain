@@ -239,7 +239,7 @@
 .mermaid-diagram .labelBkg {
   background: var(--vp-c-bg) !important;
   color: var(--vp-c-text-2) !important;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .mermaid-diagram .edgeLabel rect {
@@ -293,6 +293,19 @@
 .mermaid-diagram .end-state-inner {
   fill: var(--vp-c-text-2) !important;
   stroke: var(--vp-c-text-2) !important;
+}
+
+/* Mermaid sizes labels at its own line height; keep the page's paragraph line height out of them,
+   or the second line of a two-line label is clipped. */
+.mermaid-diagram foreignObject p {
+  line-height: inherit;
+}
+
+/* Tree views (treeView-beta) keep Mermaid's own style. Mermaid adds an implicit "/" root above the
+   first entry; it is hidden so a tree starts at its entries. */
+.mermaid-diagram .tree-view > g:first-of-type,
+.mermaid-diagram .tree-view > line:first-of-type {
+  display: none;
 }
 
 .mermaid-error {

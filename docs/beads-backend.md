@@ -15,8 +15,10 @@ choose one, and the commands that manage them.
 
 ```mermaid
 flowchart LR
+  accTitle: Embedded and server Beads modes
   subgraph emb["embedded"]
-    c1["checkout"] --> s1[("Brainspace · .beads/")]
+    c1["checkout"] --> s1[("`**Brainspace**
+  *.beads/*`")]
     s1 -. "push / pull" .-> r1[("Dolt remote")]
   end
   subgraph srv["server"]
@@ -35,7 +37,8 @@ Two files are involved:
 - `.brain/project.yaml` picks the mode per project with `beads.mode`. Leaving it out means
   `embedded`.
 
-```yaml [.brain/project.yaml]
+```yaml
+# .brain/project.yaml
 beads:
   mode: server
   database: my_app_beads   # optional; defaults to the project name
@@ -47,7 +50,8 @@ See [Configuration](configuration.md) for the full shape.
 
 Point `config.yaml` at your sql-server once per machine:
 
-```yaml [~/dotbrain/config.yaml]
+```yaml
+# ~/dotbrain/config.yaml
 beads:
   server:
     host: db.example.internal
@@ -83,7 +87,10 @@ Moves an embedded tracker onto the sql-server with its history.
 
 ```mermaid
 flowchart LR
-  e[("embedded · Brainspace .beads/")] -- "dotbrain beads migrate" --> s[("server · Dolt sql-server")]
+  accTitle: Migrating an embedded tracker to a server
+  e[("`**Embedded**
+  Brainspace *.beads/*`")] -- "dotbrain beads migrate" --> s[("`**Server**
+  Dolt sql-server`")]
 ```
 
 ```bash

@@ -1,6 +1,6 @@
 ---
 name: brain-site
-description: Sets up, maintains, and builds a Brain site, the private site dotbrain renders from every Markdown file in a Brain, by driving `dotbrain site`. Use when giving a Brain a site, arranging its sidebar, previewing or building it, fixing a failed site build, or writing site pages that need VitePress or Mermaid syntax.
+description: Sets up, maintains, and builds a Brain site, the private site dotbrain renders from every Markdown file in a Brain, by driving `dotbrain site`. Use when giving a Brain a site, arranging its sidebar, previewing or building it, fixing a failed site build, writing site pages that need VitePress or Mermaid syntax, or drawing a Mermaid diagram in any project doc.
 ---
 
 # Brain Site
@@ -22,7 +22,8 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 - **Writing a page that needs more than plain Markdown:** read
   [publishing.md](references/publishing.md) for lessons and references,
   [vitepress.md](references/vitepress.md) for page pitfalls and native features, and
-  [mermaid.md](references/mermaid.md) before drawing a diagram.
+  [mermaid.md](references/mermaid.md) before drawing a diagram, on the site or in any other
+  project doc.
 
 ## Setting up a site
 
