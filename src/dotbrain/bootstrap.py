@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from dotbrain import adopter_repos, paths, resource_loader, skills, subagents
+from dotbrain import paths, resource_loader, skills, subagents
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 

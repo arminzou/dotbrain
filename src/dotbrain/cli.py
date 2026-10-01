@@ -16,7 +16,7 @@ from dotbrain.results import CommandResult, TargetResult, ResultGroup, render
 from dotbrain import __version__
 from dotbrain import projects
 from dotbrain import doctor as doctor_mod
-from dotbrain import adopter_repos, beads as beads_mod, bootstrap as bootstrap_mod, config, brainspaces, hooks, migrate, paths, resource_loader, site as site_mod, skills, subagents, workflows
+from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, hooks, migrate, paths, site as site_mod, workflows
 
 app = typer.Typer(
     cls=ResultGroup,
