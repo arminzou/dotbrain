@@ -55,8 +55,12 @@ def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
 
 @app.command()
 def bootstrap(
-    only: Optional[str] = typer.Option(None, "--only", help="skills"),
-    skip_skills: bool = typer.Option(False, "--skip-skills"),
+    only: Optional[str] = typer.Option(
+        None, "--only", help="Limit linking to one step. The only step is skills: global skill and subagent links."
+    ),
+    skip_skills: bool = typer.Option(
+        False, "--skip-skills", help="Seed the data root but skip global skill and subagent links."
+    ),
 ) -> None:
     """Prepare this machine for dotbrain: global skill and subagent links."""
     if only and only != "skills":
@@ -643,6 +647,7 @@ def agents_link(
         help="Checkout to link into (e.g. a linked worktree). Requires --project and project scope.",
     ),
 ) -> None:
+    """Link vendor-native subagents into agent runtimes."""
     if target not in {"claude-code", "codex", "all"}:
         raise typer.BadParameter(f"invalid --target: {target}")
     if scope not in {"global", "project", "all"}:

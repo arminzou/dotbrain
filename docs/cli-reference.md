@@ -1,478 +1,305 @@
 # CLI Reference
 
-Reference for the public `dotbrain` CLI.
+Every public `dotbrain` command, grouped by task. Run any command with `--help` for the same
+information in the terminal.
 
-## `dotbrain`
+## Commands at a Glance
 
-```text
+| Command | Does |
+| --- | --- |
+| [`bootstrap`](#dotbrain-bootstrap) | Prepare this machine for dotbrain: global skill and subagent links. |
+| [`doctor`](#dotbrain-doctor) | Read-only health check: machine readiness, project wiring, beads state drift. |
+| [`update`](#dotbrain-update) | Print the command that upgrades this CLI with the tool that installed it. |
+| [`wire`](#dotbrain-wire) | Create or repair a project Brainspace and wire an adopter repo. |
+| [`refresh`](#dotbrain-refresh) | Refresh Brain/workspace files, repo links, beads state, and project skills. |
+| [`unwire`](#dotbrain-unwire) | Disconnect an adopter repo from its Brainspace. |
+| [`skills link`](#dotbrain-skills-link) | Link skills into agent runtimes. |
+| [`agents link`](#dotbrain-agents-link) | Link vendor-native subagents into agent runtimes. |
+| [`beads load`](#dotbrain-beads-load) | Hydrate local beads state from tracked declarations: attach server trackers, init embedded ones, then pull. |
+| [`beads migrate`](#dotbrain-beads-migrate) | Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server, history intact. |
+| [`beads list-db`](#dotbrain-beads-list-db) | List the databases on the shared Dolt sql-server. |
+| [`beads drop-db`](#dotbrain-beads-drop-db) | Drop a project's remote beads database on the shared Dolt sql-server. |
+| [`site init`](#dotbrain-site-init) | Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual. |
+| [`site dev`](#dotbrain-site-dev) | Serve the Brain site locally with live reload (127.0.0.1). |
+| [`site build`](#dotbrain-site-build) | Build the Brain site; fails on a nav link to a missing page. |
+| [`site preview`](#dotbrain-site-preview) | Serve the last build locally (127.0.0.1). |
+| [`hook session-start`](#dotbrain-hook-session-start) | Emit a wired repo's Brain context. |
 
- Usage: dotbrain [OPTIONS] COMMAND [ARGS]...
+## Setup
 
- dotbrain CLI for wiring project Brainspaces and skills into coding agents.
+Prepare a machine and check its health. See [Getting started](getting-started.md).
 
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --version                       Show the dotbrain version.                   │
-│ --install-completion            Install completion for the current shell.    │
-│ --show-completion               Show completion for the current shell, to    │
-│                                 copy it or customize the installation.       │
-│ --help                -h        Show this message and exit.                  │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ bootstrap  Prepare this machine for dotbrain: global skill and subagent      │
-│            links.                                                            │
-│ doctor     Read-only health check: machine readiness, project wiring, beads  │
-│            state drift.                                                      │
-│ update     Print the command that upgrades this CLI with the tool that       │
-│            installed it.                                                     │
-│ wire       Create or repair a project Brainspace and wire an adopter repo.   │
-│ refresh    Refresh Brain/workspace files, repo links, beads state, and       │
-│            project skills.                                                   │
-│ unwire     Disconnect an adopter repo from its Brainspace.                   │
-│ skills     Link dotbrain skills into agent runtimes.                         │
-│ agents     Link dotbrain vendor-native subagents into agent runtimes.        │
-│ beads      Manage beads tracker state and backend.                           │
-│ hook       Run dotbrain hook entrypoints.                                    │
-│ site       Set up and run a Brain's private site.                            │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+### `dotbrain bootstrap` {#dotbrain-bootstrap}
 
-## `dotbrain agents`
+Prepare this machine for dotbrain: global skill and subagent links.
 
 ```text
-
- Usage: dotbrain agents [OPTIONS] COMMAND [ARGS]...
-
- Link dotbrain vendor-native subagents into agent runtimes.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ link                                                                         │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain bootstrap [OPTIONS]
 ```
 
-## `dotbrain agents link`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--only` *text* | — | Limit linking to one step. The only step is skills: global skill and subagent links. |
+| `--skip-skills` | — | Seed the data root but skip global skill and subagent links. |
+
+### `dotbrain doctor` {#dotbrain-doctor}
+
+Read-only health check: machine readiness, project wiring, beads state drift.
 
 ```text
-
- Usage: dotbrain agents link [OPTIONS]
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --target           TEXT  claude-code | codex | all [default: all]            │
-│ --scope            TEXT  global | project | all [default: all]               │
-│ --project          TEXT  Limit project linking to a single Brainspace by     │
-│                          name.                                               │
-│ --repo             TEXT  Checkout to link into (e.g. a linked worktree).     │
-│                          Requires --project and project scope.               │
-│ --help     -h            Show this message and exit.                         │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain doctor
 ```
 
-## `dotbrain beads`
+### `dotbrain update` {#dotbrain-update}
+
+Print the command that upgrades this CLI with the tool that installed it.
 
 ```text
-
- Usage: dotbrain beads [OPTIONS] COMMAND [ARGS]...
-
- Manage beads tracker state and backend.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ drop-db  Drop a project's remote beads database on the shared Dolt           │
-│          sql-server.                                                         │
-│ list-db  List the databases on the shared Dolt sql-server.                   │
-│ migrate  Migrate a local-only (embedded Dolt) beads tracker onto the remote  │
-│          sql-server, history intact.                                         │
-│ load     Hydrate local beads state from tracked declarations: attach server  │
-│          trackers, init embedded                                             │
-│          ones, then pull. Pull-only reconcile: never pushes, never touches   │
-│          symlinks or hooks.                                                  │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain update
 ```
 
-## `dotbrain beads drop-db`
+## Projects
+
+Connect code repos to Brainspaces and keep them in sync. See [Wiring](wiring.md).
+
+### `dotbrain wire` {#dotbrain-wire}
+
+Create or repair a project Brainspace and wire an adopter repo.
+
+Without `--all`: wire one project. With `--all`: reconcile every Brainspace.
 
 ```text
-
- Usage: dotbrain beads drop-db [OPTIONS] NAME
-
- Drop a project's remote beads database on the shared Dolt sql-server.
-
-┌─ Arguments ──────────────────────────────────────────────────────────────────┐
-│ *    name      TEXT  Beads database name to drop (usually the project name). │
-│                      [required]                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --yes                              Confirm the destructive drop.             │
-│ --dry-run                          Preview the drop without running it.      │
-│ --beads-ssh-host             TEXT  SSH hop that can reach the sql-server;    │
-│                                    empty connects directly. Defaults to      │
-│                                    beads.server.ssh_host.                    │
-│ --beads-server-host          TEXT  Dolt sql-server host. Defaults to         │
-│                                    beads.server.host.                        │
-│ --beads-server-port          TEXT  Dolt sql-server port. Defaults to         │
-│                                    beads.server.port.                        │
-│ --beads-server-user          TEXT  Dolt sql-server user. Defaults to         │
-│                                    beads.server.user.                        │
-│ --help               -h            Show this message and exit.               │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain wire [OPTIONS]
 ```
 
-## `dotbrain beads list-db`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--all` | — | Wire every adopter repo to its Brainspace (brain seeding and symlinks). |
+| `--repo` *text* | — | Repo to wire. Defaults to the current git repo. |
+| `--name` *text* | — | Project/Brainspace name. Defaults to repo dir name. |
+| `--dotbrain` *text* | — | dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred. |
+| `--skip-beads` | — | Do not initialize .beads when missing. |
+| `--beads-remote` *text* | — | Initialize beads from this Dolt remote. |
+| `--beads-server-host` *text* | — | Init beads against an external Dolt sql-server. Defaults to beads.server.host in config.yaml. |
+| `--beads-server-port` *text* | — | Dolt sql-server port. Defaults to beads.server.port in config.yaml. |
+| `--beads-server-user` *text* | — | Dolt sql-server user. Defaults to beads.server.user in config.yaml. |
+| `--beads-database` *text* | — | Dolt database name. Defaults to project name. |
+| `--no-repo` | — | Create a brain-only Brainspace (no code repo). Requires `--name`. |
+| `--repo-base` *path* | — | Base directory for adopter repos (default: ~/repos/projects). |
+
+### `dotbrain refresh` {#dotbrain-refresh}
+
+Refresh Brain/workspace files, repo links, beads state, and project skills.
 
 ```text
-
- Usage: dotbrain beads list-db [OPTIONS]
-
- List the databases on the shared Dolt sql-server.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --beads-ssh-host             TEXT  SSH hop that can reach the sql-server;    │
-│                                    empty connects directly. Defaults to      │
-│                                    beads.server.ssh_host.                    │
-│ --beads-server-host          TEXT  Dolt sql-server host. Defaults to         │
-│                                    beads.server.host.                        │
-│ --beads-server-port          TEXT  Dolt sql-server port. Defaults to         │
-│                                    beads.server.port.                        │
-│ --beads-server-user          TEXT  Dolt sql-server user. Defaults to         │
-│                                    beads.server.user.                        │
-│ --help               -h            Show this message and exit.               │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain refresh [OPTIONS]
 ```
 
-## `dotbrain beads load`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--all` | — | Refresh every project workspace. |
+| `--name` *text* | — | Refresh one project by Brainspace name. |
+| `--repo-base` *path* | — | Base directory for repo discovery. |
+
+### `dotbrain unwire` {#dotbrain-unwire}
+
+Disconnect an adopter repo from its Brainspace.
+
+Offboards the Brainspace only (keep/archive/delete). To drop a server-backend project's remote beads database, use `dotbrain beads drop-db` separately.
 
 ```text
-
- Usage: dotbrain beads load [OPTIONS]
-
- Hydrate local beads state from tracked declarations: attach server trackers,
- init embedded ones, then pull. Pull-only reconcile: never pushes, never
- touches symlinks or hooks.
-
- Without --all: load one project (by --name, or the --repo/cwd repo). With
- --all: every brainspace
- root declared to use beads.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --all                     Load tracker state for every Brainspace.           │
-│ --repo              TEXT  Repo whose Brainspace to load. Defaults to the     │
-│                           current git repo.                                  │
-│ --name              TEXT  Project/Brainspace name to load.                   │
-│ --dotbrain          TEXT  dotbrain checkout. Defaults to                     │
-│                           $DOTBRAIN_HOME/inferred.                           │
-│ --dry-run                 Preview what would be hydrated/pulled without      │
-│                           mutating anything.                                 │
-│ --help      -h            Show this message and exit.                        │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain unwire [OPTIONS]
 ```
 
-## `dotbrain beads migrate`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--all` | — | Unwire every project Brainspace (keep only; see per-project `--archive`/`--delete` for destructive offboard). |
+| `--repo` *path* | — | Adopter repo path; defaults to cwd |
+| `--name` *text* | — | Project/Brainspace name |
+| `--no-repo` | — | Only offboard the named Brainspace; do not edit an adopter repo. |
+| `--archive` | — | Move Brainspace to &lt;data-dir&gt;/.archive/ |
+| `--delete` | — | Remove the Brainspace (destructive) |
+| `--dry-run` | — | Preview the offboard without performing it. |
+
+## Skills and agents
+
+Link skills and vendor-native subagents into agent runtimes. See [Skills](skills.md).
+
+### `dotbrain skills link` {#dotbrain-skills-link}
+
+Link skills into agent runtimes.
+
+Both scopes are curated include-lists. Project links each project's `project.yaml` `skills:` selection into its agent workspaces. Global links the operator's optional global selection into each runtime's skills directory.
 
 ```text
-
- Usage: dotbrain beads migrate [OPTIONS]
-
- Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server,
- history intact.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --repo                       TEXT  Wired repo path; project name is its dir  │
-│                                    name.                                     │
-│ --name                       TEXT  Project/Brainspace name to migrate.       │
-│ --all                              Migrate every embedded Brainspace.        │
-│ --dotbrain                   TEXT  dotbrain checkout. Defaults to            │
-│                                    $DOTBRAIN_HOME/inferred.                  │
-│ --beads-server-host          TEXT  Target Dolt sql-server host. Defaults to  │
-│                                    beads.server.host in config.yaml.         │
-│ --beads-server-port          TEXT  Dolt sql-server port. Defaults to         │
-│                                    beads.server.port in config.yaml.         │
-│ --beads-server-user          TEXT  Dolt sql-server user. Defaults to         │
-│                                    beads.server.user in config.yaml.         │
-│ --beads-database             TEXT  Dolt database name (single-project only). │
-│                                    Defaults to project name.                 │
-│ --dry-run                          Print the planned bd sequence without     │
-│                                    running it.                               │
-│ --help               -h            Show this message and exit.               │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain skills link [OPTIONS]
 ```
 
-## `dotbrain bootstrap`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--target` *text* | `all` | claude-code \| codex \| all |
+| `--scope` *text* | `all` | global \| project \| all |
+| `--project` *text* | — | limit project scope to one Brainspace by name |
+| `--repo` *text* | — | Checkout to link into (e.g. a linked worktree). Requires `--project` and project scope. |
+
+### `dotbrain agents link` {#dotbrain-agents-link}
+
+Link vendor-native subagents into agent runtimes.
 
 ```text
-
- Usage: dotbrain bootstrap [OPTIONS]
-
- Prepare this machine for dotbrain: global skill and subagent links.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --only                 TEXT  skills                                          │
-│ --skip-skills                                                                │
-│ --help         -h            Show this message and exit.                     │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain agents link [OPTIONS]
 ```
 
-## `dotbrain doctor`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--target` *text* | `all` | claude-code \| codex \| all |
+| `--scope` *text* | `all` | global \| project \| all |
+| `--project` *text* | — | Limit project linking to a single Brainspace by name. |
+| `--repo` *text* | — | Checkout to link into (e.g. a linked worktree). Requires `--project` and project scope. |
+
+## Beads
+
+Manage the Beads tracker's state and backend. See [Beads backend](beads-backend.md).
+
+### `dotbrain beads load` {#dotbrain-beads-load}
+
+Hydrate local beads state from tracked declarations: attach server trackers, init embedded ones, then pull. Pull-only reconcile: never pushes, never touches symlinks or hooks.
+
+Without `--all`: load one project (by `--name`, or the `--repo`/cwd repo). With `--all`: every brainspace root declared to use beads.
 
 ```text
-
- Usage: dotbrain doctor [OPTIONS]
-
- Read-only health check: machine readiness, project wiring, beads state drift.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain beads load [OPTIONS]
 ```
 
-## `dotbrain hook`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--all` | — | Load tracker state for every Brainspace. |
+| `--repo` *text* | — | Repo whose Brainspace to load. Defaults to the current git repo. |
+| `--name` *text* | — | Project/Brainspace name to load. |
+| `--dotbrain` *text* | — | dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred. |
+| `--dry-run` | — | Preview what would be hydrated/pulled without mutating anything. |
+
+### `dotbrain beads migrate` {#dotbrain-beads-migrate}
+
+Migrate a local-only (embedded Dolt) beads tracker onto the remote sql-server, history intact.
 
 ```text
-
- Usage: dotbrain hook [OPTIONS] COMMAND [ARGS]...
-
- Run dotbrain hook entrypoints.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ session-start  Emit a wired repo's Brain context. Fail-open: silent and exit │
-│                0 when there is none.                                         │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain beads migrate [OPTIONS]
 ```
 
-## `dotbrain hook session-start`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--repo` *text* | — | Wired repo path; project name is its dir name. |
+| `--name` *text* | — | Project/Brainspace name to migrate. |
+| `--all` | — | Migrate every embedded Brainspace. |
+| `--dotbrain` *text* | — | dotbrain checkout. Defaults to $DOTBRAIN_HOME/inferred. |
+| `--beads-server-host` *text* | — | Target Dolt sql-server host. Defaults to beads.server.host in config.yaml. |
+| `--beads-server-port` *text* | — | Dolt sql-server port. Defaults to beads.server.port in config.yaml. |
+| `--beads-server-user` *text* | — | Dolt sql-server user. Defaults to beads.server.user in config.yaml. |
+| `--beads-database` *text* | — | Dolt database name (single-project only). Defaults to project name. |
+| `--dry-run` | — | Print the planned bd sequence without running it. |
+
+### `dotbrain beads list-db` {#dotbrain-beads-list-db}
+
+List the databases on the shared Dolt sql-server.
 
 ```text
-
- Usage: dotbrain hook session-start [OPTIONS] [ARGS]...
-
- Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is
- none.
-
-┌─ Arguments ──────────────────────────────────────────────────────────────────┐
-│   args      [ARGS]...                                                        │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain beads list-db [OPTIONS]
 ```
 
-## `dotbrain refresh`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--beads-ssh-host` *text* | — | SSH hop that can reach the sql-server; empty connects directly. Defaults to beads.server.ssh_host. |
+| `--beads-server-host` *text* | — | Dolt sql-server host. Defaults to beads.server.host. |
+| `--beads-server-port` *text* | — | Dolt sql-server port. Defaults to beads.server.port. |
+| `--beads-server-user` *text* | — | Dolt sql-server user. Defaults to beads.server.user. |
+
+### `dotbrain beads drop-db` {#dotbrain-beads-drop-db}
+
+Drop a project's remote beads database on the shared Dolt sql-server.
 
 ```text
-
- Usage: dotbrain refresh [OPTIONS]
-
- Refresh Brain/workspace files, repo links, beads state, and project skills.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --all                      Refresh every project workspace.                  │
-│ --name               TEXT  Refresh one project by Brainspace name.           │
-│ --repo-base          PATH  Base directory for repo discovery.                │
-│ --help       -h            Show this message and exit.                       │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain beads drop-db [OPTIONS] NAME
 ```
 
-## `dotbrain site`
+| Argument | Description |
+| --- | --- |
+| `NAME` | Beads database name to drop (usually the project name). |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--yes` | — | Confirm the destructive drop. |
+| `--dry-run` | — | Preview the drop without running it. |
+| `--beads-ssh-host` *text* | — | SSH hop that can reach the sql-server; empty connects directly. Defaults to beads.server.ssh_host. |
+| `--beads-server-host` *text* | — | Dolt sql-server host. Defaults to beads.server.host. |
+| `--beads-server-port` *text* | — | Dolt sql-server port. Defaults to beads.server.port. |
+| `--beads-server-user` *text* | — | Dolt sql-server user. Defaults to beads.server.user. |
+
+## Brain site
+
+Set up and run a Brain's private site. See [Brain site](brain-site.md).
+
+### `dotbrain site init` {#dotbrain-site-init}
+
+Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual.
 
 ```text
-
- Usage: dotbrain site [OPTIONS] COMMAND [ARGS]...
-
- Set up and run a Brain's private site.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ init     Give a Brain a site: create .brain/site/ with site.yaml, the home   │
-│          page, and the manual.                                               │
-│ dev      Serve the Brain site locally with live reload (127.0.0.1).          │
-│ build    Build the Brain site; fails on a nav link to a missing page.        │
-│ preview  Serve the last build locally (127.0.0.1).                           │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain site init [OPTIONS]
 ```
 
-## `dotbrain site build`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--name` *text* | — | Brainspace name. Defaults to the current repo's .brain. |
+| `--title` *text* | — | Site title. Defaults to '&lt;name&gt; Brain'. |
+
+### `dotbrain site dev` {#dotbrain-site-dev}
+
+Serve the Brain site locally with live reload (127.0.0.1).
 
 ```text
-
- Usage: dotbrain site build [OPTIONS]
-
- Build the Brain site; fails on a nav link to a missing page.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
-│                       .brain.                                                │
-│ --help  -h            Show this message and exit.                            │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain site dev [OPTIONS]
 ```
 
-## `dotbrain site dev`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--name` *text* | — | Brainspace name. Defaults to the current repo's .brain. |
+
+### `dotbrain site build` {#dotbrain-site-build}
+
+Build the Brain site; fails on a nav link to a missing page.
 
 ```text
-
- Usage: dotbrain site dev [OPTIONS]
-
- Serve the Brain site locally with live reload (127.0.0.1).
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
-│                       .brain.                                                │
-│ --help  -h            Show this message and exit.                            │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain site build [OPTIONS]
 ```
 
-## `dotbrain site init`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--name` *text* | — | Brainspace name. Defaults to the current repo's .brain. |
+
+### `dotbrain site preview` {#dotbrain-site-preview}
+
+Serve the last build locally (127.0.0.1).
 
 ```text
-
- Usage: dotbrain site init [OPTIONS]
-
- Give a Brain a site: create .brain/site/ with site.yaml, the home page, and
- the manual.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --name           TEXT  Brainspace name. Defaults to the current repo's       │
-│                        .brain.                                               │
-│ --title          TEXT  Site title. Defaults to '<name> Brain'.               │
-│ --help   -h            Show this message and exit.                           │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain site preview [OPTIONS]
 ```
 
-## `dotbrain site preview`
+| Option | Default | Description |
+| --- | --- | --- |
+| `--name` *text* | — | Brainspace name. Defaults to the current repo's .brain. |
+
+## Internal
+
+Run by the plugin's hooks, not by hand. See [Session context](session-context.md).
+
+### `dotbrain hook session-start` {#dotbrain-hook-session-start}
+
+Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is none.
 
 ```text
-
- Usage: dotbrain site preview [OPTIONS]
-
- Serve the last build locally (127.0.0.1).
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --name          TEXT  Brainspace name. Defaults to the current repo's        │
-│                       .brain.                                                │
-│ --help  -h            Show this message and exit.                            │
-└──────────────────────────────────────────────────────────────────────────────┘
+dotbrain hook session-start [ARGS]
 ```
 
-## `dotbrain skills`
-
-```text
-
- Usage: dotbrain skills [OPTIONS] COMMAND [ARGS]...
-
- Link dotbrain skills into agent runtimes.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-┌─ Commands ───────────────────────────────────────────────────────────────────┐
-│ link  Link skills into agent runtimes.                                       │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-## `dotbrain skills link`
-
-```text
-
- Usage: dotbrain skills link [OPTIONS]
-
- Link skills into agent runtimes.
-
- Both scopes are curated include-lists. Project links each project's
- ``project.yaml`` ``skills:`` selection into its agent workspaces. Global
- links the operator's optional global selection into each runtime's skills
- directory.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --target           TEXT  claude-code | codex | all [default: all]            │
-│ --scope            TEXT  global | project | all [default: all]               │
-│ --project          TEXT  limit project scope to one Brainspace by name       │
-│ --repo             TEXT  Checkout to link into (e.g. a linked worktree).     │
-│                          Requires --project and project scope.               │
-│ --help     -h            Show this message and exit.                         │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-## `dotbrain unwire`
-
-```text
-
- Usage: dotbrain unwire [OPTIONS]
-
- Disconnect an adopter repo from its Brainspace.
-
- Offboards the Brainspace only (keep/archive/delete). To drop a server-backend
- project's
- remote beads database, use `dotbrain beads drop-db` separately.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --all                    Unwire every project Brainspace (keep only; see     │
-│                          per-project --archive/--delete for destructive      │
-│                          offboard).                                          │
-│ --repo             PATH  Adopter repo path; defaults to cwd                  │
-│ --name             TEXT  Project/Brainspace name                             │
-│ --no-repo                Only offboard the named Brainspace; do not edit an  │
-│                          adopter repo.                                       │
-│ --archive                Move Brainspace to <data-dir>/.archive/             │
-│ --delete                 Remove the Brainspace (destructive)                 │
-│ --dry-run                Preview the offboard without performing it.         │
-│ --help     -h            Show this message and exit.                         │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-## `dotbrain update`
-
-```text
-
- Usage: dotbrain update [OPTIONS]
-
- Print the command that upgrades this CLI with the tool that installed it.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --help  -h        Show this message and exit.                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-## `dotbrain wire`
-
-```text
-
- Usage: dotbrain wire [OPTIONS]
-
- Create or repair a project Brainspace and wire an adopter repo.
-
- Without --all: wire one project. With --all: reconcile every Brainspace.
-
-┌─ Options ────────────────────────────────────────────────────────────────────┐
-│ --all                              Wire every adopter repo to its Brainspace │
-│                                    (brain seeding and symlinks).             │
-│ --repo                       TEXT  Repo to wire. Defaults to the current git │
-│                                    repo.                                     │
-│ --name                       TEXT  Project/Brainspace name. Defaults to repo │
-│                                    dir name.                                 │
-│ --dotbrain                   TEXT  dotbrain checkout. Defaults to            │
-│                                    $DOTBRAIN_HOME/inferred.                  │
-│ --skip-beads                       Do not initialize .beads when missing.    │
-│ --beads-remote               TEXT  Initialize beads from this Dolt remote.   │
-│ --beads-server-host          TEXT  Init beads against an external Dolt       │
-│                                    sql-server. Defaults to beads.server.host │
-│                                    in config.yaml.                           │
-│ --beads-server-port          TEXT  Dolt sql-server port. Defaults to         │
-│                                    beads.server.port in config.yaml.         │
-│ --beads-server-user          TEXT  Dolt sql-server user. Defaults to         │
-│                                    beads.server.user in config.yaml.         │
-│ --beads-database             TEXT  Dolt database name. Defaults to project   │
-│                                    name.                                     │
-│ --no-repo                          Create a brain-only Brainspace (no code   │
-│                                    repo). Requires --name.                   │
-│ --repo-base                  PATH  Base directory for adopter repos          │
-│                                    (default: ~/repos/projects).              │
-│ --help               -h            Show this message and exit.               │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+| Argument | Description |
+| --- | --- |
+| `ARGS` | — |

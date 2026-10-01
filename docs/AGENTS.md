@@ -10,8 +10,9 @@ npm run build                        # must pass before a push
 
 ## Pages
 
-- `cli-reference.md` is generated. Never edit it by hand; regenerate with
-  `uv run python -m dotbrain._cli_reference` (refuses on Windows; use WSL, Linux, or macOS).
+- `cli-reference.md` is generated from the CLI's command definitions. Never edit it by hand; change
+  the help text in `src/dotbrain/cli.py` or the groups in `src/dotbrain/_cli_reference.py`, then
+  regenerate with `uv run python -m dotbrain._cli_reference`.
 - `configuration.md` is tested: `tests/test_configuration_docs.py` loads the first YAML block under
   ``## `config.yaml` `` and ``## `project.yaml` `` through the real config loader. Keep those
   headings exact, keep the fences plain ```` ```yaml ````, and keep every key the test reads.
