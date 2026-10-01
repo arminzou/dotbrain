@@ -113,7 +113,7 @@ flowchart LR
   links --> ws
 ```
 
-`dotbrain wire <repo>` creates the Brainspace, drops gitignored symlinks at the repo root, and
+`dotbrain wire --repo <repo>` creates the Brainspace, drops gitignored symlinks at the repo root, and
 links project skills and subagents into the agent workspaces. `dotbrain refresh` repairs wiring
 and relinks project skills and subagents if anything drifts. `dotbrain bootstrap` runs once per
 machine to install session-start hooks and link global skills and subagents.
@@ -217,7 +217,7 @@ install the CLI by hand and what to do if `marketplace add` trips over a Windows
 ## Use
 
 ```bash
-dotbrain wire <repo>      # connect a code repo to a private Brainspace
+dotbrain wire --repo <repo> # connect a code repo to a private Brainspace
 dotbrain refresh          # repair wiring, load execution state, link project skills
 dotbrain unwire <repo>    # disconnect a repo from its Brainspace
 ```

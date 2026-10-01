@@ -40,7 +40,7 @@ If you are an agent working in this repo, treat it as a normal public codebase: 
 ```bash
 ./scripts/dev-install.sh  # installs uv, Beads (bd), and an editable dotbrain CLI
 dotbrain bootstrap        # install agent hooks and link global skills
-dotbrain wire <repo>      # connect a code repo to a Brainspace under your data root
+dotbrain wire --repo <repo> # connect a code repo to a Brainspace under your data root
 ```
 
 See [README.md](README.md) for more, and [docs/architecture.md](docs/architecture.md) for the model.
