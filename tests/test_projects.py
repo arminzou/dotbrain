@@ -129,11 +129,12 @@ def test_projects_list_remains_available_with_missing_selected_skill(tmp_path):
     assert result.exit_code == 2
 
 
-def test_projects_list_isolates_malformed_declaration(tmp_path):
+@pytest.mark.parametrize("declaration", ["agents: [", "agents: []\nbeads: server\n"])
+def test_projects_list_isolates_malformed_declaration(tmp_path, declaration):
     home, _, _ = seed(tmp_path)
     bad = home / "brainspaces/bad/.brain"
     bad.mkdir(parents=True)
-    (bad / "project.yaml").write_text("agents: [", encoding="utf-8")
+    (bad / "project.yaml").write_text(declaration, encoding="utf-8")
     for extra in ([], ["--json"]):
         result = CliRunner().invoke(app, ["projects", "list", "--home", str(home), *extra])
         assert result.exit_code == 1, result.output
