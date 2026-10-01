@@ -53,7 +53,7 @@ uv sync                                  # create the venv and install deps
 uv run pytest                            # run the full suite
 uv run pytest tests/test_wiring.py       # one file
 uv run pytest -k worktree                # match by name
-uv run pytest tests/test_workflows.py::test_unwire_all_disconnects_every_repo  # one test
+uv run pytest tests/test_lifecycle_contract.py::test_wire_and_unwire_cli_json_and_clean_break  # one test
 uv tool install --editable --force .     # install the `dotbrain` CLI from this checkout
 ```
 

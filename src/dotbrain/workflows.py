@@ -1,6 +1,6 @@
 """User-facing workflows that compose the concept modules (stage 5).
 
-These are the bodies behind ``dotbrain wire``, ``refresh``, ``unwire``, and ``unwire --all``:
+These are the bodies behind ``dotbrain wire``, ``refresh``, and ``unwire``:
 cross-concept orchestration that stitches together ``adopter_repos`` (repo links),
 ``brainspaces`` (Brain/workspace preparation), ``beads`` (tracker init), ``skills``
 (skill manifest). ``cli.py`` stays a thin Typer parsing/rendering
@@ -405,19 +405,3 @@ def unwire_project(
     result.project = target.project
     return result
 
-
-def unwire_all_projects(dotbrain_home: Path, run: Runner = _default_run) -> list[UnwireResult]:
-    targets = project_selection.select_projects(dotbrain_home, all_projects=True, run=run)
-    results = []
-    for target in targets:
-        if target.checkout is None:
-            results.append(UnwireResult(project=target.project, logs=['Brain-only: no checkout to detach']))
-            continue
-        try:
-            adopter_repos.ensure_wiring_matches(target.checkout, dotbrain_home, target.project)
-            result = unwire_repo(target.checkout, dotbrain_home=dotbrain_home, run=run)
-            result.project = target.project
-        except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
-            result = UnwireResult(project=target.project, repo=target.checkout, errors=[str(exc)])
-        results.append(result)
-    return results

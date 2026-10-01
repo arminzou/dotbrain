@@ -282,6 +282,7 @@ update existing scripts using this table.
 | `--beads-ssh-host`, `--beads-database`, `--beads-remote` | `--ssh-host`, `--database`, `--remote` |
 | Asset linking with implicit global scope | `skills link --scope global` or `agents link --scope global` |
 | `update` | Upgrade with the package manager that installed the CLI |
+| `unwire --all` | `unwire --project <name>` per project |
 | Unwire archival, deletion, or preview flags | `unwire` detaches; manage retained directories through filesystem actions |
 
 Hidden command aliases are removed. Bare project commands now target the current wired checkout;

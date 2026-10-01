@@ -11,7 +11,7 @@ information in the terminal.
 | [`doctor`](#dotbrain-doctor) | Read-only health check of machine readiness and selected project setup. |
 | [`wire`](#dotbrain-wire) | Create a Brainspace or attach a checkout, including a linked worktree. |
 | [`refresh`](#dotbrain-refresh) | Repair setup while preserving project declarations and content. |
-| [`unwire`](#dotbrain-unwire) | Detach checkouts while retaining their Brainspaces and tracker databases. |
+| [`unwire`](#dotbrain-unwire) | Detach a checkout while retaining its Brainspace and tracker databases. |
 | [`projects list`](#dotbrain-projects-list) | List every registered project using local declarations and wiring. |
 | [`projects show`](#dotbrain-projects-show) | Inspect the current wired project or a named project's registered checkout. |
 | [`skills list`](#dotbrain-skills-list) | Discover locally available skills. |
@@ -105,7 +105,7 @@ dotbrain refresh [OPTIONS]
 
 ### `dotbrain unwire` {#dotbrain-unwire}
 
-Detach checkouts while retaining their Brainspaces and tracker databases.
+Detach a checkout while retaining its Brainspace and tracker databases.
 
 ```text
 dotbrain unwire [OPTIONS]
@@ -113,7 +113,6 @@ dotbrain unwire [OPTIONS]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--all` | — | Detach registered checkouts. |
 | `--repo` *path* | — | Checkout to detach. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--home` *path* | — | Override the private data root. |

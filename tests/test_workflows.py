@@ -260,9 +260,6 @@ def test_unwire_keep_preserves_projects_entry(dotbrain_home: Path):
     assert config.load_project_config(dotbrain_home, "fresh").mode == "embedded"
 
 
-# --------------------------------------------------------------------------- unwire --all (batch)
-
-
 def test_refresh_project_repairs_repo_links_links_skills_and_loads_beads(
     tmp_path: Path, dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -460,62 +457,3 @@ def test_refresh_projects_silent_for_brain_only_project(
     assert result.refreshed == ["brain-only"]
     assert not any("(brain-only)" in warning for warning in result.warnings)
     assert not any("no repo found" in warning for warning in result.warnings)
-
-
-def _wired_project(tmp_path: Path, dotbrain_home: Path, name: str) -> Path:
-    """A wired adopter repo plus a Brainspace .repo pointer so batch unwire can resolve it."""
-    repo = _make_wired_repo(tmp_path, dotbrain_home, name)
-    (paths.brainspace(dotbrain_home, name) / ".repo").write_text(f"{repo}\n")
-    return repo
-
-
-def test_unwire_all_disconnects_every_repo(tmp_path: Path, dotbrain_home: Path):
-    repo_a = _wired_project(tmp_path, dotbrain_home, "proj-a")
-    repo_b = _wired_project(tmp_path, dotbrain_home, "proj-b")
-
-    results = workflows.unwire_all_projects(
-        dotbrain_home=dotbrain_home, run=_git_runner(dotbrain_home),
-    )
-
-    assert {r.project for r in results} == {"proj-a", "proj-b"}
-    for repo in (repo_a, repo_b):
-        for link in paths.BRAINSPACE_LINKS:
-            assert not (repo / link).exists()
-        assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
-
-
-def test_unwire_all_skips_brain_only_project(tmp_path: Path, dotbrain_home: Path):
-    brainspace = paths.brainspace(dotbrain_home, "brain-only")
-    (brainspace / ".brain").mkdir(parents=True)
-
-    results = workflows.unwire_all_projects(
-        dotbrain_home=dotbrain_home, run=_git_runner(dotbrain_home),
-    )
-
-    brain_only = next(r for r in results if r.project == "brain-only")
-    assert brain_only.repo is None
-    assert not any("error" in line for line in brain_only.logs)
-
-
-def test_unwire_all_continues_after_one_project_fails(
-    tmp_path: Path, dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    repo_ok = _wired_project(tmp_path, dotbrain_home, "proj-ok")
-    _wired_project(tmp_path, dotbrain_home, "proj-bad")
-    real_unwire_repo = workflows.unwire_repo
-
-    def flaky(repo: Path, **kwargs):
-        if repo.name == "proj-bad":
-            raise RuntimeError("boom")
-        return real_unwire_repo(repo, **kwargs)
-
-    monkeypatch.setattr(workflows, "unwire_repo", flaky)
-
-    results = workflows.unwire_all_projects(
-        dotbrain_home=dotbrain_home, run=_git_runner(dotbrain_home),
-    )
-
-    by_project = {r.project: r for r in results}
-    assert by_project["proj-bad"].errors == ["boom"]
-    for link in paths.BRAINSPACE_LINKS:
-        assert not (repo_ok / link).exists()

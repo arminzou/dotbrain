@@ -621,34 +621,3 @@ def test_refresh_outside_wired_checkout_requires_selection(dotbrain_home: Path, 
     assert result.exit_code == 2
     assert "select --project" in result.output
 
-
-def test_unwire_all_delegates_without_retired_preview(dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    called = {}
-
-    def fake_unwire_all(root, **kwargs):
-        called["root"] = root
-        called.update(kwargs)
-        return [SimpleNamespace(project="proj-a", repo=None, logs=["removed symlink .brain"], warnings=[], errors=[])]
-
-    monkeypatch.setattr("dotbrain.cli.workflows.unwire_all_projects", fake_unwire_all)
-
-    result = runner.invoke(app, ["unwire", "--all", "--dry-run"])
-    assert result.exit_code == 2
-    assert "No such option: --dry-run" in result.output
-    assert called == {}
-
-    result = runner.invoke(app, ["unwire", "--all"])
-    assert result.exit_code == 0, result.output
-    assert called == {"root": dotbrain_home}
-    assert "proj-a: success" in result.output
-    assert "removed symlink .brain" in result.output
-
-
-def test_unwire_all_rejects_destructive_flags(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    result = runner.invoke(app, ["unwire", "--all", "--archive"])
-    assert result.exit_code != 0
-    assert "archive" in result.output.lower()
