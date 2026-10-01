@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/banner.jpg" alt="Dotbrain" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/lockup-horizontal-dark-1024.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/lockup-horizontal-light-1024.png">
+    <img src="docs/public/assets/lockup-horizontal-light-1024.png" alt="Dotbrain" width="480">
+  </picture>
 </p>
 
 # Dotbrain
