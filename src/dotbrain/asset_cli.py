@@ -1,5 +1,4 @@
 """Rendering adapter for scoped asset commands."""
-from pathlib import Path
 import subprocess
 
 import typer
