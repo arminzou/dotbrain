@@ -114,7 +114,7 @@ For example, an unexpected API constraint becomes a design question before a wor
 <p>If you installed the CLI manually, create or repair the project's Brainspace and link it into the repo.</p>
 
 ```bash
-dotbrain wire ~/repos/my-app
+dotbrain wire --repo ~/repos/my-app
 ```
 
 </li>
@@ -140,8 +140,11 @@ dotbrain doctor
 <h3>Guide</h3>
 <a href="./getting-started"><strong>Getting started</strong><span>Install, wire a repo, and verify the result.</span></a>
 <a href="./architecture"><strong>Architecture</strong><span>Brainspaces, the Brain and execution split, the public/private boundary.</span></a>
+<a href="./workflow"><strong>The workflow</strong><span>From first idea to closed design, one skill per step.</span></a>
 <a href="./wiring"><strong>Wiring</strong><span>What gets linked, and when to wire, refresh, or unwire.</span></a>
+<a href="./session-context"><strong>Session context</strong><span>What the agent knows when a session starts.</span></a>
 <a href="./beads-backend"><strong>Beads backend</strong><span>Embedded and server modes for the issue tracker.</span></a>
+<a href="./brain-site"><strong>Brain site</strong><span>Browse a Brain as a private local site.</span></a>
 </div>
 <div>
 <h3>Reference</h3>
@@ -149,6 +152,7 @@ dotbrain doctor
 <a href="./configuration"><strong>Configuration</strong><span>Annotated config.yaml and project.yaml.</span></a>
 <a href="./skills"><strong>Skills</strong><span>The Brain-coupled skills the plugin ships.</span></a>
 <a href="./glossary"><strong>Glossary</strong><span>The vocabulary of the dotbrain model.</span></a>
+<a href="./troubleshooting"><strong>Troubleshooting &amp; FAQ</strong><span>Fixes for common setup and wiring problems.</span></a>
 </div>
 </div>
 

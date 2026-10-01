@@ -1,133 +1,145 @@
 # Wiring
 
-This page covers the wiring model behind dotbrain: what gets connected, what stays private, and
-when to use `wire`, `refresh`, or `unwire`.
+Wiring connects a code repo to a private Brainspace. This page covers what gets linked, what stays
+private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start with
+[Getting started](getting-started.md).
 
-For the first-run setup, start with
-[getting-started.md](getting-started.md).
+## What Gets Linked
 
-## What Wiring Means
-
-Wiring connects a code repo to a private Brainspace under your dotbrain data root.
-
-The repo gets local, gitignored wiring entries such as:
-
-- `.brain`
-- `.beads`
-- `.claude`
-- `.codex`
-
-`.brain` and `.beads` point at the private Brainspace; `.claude` and `.codex` are real project
-directories containing individually ignored dotbrain resource links. The Brainspace typically lives
-under `~/dotbrain/brainspaces/<name>/`.
-An existing `~/dotbrain/projects/<name>/` layout (the pre-rename name) is still recognized; new
-Brainspaces are created under `brainspaces/`.
-
-The important boundary is:
-
-- the code repo stays the code repo
-- the Brain, execution state, and agent workspace state live outside it
-
-## What `dotbrain wire` Does
-
-Use `dotbrain wire` when you are connecting a repo to dotbrain for the first time, or when the
-repo and Brainspace should be reconciled again from the source of truth.
-
-Typical usage:
-
-```bash
-dotbrain wire <repo>
+```mermaid
+flowchart LR
+  subgraph repo["~/repos/my-app (code repo)"]
+    rb[".brain"]
+    rbd[".beads"]
+    rc[".claude/ · skills · agents links"]
+    rx[".codex/ · skills · agents links"]
+  end
+  subgraph space["~/dotbrain/brainspaces/my-app"]
+    sb[".brain/"]
+    sbd[".beads/"]
+  end
+  subgraph home["~/dotbrain"]
+    sk["skills/ · agents/"]
+  end
+  rb -- symlink --> sb
+  rbd -- symlink --> sbd
+  rc -. per-resource links .-> sk
+  rx -. per-resource links .-> sk
 ```
 
-This creates or repairs:
+| Entry | Kind | Points at |
+| --- | --- | --- |
+| `.brain` | Symlink | The Brainspace's Brain |
+| `.beads` | Symlink | The Brainspace's execution store |
+| `.claude/`, `.codex/` | Real directories | Contain individually ignored links to selected skills and subagents |
 
-- the private Brainspace
-- the repo-root wiring links
-- seeded project config such as `project.yaml`
-- local agent workspace wiring for supported agents
+`.claude` and `.codex` stay real directories so anything the project already keeps there (settings,
+commands) is untouched. Dotbrain adds one ignore rule per link it creates and never claims files it
+did not create.
 
-## What `dotbrain refresh` Does
+Brainspaces live under `~/dotbrain/brainspaces/<name>/`. An older `~/dotbrain/projects/<name>/`
+layout is still recognized; new Brainspaces are created under `brainspaces/`.
 
-Use `dotbrain refresh` when the project is already wired and you want to repair or resync the
-generated local state without treating it like a fresh connect.
+## Which Command to Use
 
-Typical usage:
-
-```bash
-dotbrain refresh
+```mermaid
+flowchart TD
+  q1{"Is the repo wired?"} -- no --> wire["dotbrain wire"]
+  q1 -- yes --> q2{"Something drifted? · config, plugin update, missing link"}
+  q2 -- yes --> refresh["dotbrain refresh"]
+  q2 -- "no, I want out" --> unwire["dotbrain unwire"]
+  q1 -- "it's a worktree" --> wb["wire-brain skill"]
 ```
 
-Use `refresh` after changes like:
+## `wire`
 
-- updating project config
-- updating shared dotbrain-managed files
-- fixing missing local links or workspace files
-- pulling the latest execution state into a wired checkout
+Connects a repo for the first time, or reconciles it again from the source of truth.
 
-Rule of thumb:
+::: code-group
 
-- use `wire` to connect or re-connect a project
-- use `refresh` to repair or resync an already wired project
-
-## What `dotbrain unwire` Does
-
-Use `dotbrain unwire` when a repo should no longer point at a Brainspace.
-
-Typical usage:
-
-```bash
-dotbrain unwire
+```bash [From the repo]
+cd ~/repos/my-app
+dotbrain wire
 ```
 
-`unwire` disconnects the adopter repo from its Brainspace. Depending on the flags you choose, the
-Brainspace can be kept, archived, or deleted.
+```bash [From anywhere]
+dotbrain wire --repo ~/repos/my-app
+```
 
-Important detail:
+```bash [Every project]
+dotbrain wire --all
+```
 
-- `unwire` is about repo/Brainspace disconnection
-- remote beads database cleanup is separate
+```bash [Brain only]
+dotbrain wire --no-repo --name research
+```
 
-If a project uses a server beads backend, dropping that remote database is a separate operation.
+:::
+
+`wire` creates or repairs:
+
+- the private Brainspace, seeded from the Brain template
+- the repo-root `.brain` and `.beads` links and their ignore rules
+- the project's `project.yaml`
+- skill and subagent links in each agent workspace listed under `agents:`
+- the Beads tracker, unless you pass `--skip-beads`
+
+The Brainspace name defaults to the repo's directory name; pass `--name` to choose another.
+
+## `refresh`
+
+Repairs or resyncs an already wired project without treating it as a fresh connect.
+
+```bash
+dotbrain refresh                 # the current repo
+dotbrain refresh --name my-app   # one project, from anywhere
+dotbrain refresh --all           # every project
+```
+
+Run it after you:
+
+- edit `project.yaml`
+- update the plugin or CLI, so dotbrain-owned files such as `DOTBRAIN.md` are current
+- notice a missing link or workspace file
+- want the latest execution state pulled into a checkout
+
+## `unwire` {#unwire}
+
+Disconnects a repo from its Brainspace. By default the Brainspace is kept.
+
+```bash
+dotbrain unwire --dry-run        # preview first
+dotbrain unwire                  # disconnect, keep the Brainspace
+dotbrain unwire --archive        # move it to ~/dotbrain/.archive/
+dotbrain unwire --delete         # remove it
+```
+
+::: warning
+`--delete` removes the Brainspace, including its Brain. Commit or push your dotbrain home first if
+you might want it back.
+:::
+
+`unwire` never touches a remote Beads database. For a server-backed project, dropping that database
+is a separate step: [`dotbrain beads drop-db`](beads-backend.md#cleaning-up).
 
 ## Worktrees
 
-Worktrees do not get separate Brains or separate execution stores.
+A worktree shares the main checkout's Brain and execution store; it never gets its own. When a
+worktree is missing `.brain` or `.beads`, ask your agent to run `wire-brain`. Its worktree branch
+derives the main checkout from Git and links only those two entries, then links skills and
+subagents into the worktree's `.claude` and `.codex`.
 
-They reuse the main checkout's Brain and execution store through:
-
-- `.brain`
-- `.beads`
-
-When either link is absent, use `wire-brain`'s worktree repair branch. It derives the main checkout
-from Git and creates only those links.
+::: danger Do not hand-create links
+Links under `.claude` and `.codex` use relative targets computed from the checkout's real location.
+A hand-counted `../` depth dangles without any error.
+:::
 
 ## Troubleshooting
 
-Common wiring problems are usually one of these:
-
-- missing local links
-- links pointing at the wrong Brainspace
-- a repo that was cloned fresh and never wired
-- a worktree missing its `.brain` or `.beads` link
-
-Start with:
-
 ```bash
-dotbrain doctor
+dotbrain doctor     # read-only: what is missing or drifted
+dotbrain refresh    # repair a wired project
+dotbrain wire       # reconnect if the relationship changed
 ```
 
-Then, if the repo should already be wired, run:
-
-```bash
-dotbrain refresh
-```
-
-If the project was never wired correctly or the repo/Brainspace relationship changed, run:
-
-```bash
-dotbrain wire <repo>
-```
-
-## Rule Of Thumb
-
-Wiring is local machine plumbing. It should stay gitignored, private, and reversible.
+More in [Troubleshooting & FAQ](troubleshooting.md).

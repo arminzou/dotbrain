@@ -227,3 +227,187 @@
 .home .map > div {
   min-width: 0;
 }
+
+/* Mermaid diagrams (```mermaid blocks drawn by Mermaid.vue), styled with the site's colours so
+   they follow light and dark mode. Mermaid scopes its own styles to each diagram's id, so these
+   overrides need !important. */
+.mermaid-diagram {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.mermaid-diagram .node rect,
+.mermaid-diagram .node polygon,
+.mermaid-diagram .node path,
+.mermaid-diagram .node circle {
+  fill: var(--vp-c-bg-soft) !important;
+  stroke: var(--vp-c-divider) !important;
+  stroke-width: 1px !important;
+}
+
+.mermaid-diagram .node rect {
+  rx: 6px;
+  ry: 6px;
+}
+
+.mermaid-diagram .node,
+.mermaid-diagram .node * {
+  filter: none !important;
+}
+
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .node .label {
+  color: var(--vp-c-text-1) !important;
+  fill: var(--vp-c-text-1) !important;
+}
+
+.mermaid-diagram .flowchart-link {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram marker path,
+.mermaid-diagram .marker {
+  fill: var(--vp-c-text-3) !important;
+  stroke: var(--vp-c-text-3) !important;
+}
+
+.mermaid-diagram .edgeLabel,
+.mermaid-diagram .edgeLabel p,
+.mermaid-diagram .labelBkg {
+  background: var(--vp-c-bg) !important;
+  color: var(--vp-c-text-2) !important;
+  font-size: 12px;
+}
+
+.mermaid-diagram .edgeLabel rect {
+  fill: var(--vp-c-bg) !important;
+}
+
+.mermaid-diagram .actor,
+.mermaid-diagram rect.actor {
+  fill: var(--vp-c-bg-soft) !important;
+  stroke: var(--vp-c-divider) !important;
+  stroke-width: 1px !important;
+}
+
+.mermaid-diagram text.actor,
+.mermaid-diagram text.actor > tspan,
+.mermaid-diagram .messageText,
+.mermaid-diagram .noteText,
+.mermaid-diagram .noteText > tspan {
+  fill: var(--vp-c-text-1) !important;
+  stroke: none !important;
+}
+
+.mermaid-diagram .actor-line {
+  stroke: var(--vp-c-divider) !important;
+}
+
+.mermaid-diagram .messageLine0,
+.mermaid-diagram .messageLine1 {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram #arrowhead path,
+.mermaid-diagram [id$="-arrowhead"] path {
+  fill: var(--vp-c-text-3) !important;
+  stroke: var(--vp-c-text-3) !important;
+}
+
+.mermaid-diagram .note {
+  fill: var(--vp-c-bg-alt) !important;
+  stroke: var(--vp-c-divider) !important;
+}
+
+.mermaid-diagram .transition {
+  stroke: var(--vp-c-text-3) !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-diagram .state-start,
+.mermaid-diagram .state-end,
+.mermaid-diagram .end-state-inner {
+  fill: var(--vp-c-text-2) !important;
+  stroke: var(--vp-c-text-2) !important;
+}
+
+.mermaid-error {
+  border: 1px solid var(--vp-c-danger-1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  color: var(--vp-c-danger-1);
+  font-size: 14px;
+}
+
+.mermaid-error pre {
+  margin: 8px 0 0;
+  overflow-x: auto;
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  white-space: pre;
+}
+
+
+/* Code blocks: a hairline frame instead of a filled slab, so they sit on the page like the tables. */
+:root {
+  --vp-code-block-bg: var(--vp-c-bg-alt);
+  --vp-code-tab-bg: var(--vp-c-bg-alt);
+  --vp-code-copy-code-bg: var(--vp-c-bg);
+}
+.vp-doc div[class*='language-'],
+.vp-doc .vp-code-group .tabs {
+  border: 1px solid var(--vp-c-divider);
+}
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+}
+.vp-doc .vp-code-group .tabs {
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+.vp-doc .vp-code-group div[class*='language-'] {
+  border-radius: 0 0 8px 8px;
+}
+.vp-doc div[class*='language-'] > span.lang {
+  font-family: var(--vp-font-family-mono);
+  text-transform: lowercase;
+}
+.vp-doc .vp-code-group .tabs label {
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+}
+
+/* Tables fill the column and keep code cells on one line. */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  font-size: 14px;
+}
+.vp-doc td code {
+  white-space: nowrap;
+}
+
+/* Diagrams get the same frame as code, with room to breathe. */
+.vp-doc .mermaid-diagram {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+.vp-doc .mermaid-diagram > div {
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.mermaid-diagram .cluster rect {
+  fill: transparent !important;
+  stroke: var(--vp-c-divider) !important;
+  stroke-dasharray: 4 3;
+}
+.mermaid-diagram .cluster-label,
+.mermaid-diagram .cluster-label * {
+  color: var(--vp-c-text-2) !important;
+  fill: var(--vp-c-text-2) !important;
+}

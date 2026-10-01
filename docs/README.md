@@ -1,33 +1,31 @@
 # Documentation
 
-This directory is the public docs index for dotbrain.
+Source for the public docs site at <https://arminzou.github.io/dotbrain/>. Each page also reads
+fine on GitHub.
 
-Start here if you want the shape of the material before diving into a specific page.
+## Guide
 
-## Start Here
+- [getting-started.md](getting-started.md) — install, wire a repo, and verify the result.
+- [workflow.md](workflow.md) — from first idea to closed design, one skill per step.
 
-- [architecture.md](architecture.md)
-  The design narrative: Brainspaces, the Brain/execution split, skills, and the public/private boundary.
-- [getting-started.md](getting-started.md)
-  The first-run path: install, bootstrap, wire a repo, and verify the result.
+## How It Works
+
+- [architecture.md](architecture.md) — Brainspaces, the Brain/execution split, the public/private boundary.
+- [wiring.md](wiring.md) — what gets linked, and when to wire, refresh, or unwire.
+- [session-context.md](session-context.md) — what the agent knows at session start.
+- [beads-backend.md](beads-backend.md) — embedded and server tracker modes.
+- [brain-site.md](brain-site.md) — the private, local Brain site.
 
 ## Reference
 
-- [cli-reference.md](cli-reference.md)
-  Public CLI command reference.
-- [configuration.md](configuration.md)
-  Annotated `config.yaml` and `project.yaml` examples.
-- [skills.md](skills.md)
-  Catalog of packaged Brain-coupled skills.
-- [glossary.md](glossary.md)
-  Public vocabulary for the dotbrain model.
+- [cli-reference.md](cli-reference.md) — generated; regenerate with `uv run python -m dotbrain._cli_reference`.
+- [configuration.md](configuration.md) — every config file and key.
+- [skills.md](skills.md) — the bundled Brain-coupled skills.
+- [glossary.md](glossary.md) — the dotbrain vocabulary.
+- [troubleshooting.md](troubleshooting.md) — common problems and FAQ.
 
-## Reading Order
+## Local Preview
 
-If you are new to dotbrain, a reasonable order is:
-
-1. [architecture.md](architecture.md)
-2. [getting-started.md](getting-started.md)
-3. [configuration.md](configuration.md)
-4. [skills.md](skills.md)
-5. [cli-reference.md](cli-reference.md)
+```bash
+cd docs && npm ci && npm run dev
+```

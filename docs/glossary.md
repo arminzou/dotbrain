@@ -28,6 +28,27 @@ agent-facing conventions. In dotbrain terms, the Brain is narrower than the full
 A project that keeps Brain context without using an execution store in practice, or without wiring a
 normal code repo as its main surface. The Brain still exists; the surrounding workflow is lighter.
 
+### ADR
+
+An Architecture Decision Record in the Brain's `adr/`. One file per decision that is hard to
+reverse, surprising without context, and the result of a real trade-off.
+
+### design doc
+
+One initiative's design in the Brain's `designs/`. Its `lifecycle` is `draft`, `active`, `shipped`,
+`abandoned`, or `superseded`. An active design is the living spec; a terminal one is a record.
+See [The workflow](workflow.md).
+
+### bead
+
+One issue in the Beads execution store. Epics group beads, and `blocks` dependencies decide which
+are ready.
+
+### Brain site
+
+The private, local documentation site `dotbrain site` renders from a Brain. See
+[Brain site](brain-site.md).
+
 ### config.yaml
 
 The global dotbrain config file, usually at `~/dotbrain/config.yaml`. It holds machine-wide

@@ -1,100 +1,113 @@
 # Beads Backend
 
-This page explains the two beads backend modes dotbrain supports, when to use each one, and how the
-backend lifecycle fits into `load`, `migrate`, and cleanup commands.
+Dotbrain keeps each project's plans and tasks in [Beads](https://github.com/gastownhall/beads)
+(`bd`), a dependency-aware issue tracker built on Dolt. This page covers the backend modes, how to
+choose one, and the commands that manage them.
 
-## Two Modes
+## Modes
 
-Per project, beads can run in one of two practical modes:
+| | `embedded` (default) | `server` | `none` |
+| --- | --- | --- | --- |
+| Where state lives | A local Dolt store in the Brainspace | A shared Dolt sql-server | Nowhere |
+| Sync across machines | Optional, through a Dolt remote | Live | n/a |
+| Setup | None | `beads.server` in `config.yaml` | None |
+| Good for | Most projects | Several machines working at once | Projects tracked elsewhere, such as GitHub Issues |
 
-- `embedded`
-  Local beads state lives in the project's private Brainspace.
-- `server`
-  The project uses a shared Dolt sql-server backend.
+```mermaid
+flowchart LR
+  subgraph emb["embedded"]
+    c1["checkout"] --> s1[("Brainspace · .beads/")]
+    s1 -. "push / pull" .-> r1[("Dolt remote")]
+  end
+  subgraph srv["server"]
+    c2["machine A"] --> d[("Dolt sql-server")]
+    c3["machine B"] --> d
+  end
+```
 
-For most first-time setups, `embedded` is the right default.
+If you are unsure, start `embedded`. Moving to `server` later keeps history.
 
-## Embedded Mode
+## How Dotbrain Decides
 
-Use embedded mode when:
+Two files are involved:
 
-- the project is mostly local to one machine
-- you do not need a shared sql-server backend
-- you want the smallest operational footprint
+- `~/dotbrain/config.yaml` holds machine-wide server defaults under `beads.server`.
+- `.brain/project.yaml` picks the mode per project with `beads.mode`. Leaving it out means
+  `embedded`.
 
-In embedded mode, the Brainspace carries the local beads state and dotbrain can hydrate it
-locally when needed.
+```yaml [.brain/project.yaml]
+beads:
+  mode: server
+  database: my_app_beads   # optional; defaults to the project name
+```
+
+See [Configuration](configuration.md) for the full shape.
 
 ## Server Mode
 
-Use server mode when:
+Point `config.yaml` at your sql-server once per machine:
 
-- the project should use a shared backend across machines or sessions
-- you want multiple wired checkouts to connect to the same server-backed beads database
-- the project has moved beyond the local embedded default
+```yaml [~/dotbrain/config.yaml]
+beads:
+  server:
+    host: db.example.internal
+    port: 3307
+    user: beads
+    ssh_host: bastion.example.internal   # optional SSH hop, used by drop-db
+```
 
-Server mode needs shared infrastructure defaults in `config.yaml`, typically under `beads.server`.
-The per-project `project.yaml` then sets `beads.mode: server`.
+::: warning
+Never put passwords or tokens in `config.yaml`. Keep credentials in your secrets store.
+:::
 
-See [configuration.md](configuration.md) for the concrete
-config examples.
+Then set `beads.mode: server` in the project and run `dotbrain wire` or `dotbrain beads load`.
 
-## How dotbrain Decides
+## Commands
 
-There are two layers of configuration:
+### `beads load`
 
-- `~/dotbrain/config.yaml` for machine-wide server defaults
-- `~/dotbrain/brainspaces/<name>/.brain/project.yaml` for per-project backend choice and overrides
+Hydrates local tracker state from the declarations: attaches server trackers, initializes embedded
+ones, then pulls. It only pulls; it never pushes and never touches links or hooks.
 
-In practice:
+```bash
+dotbrain beads load --dry-run    # preview
+dotbrain beads load              # the current repo's project
+dotbrain beads load --all        # every Brainspace that uses beads
+```
 
-- if a project stays on the default path, it is usually `embedded`
-- if a project declares `beads.mode: server`, dotbrain treats it as server-backed
+Run it on a fresh machine after cloning your dotbrain home.
 
-## `dotbrain beads load`
+### `beads migrate`
 
-Use `dotbrain beads load` to hydrate local beads state from the tracked declarations.
+Moves an embedded tracker onto the sql-server with its history.
 
-What it does depends on the backend:
+```mermaid
+flowchart LR
+  e[("embedded · Brainspace .beads/")] -- "dotbrain beads migrate" --> s[("server · Dolt sql-server")]
+```
 
-- server-mode projects attach to the declared server tracker
-- embedded projects initialize local beads state and pull it
+```bash
+dotbrain beads migrate --dry-run   # print the planned bd sequence
+dotbrain beads migrate             # the current repo's project
+dotbrain beads migrate --all       # every embedded Brainspace
+```
 
-This is a reconcile step for backend state. It does not touch repo wiring, hooks, or unrelated
-workspace files.
+### Cleaning Up
 
-## `dotbrain beads migrate`
+`dotbrain beads list-db` lists the databases on the server. `dotbrain beads drop-db` removes one.
 
-Use `dotbrain beads migrate` when a project started as embedded and should move onto a remote
-sql-server backend without losing its existing history.
+::: danger
+`drop-db` deletes the remote database and every issue in it. It is separate from `dotbrain unwire`
+on purpose: `unwire` disconnects a repo, `drop-db` destroys tracker data.
+:::
 
-Typical use case:
+## Working With the Tracker
 
-- a project began with the local embedded default
-- later it needs a shared server backend
-- you want to preserve existing beads history while moving to server mode
+Agents drive Beads through the `operate-execution` skill, but you can use `bd` directly in any wired
+repo:
 
-`migrate` is the transition step between those two worlds.
-
-## `dotbrain beads drop-db`
-
-`dotbrain beads drop-db` is a backend cleanup command for server-backed projects.
-
-Use it only when you actually intend to remove the remote beads database. This is separate from
-repo wiring and separate from `dotbrain unwire`.
-
-Rule of thumb:
-
-- `unwire` disconnects a repo from its Brainspace
-- `drop-db` removes a server backend database
-
-Those are different operations on purpose.
-
-## Which One Should You Pick?
-
-Choose `embedded` when you want the simplest default.
-
-Choose `server` when the project genuinely needs shared backend infrastructure.
-
-If you are unsure, start embedded and migrate later only when the project really needs the shared
-server model.
+```bash
+bd ready              # issues with no open blockers
+bd show <id>          # one issue with its dependencies
+bd list --status open
+```

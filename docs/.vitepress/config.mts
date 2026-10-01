@@ -28,6 +28,18 @@ export default defineConfig({
     ['meta', { property: 'og:description', content: description }],
   ],
 
+  markdown: {
+    theme: { light: 'github-light', dark: 'github-dark' },
+    // A ```mermaid fence becomes the theme's <Mermaid> component, which draws it in the browser.
+    config(md) {
+      const fence = md.renderer.rules.fence!
+      md.renderer.rules.fence = (tokens, index, ...rest) =>
+        tokens[index].info.trim() === 'mermaid'
+          ? `<Mermaid code="${encodeURIComponent(tokens[index].content)}" />`
+          : fence(tokens, index, ...rest)
+    },
+  },
+
   themeConfig: {
     logo: {
       light: { src: '/assets/mark-light.png', width: 24, height: 24 },
@@ -35,7 +47,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(getting-started|architecture|wiring|beads-backend)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(getting-started|architecture|workflow|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -44,10 +56,22 @@ export default defineConfig({
         text: 'Guide',
         items: [
           { text: 'Getting started', link: '/getting-started' },
+          { text: 'The workflow', link: '/workflow' },
+        ],
+      },
+      {
+        text: 'How it works',
+        items: [
           { text: 'Architecture', link: '/architecture' },
           { text: 'Wiring', link: '/wiring' },
+          { text: 'Session context', link: '/session-context' },
           { text: 'Beads backend', link: '/beads-backend' },
+          { text: 'Brain site', link: '/brain-site' },
         ],
+      },
+      {
+        text: 'Help',
+        items: [{ text: 'Troubleshooting & FAQ', link: '/troubleshooting' }],
       },
       {
         text: 'Reference',
@@ -59,7 +83,7 @@ export default defineConfig({
         ],
       },
     ],
-    outline: [2, 3],
+    outline: { level: [2, 3], label: 'On this page' },
     search: { provider: 'local' },
     socialLinks: [{ icon: 'github', link: 'https://github.com/arminzou/dotbrain' }],
     editLink: {

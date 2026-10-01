@@ -4,6 +4,8 @@ The dotbrain plugin delivers its Brain-coupled skills: the operating manual for 
 They cover wiring, planning, execution, triage, and Brain maintenance. Several are inspired by and adapted
 from [mattpocock/skills](https://github.com/mattpocock/skills).
 
+[The workflow](workflow.md) shows how they fit together.
+
 Skill linking is operator-managed:
 
 - global skills are selected in `~/dotbrain/skills/skills.yaml`
@@ -40,6 +42,8 @@ Skill linking is operator-managed:
 
 ## Triage And Review
 
+- **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
+  outcome on the issue; closing the review stays with you
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution
@@ -60,6 +64,12 @@ Skill linking is operator-managed:
 - **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in
   conversation, walk a learning path tracked as a `learn:` bead, record what was demonstrated, and
   capture approved lessons into `.brain/learning/`
+
+## Subagents
+
+Alongside the skills, dotbrain links four Brain-aware subagents into each workspace:
+`investigator`, `implementer`, `reviewer`, and `verifier`. See
+[Session context](session-context.md#subagents).
 
 ## Installing Them
 

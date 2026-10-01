@@ -1,12 +1,19 @@
 # Getting Started
 
 Dotbrain ships as a plugin. Install it into your coding agent first, and the plugin's
-`wire-brain` skill installs the CLI for you on first use. This guide walks that path:
+`wire-brain` skill installs the CLI for you on first use. This guide walks that path in about five minutes:
 
-1. Install the plugin into Claude Code or Codex.
-2. Get the `dotbrain` CLI (your agent does this, or you do it by hand).
-3. Wire one code repo to a private Brainspace.
-4. Verify the wiring.
+```mermaid
+flowchart LR
+  p["1 · Install · the plugin"] --> c["2 · Get · the CLI"] --> w["3 · Wire · a repo"] --> v["4 · Verify"]
+```
+
+| You need | Notes |
+| --- | --- |
+| Claude Code or Codex | Either runtime, or both |
+| Git | The dotbrain home is a Git repository |
+| `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
+| Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
 
 ## Before You Start
 
@@ -15,36 +22,38 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
   (`%USERPROFILE%\dotbrain` on Windows). Set `DOTBRAIN_HOME` only to override it.
 - The code repo you wire stays public or private on its own terms; dotbrain keeps Brain and
   execution state outside that repo.
-- **On Windows**, enable
-  [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
-  before wiring, so dotbrain can create directory symlinks without Administrator privileges.
+
+::: warning Windows
+Enable [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
+before wiring, so dotbrain can create directory symlinks without Administrator privileges.
+:::
 
 ## 1. Install the Plugin
 
 The Brain-coupled skills, the dotbrain convention, and the session-start hook are delivered as a
 plugin, so each agent runtime installs them once per machine rather than per repo.
 
-Claude Code — send these as two separate prompts:
+::: code-group
 
-```
+```text [Claude Code]
 /plugin marketplace add arminzou/dotbrain
-```
-
-```
 /plugin install dotbrain@dotbrain
 ```
 
-Codex:
-
-```bash
+```bash [Codex]
 codex plugin marketplace add arminzou/dotbrain
 codex plugin add dotbrain@dotbrain
 ```
 
-**Codex needs one extra step.** It does not run a plugin's lifecycle hooks until you approve
-them: start `codex`, open `/hooks`, review and trust the dotbrain hook, then start a new thread.
-Until you do, the plugin's skills load but Brain context is not injected at session start. Claude
-Code runs the hook as soon as the plugin installs.
+:::
+
+In Claude Code, send the two lines as separate prompts.
+
+::: tip Codex needs one extra step
+Codex does not run a plugin's hooks until you approve them: start `codex`, open `/hooks`, trust the
+dotbrain hook, then start a new thread. Until then the skills load but Brain context is not injected
+at session start. Claude Code runs the hook as soon as the plugin installs.
+:::
 
 Because the plugin installs at user scope, its skills are available in every session, including
 repos that are not wired yet — which is how `wire-brain` is reachable before you have wired
@@ -87,13 +96,21 @@ checks whether `dotbrain` is on `PATH` and, if it is missing, runs the installer
 the plugin — which provides `uv`, `bd` (Beads), the CLI version pinned to this plugin release, and
 then runs `dotbrain bootstrap`.
 
-**Or install it yourself from PyPI.** Requires `uv` (or `pipx`) already on your machine:
+**Or install it yourself from PyPI.** Requires `uv` or `pipx` already on your machine:
 
-```bash
+::: code-group
+
+```bash [uv]
 uv tool install dotbrain
 ```
 
-(`pipx install dotbrain` works too.) This installs the CLI only — it does not install `bd`
+```bash [pipx]
+pipx install dotbrain
+```
+
+:::
+
+This installs the CLI only — it does not install `bd`
 (Beads), which `dotbrain` shells out to for issue tracking. Run `dotbrain bootstrap` afterward,
 then `dotbrain doctor` to see what else is missing; install `bd` yourself from
 [the Beads repo](https://github.com/gastownhall/beads) if it's flagged.
@@ -101,39 +118,50 @@ then `dotbrain doctor` to see what else is missing; install `bd` yourself from
 **Or run the plugin's installer by hand.** It provisions `uv` and `bd` for you if either is
 missing, then installs the CLI — no prerequisites needed, from the runtime's plugin cache:
 
-```bash
-# macOS and Linux
+::: code-group
+
+```bash [macOS / Linux]
 ~/.claude/plugins/cache/dotbrain/dotbrain/*/scripts/install.sh
 ```
 
-```powershell
-# Windows
+```powershell [Windows]
 pwsh -NoProfile -File "$env:USERPROFILE\.claude\plugins\cache\dotbrain\dotbrain\*\scripts\install.ps1"
 ```
+
+:::
 
 Either script installs `uv` and `bd` if they are missing, installs the pinned CLI, and runs
 `dotbrain bootstrap` — which seeds your global dotbrain home with `config.yaml`, global agent
 hooks, and global skill links. Running it a second time is safe.
 
+::: warning
 Keep the CLI and the plugin on the same version. The plugin's installer pins a matching CLI tag,
 so the two stay aligned as long as you let it do the install.
+:::
 
 ## 3. Wire a Repo
 
-Move to the code repo you want to wire and run:
+From the code repo you want to wire:
 
 ```bash
-dotbrain wire <repo>
+cd ~/repos/my-app
+dotbrain wire
 ```
 
-Example:
+Or from anywhere, with `dotbrain wire --repo ~/repos/my-app`.
 
-```bash
-dotbrain wire ~/repos/projects/my-app
+Wiring creates or repairs a private Brainspace for that project and connects the repo to it through
+gitignored links. Your repo gains:
+
+```text
+~/repos/my-app/
+├── .brain  ──► ~/dotbrain/brainspaces/my-app/.brain
+├── .beads  ──► ~/dotbrain/brainspaces/my-app/.beads
+├── .claude/    skill and subagent links (individually ignored)
+└── .codex/     skill and subagent links (individually ignored)
 ```
 
-Wiring creates or repairs a private Brainspace for that project and connects the repo to it
-through gitignored local links such as `.brain`, `.beads`, `.claude`, and `.codex`.
+[Wiring](wiring.md) explains each entry.
 
 ## 4. Verify the Result
 
@@ -163,29 +191,40 @@ the project's vocabulary and standing decisions without being told.
 
 When a new dotbrain release lands, update the plugin and the CLI together.
 
-Claude Code — run `/plugin`, update dotbrain from the menu, then:
+::: code-group
 
-```
+```text [Claude Code]
+/plugin            # update dotbrain from the menu
 /reload-plugins
 ```
 
-Codex:
-
-```bash
+```bash [Codex]
 codex plugin marketplace upgrade
 codex plugin add dotbrain@dotbrain
 ```
+
+:::
 
 Then refresh the CLI to match, either by asking your agent or by re-running the install command
 from step 2 with the new tag.
 
 To update only the released CLI, upgrade it with the tool that installed it:
 
-```bash
-uv tool install dotbrain@latest              # uv
-pipx upgrade dotbrain                        # pipx
-python -m pip install --upgrade dotbrain     # pip, using the Python dotbrain is installed in
+::: code-group
+
+```bash [uv]
+uv tool install dotbrain@latest
 ```
+
+```bash [pipx]
+pipx upgrade dotbrain
+```
+
+```bash [pip]
+python -m pip install --upgrade dotbrain
+```
+
+:::
 
 With uv, use `dotbrain@latest` rather than `uv tool upgrade dotbrain`: an install pinned to one
 version, such as the plugin installer's, stays on that version under `uv tool upgrade`. Not sure
@@ -200,10 +239,11 @@ Most first-time setups can leave the default embedded beads mode alone.
 
 When you do need configuration:
 
-- use [configuration.md](configuration.md) for `config.yaml` and `project.yaml`
-- use [skills.md](skills.md) for skill layering
+- [Configuration](configuration.md) covers `config.yaml` and `project.yaml`.
+- [Skills](skills.md) covers skill selection.
 
 ## Next
 
-- [architecture.md](architecture.md) explains the Brainspace model.
-- [cli-reference.md](cli-reference.md) lists the public commands.
+- [The workflow](workflow.md) shows how the skills carry work from idea to closed design.
+- [Architecture](architecture.md) explains the Brainspace model.
+- [Troubleshooting & FAQ](troubleshooting.md) covers common setup problems.
