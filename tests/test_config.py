@@ -29,6 +29,30 @@ def test_project_config_symlink_escape_rejects_reads_and_writes(tmp_path: Path):
 # --------------------------------------------------------------------------- load_config (config.yaml)
 
 
+@pytest.mark.parametrize("filename", ["config.yaml", "dotbrain.yaml"])
+@pytest.mark.parametrize("declaration", ["[]", "beads: server", "beads: {server: []}"])
+def test_global_config_rejects_invalid_mapping_shapes(tmp_path, filename, declaration):
+    (tmp_path / filename).write_text(declaration, encoding="utf-8")
+    with pytest.raises(ValueError, match="expected a YAML mapping"):
+        config.load_config(tmp_path)
+
+
+@pytest.mark.parametrize("value", ["null", "[]"])
+def test_global_config_rejects_invalid_version(tmp_path, value):
+    (tmp_path / "config.yaml").write_text(f"version: {value}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="version must be an integer"):
+        config.load_config(tmp_path)
+
+
+@pytest.mark.parametrize("declaration", ["[]", "beads: server", "beads: []"])
+def test_project_config_rejects_invalid_mapping_shapes(tmp_path, declaration):
+    brain = tmp_path / "brainspaces/example/.brain"
+    brain.mkdir(parents=True)
+    (brain / "project.yaml").write_text(declaration, encoding="utf-8")
+    with pytest.raises(ValueError, match="expected a YAML mapping"):
+        config.load_project_config(tmp_path, "example")
+
+
 def test_load_config_returns_defaults_when_file_absent(tmp_path: Path):
     cfg = config.load_config(tmp_path)
     assert cfg.beads_server.host == ""

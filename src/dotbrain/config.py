@@ -59,6 +59,14 @@ def _old_config_path(dotbrain_home: Path) -> Path:
     return Path(dotbrain_home) / "dotbrain.yaml"
 
 
+def _mapping(value: Any, location: str) -> dict:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{location}: expected a YAML mapping")
+    return value
+
+
 def load_config(dotbrain_home: Path) -> DotbrainConfig:
     """Load ``config.yaml``; transparently reads old ``dotbrain.yaml`` as fallback."""
     import yaml  # deferred: only needed when this function is called
@@ -72,10 +80,15 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
     if not path.is_file():
         return DotbrainConfig()
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    server = (data.get("beads") or {}).get("server") or {}
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
+    beads = _mapping(data.get("beads"), f"{path}: beads")
+    server = _mapping(beads.get("server"), f"{path}: beads.server")
+    try:
+        version = int(data.get("version", 3))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{path}: version must be an integer") from exc
     return DotbrainConfig(
-        version=int(data.get("version", 3)),
+        version=version,
         beads_server=BeadsServer(
             host=str(server.get("host", "")),
             port=str(server.get("port", "3307")),
@@ -89,8 +102,9 @@ def _parse_old_format(path: Path) -> DotbrainConfig:
     """Read beads.server from a legacy dotbrain.yaml, ignoring projects: section."""
     import yaml
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    server = (data.get("beads") or {}).get("server") or {}
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
+    beads = _mapping(data.get("beads"), f"{path}: beads")
+    server = _mapping(beads.get("server"), f"{path}: beads.server")
     return DotbrainConfig(
         version=3,
         beads_server=BeadsServer(
@@ -138,8 +152,8 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
     file_beads: ProjectBeads | None = None
     path = _project_config_path(dotbrain_home, name)
     if path.is_file():
-        data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        beads = data.get("beads") or {}
+        data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
+        beads = _mapping(data.get("beads"), f"{path}: beads")
         file_beads = ProjectBeads(
             mode=str(beads.get("mode", default_mode)),
             remote=str(beads.get("remote", "")),
@@ -149,10 +163,11 @@ def load_project_config(dotbrain_home: Path, name: str) -> ProjectBeads:
     # Explicit old dotbrain.yaml entries override a default .brain/project.yaml.
     old = _old_config_path(dotbrain_home)
     if old.is_file():
-        data: dict[str, Any] = yaml.safe_load(old.read_text(encoding="utf-8")) or {}
-        projects = data.get("projects") or {}
-        if name in projects and (projects[name] or {}).get("beads"):
-            entry = (projects[name] or {}).get("beads") or {}
+        data = _mapping(yaml.safe_load(old.read_text(encoding="utf-8")), str(old))
+        projects = _mapping(data.get("projects"), f"{old}: projects")
+        project = _mapping(projects.get(name), f"{old}: projects.{name}")
+        entry = _mapping(project.get("beads"), f"{old}: projects.{name}.beads")
+        if entry:
             old_beads = ProjectBeads(
                 mode=str(entry.get("mode", default_mode)),
                 remote=str(entry.get("remote", "")),
@@ -179,9 +194,7 @@ def load_project_skills(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
         return ()
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(data, dict):
-        return ()
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
     return skills._clean(data.get("skills"))
 
 
@@ -194,9 +207,7 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
         return ()
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(data, dict):
-        return ()
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
     return skills._clean(data.get("subagents"))
 
 
@@ -212,9 +223,7 @@ def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     if not path.is_file():
         return DEFAULT_PROJECT_AGENTS
 
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(data, dict):
-        return DEFAULT_PROJECT_AGENTS
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
 
     raw_agents = data.get("agents")
     if raw_agents is None:
@@ -299,12 +308,12 @@ def _remove_from_old_projects_section(path: Path, name: str) -> str | None:
     """Remove owned legacy Beads keys, preserving unknown configuration values."""
     import yaml
 
-    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    projects: dict[str, Any] = data.get("projects") or {}
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
+    projects = _mapping(data.get("projects"), f"{path}: projects")
     if name not in projects:
         return None
-    entry = projects[name] or {}
-    section = entry.get("beads") or {}
+    entry = _mapping(projects[name], f"{path}: projects.{name}")
+    section = _mapping(entry.get("beads"), f"{path}: projects.{name}.beads")
     changed = any(key in section for key in ("mode", "remote", "database"))
     if not changed:
         return None
