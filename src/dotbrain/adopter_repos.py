@@ -174,16 +174,6 @@ def target_is_outside_repo(repo: Path, path: Path) -> bool:
     return repo_real != target_real and repo_real not in target_real.parents
 
 
-def is_dotbrain_checkout(root: Path) -> bool:
-    """True when ``root`` has the minimum structure expected of a dotbrain checkout."""
-    root = Path(root).resolve()
-    return (
-        (root / ".git").exists()
-        and any((root / d).is_dir() for d in paths.DATA_DIRS)
-        and (root / "templates" / ".brain" / "AGENTS.md").is_file()
-    )
-
-
 def foreign_dotbrain_home_for_symlink(path: Path, link_name: str, dotbrain_home: Path) -> Path | None:
     """Return a foreign dotbrain root when ``path`` proves it already belongs to another checkout."""
     path = Path(path)

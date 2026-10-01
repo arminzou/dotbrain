@@ -85,27 +85,6 @@ def test_load_global_config_rejects_bad_targets(tmp_path: Path):
         skills.load_global_config(path)
 
 
-def test_reconcile_global_config_writes_current_key_names(tmp_path: Path):
-    path = _write_global(
-        tmp_path,
-        "targets:\n"
-        "  codex: ~/.codex/skills\n"
-        "baseline:\n"
-        "  - wrong/skill\n"
-        "project_baseline:\n"
-        "  - brain/operate-execution\n"
-        "extra:\n"
-        "  - misc/x\n",
-    )
-    skills.reconcile_global_config(path)
-    text = path.read_text()
-    assert "global_baseline:" not in text
-    assert "project_baseline:" not in text
-    assert "global_extra:\n  - misc/x\n" in text
-    assert "\nbaseline:\n" not in text
-    assert "\nextra:\n" not in text
-
-
 def test_render_global_config_empty_global_extra():
     text = skills.render_global_config({"codex": "~/.codex/skills"}, [])
     assert "global_baseline:" not in text

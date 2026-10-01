@@ -125,21 +125,6 @@ def render_global_config(
     return "\n".join(lines) + "\n"
 
 
-def reconcile_global_config(path: Path) -> GlobalConfig:
-    """Normalize optional operator config when present."""
-
-    path = Path(path)
-    config = load_global_config(path)
-    if path.is_file():
-        desired = render_global_config(
-            config.targets,
-            config.global_extra,
-        )
-        if path.read_text(encoding="utf-8") != desired:
-            path.write_text(desired, encoding="utf-8", newline="\n")
-    return config
-
-
 def project_link_set(extras: Iterable[str]) -> tuple[str, ...]:
     """Return the operator's deduplicated per-project skill selection."""
 

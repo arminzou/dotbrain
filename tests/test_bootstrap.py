@@ -67,9 +67,9 @@ def test_ensure_data_root_seeds_skills_config(tmp_path: Path):
         root / "agents" / "agents.yaml",
     ]
     assert all(b"\r\n" not in path.read_bytes() for path in generated)
-    # Seeded via the same renderer reconcile uses, so the first link is a no-op rewrite.
     before = skills_config.read_text()
-    skills.reconcile_global_config(skills_config)
+    assert skills.load_global_config(skills_config).global_extra == ()
+    bootstrap_mod.ensure_data_root(root)
     assert skills_config.read_text() == before
 
 
