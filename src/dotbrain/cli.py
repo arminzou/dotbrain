@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -78,30 +76,7 @@ def _project_report(command: str, root: Path, project: str | None, json_output: 
     ])
     if any(target.errors for target in result.targets):
         result.status = "partial" if any(not target.errors for target in result.targets) else "failure"
-    if json_output:
-        render(result, json_output=True)
-        if result.status != "success":
-            raise typer.Exit(1)
-        return
-    lines = [f"{result.command}: {result.status}"]
-    for target in result.targets:
-        record = target.data
-        lines.append(f"  {target.project}: {target.checkout or 'Brain-only'}")
-        if target.errors:
-            lines.extend(f"    error: {error}" for error in target.errors)
-            continue
-        lines.append(f"    runtimes: {', '.join(record['runtimes']) or 'none'}; tracker: {record['beads']['mode']}")
-        lines.append("    wiring: " + (", ".join(f"{name} {status}" for name, status in record['wiring'].items()) or "no checkout"))
-        if command == "projects show":
-            lines.append(f"    Brainspace: {record['brainspace']}")
-            lines.extend(f"    {name}: {value or 'disabled'}" for name, value in record['paths'].items())
-            lines.append("    settings: " + json.dumps(record['settings'], ensure_ascii=True))
-            lines.append("    configured skills: " + (", ".join(record['skills']['configured']) or "none"))
-            lines.append("    effective skills: " + (", ".join(record['skills']['effective']) or "none"))
-            lines.append("    subagents: " + (", ".join(record['subagents']) or "none"))
-    lines.append(f"{len(result.targets)} project(s)")
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    typer.echo("\n".join(lines).encode(encoding, errors="backslashreplace").decode(encoding))
+    render(result, json_output=json_output)
     if result.status != "success":
         raise typer.Exit(1)
 
@@ -154,9 +129,13 @@ def bootstrap(
         raise typer.Exit(1)
 
 
-def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False) -> None:
+def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False, verbose: bool = False) -> None:
     result = doctor_mod.as_result(report)
-    render(result, json_output=json_output)
+    if json_output:
+        render(result, json_output=True)
+    else:
+        from dotbrain.presentation import render_doctor
+        render_doctor(report, verbose=verbose)
     if result.status != "success":
         raise typer.Exit(1)
 
@@ -165,6 +144,7 @@ def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False
 def doctor(home: HomeOption = None,
            project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
            all_projects: bool = typer.Option(False, "--all", help="Inspect every registered project."),
+           verbose: bool = typer.Option(False, "--verbose", "-v", help="Show every healthy check as well as problems and warnings."),
            json_output: JsonOption = False) -> None:
     """Read-only health check of machine readiness and selected project setup."""
     try:
@@ -176,7 +156,7 @@ def doctor(home: HomeOption = None,
     except (RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
         render(CommandResult("doctor", "failure", errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(1) from exc
-    _render_doctor(report, json_output=json_output)
+    _render_doctor(report, json_output=json_output, verbose=verbose)
 
 
 @app.command()
@@ -286,11 +266,11 @@ def _beads_failure(command, exc, json_output, code=1):
     raise typer.Exit(code) from exc
 
 
-def _finish_beads(result, json_output):
+def _finish_beads(result, json_output, *, preview=False):
     failed = any(target.status == "failure" for target in result.targets) or bool(result.errors)
     if failed:
         result.status = "partial" if any(target.status in {"success", "skipped"} for target in result.targets) else "failure"
-    render(result, json_output=json_output)
+    render(result, json_output=json_output, preview=preview)
     if failed:
         raise typer.Exit(1)
 
@@ -317,7 +297,7 @@ def drop_beads_db(
         _beads_failure("beads drop-db", exc, json_output, 2)
     except (OSError, subprocess.SubprocessError, RuntimeError, yaml.YAMLError) as exc:
         _beads_failure("beads drop-db", exc, json_output)
-    render(CommandResult("beads drop-db", targets=[TargetResult(scope="remote", changes=[log], data={"database": name})]), json_output=json_output)
+    render(CommandResult("beads drop-db", targets=[TargetResult(scope="remote", changes=[log], data={"database": name})]), json_output=json_output, preview=dry_run)
 
 
 @beads_app.command("list-db")
@@ -373,7 +353,7 @@ def migrate_beads(
             findings=[] if failure else [{"severity": "warning", "message": w} for w in migration.warnings],
             data={"migration_status": migration.status, "pre_count": migration.pre_count,
                   "post_count": migration.post_count, "planned_commands": migration.planned_commands}))
-    _finish_beads(result, json_output)
+    _finish_beads(result, json_output, preview=dry_run)
 
 
 @beads_app.command("sync")
@@ -398,7 +378,7 @@ def beads_sync(
         changes=item["changes"], errors=item["errors"],
         findings=[{"severity": "warning", "message": w} for w in item["warnings"]]) for item in sync.targets])
     result.errors = [error for error in sync.errors if not any(error in item["errors"] for item in sync.targets)]
-    _finish_beads(result, json_output)
+    _finish_beads(result, json_output, preview=dry_run)
 
 
 from dotbrain.asset_cli import report as _asset_report

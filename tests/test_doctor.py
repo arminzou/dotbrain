@@ -268,7 +268,9 @@ def test_report_renders_under_legacy_windows_encoding(monkeypatch):
     monkeypatch.setattr(sys, "stdout", buffer)
     cli._render_doctor(report)
     buffer.flush()
-    assert "doctor: success" in buffer.buffer.getvalue().decode("cp1252")
+    output = buffer.buffer.getvalue().decode("cp1252")
+    assert "Doctor" in output and "1 warning" in output
+    assert r"\u2603" in output and "[ok]" in output
 
 
 def test_path_resolution_runtime_error_is_a_json_operational_failure(tmp_path, monkeypatch):

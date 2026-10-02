@@ -548,7 +548,12 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 def serve_preview(out_dir: Path) -> None:
     server = preview_server(out_dir)
     host, port = server.server_address[:2]
-    print(f"site: serving {out_dir} at http://{host}:{port}/ (Ctrl+C to stop)", flush=True)
+    from dotbrain.presentation import console, line
+    output = console()
+    line(output, f"site preview · {out_dir.name}", "bold")
+    line(output, f"http://{host}:{port}/", "cyan")
+    line(output, f"Files: {out_dir}", "dim")
+    line(output, "Ctrl+C to stop", "dim")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -600,6 +605,12 @@ def run_site(
     if command == "dev":
         argv += ["--host", PREVIEW_HOST]
     env = {**os.environ, "DOTBRAIN_SITE_SETTINGS": str(settings_path)}
+    if command == "dev":
+        from dotbrain.presentation import console, line
+        output = console()
+        line(output, f"site dev · {name}", "bold")
+        line(output, f"Brain: {brain}", "dim")
+        line(output, "Starting live reload on 127.0.0.1; Ctrl+C to stop", "dim")
     try:
         run(argv, cwd=engine, env=env, check=True)
     except subprocess.CalledProcessError as exc:

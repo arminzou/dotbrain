@@ -52,15 +52,6 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
         result.status = "failure"
         result.errors.append(str(exc))
         exit_code = 2 if isinstance(exc, ValueError) else 1
-    if operation == "list" and not json_output and result.status == "success":
-        for row in rows:
-            typer.echo(row["name"] + (" (selected)" if row["selected"] else ""))
-            if "sources" in row:
-                for runtime_name, source in row["sources"].items():
-                    typer.echo(f"  {runtime_name}: {source}")
-            else:
-                typer.echo(f"  {', '.join(row['runtimes'])}: {row['source']}")
-    else:
-        render(result, json_output=json_output)
+    render(result, json_output=json_output)
     if result.status != "success":
         raise typer.Exit(exit_code)

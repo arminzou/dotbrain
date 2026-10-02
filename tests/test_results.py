@@ -45,7 +45,11 @@ def test_warning_findings_use_current_severity_and_preserve_success(tmp_path, mo
         assert target["findings"] == ([{"severity": "info", "message": "git available"}] if command == "doctor" else []) + [
             {"severity": "warning", "message": message}]
     else:
-        assert f"warning: {message}" in result.stdout
+        if command == "doctor":
+            assert "1 warning" in result.stdout
+            assert "session unknown" in result.stdout and "Next: inspect runtime hooks" in result.stdout
+        else:
+            assert f"warning: {message}" in result.stdout
 
 
 def test_projects_io_error_is_operational_json_failure(monkeypatch, tmp_path):
