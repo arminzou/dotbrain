@@ -24,6 +24,9 @@ hero:
       text: Get started
       link: /getting-started
     - theme: alt
+      text: Why dotbrain?
+      link: /why-dotbrain
+    - theme: alt
       text: View on GitHub
       link: https://github.com/arminzou/dotbrain
 ---
