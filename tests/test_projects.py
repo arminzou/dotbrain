@@ -197,6 +197,7 @@ def test_projects_text_exposes_settings_and_brain_only(tmp_path):
     result = CliRunner().invoke(app, ["projects", "show", "--project", "identity", "--home", str(home)])
     assert result.exit_code == 0, result.output
     assert "identity" in result.stdout and "Brain-only" in result.stdout
+    assert result.stdout.index("Project") < result.stdout.index("identity") < result.stdout.index("Property")
     assert "Runtimes" in result.stdout and "Codex" in result.stdout
     assert "Tracker" in result.stdout and "none" in result.stdout
     assert "Settings" in result.stdout and "beads.mode" in result.stdout

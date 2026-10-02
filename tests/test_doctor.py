@@ -3,7 +3,9 @@ import io
 import json
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -63,14 +65,14 @@ def errors(findings):
     return [f.message for f in findings if f.status == "error"]
 
 
-def test_empty_all_checks_machine_once_and_unknown_session_warnings(tmp_path, monkeypatch):
+def test_empty_all_checks_machine_once_and_unknown_session_information(tmp_path, monkeypatch):
     calls = []
     original = doctor._check_machine
     monkeypatch.setattr(doctor, "_check_machine", lambda root, home: calls.append(root) or original(root, home))
     report = doctor.run_doctor(tmp_path, home=tmp_path / "user", all_projects=True)
     assert calls == [tmp_path] and report.projects == {}
     assert any("no registered projects" in f.message for f in report.machine)
-    assert any("session consumption is unknown" in f.suggestion for f in report.machine)
+    assert any(f.status == "info" and "session consumption is unknown" in f.suggestion for f in report.machine)
     assert not errors(report.machine)
     assert doctor.as_result(report).status == "success"
 
@@ -229,7 +231,23 @@ def test_plugin_installed_hook_is_distinct_from_activation(tmp_path):
     write(tmp_path / ".codex/plugins/installed_plugins.json", json.dumps({"plugins": {"dotbrain@dotbrain": [{"installPath": str(install)}]}}))
     findings = doctor._check_plugin(tmp_path, "codex")
     assert any(f.status == "ok" and "hook files" in f.message for f in findings)
-    assert any(f.status == "warn" and "not verified" in f.message for f in findings)
+    assert any(f.status == "info" and "not verified" in f.message for f in findings)
+    assert not any(f.status == "warn" for f in findings)
+
+
+@pytest.mark.parametrize("hooks", [None, {}])
+def test_registered_plugin_missing_session_hook_remains_warning(tmp_path, hooks):
+    install = tmp_path / "plugin"
+    if hooks is not None:
+        write(install / "hooks/hooks.json", json.dumps({"hooks": hooks}))
+    write(tmp_path / ".codex/plugins/installed_plugins.json", json.dumps({"plugins": {
+        "dotbrain@dotbrain": [{"installPath": str(install)}]}}))
+    assert doctor._check_plugin(tmp_path, "codex")[0].status == "warn"
+
+
+def test_malformed_plugin_registry_remains_warning(tmp_path):
+    write(tmp_path / ".codex/plugins/installed_plugins.json", "{broken")
+    assert doctor._check_plugin(tmp_path, "codex")[0].status == "warn"
 
 
 def test_site_node_optional_and_bounded(tmp_path):
@@ -286,3 +304,38 @@ def test_doctor_help_has_current_selectors():
     for option in ("--project", "--all", "--home", "--json"):
         assert option in result.output
     assert "Read-only" in result.output
+
+
+@pytest.mark.parametrize("terminal,json_output,dumb,fail", [
+    (True, False, False, False), (True, False, False, True),
+    (True, True, False, False), (False, False, False, False),
+    (True, False, True, False),
+])
+def test_doctor_spinner_only_in_interactive_text_and_clears_before_report(tmp_path, monkeypatch, terminal, json_output, dumb, fail):
+    from dotbrain import presentation
+    events = []
+    @contextmanager
+    def status(label, **kwargs):
+        assert "all projects" in label
+        events.append("start")
+        try:
+            yield
+        finally:
+            events.append("stop")
+    original_console = presentation.console
+    monkeypatch.setattr(presentation, "console", lambda: SimpleNamespace(
+        is_terminal=terminal, is_dumb_terminal=dumb, status=status))
+    def run(*args, **kwargs):
+        events.append("check")
+        # Final reports use the real console, after the status context exits.
+        monkeypatch.setattr(presentation, "console", original_console)
+        if fail:
+            raise RuntimeError("probe failed")
+        return doctor.DoctorReport(machine=[doctor.Finding("ok", "ready")])
+    monkeypatch.setattr(doctor, "run_doctor", run)
+    result = CliRunner().invoke(app, ["doctor", "--all", "--home", str(tmp_path), *(["--json"] if json_output else [])])
+    assert result.exit_code == (1 if fail else 0), result.output
+    assert events == (["start", "check", "stop"] if terminal and not json_output and not dumb else ["check"])
+    assert "Checking machine" not in result.stdout
+    if json_output:
+        assert json.loads(result.stdout)["command"] == "doctor"

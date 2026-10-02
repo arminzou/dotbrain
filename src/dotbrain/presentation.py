@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import nullcontext
 from pathlib import Path
 import os
 import re
@@ -14,9 +15,20 @@ from rich.text import Text
 
 from dotbrain.adopter_repos import abbrev_home
 
+HEADING_STYLE = "bold green"
+NAME_STYLE = "bold cyan"
+
 
 def console() -> Console:
     return Console(highlight=False, markup=False, force_terminal=sys.stdout.isatty())
+
+
+def activity(label: str, *, enabled: bool = True):
+    if enabled:
+        output = console()
+        if output.is_terminal and not output.is_dumb_terminal:
+            return output.status(Text(label, style=NAME_STYLE), spinner_style="cyan")
+    return nullcontext()
 
 
 def render_help(command, ctx) -> str:
@@ -30,14 +42,14 @@ def render_help(command, ctx) -> str:
         if not entries:
             return
         output.print()
-        output.print(Text(title + ":", style="bold green"))
+        output.print(Text(title + ":", style=HEADING_STYLE))
         if output.width < 65:
             for name, description in entries:
-                output.print(Padding(Text(name.strip(), style="bold cyan"), (0, 0, 0, 2)))
+                output.print(Padding(Text(name.strip(), style=NAME_STYLE), (0, 0, 0, 2)))
                 output.print(Padding(Text(description), (0, 0, 0, 4)))
             return
         grid = Table.grid(padding=(0, 2))
-        grid.add_column(style="bold cyan", overflow="fold", max_width=max(12, output.width // 2))
+        grid.add_column(style=NAME_STYLE, overflow="fold", max_width=max(12, output.width // 2))
         grid.add_column(overflow="fold")
         for name, description in entries:
             grid.add_row(Text(name), Text(description))
@@ -50,7 +62,7 @@ def render_help(command, ctx) -> str:
         pieces = command.collect_usage_pieces(ctx)
         usage = " ".join([ctx.command_path, *pieces]).replace("COMMAND [ARGS]...", "<COMMAND>")
         usage = re.sub(r"(?<= )([A-Z][A-Z0-9_]*)(?=\s|\.|$)", r"<\1>", usage)
-        output.print(Text.assemble(("Usage: ", "bold green"), (usage, "bold cyan")))
+        output.print(Text.assemble(("Usage: ", HEADING_STYLE), (usage, NAME_STYLE)))
         if hasattr(command, "list_commands"):
             entries = []
             for name in command.list_commands(ctx):
@@ -115,14 +127,16 @@ def table(output: Console, columns: list[str], rows: list[list[object]]) -> None
     # Stack fields on narrow terminals instead of squeezing paths into tiny columns.
     if output.width < 65:
         for row in rows:
-            line(output, row[0], "bold")
+            line(output, row[0], NAME_STYLE)
             for name, value in zip(columns[1:], row[1:]):
-                line(output, f"{name}: {value.plain if isinstance(value, Text) else value}", indent=2)
+                content = Text.assemble(text(name + ": ", output, HEADING_STYLE),
+                                        value if isinstance(value, Text) else text(value, output))
+                output.print(Padding(content, (0, 0, 0, 2)))
             line(output)
         return
-    grid = Table(box=None, padding=(0, 1), header_style="bold", show_edge=False)
+    grid = Table(box=None, padding=(0, 1), header_style=HEADING_STYLE, show_edge=False)
     for index, name in enumerate(columns):
-        grid.add_column(name, overflow="fold", style="bold" if index == 0 else "")
+        grid.add_column(name, overflow="fold", style=NAME_STYLE if index == 0 else "")
     for row in rows:
         grid.add_row(*(value if isinstance(value, Text) else text(value, output) for value in row))
     output.print(grid)
@@ -146,7 +160,7 @@ def render_operation(result, *, preview: bool = False) -> None:
     if preview:
         label = "Preview" if result.status == "success" else "Preview · " + label
     outcome_style = "red" if result.status == "failure" else "yellow" if result.status == "partial" else "cyan" if preview else "green"
-    output.print(Text.assemble(text(result.command, output, "bold"), text(" · " + label, output, outcome_style)))
+    output.print(Text.assemble(text(result.command, output, NAME_STYLE), text(" · " + label, output, outcome_style)))
     _messages(output, result.errors, "error")
     if result.command == "beads list-db" and result.targets:
         names = result.targets[0].data["databases"]
@@ -163,7 +177,7 @@ def render_operation(result, *, preview: bool = False) -> None:
             label += " · " + abbrev_home(Path(target.checkout))
         elif target.project:
             label += " · Brain-only"
-        line(output, label, "bold")
+        line(output, label, NAME_STYLE)
         _messages(output, target.errors, "error", target.checkout)
         for finding in target.findings:
             line(output, f"{finding['severity']}: {finding['message']}",
@@ -182,7 +196,7 @@ def render_operation(result, *, preview: bool = False) -> None:
             groups.setdefault(category, []).append(change)
         for name, changes in groups.items():
             if len(groups) > 1:
-                line(output, name, "dim", indent=2)
+                line(output, name, HEADING_STYLE, indent=2)
             for change in changes:
                 line(output, change, "cyan" if result.command == "site build" else "", checkout=target.checkout, indent=4 if len(groups) > 1 else 2)
         if target.data and target.data.get("pre_count") is not None:
@@ -207,7 +221,7 @@ def render_catalog(result) -> None:
     output = console()
     target = result.targets[0]
     kind = result.command.split()[0]
-    line(output, kind.capitalize() + (f" · Selection for {target.project}" if target.project else " · Available"), "bold")
+    line(output, kind.capitalize() + (f" · Selection for {target.project}" if target.project else " · Available"), HEADING_STYLE)
     rows = target.data["assets"]
     columns = ["Name", *(["Selected"] if target.project else []), "Runtime", "Source"]
     rendered = []
@@ -283,13 +297,14 @@ def render_projects(result) -> None:
         return
     for target in result.targets:
         record = target.data
-        line(output, target.project, "bold")
+        output.print(Text.assemble(text("Project: ", output, HEADING_STYLE),
+                                   text(target.project, output, NAME_STYLE)))
         table(output, ["Property", "Value"], [["Checkout", record["checkout"] or "Brain-only"],
               ["Runtimes", _runtimes(record["runtimes"])], ["Tracker", record["beads"]["mode"]], ["Wiring", _wiring(record)]])
-        line(output, "Paths", "bold")
+        line(output, "Paths", HEADING_STYLE)
         table(output, ["Path", "Location"], [["Brainspace", record["brainspace"]],
               *[[name, value or "disabled"] for name, value in record["paths"].items()]])
-        line(output, "Settings", "bold")
+        line(output, "Settings", HEADING_STYLE)
         def settings(values, prefix=""):
             for key, value in values.items():
                 name = prefix + key
@@ -298,7 +313,7 @@ def render_projects(result) -> None:
                 else:
                     yield [name, ", ".join(map(str, value)) if isinstance(value, list) else str(value)]
         table(output, ["Setting", "Value"], list(settings(record["settings"])))
-        line(output, "Selections", "bold")
+        line(output, "Selections", HEADING_STYLE)
         table(output, ["Selection", "Names"], [["Configured skills", ", ".join(record["skills"]["configured"]) or "none"],
               ["Effective skills", ", ".join(record["skills"]["effective"]) or "none"],
               ["Additional subagents", ", ".join(record["subagents"]) or "none"]])
@@ -308,19 +323,19 @@ def render_doctor(report, *, verbose: bool = False) -> None:
     output = console()
     groups = [("Machine", None, report.machine)] + [(name, report.checkouts.get(name), findings) for name, findings in report.projects.items()]
     counts = Counter(finding.status for _, _, findings in groups for finding in findings)
-    line(output, "Doctor", "bold")
+    line(output, "Doctor", HEADING_STYLE)
     def counted(count, noun):
         return f"{count} {noun}{'' if count == 1 else 's'}"
     passed = counted(counts["ok"], "check") + " passed"
     line(output, counted(counts["error"], "problem") + " · " + counted(counts["warn"], "warning") + " · " + passed, "dim")
-    statuses = [("error", "red"), ("warn", "yellow")] + ([("ok", "green")] if verbose else [])
+    statuses = [("error", "red"), ("warn", "yellow")] + ([("ok", "green"), ("info", "dim")] if verbose else [])
     for status, style in statuses:
         for name, checkout, findings in groups:
             selected = [finding for finding in findings if finding.status == status]
             if not selected:
                 continue
             line(output)
-            marker = symbol(output, False) if status == "error" else "!" if status == "warn" else symbol(output, True)
+            marker = symbol(output, False) if status == "error" else "!" if status == "warn" else "i" if status == "info" else symbol(output, True)
             line(output, f"{marker} {name}" + (" · " + abbrev_home(Path(checkout)) if checkout else ""), "bold " + style)
             combined = {}
             for finding in selected:

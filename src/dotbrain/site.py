@@ -8,6 +8,7 @@ page is served, the sidebar (the nav in ``site.yaml``), and the Learn topics. Th
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -18,7 +19,7 @@ import sys
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, ContextManager, Sequence
 
 import yaml
 
@@ -548,9 +549,9 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 def serve_preview(out_dir: Path) -> None:
     server = preview_server(out_dir)
     host, port = server.server_address[:2]
-    from dotbrain.presentation import console, line
+    from dotbrain.presentation import NAME_STYLE, console, line
     output = console()
-    line(output, f"site preview · {out_dir.name}", "bold")
+    line(output, f"site preview · {out_dir.name}", NAME_STYLE)
     line(output, f"http://{host}:{port}/", "cyan")
     line(output, f"Files: {out_dir}", "dim")
     line(output, "Ctrl+C to stop", "dim")
@@ -570,6 +571,7 @@ def run_site(
     run: Runner = stream_run,
     setup_run: Runner = _default_run,
     serve: Callable[[Path], None] = serve_preview,
+    setup_progress: ContextManager | None = None,
 ) -> Path:
     """Run the Brain site: ``dev`` and ``build`` through VitePress, ``preview`` from the last build.
 
@@ -586,9 +588,10 @@ def run_site(
         serve(out_dir)
         return out_dir
 
-    site_plan = plan(brain, git_dates(brain, setup_run))
-    check_node(setup_run)
-    engine = ensure_engine(dotbrain_home, setup_run)
+    with setup_progress or nullcontext():
+        site_plan = plan(brain, git_dates(brain, setup_run))
+        check_node(setup_run)
+        engine = ensure_engine(dotbrain_home, setup_run)
     out_dir = engine / "out" / name
     settings = {
         **{k: site_plan[k] for k in ("title", "description", "sidebar", "rewrites", "exclude", "home")},
@@ -606,9 +609,9 @@ def run_site(
         argv += ["--host", PREVIEW_HOST]
     env = {**os.environ, "DOTBRAIN_SITE_SETTINGS": str(settings_path)}
     if command == "dev":
-        from dotbrain.presentation import console, line
+        from dotbrain.presentation import NAME_STYLE, console, line
         output = console()
-        line(output, f"site dev · {name}", "bold")
+        line(output, f"site dev · {name}", NAME_STYLE)
         line(output, f"Brain: {brain}", "dim")
         line(output, "Starting live reload on 127.0.0.1; Ctrl+C to stop", "dim")
     try:

@@ -10,6 +10,7 @@ import typer
 import yaml
 from dotbrain.options import HomeOption, RuntimeOption, JsonOption
 from dotbrain.results import CommandResult, TargetResult, HelpTyper, ResultGroup, render
+from dotbrain.presentation import activity
 
 from dotbrain import __version__
 from dotbrain import projects
@@ -144,12 +145,14 @@ def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False
 def doctor(home: HomeOption = None,
            project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
            all_projects: bool = typer.Option(False, "--all", help="Inspect every registered project."),
-           verbose: bool = typer.Option(False, "--verbose", "-v", help="Show every healthy check as well as problems and warnings."),
+           verbose: bool = typer.Option(False, "--verbose", "-v", help="Include healthy checks and informational context."),
            json_output: JsonOption = False) -> None:
     """Read-only health check of machine readiness and selected project setup."""
+    label = "Checking machine and all projects..." if all_projects else "Checking machine and project..."
     try:
         root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
-        report = doctor_mod.run_doctor(root, project=project, all_projects=all_projects)
+        with activity(label, enabled=not json_output):
+            report = doctor_mod.run_doctor(root, project=project, all_projects=all_projects)
     except ValueError as exc:
         render(CommandResult("doctor", "failure", errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc
@@ -179,10 +182,11 @@ def wire(
         selected_host = cfg.host if server_host is None else server_host
         if remote and selected_host:
             raise ValueError('--remote and --server-host are mutually exclusive')
-        result = workflows.wire_project(dotbrain_home=root, repo=repo, project=project, no_repo=no_repo,
-                run_beads=not skip_beads, remote=remote, server_host=selected_host,
-                server_port=cfg.port if server_port is None else server_port,
-                server_user=cfg.user if server_user is None else server_user, database=database)
+        with activity("Wiring project...", enabled=not json_output):
+            result = workflows.wire_project(dotbrain_home=root, repo=repo, project=project, no_repo=no_repo,
+                    run_beads=not skip_beads, remote=remote, server_host=selected_host,
+                    server_port=cfg.port if server_port is None else server_port,
+                    server_user=cfg.user if server_user is None else server_user, database=database)
     except ValueError as exc:
         render(CommandResult('wire', 'failure', errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc
@@ -217,7 +221,8 @@ def refresh(
     """Repair setup while preserving project declarations and content."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        result = workflows.refresh_projects(root, project=project, all_projects=all_projects, runtime=runtime)
+        with activity("Refreshing all projects..." if all_projects else "Refreshing project...", enabled=not json_output):
+            result = workflows.refresh_projects(root, project=project, all_projects=all_projects, runtime=runtime)
     except ValueError as exc:
         render(CommandResult('refresh', 'failure', errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc
@@ -291,8 +296,9 @@ def drop_beads_db(
         if not (yes or dry_run):
             raise ValueError("beads drop-db requires --yes (or --dry-run)")
         host, port, user, ssh = _resolve_beads_server(home or paths.resolve_dotbrain_home(), server_host, server_port, server_user, ssh_host)
-        log = beads_mod.drop_remote_beads_database(name, server_host=host, server_port=port,
-                                                  server_user=user, ssh_host=ssh, dry_run=dry_run)
+        with activity("Deleting remote database...", enabled=not json_output and not dry_run):
+            log = beads_mod.drop_remote_beads_database(name, server_host=host, server_port=port,
+                                                      server_user=user, ssh_host=ssh, dry_run=dry_run)
     except ValueError as exc:
         _beads_failure("beads drop-db", exc, json_output, 2)
     except (OSError, subprocess.SubprocessError, RuntimeError, yaml.YAMLError) as exc:
@@ -311,7 +317,8 @@ def list_beads_db(
     """List remote database identifiers, including databases without a Brainspace."""
     try:
         host, port, user, ssh = _resolve_beads_server(home or paths.resolve_dotbrain_home(), server_host, server_port, server_user, ssh_host)
-        databases = beads_mod.list_remote_beads_databases(server_host=host, server_port=port, server_user=user, ssh_host=ssh)
+        with activity("Listing remote databases...", enabled=not json_output):
+            databases = beads_mod.list_remote_beads_databases(server_host=host, server_port=port, server_user=user, ssh_host=ssh)
     except ValueError as exc:
         _beads_failure("beads list-db", exc, json_output, 2)
     except (OSError, subprocess.SubprocessError, RuntimeError, yaml.YAMLError) as exc:
@@ -335,16 +342,18 @@ def migrate_beads(
     try:
         if all_projects and database:
             raise ValueError("--database cannot be combined with --all")
-        targets = projects.select_projects(root, project=project, all_projects=all_projects)
-        host, port, user, _ = _resolve_beads_server(root, server_host, server_port, server_user)
+        with activity("Preparing tracker migration...", enabled=not json_output and not dry_run):
+            targets = projects.select_projects(root, project=project, all_projects=all_projects)
+            host, port, user, _ = _resolve_beads_server(root, server_host, server_port, server_user)
     except ValueError as exc:
         _beads_failure("beads migrate", exc, json_output, 2)
     except (OSError, yaml.YAMLError) as exc:
         _beads_failure("beads migrate", exc, json_output)
     result = CommandResult("beads migrate")
     for target in targets:
-        migration = migrate.safe_migrate_project(dotbrain_home=root, project=target.project,
-            server_host=host, server_port=port, server_user=user, database=database, dry_run=dry_run)
+        with activity(f"Migrating tracker for {target.project}...", enabled=not json_output and not dry_run):
+            migration = migrate.safe_migrate_project(dotbrain_home=root, project=target.project,
+                server_host=host, server_port=port, server_user=user, database=database, dry_run=dry_run)
         failure = migration.status in {"aborted-count-mismatch", "migrated-unverified", "failed", "skipped-unknown"}
         result.targets.append(TargetResult(project=target.project,
             checkout=str(target.checkout) if target.checkout else None,
@@ -366,8 +375,9 @@ def beads_sync(
     """Hydrate declared local tracker bindings and pull configured remotes; never push."""
     root = home or paths.resolve_dotbrain_home()
     try:
-        targets = projects.select_projects(root, project=project, all_projects=all_projects)
-        sync = beads_mod.pull_beads_for_all(root, projects=[target.project for target in targets], dry_run=dry_run)
+        with activity("Syncing all trackers..." if all_projects else "Syncing tracker...", enabled=not json_output and not dry_run):
+            targets = projects.select_projects(root, project=project, all_projects=all_projects)
+            sync = beads_mod.pull_beads_for_all(root, projects=[target.project for target in targets], dry_run=dry_run)
     except ValueError as exc:
         _beads_failure("beads sync", exc, json_output, 2)
     except (OSError, RuntimeError, subprocess.SubprocessError, yaml.YAMLError) as exc:
@@ -442,7 +452,8 @@ def _site_operation(command: str, project: Optional[str], home: Optional[Path],
             target.changes.extend(f"created {path}" for path in site_mod.init(brain, title))
         else:
             kwargs = {"run": site_mod.stderr_run} if command == "build" else {}
-            out = site_mod.run_site(command, dotbrain_home=root, brain=brain, **kwargs)
+            out = site_mod.run_site(command, dotbrain_home=root, brain=brain,
+                setup_progress=activity("Preparing site engine...", enabled=not json_output and command != "preview"), **kwargs)
             if command == "build":
                 target.changes.append(f"built into {out}")
                 target.data = {"output": str(out)}

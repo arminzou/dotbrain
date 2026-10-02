@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -227,8 +228,24 @@ def test_vitepress_runs_against_the_brains_real_path(home: Path, brain: Path, co
     _settings(brain)
     _write(brain / "site" / "index.md", "# Home\n")
     run = FakeRun()
+    active = False
+    @contextmanager
+    def progress():
+        nonlocal active
+        active = True
+        try:
+            yield
+        finally:
+            active = False
+    def setup(argv, **kwargs):
+        assert active
+        return run(argv, **kwargs)
+    def stream(argv, **kwargs):
+        assert not active
+        return run(argv, **kwargs)
 
-    out = site.run_site(command, dotbrain_home=home, brain=brain, run=run, setup_run=run)
+    out = site.run_site(command, dotbrain_home=home, brain=brain, run=stream,
+                        setup_run=setup, setup_progress=progress())
 
     engine = site.engine_dir(home)
     call = run.calls[-1]
