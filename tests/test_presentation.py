@@ -2,10 +2,12 @@
 from dataclasses import asdict
 import io
 import json
+import re
 
 import pytest
 from rich.console import Console
 from typer.testing import CliRunner
+from typer.main import get_command
 
 from dotbrain import doctor, presentation
 from dotbrain.cli import app
@@ -126,3 +128,43 @@ def test_preview_only_changes_text_not_json(capsys):
     result = CommandResult("beads sync", targets=[TargetResult(project="example")])
     render(result, json_output=True, preview=True)
     assert json.loads(capsys.readouterr().out) == asdict(result)
+
+
+@pytest.mark.parametrize("width", [40, 100])
+def test_help_preserves_command_descriptions_and_parameter_records(monkeypatch, width):
+    monkeypatch.setattr(presentation, "console", lambda: Console(width=width, color_system=None))
+    root = get_command(app)
+    def check(command, ctx):
+        output = command.get_help(ctx)
+        compact = "".join(output.split())
+        assert all(len(line) <= width for line in output.splitlines())
+        if command.help:
+            assert "".join(command.help.split()) in compact
+        for param in command.get_params(ctx):
+            record = param.get_help_record(ctx)
+            if record:
+                assert "".join(record[1].split()) in compact
+        if hasattr(command, "list_commands"):
+            assert output.index("Usage:") < output.index("Commands:") < output.lower().index("options:")
+            for name in command.list_commands(ctx):
+                child = command.get_command(ctx, name)
+                if child and not child.hidden:
+                    assert name in compact
+                    if child.help:
+                        assert "".join(child.help.split()) in compact
+                    check(child, child.context_class(child, info_name=name, parent=ctx))
+    check(root, root.context_class(root, info_name="dotbrain"))
+
+
+def test_help_colors_headings_and_names_only_in_terminal(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setattr(presentation, "console", lambda: Console(width=100, force_terminal=True, color_system="standard"))
+    root = get_command(app)
+    ctx = root.context_class(root, info_name="dotbrain", **root.context_settings)
+    output = root.get_help(ctx)
+    assert "\x1b[1;32mCommands:" in output and "\x1b[1;36mbootstrap" in output
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", output)
+    assert plain.startswith(root.help + "\n\nUsage:")
+    assert "<COMMAND>" in plain and "-h, --help" in plain
+    ctx.color = False
+    assert "\x1b" not in root.get_help(ctx)

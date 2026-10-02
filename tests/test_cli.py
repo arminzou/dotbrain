@@ -28,6 +28,15 @@ def test_help_lists_command_tree():
         assert hidden_command not in result.output
 
 
+@pytest.mark.parametrize("command", [[], ["doctor"], ["skills"], ["skills", "link"]])
+def test_help_uses_compact_unboxed_layout(command):
+    result = runner.invoke(app, [*command, "-h"])
+    assert result.exit_code == 0, result.output
+    assert "Usage:" in result.output and "options:" in result.output.lower()
+    assert "\u2502" not in result.output and "+- Options" not in result.output
+    assert result.output == runner.invoke(app, [*command, "--help"]).output
+
+
 def test_version_prints_installed_version():
     result = runner.invoke(app, ["--version"])
 

@@ -19,6 +19,66 @@ def console() -> Console:
     return Console(highlight=False, markup=False, force_terminal=sys.stdout.isatty())
 
 
+def render_help(command, ctx) -> str:
+    output = console()
+    if ctx.terminal_width:
+        output.width = ctx.terminal_width
+    if ctx.color is False:
+        output = Console(width=output.width, color_system=None, highlight=False, markup=False)
+
+    def rows(title, entries):
+        if not entries:
+            return
+        output.print()
+        output.print(Text(title + ":", style="bold green"))
+        if output.width < 65:
+            for name, description in entries:
+                output.print(Padding(Text(name.strip(), style="bold cyan"), (0, 0, 0, 2)))
+                output.print(Padding(Text(description), (0, 0, 0, 4)))
+            return
+        grid = Table.grid(padding=(0, 2))
+        grid.add_column(style="bold cyan", overflow="fold", max_width=max(12, output.width // 2))
+        grid.add_column(overflow="fold")
+        for name, description in entries:
+            grid.add_row(Text(name), Text(description))
+        output.print(Padding(grid, (0, 0, 0, 2)))
+
+    with output.capture() as captured:
+        if command.help:
+            output.print(Text(command.help.split("\f", 1)[0].strip()))
+            output.print()
+        pieces = command.collect_usage_pieces(ctx)
+        usage = " ".join([ctx.command_path, *pieces]).replace("COMMAND [ARGS]...", "<COMMAND>")
+        usage = re.sub(r"(?<= )([A-Z][A-Z0-9_]*)(?=\s|\.|$)", r"<\1>", usage)
+        output.print(Text.assemble(("Usage: ", "bold green"), (usage, "bold cyan")))
+        if hasattr(command, "list_commands"):
+            entries = []
+            for name in command.list_commands(ctx):
+                child = command.get_command(ctx, name)
+                if child is not None and not child.hidden:
+                    description = child.short_help or (child.help or "").split("\f", 1)[0].split("\n\n", 1)[0]
+                    entries.append((name, " ".join(description.split())))
+            rows("Commands", entries)
+        arguments, options = [], []
+        for param in command.get_params(ctx):
+            record = param.get_help_record(ctx)
+            if record:
+                name, description = record
+                # Put short aliases first and delimit value placeholders like uv.
+                name = ", ".join(sorted(name.split(", "), key=lambda part: not part.startswith("-") or part.startswith("--")))
+                name = re.sub(r"(?<= )([A-Z][A-Z0-9_]*)$", r"<\1>", name)
+                if hasattr(param, "opts") and any(opt.startswith("-") for opt in param.opts):
+                    options.append(("    " + name if name.startswith("--") else name, description))
+                else:
+                    arguments.append((name, description))
+        rows("Arguments", arguments)
+        rows("Global options" if ctx.parent is None else "Options", options)
+        if command.epilog:
+            output.print()
+            output.print(Text(command.epilog))
+    return "\n".join(line.rstrip() for line in captured.get().splitlines())
+
+
 def shorten(value: object, checkout: str | None = None) -> str:
     message = str(value)
     for root, replacement in ((checkout, "."), (str(Path.home()), "~")):

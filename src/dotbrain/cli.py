@@ -9,26 +9,26 @@ from typing import Optional
 import typer
 import yaml
 from dotbrain.options import HomeOption, RuntimeOption, JsonOption
-from dotbrain.results import CommandResult, TargetResult, ResultGroup, render
+from dotbrain.results import CommandResult, TargetResult, HelpTyper, ResultGroup, render
 
 from dotbrain import __version__
 from dotbrain import projects
 from dotbrain import doctor as doctor_mod
 from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, hooks, migrate, paths, site as site_mod, workflows
 
-app = typer.Typer(
+app = HelpTyper(
     cls=ResultGroup,
     help="dotbrain CLI for wiring project Brainspaces and skills into coding agents.",
     no_args_is_help=True,
     invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-skills_app = typer.Typer(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
-agents_app = typer.Typer(help="Link dotbrain vendor-native subagents into agent runtimes.", no_args_is_help=True)
-beads_app = typer.Typer(help="Manage beads tracker state and backend.", no_args_is_help=True)
-hook_app = typer.Typer(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
-site_app = typer.Typer(help="Set up and run a Brain's private site.", no_args_is_help=True)
-projects_app = typer.Typer(help="Discover registered projects and inspect local settings.", no_args_is_help=True)
+skills_app = HelpTyper(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
+agents_app = HelpTyper(help="Link dotbrain vendor-native subagents into agent runtimes.", no_args_is_help=True)
+beads_app = HelpTyper(help="Manage beads tracker state and backend.", no_args_is_help=True)
+hook_app = HelpTyper(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
+site_app = HelpTyper(help="Set up and run a Brain's private site.", no_args_is_help=True)
+projects_app = HelpTyper(help="Discover registered projects and inspect local settings.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
 app.add_typer(agents_app, name="agents")
 app.add_typer(beads_app, name="beads")
