@@ -49,10 +49,16 @@ their first entry exists.
 
 A **learning path** is an ordered list of lesson-sized steps through one topic, tied to that topic's
 section of the mission. A path finished in one session exists only in the conversation. A path that
-spans sessions is a bead titled `learn: <topic> path`, labelled `learning`, and kept deferred so it
+spans sessions is a learning path bead titled `learn: <topic> path`, labelled `learning`, and kept deferred so it
 never reaches the ready frontier. The steps go in its description, and each step's progress and what
 it still owes are appended to its notes, never rewritten. The bead tracks where
 the path is. Only learning records hold what the user knows.
+
+All learning path beads and learning backlog beads belong to the project's single deferred
+`Learning` epic, also labelled `learning`. Follow
+[Learning beads](../operate-execution/references/learning-beads.md) to create or reuse it and
+attach existing children. The epic and every child stay deferred; grouping alone does not exclude
+them from the ready frontier. Keep this persistent container separate from implementation epics.
 
 Other sessions park concepts for later learning as notes on a deferred `learn: <topic> backlog`
 bead, whose topic they inferred without reading this workspace. Those topics are guesses, and step 1
@@ -108,7 +114,7 @@ questions.
 
 For a broad goal, propose a learning path and walk it with the user, adjusting it as they learn. When
 the user agrees to a path that will span sessions, create its learning path bead with
-`bd create "learn: <topic> path" --labels learning`, then `bd defer` it.
+`bd create "learn: <topic> path" --labels learning --parent <epic-id>`, then `bd defer` it.
 
 Completion: the user has answered a retrieval question on each point taught; every misconception
 has been corrected; and, when walking a path, the user has agreed to the path.
