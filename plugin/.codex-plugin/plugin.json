@@ -37,7 +37,8 @@
       "What's ready to work on?"
     ],
     "brandColor": "#0F766E",
-    "composerIcon": "./assets/logo.png",
-    "logo": "./assets/logo.png"
+    "composerIcon": "./assets/dotbrain-icon-dark.png",
+    "logo": "./assets/dotbrain-light.png",
+    "logoDark": "./assets/dotbrain-dark.png"
   }
 }
