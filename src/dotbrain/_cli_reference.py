@@ -50,6 +50,11 @@ _INTRO = """# CLI Reference
 Every public `dotbrain` command, grouped by task. Run any command with `--help` for the same
 information in the terminal.
 
+Human reports group changes and problems by target, shorten home paths to `~`, and use tables
+for catalogs and project inspection. Empty lists, previews, and skipped work are explicit.
+Doctor shows problems and warnings first; use `doctor -v` to include every healthy check.
+Colors follow terminal capabilities; redirected output stays plain.
+
 Finite reports support `--json`: stdout contains one result with command, overall status,
 per-target results, and errors. Finding severities are `info`, `warning`, and `error`; warnings
 alone do not cause failure. Exit codes are `0` for success, `1` for operational failure or a

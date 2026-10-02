@@ -362,7 +362,7 @@ def test_skills_link_repo_links_into_target_checkout(
 def test_link_repo_requires_wired_checkout():
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--repo", "x"])
     assert result.exit_code != 0
-    assert "failure" in result.output
+    assert "Failed" in result.output
 
 
 def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -611,7 +611,7 @@ def test_refresh_all_delegates_to_projects(
     assert result.exit_code == 0, result.output
     assert called["root"] == dotbrain_home
     assert called["all_projects"] is True
-    assert "refresh: success" in result.output
+    assert "refresh" in result.output and "Completed" in result.output
 
 
 def test_refresh_outside_wired_checkout_requires_selection(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

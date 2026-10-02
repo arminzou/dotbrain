@@ -144,7 +144,8 @@ def test_projects_list_isolates_malformed_declaration(tmp_path, declaration):
             assert [(target["project"], target["status"]) for target in payload["targets"]] == [
                 ("bad", "failure"), ("identity", "success")]
         else:
-            assert "identity:" in result.stdout and "bad:" in result.stdout
+            assert "identity" in result.stdout and "bad" in result.stdout
+            assert "Declaration error" in result.stdout and "error:" in result.stdout
 
 
 def test_projects_cli_json_and_selection_failure(tmp_path):
@@ -195,10 +196,11 @@ def test_projects_text_exposes_settings_and_brain_only(tmp_path):
     (brainspace / ".repo.local").write_text("(brain-only)", encoding="utf-8")
     result = CliRunner().invoke(app, ["projects", "show", "--project", "identity", "--home", str(home)])
     assert result.exit_code == 0, result.output
-    assert "identity: Brain-only" in result.stdout
-    assert "runtimes: codex; tracker: none" in result.stdout
-    assert "settings:" in result.stdout
-    assert "effective skills:" in result.stdout
+    assert "identity" in result.stdout and "Brain-only" in result.stdout
+    assert "Runtimes" in result.stdout and "Codex" in result.stdout
+    assert "Tracker" in result.stdout and "none" in result.stdout
+    assert "Settings" in result.stdout and "beads.mode" in result.stdout
+    assert "Effective skills" in result.stdout
 
 
 def test_discovery_child_symlink_escape_rejected(tmp_path):

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import json
-import sys
 
 import typer
 from typer.core import TyperGroup
@@ -33,21 +32,17 @@ class CommandResult:
     errors: list[str] = field(default_factory=list)
 
 
-def render(result: CommandResult, *, json_output: bool = False) -> None:
+def render(result: CommandResult, *, json_output: bool = False, preview: bool = False) -> None:
     if json_output:
         typer.echo(json.dumps(asdict(result), ensure_ascii=True))
         return
-    lines = [f"{result.command}: {result.status}"]
-    for target in result.targets:
-        lines.append(f"  {target.project or target.scope}: {target.status}")
-        lines.extend(f"    {item}" for item in target.changes)
-        if not target.changes and target.status == "success":
-            lines.append("    unchanged")
-        lines.extend(f"    {item['severity']}: {item['message']}" for item in target.findings)
-        lines.extend(f"    error: {item}" for item in target.errors)
-    lines.extend(f"  error: {item}" for item in result.errors)
-    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
-    typer.echo("\n".join(lines).encode(encoding, errors="backslashreplace").decode(encoding))
+    from dotbrain import presentation
+    if result.command in {"projects list", "projects show"} and not result.errors:
+        presentation.render_projects(result)
+    elif result.command in {"skills list", "agents list"} and result.status == "success":
+        presentation.render_catalog(result)
+    else:
+        presentation.render_operation(result, preview=preview)
 
 
 class ResultGroup(TyperGroup):
