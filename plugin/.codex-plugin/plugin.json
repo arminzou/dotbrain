@@ -1,17 +1,19 @@
 {
   "name": "dotbrain",
   "version": "0.4.6",
-  "description": "Keeps your project's context private and your code repo clean.",
+  "description": "Private project context, shared across coding agents and worktrees.",
   "author": {
     "name": "Armin Zou",
     "url": "https://github.com/arminzou"
   },
-  "homepage": "https://github.com/arminzou/dotbrain",
+  "homepage": "https://arminzou.github.io/dotbrain/",
   "repository": "https://github.com/arminzou/dotbrain",
   "license": "MIT",
   "keywords": [
     "agent-context-management",
     "private-project-context",
+    "multi-agent",
+    "git-worktrees",
     "engineering-skills",
     "skill-management"
   ],
@@ -19,22 +21,22 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Dotbrain",
-    "shortDescription": "Private project context, loaded every session",
-    "longDescription": "Your project's decisions, domain vocabulary, and design rationale live in a private Brain outside the code repo, and reach every session automatically — so you stop re-explaining the project and it never leaks into a public repo. Bundled with engineering skills for design docs, decision records, and issue tracking.",
+    "shortDescription": "Private project context across agents and worktrees",
+    "longDescription": "Keep your project's decisions, vocabulary, working rules, and designs in a private, versioned Brain outside the code repo. Connect coding agents and worktrees to the same project context and optional Beads execution store. The session-start hook loads dotbrain's shared convention; agents read relevant project knowledge as needed. Bundled skills guide wiring, planning, execution, review, and context maintenance.",
     "developerName": "Armin Zou",
     "category": "Productivity",
     "capabilities": [
       "Instructions",
-      "Lifecycle hooks"
+      "Agentic loop"
     ],
-    "websiteURL": "https://github.com/arminzou/dotbrain",
+    "websiteURL": "https://arminzou.github.io/dotbrain/",
     "defaultPrompt": [
       "Wire this repo with dotbrain.",
       "What am I missing before I start?",
       "Turn this plan into a design doc and issues.",
       "What's ready to work on?"
     ],
-    "brandColor": "#111111",
+    "brandColor": "#0F766E",
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
   }

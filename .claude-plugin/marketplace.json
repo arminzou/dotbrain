@@ -1,13 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "dotbrain",
-  "description": "The dotbrain operating manual, delivered as a plugin.",
+  "description": "Private project context and engineering workflows for coding agents.",
   "owner": { "name": "Armin Zou", "url": "https://github.com/arminzou" },
   "plugins": [
     {
       "name": "dotbrain",
-      "description": "Brain-coupled skills, the dotbrain convention, and Brain context injection at session start.",
+      "description": "Private project context, shared across coding agents and worktrees.",
       "source": "./plugin",
+      "homepage": "https://arminzou.github.io/dotbrain/",
+      "repository": "https://github.com/arminzou/dotbrain",
       "category": "productivity"
     }
   ]
