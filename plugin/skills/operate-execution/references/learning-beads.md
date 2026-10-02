@@ -22,29 +22,32 @@ Attach existing learning path beads and learning backlog beads with
 `bd update <id> --parent <epic-id>`; keep each child deferred too. The epic is a persistent
 container, not an initiative with a design or a completion gate.
 
-A parked concept is a note on a learning bead, never a bead of its own. The note holds:
+A parked concept is one comment on a learning backlog bead, never a bead of its own. Each comment holds:
 
 - the concept, named so a lesson could be built around it
 - the question that raised it, and how it was answered in the session
 - where it came up: the file or symbol, the commit, and the work underway
 
-Every learning bead stays deferred, so none reaches the ready frontier. Notes are only ever appended
-(`--append-notes`), never rewritten, because a learning path bead's notes also carry its step progress.
+Every learning bead stays deferred, so none reaches the ready frontier. Comments are append-only:
+record a correction or disposition in a new comment referencing the original comment id; never
+edit or delete the original. Learning backlog Notes stay minimal. Learning path progress stays in
+Notes and is appended with `--append-notes`, never rewritten.
 
 ## Parking a concept
 
 1. List the open learning beads: `bd list --label learning`. Do not read `.brain/learning/`,
    `MISSION.md`, or its topics; matching against the open beads is enough.
 2. Ensure the learning epic exists using the commands above. If an open learning backlog bead
-   already covers the concept's topic, attach it to that epic and append the concept to its notes:
-   `bd update <id> --append-notes "<concept note>"`.
-3. Otherwise, infer a topic name from the concept and create a backlog bead with the concept as its
-   first note, then defer it:
+   already covers the concept's topic, attach it to that epic, keep it deferred, and add a comment:
+   `bd comments add <id> "<concept note>"`.
+3. Otherwise, infer a topic name from the concept, create a learning backlog bead, defer it,
+   then add the concept comment:
 
    ```bash
    bd create "learn: <topic> backlog" --type task --priority 4 --labels learning --parent <epic-id> \
-     --description "Concepts parked for learning, reconciled by teach-me." --notes "<concept note>"
+     --description "Concepts parked for learning, reconciled by teach-me. Read the comments."
    bd defer <id>
+   bd comments add <id> "<concept note>"
    ```
 
    An inferred topic that does not match the workspace's topics is expected. `teach-me` assigns it
