@@ -623,9 +623,11 @@ def test_refresh_all_delegates_to_projects(
     assert "refresh" in result.output and "Completed" in result.output
 
 
-def test_refresh_outside_wired_checkout_requires_selection(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.parametrize("width", [40, 65, 80, 100])
+def test_refresh_outside_wired_checkout_requires_selection(dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, width: int):
+    monkeypatch.setenv("COLUMNS", str(width))
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["refresh"])
     assert result.exit_code == 2
-    assert "select --project" in result.output
+    assert "select --project" in " ".join(result.output.split())
