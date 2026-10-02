@@ -6,6 +6,9 @@ information in the terminal.
 Human reports group changes and problems by target, shorten home paths to `~`, and use tables
 for catalogs and project inspection. Empty lists, previews, and skipped work are explicit.
 Doctor shows problems and warnings first; use `doctor -v` to include every healthy check.
+Runtime activation and session uncertainty are informational, shown with `doctor -v` and in
+JSON; they do not count as passed checks. Missing registered hook files and failed plugin
+checks remain warnings.
 Colors follow terminal capabilities; redirected output stays plain.
 
 Finite reports support `--json`: stdout contains one result with command, overall status,
@@ -72,7 +75,7 @@ dotbrain doctor [OPTIONS]
 | `--home` *path* | — | Override the private data root. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--all` | — | Inspect every registered project. |
-| `--verbose`, `-v` | — | Show every healthy check as well as problems and warnings. |
+| `--verbose`, `-v` | — | Include healthy checks and informational context. |
 | `--json` | — | Emit one structured result. |
 
 ## Projects

@@ -102,7 +102,7 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
     runtime_home = home / (".claude" if runtime == "claude-code" else ".codex")
     registry = runtime_home / "plugins/installed_plugins.json"
     if not registry.is_file():
-        return [Finding("warn", f"{runtime}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
+        return [Finding("info", f"{runtime}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
     try:
         data = json.loads(registry.read_text(encoding="utf-8"))
         entries = (data.get("plugins") or {}).get("dotbrain@dotbrain", [])
@@ -118,7 +118,7 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
             hooks = json.loads(hook_file.read_text(encoding="utf-8"))
             if isinstance(hooks, dict) and (hooks.get("hooks") or {}).get("SessionStart"):
                 return [Finding("ok", f"{runtime}: registered dotbrain plugin has SessionStart hook files"),
-                        Finding("warn", f"{runtime}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
+                        Finding("info", f"{runtime}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
         return [Finding("warn", f"{runtime}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
     except DIAGNOSIS_ERRORS as exc:
         return [Finding("warn", f"{runtime}: plugin installation check unavailable: {exc}", "inspect the runtime plugin manager")]
@@ -285,7 +285,7 @@ def as_result(report: DoctorReport) -> CommandResult:
         item = TargetResult(project=name, checkout=report.checkouts.get(name), scope=scope)
         for finding in findings:
             message = finding.message + (f"; {finding.suggestion}" if finding.suggestion else "")
-            item.findings.append({"severity": {"ok": "info", "warn": "warning", "error": "error"}[finding.status], "message": message})
+            item.findings.append({"severity": {"ok": "info", "info": "info", "warn": "warning", "error": "error"}[finding.status], "message": message})
         if any(f.status == "error" for f in findings):
             item.status = "failure"
         result.targets.append(item)

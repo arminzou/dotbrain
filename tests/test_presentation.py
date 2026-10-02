@@ -168,3 +168,29 @@ def test_help_colors_headings_and_names_only_in_terminal(monkeypatch):
     assert "<COMMAND>" in plain and "-h, --help" in plain
     ctx.color = False
     assert "\x1b" not in root.get_help(ctx)
+
+
+@pytest.mark.parametrize("width", [40, 100])
+def test_report_table_uses_help_palette_and_preserves_status_colors(monkeypatch, width):
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    buffer = io.StringIO()
+    output = Console(file=buffer, width=width, force_terminal=True, color_system="standard")
+    presentation.table(output, ["Project", "Wiring"], [["example", presentation.Text("broken", style="red")]])
+    value = buffer.getvalue()
+    assert "\x1b[1;32m" in value and "Wiring" in value
+    assert "\x1b[1;36mexample" in value
+    assert "\x1b[31mbroken" in value
+
+
+def test_doctor_unverified_runtime_is_verbose_information_not_a_pass(monkeypatch, tmp_path):
+    report = doctor.DoctorReport(machine=[doctor.Finding("ok", "git available"),
+        *doctor._check_plugin(tmp_path, "codex")])
+    output = capture(monkeypatch, lambda: presentation.render_doctor(report))
+    assert "0 warnings" in output and "1 check passed" in output
+    assert "not locally verified" not in output
+    verbose = capture(monkeypatch, lambda: presentation.render_doctor(report, verbose=True))
+    assert "not locally verified" in verbose and "i Machine" in verbose
+    assert "1 check passed" in verbose
+    result = doctor.as_result(report)
+    assert result.status == "success"
+    assert result.targets[0].findings[1]["severity"] == "info"

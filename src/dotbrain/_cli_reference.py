@@ -53,6 +53,9 @@ information in the terminal.
 Human reports group changes and problems by target, shorten home paths to `~`, and use tables
 for catalogs and project inspection. Empty lists, previews, and skipped work are explicit.
 Doctor shows problems and warnings first; use `doctor -v` to include every healthy check.
+Runtime activation and session uncertainty are informational, shown with `doctor -v` and in
+JSON; they do not count as passed checks. Missing registered hook files and failed plugin
+checks remain warnings.
 Colors follow terminal capabilities; redirected output stays plain.
 
 Finite reports support `--json`: stdout contains one result with command, overall status,
