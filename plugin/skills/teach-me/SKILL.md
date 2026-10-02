@@ -73,8 +73,8 @@ before teaching, and offer their concepts as candidates for this session:
 
 - Assign each backlog to an existing topic, or propose a new topic following step 2. Merge backlogs
   that turn out to share a topic, and retitle a backlog whose inferred topic was renamed.
-- With the user, group the parked concepts into lesson-sized steps: add them to the topic's path
-  bead, or turn the backlog into a path bead when the topic has none.
+- With the user, group the parked concepts into lesson-sized steps: add them to the topic's learning
+  path bead, or turn the backlog into a learning path bead when the topic has none.
 - Record each concept's outcome by appending a line to the backlog's notes ("<concept>: folded into
   step 3", "taught", "dropped"), and close a backlog once none of its concepts is left unsorted.
 
@@ -107,7 +107,7 @@ user's actual question in small steps, grounded in `RESOURCES.md` and the code, 
 questions.
 
 For a broad goal, propose a learning path and walk it with the user, adjusting it as they learn. When
-the user agrees to a path that will span sessions, create its path bead with
+the user agrees to a path that will span sessions, create its learning path bead with
 `bd create "learn: <topic> path" --labels learning`, then `bd defer` it.
 
 Completion: the user has answered a retrieval question on each point taught; every misconception
@@ -168,5 +168,5 @@ page for them in the public docs; do not copy the lesson.
 | Draft the next lesson now to save a session | It records what the agent knows; the lesson must capture what the user demonstrated. |
 | Explain from memory and cite later | Parametric knowledge is a lead; `RESOURCES.md` and the code are the sources. |
 | Skip the learning record because a lesson was written | The lesson is for reading; the record steers the next session's level. |
-| Note the step's outcome on the path bead instead of a record | The bead tracks where the path is; only records carry what the user knows. |
+| Note the step's outcome on the learning path bead instead of a record | The bead tracks where the path is; only records carry what the user knows. |
 | Rename or renumber a lesson file to tidy the list | Its file name is its identity and its number is its place in the topic. |

@@ -8,7 +8,7 @@ a lesson on this later"). Parking only files the concept; teaching it later belo
 A learning bead is labelled `learning` and its title starts `learn:`. Its scope is one topic, so the
 number of learning beads grows with topics, not with questions.
 
-- **Path bead**, `learn: <topic> path`: an ordered learning path that spans sessions. `teach-me`
+- **Learning path bead**, `learn: <topic> path`: an ordered learning path that spans sessions. `teach-me`
   creates and advances it.
 - **Backlog bead**, `learn: <topic> backlog`: concepts parked for a topic, waiting to become lessons.
 
@@ -19,7 +19,7 @@ A parked concept is a note on a learning bead, never a bead of its own. The note
 - where it came up: the file or symbol, the commit, and the work underway
 
 Every learning bead stays deferred, so none reaches the ready frontier. Notes are only ever appended
-(`--append-notes`), never rewritten, because a path bead's notes also carry its step progress.
+(`--append-notes`), never rewritten, because a learning path bead's notes also carry its step progress.
 
 ## Parking a concept
 
