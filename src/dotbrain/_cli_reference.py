@@ -140,7 +140,8 @@ def _render_command(path: str, cmd: object) -> str:
         for opt in options:
             name = ", ".join(f"`{o}`" for o in opt.opts + opt.secondary_opts)
             if not opt.is_flag:
-                name += f" *{opt.type.name}*"
+                type_name = "text" if opt.type.name == "str" else opt.type.name
+                name += f" *{type_name}*"
             default = "—" if opt.is_flag or opt.default in (None, "") else f"`{opt.default}`"
             out.append(f"| {name} | {default} | {_cell(opt.help or '')} |")
         out.append("")

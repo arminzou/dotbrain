@@ -7,9 +7,11 @@ import json
 import typer
 from typer.core import TyperCommand, TyperGroup
 try:
-    from click.exceptions import UsageError, Exit
+    from typer._click import Context
+    from typer._click.exceptions import UsageError
 except ImportError:
-    from typer._click.exceptions import UsageError, Exit
+    from click import Context
+    from click.exceptions import UsageError
 
 
 @dataclass
@@ -70,7 +72,7 @@ class HelpTyper(typer.Typer):
 class ResultGroup(HelpGroup):
     """Keep parser failures inside the JSON contract when JSON was requested."""
 
-    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+    def parse_args(self, ctx: Context, args: list[str]) -> list[str]:
         ctx.meta["result_json"] = "--json" in args
         ctx.meta["result_command"] = next((arg for arg in args if not arg.startswith("-")), "dotbrain")
         try:
@@ -79,7 +81,7 @@ class ResultGroup(HelpGroup):
             self._json_error(ctx, exc)
             raise
 
-    def invoke(self, ctx: click.Context):
+    def invoke(self, ctx: Context):
         try:
             return super().invoke(ctx)
         except UsageError as exc:
@@ -87,7 +89,7 @@ class ResultGroup(HelpGroup):
             raise
 
     @staticmethod
-    def _json_error(ctx: click.Context, exc: click.UsageError) -> None:
+    def _json_error(ctx: Context, exc: UsageError) -> None:
         if ctx.meta.get("result_json"):
             render(CommandResult(str(ctx.meta.get("result_command", "dotbrain")), "failure", errors=[exc.format_message()]), json_output=True)
-            raise Exit(2)
+            raise typer.Exit(2)
