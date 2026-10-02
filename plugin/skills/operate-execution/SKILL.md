@@ -132,4 +132,4 @@ findings, and how to recognize an existing bead's shape before operating on it.
 
 When the operator asks to park a concept for later learning, see
 [references/learning-beads.md](references/learning-beads.md). It covers the path and backlog bead
-shapes, the concept note, and how to file one without leaving the work underway.
+shapes, the concept comment, and how to file one without leaving the work underway.

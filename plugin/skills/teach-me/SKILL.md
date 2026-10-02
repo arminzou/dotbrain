@@ -60,7 +60,7 @@ All learning path beads and learning backlog beads belong to the project's singl
 attach existing children. The epic and every child stay deferred; grouping alone does not exclude
 them from the ready frontier. Keep this persistent container separate from implementation epics.
 
-Other sessions park concepts for later learning as notes on a deferred `learn: <topic> backlog`
+Other sessions park concepts for later learning as individual comments on a deferred `learn: <topic> backlog`
 bead, whose topic they inferred without reading this workspace. Those topics are guesses, and step 1
 reconciles them. When the project has no execution engine, there are no learning beads: paths live
 in the conversation and nothing is parked.
@@ -77,12 +77,18 @@ also read its `learn:` bead.
 List the open learning beads (`bd list --label learning`). When backlog beads exist, reconcile them
 before teaching, and offer their concepts as candidates for this session:
 
+- Read each learning backlog bead and its comments with `bd comments <id> --json`. Comments carry
+  the concepts and their dispositions; also read Notes for concepts parked by older skill versions.
+
 - Assign each backlog to an existing topic, or propose a new topic following step 2. Merge backlogs
-  that turn out to share a topic, and retitle a backlog whose inferred topic was renamed.
+  that turn out to share a topic, and retitle a backlog whose inferred topic was renamed. When
+  merging, preserve each concept in a separate destination comment with its source bead and
+  comment id; leave a forwarding comment on the source so no concept loses its history.
 - With the user, group the parked concepts into lesson-sized steps: add them to the topic's learning
   path bead, or turn the backlog into a learning path bead when the topic has none.
-- Record each concept's outcome by appending a line to the backlog's notes ("<concept>: folded into
-  step 3", "taught", "dropped"), and close a backlog once none of its concepts is left unsorted.
+- Record each concept's outcome in a new comment referencing its original comment id ("folded into
+  step 3", "taught", "dropped"). Never edit or delete comments. Close a backlog once none of its
+  concepts is left unsorted. Learning path progress still uses append-only Notes.
 
 Completion: a topic is named, either existing or proposed; its learning records have been read; any
 path being resumed has been read; and every open backlog is either reconciled or left for a later
