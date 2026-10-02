@@ -124,6 +124,7 @@ dotbrain wire --repo ~/repos/my-app
 <p>A read-only health check. Then start a fresh agent session in the repo.</p>
 
 ```bash
+cd ~/repos/my-app
 dotbrain doctor
 ```
 

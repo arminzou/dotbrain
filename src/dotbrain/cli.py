@@ -394,25 +394,25 @@ def beads_sync(
 from dotbrain.asset_cli import report as _asset_report
 
 @skills_app.command("list")
-def skills_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project"), json_output: JsonOption = False) -> None:
+def skills_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project", help="Show selections for a named Brainspace."), json_output: JsonOption = False) -> None:
     """Discover locally available skills."""
     _asset_report("skills", "list", home, runtime, project, json_output)
 
 
 @skills_app.command("link")
-def skills_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope"), project: Optional[str] = typer.Option(None, "--project"), repo: Optional[Path] = typer.Option(None, "--repo"), all_projects: bool = typer.Option(False, "--all"), json_output: JsonOption = False) -> None:
+def skills_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
     """Reconcile selected skills in project or explicit global scope."""
     _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, all_projects)
 
 
 @agents_app.command("list")
-def agents_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project"), json_output: JsonOption = False) -> None:
+def agents_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project", help="Show selections for a named Brainspace."), json_output: JsonOption = False) -> None:
     """Discover locally available agents."""
     _asset_report("agents", "list", home, runtime, project, json_output)
 
 
 @agents_app.command("link")
-def agents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope"), project: Optional[str] = typer.Option(None, "--project"), repo: Optional[Path] = typer.Option(None, "--repo"), all_projects: bool = typer.Option(False, "--all"), json_output: JsonOption = False) -> None:
+def agents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
     """Reconcile selected agents in project or explicit global scope."""
     _asset_report("agents", "link", home, runtime, project, json_output, scope, repo, all_projects)
 

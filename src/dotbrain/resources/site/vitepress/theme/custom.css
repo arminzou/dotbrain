@@ -301,7 +301,21 @@
   line-height: inherit;
 }
 
-/* Tree views (treeView-beta) keep Mermaid's own style. Mermaid adds an implicit "/" root above the
+/* Tree views use site colours because Mermaid's tree defaults stay dark in dark mode. */
+.mermaid-diagram .treeView-node-label {
+  fill: var(--vp-c-text-1) !important;
+}
+.mermaid-diagram .treeView-node-description {
+  fill: var(--vp-c-text-2) !important;
+}
+.mermaid-diagram .treeView-node-icon {
+  color: var(--vp-c-text-2) !important;
+}
+.mermaid-diagram .treeView-node-line {
+  stroke: var(--vp-c-text-2) !important;
+}
+
+/* Mermaid adds an implicit "/" root above the
    first entry; it is hidden so a tree starts at its entries. */
 .mermaid-diagram .tree-view > g:first-of-type,
 .mermaid-diagram .tree-view > line:first-of-type {

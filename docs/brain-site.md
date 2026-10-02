@@ -85,7 +85,12 @@ output and do not support JSON reporting.
 - A nav item that links a missing page.
 - A link on any page to a missing file, such as a renamed ADR. The error names the file and line.
 - Invalid YAML frontmatter.
+- Malformed HTML or Vue markup, including bare angle-bracket placeholders interpreted as tags.
 - A lesson whose `topic` is not listed in `learning/MISSION.md`.
+
+Write literal placeholders as inline code, including in tables: `--project <name>` and
+`--repo <path>`. Keep raw HTML for intentional markup. An "Element is missing end tag" error
+can mean a bare placeholder was parsed as an unclosed tag; check the named file and line.
 
 Because agents edit the Brain too, the `brain-site` skill keeps every edit building and knows the
 VitePress and Mermaid syntax pages can use.

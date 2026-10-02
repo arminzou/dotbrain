@@ -40,9 +40,11 @@ To have the Beads primer injected too, add Beads' own hook with `bd setup claude
 `bd setup codex`. Dotbrain does not install it.
 
 ::: info Why not inject everything?
-Agent runtimes cap hook output at roughly 10 KB. Past that, the output is written to a file and the
-model sees none of it, convention included. `DOTBRAIN.md` has a bounded size; a project's
-`AGENTS.md` grows with the project. Injecting only the convention keeps the session start reliable.
+Dotbrain tests its session-start payload against a 10,000-byte budget. This budget comes from
+measured Claude Code behavior: 9,961 bytes reached the model, while 10,010 bytes were written to
+a file instead. It is not a verified limit for every runtime. `DOTBRAIN.md` has a bounded size;
+a project's `AGENTS.md` grows with the project. Injecting only the convention keeps the payload
+within that budget.
 :::
 
 ## Failing Open
