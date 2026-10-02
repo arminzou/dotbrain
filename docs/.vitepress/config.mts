@@ -48,7 +48,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(getting-started|architecture|workflow|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|architecture|workflow|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -56,6 +56,7 @@ export default defineConfig({
       {
         text: 'Guide',
         items: [
+          { text: 'Why dotbrain?', link: '/why-dotbrain' },
           { text: 'Getting started', link: '/getting-started' },
           { text: 'The workflow', link: '/workflow' },
         ],

@@ -5,6 +5,7 @@ fine on GitHub.
 
 ## Guide
 
+- [why-dotbrain.md](why-dotbrain.md) — candid comparisons, trade-offs, and when to skip it.
 - [getting-started.md](getting-started.md) — install, wire a repo, and verify the result.
 - [workflow.md](workflow.md) — from first idea to closed design, one skill per step.
 
