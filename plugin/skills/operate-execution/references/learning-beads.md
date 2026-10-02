@@ -5,12 +5,22 @@ a lesson on this later"). Parking only files the concept; teaching it later belo
 
 ## The shape
 
-A learning bead is labelled `learning` and its title starts `learn:`. Its scope is one topic, so the
-number of learning beads grows with topics, not with questions.
+Each project has one **learning epic**, titled `Learning`, typed `epic`, labelled `learning`,
+and kept deferred. It groups learning separately from implementation work; parentage alone does
+not keep an item off the ready frontier.
+
+Its children are labelled `learning` and their titles start `learn:`. Each covers one topic, so
+the number of learning beads grows with topics, not with questions.
 
 - **Learning path bead**, `learn: <topic> path`: an ordered learning path that spans sessions. `teach-me`
   creates and advances it.
-- **Backlog bead**, `learn: <topic> backlog`: concepts parked for a topic, waiting to become lessons.
+- **Learning backlog bead**, `learn: <topic> backlog`: concepts parked for a topic, waiting to become lessons.
+
+Reuse the project's learning epic. If absent, create it with
+`bd create "Learning" --type epic --priority 4 --labels learning`, then `bd defer <epic-id>`.
+Attach existing learning path beads and learning backlog beads with
+`bd update <id> --parent <epic-id>`; keep each child deferred too. The epic is a persistent
+container, not an initiative with a design or a completion gate.
 
 A parked concept is a note on a learning bead, never a bead of its own. The note holds:
 
@@ -25,13 +35,14 @@ Every learning bead stays deferred, so none reaches the ready frontier. Notes ar
 
 1. List the open learning beads: `bd list --label learning`. Do not read `.brain/learning/`,
    `MISSION.md`, or its topics; matching against the open beads is enough.
-2. If an open backlog bead already covers the concept's topic, append the concept to its notes:
+2. Ensure the learning epic exists using the commands above. If an open learning backlog bead
+   already covers the concept's topic, attach it to that epic and append the concept to its notes:
    `bd update <id> --append-notes "<concept note>"`.
 3. Otherwise, infer a topic name from the concept and create a backlog bead with the concept as its
    first note, then defer it:
 
    ```bash
-   bd create "learn: <topic> backlog" --type task --priority 4 --labels learning \
+   bd create "learn: <topic> backlog" --type task --priority 4 --labels learning --parent <epic-id> \
      --description "Concepts parked for learning, reconciled by teach-me." --notes "<concept note>"
    bd defer <id>
    ```
@@ -40,5 +51,5 @@ Every learning bead stays deferred, so none reaches the ready frontier. Notes ar
    a topic, or proposes a new one, the next time it runs.
 4. Confirm in one line, naming the bead, and return to the work underway. Do not load `teach-me`.
 
-Learning beads are never feature work: do not claim one from the ready frontier, give one a parent
-epic, or close one. `teach-me` owns their lifecycle after parking.
+Learning beads are never feature work: do not claim one from the ready frontier, attach one to an
+implementation epic, or close one while parking. `teach-me` owns their lifecycle after parking.
