@@ -65,7 +65,7 @@ Check `node --version`; the site needs Node.js 22.12 or later. Follow the build 
 file and line: missing links, invalid frontmatter, and malformed HTML or Vue markup can fail a
 build. For "Element is missing end tag", look for bare placeholders such as `<name>` or `<path>`
 and wrap them in inline code, including in tables. See
-[Brain site](brain-site.md#what-fails-the-build).
+[Brain site configuration](brain-site-configuration.md#what-fails-the-build).
 
 ## FAQ
 
