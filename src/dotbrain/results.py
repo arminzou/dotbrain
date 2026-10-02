@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass, field
 import json
 
 import typer
-from typer.core import TyperGroup
+from typer.core import TyperCommand, TyperGroup
 try:
     from click.exceptions import UsageError, Exit
 except ImportError:
@@ -45,7 +45,29 @@ def render(result: CommandResult, *, json_output: bool = False, preview: bool = 
         presentation.render_operation(result, preview=preview)
 
 
-class ResultGroup(TyperGroup):
+class HelpCommand(TyperCommand):
+    def get_help(self, ctx):
+        from dotbrain.presentation import render_help
+        return render_help(self, ctx)
+
+
+class HelpGroup(TyperGroup):
+    def get_help(self, ctx):
+        from dotbrain.presentation import render_help
+        return render_help(self, ctx)
+
+
+class HelpTyper(typer.Typer):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("cls", HelpGroup)
+        super().__init__(**kwargs)
+
+    def command(self, *args, **kwargs):
+        kwargs.setdefault("cls", HelpCommand)
+        return super().command(*args, **kwargs)
+
+
+class ResultGroup(HelpGroup):
     """Keep parser failures inside the JSON contract when JSON was requested."""
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
