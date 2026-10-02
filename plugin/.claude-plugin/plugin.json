@@ -1,17 +1,22 @@
 {
   "name": "dotbrain",
   "version": "0.4.6",
-  "description": "Keeps your project's context private and your code repo clean.",
+  "description": "Private project context, shared across coding agents and worktrees.",
   "author": {
     "name": "Armin Zou",
     "url": "https://github.com/arminzou"
   },
-  "homepage": "https://github.com/arminzou/dotbrain",
+  "homepage": "https://arminzou.github.io/dotbrain/",
   "repository": "https://github.com/arminzou/dotbrain",
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://arminzou.github.io/dotbrain/getting-started",
+  "supportUrl": "https://github.com/arminzou/dotbrain/issues",
   "license": "MIT",
   "keywords": [
     "agent-context-management",
     "private-project-context",
+    "multi-agent",
+    "git-worktrees",
     "engineering-skills",
     "skill-management"
   ]
