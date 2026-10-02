@@ -1,106 +1,65 @@
-# Brain Site
+# Browse the Brain
 
-`dotbrain site` renders a Brain as a private documentation site: every Markdown file becomes a
-page, with search, a sidebar, and Mermaid diagrams. It is served on `127.0.0.1` only and never
-published.
+A project's private knowledge is often easier to use as a website than as raw Markdown in a
+coding editor. Brain Site provides formatted pages, search, navigation, and rendered diagrams
+while keeping the material in the project's private Brain.
 
-## Requirements
+Use it to learn project topics with an agent, read personal runbooks, revisit decisions, and
+look up sensitive project context. The site serves locally on `127.0.0.1`; Dotbrain does not publish it.
 
-- Node.js 22.12 or later, with `npm` on `PATH`.
-- A wired project, or `--project <project>` when you run commands from elsewhere.
+## Learn Project Topics with an Agent
 
-The site engine is installed once per dotbrain version into `~/dotbrain/.cache/site/`. Nothing is
-written into the Brain except the `.brain/site/` folder.
+Work with an agent using `teach-me` to learn the parts of the project that interest you. Keep
+the Brain site open alongside the conversation: the agent explains, asks questions, and guides
+practice while the site gives you a visual place to read lessons, follow diagrams, and consult
+references.
 
-## Set It Up
+The site provides a dedicated **Learn** experience. Its sidebar groups lessons and references
+by the topics in your learning mission. The standard home page shows a Learn overview with topic
+tiles and recent lessons, plus a Start learning link when lessons exist.
 
-```bash
-dotbrain site init     # create .brain/site/ with site.yaml, a home page, and the manual
-dotbrain site dev      # serve with live reload
-```
+For example, choose a topic to discuss with your agent, open its lesson in the browser, and ask the agent
+to walk you through it. Read the diagram, try the retrieval exercise, and discuss your answer
+with the agent. The agent records demonstrated understanding and updates your learning path.
+Learning records are also rendered as pages, so you can read what has been established and what
+still needs practice; they are reachable through links and search, rather than the topic's lesson list.
 
-`site init` lists every page in `docs/` in the sidebar. Trim it to what you read often.
+The [learning workflow](learning.md) explains how topics, learning paths, records, and parked
+concepts carry learning across sessions. Brain Site makes that material comfortable to explore
+and use during the learning itself.
 
-## How Pages Map to URLs
+## Read Private Runbooks and Project Docs
 
-Pages are served at their path in the Brain, so a relative link that works in the Brain works on
-the site.
+Keep operational instructions and internal reference material in the Brain, where they can
+include project context without becoming public repository documentation. The site renders
+headings, tables, code blocks, links, and Mermaid diagrams for comfortable reading.
 
-```mermaid
-flowchart LR
-  accTitle: Brain files and the site pages they become
-  subgraph Brain["`*.brain/*`"]
-    a["`*docs/release.md*`"]
-    b["`*adr/0001-storage.md*`"]
-    c["`*site/index.md*`"]
-  end
-  subgraph Site["http://127.0.0.1"]
-    a2["`*/docs/release*`"]
-    b2["`*/adr/0001-storage*`"]
-    c2["`*/*`"]
-  end
-  a --> a2
-  b --> b2
-  c --> c2
-```
+For example, a private deployment runbook can link to a recovery procedure and the design that
+explains a constraint. Follow those links while working through the procedure without opening
+and interpreting each Markdown source file in an editor.
 
-ADRs show their `status` and design docs their `lifecycle` as a badge above the page. Symlinks and
-files with `[brackets]` in their names are skipped.
+## Search Across the Brain
 
-## The Sidebar
+The site renders Markdown across the Brain, including private docs, decisions, designs, and
+learning material. Search helps you find a relevant page when you remember a term or a problem
+but not its filename.
 
-`.brain/site/site.yaml` decides what the sidebar lists. A page left out is still on the site,
-reachable by links and search.
+The sidebar provides a shorter route to pages you use often. It controls navigation rather than
+which pages exist: a page left out is still reachable by links and search. Some files, including
+symlinks and files with bracketed names, are skipped; see the
+[configuration guide](brain-site-configuration.md#how-pages-map-to-urls) for the mapping rules.
 
-```yaml
-# .brain/site/site.yaml
-title: "My Brain"
-description: Private project guidance
-nav:
-  - text: Runbooks
-    items:
-      - { text: Release, link: runbooks/release }        # docs/runbooks/release.md
-      - { text: Deploy steps, link: "runbooks/deploy#steps" }
-      - { text: Azure overview, link: deployment/azure/ } # its README.md or index.md
-```
+## Navigate Decisions and Designs
 
-When the Brain has a `learning/` workspace, a Learn section is added above the nav automatically.
+Relative links connect docs to decisions and designs at their existing Brain paths. Decision
+status and design lifecycle badges help you recognize which records are current and which
+describe an earlier point in time.
 
-## Commands
+## Set Up the Reading Experience
 
-| Command | Does |
-| --- | --- |
-| `dotbrain site init` | Creates `.brain/site/` with `site.yaml`, the home page, and the manual |
-| `dotbrain site dev` | Serves with live reload; restart after editing `site.yaml` |
-| `dotbrain site build` | Builds into dotbrain's cache, never into the Brain |
-| `dotbrain site preview` | Serves the last build |
+Follow [Brain Site configuration](brain-site-configuration.md) to create the site, serve it
+locally, arrange the sidebar, and adjust its appearance. You can also ask the agent's `brain-site`
+skill to help maintain it.
 
-Commands default to the current wired project, including a worktree or nested directory. Use
-`--project <name>` from elsewhere and `--home <path>` for another private data root. `site init`
-and `site build` support finite `--json` reports; `site dev` and `site preview` stream server
-output and do not support JSON reporting.
-
-## What Fails the Build
-
-- A nav item that links a missing page.
-- A link on any page to a missing file, such as a renamed ADR. The error names the file and line.
-- Invalid YAML frontmatter.
-- Malformed HTML or Vue markup, including bare angle-bracket placeholders interpreted as tags.
-- A lesson whose `topic` is not listed in `learning/MISSION.md`.
-
-Write literal placeholders as inline code, including in tables: `--project <name>` and
-`--repo <path>`. Keep raw HTML for intentional markup. An "Element is missing end tag" error
-can mean a bare placeholder was parsed as an unclosed tag; check the named file and line.
-
-Because agents edit the Brain too, the `brain-site` skill keeps every edit building and knows the
-VitePress and Mermaid syntax pages can use.
-
-## Changing the Look
-
-- `.brain/site/theme/style.css` loads after the default styles.
-- `.brain/site/theme/index.ts` can register Vue components through `enhanceApp`, or export a whole
-  theme that extends `@dotbrain/theme`.
-
-Theme files can import Vue, VitePress, Mermaid, and local files. A Brain cannot add npm packages.
-
-The full manual is generated into every site as `.brain/site/configure.md`.
+Markdown stays the authored source. Keep editing it in your usual tools and read the rendered
+pages in the browser.

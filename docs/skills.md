@@ -96,6 +96,8 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 ## Learning
 
+See [Learning your project](learning.md) for learning paths, parked concepts, and session continuity.
+
 - **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in
   conversation, walk a learning path tracked as a `learn:` bead, record what was demonstrated, and
   capture approved lessons into `.brain/learning/`

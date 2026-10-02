@@ -48,7 +48,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|architecture|workflow|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -56,9 +56,16 @@ export default defineConfig({
       {
         text: 'Guide',
         items: [
-          { text: 'Why dotbrain?', link: '/why-dotbrain' },
+          { text: 'Why Dotbrain?', link: '/why-dotbrain' },
           { text: 'Getting started', link: '/getting-started' },
-          { text: 'The workflow', link: '/workflow' },
+        ],
+      },
+      {
+        text: 'Use cases',
+        items: [
+          { text: 'Develop a project', link: '/workflow' },
+          { text: 'Learn your project', link: '/learning' },
+          { text: 'Browse the Brain', link: '/brain-site' },
         ],
       },
       {
@@ -68,7 +75,6 @@ export default defineConfig({
           { text: 'Wiring', link: '/wiring' },
           { text: 'Session context', link: '/session-context' },
           { text: 'Beads backend', link: '/beads-backend' },
-          { text: 'Brain site', link: '/brain-site' },
         ],
       },
       {
@@ -80,6 +86,7 @@ export default defineConfig({
         items: [
           { text: 'CLI reference', link: '/cli-reference' },
           { text: 'Configuration', link: '/configuration' },
+          { text: 'Brain site configuration', link: '/brain-site-configuration' },
           { text: 'Skills', link: '/skills' },
           { text: 'Glossary', link: '/glossary' },
         ],
