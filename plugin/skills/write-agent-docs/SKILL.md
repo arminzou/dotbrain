@@ -108,8 +108,20 @@ with the action the agent should take instead.
   attention without changing behaviour; delete it rather than polishing it.
 - Preserve deliberate repetition of a leading word, but remove duplicated explanations.
 
+## Markdown literals
+
+Write literal commands, paths, and angle-bracket placeholders as inline code, including in
+tables: `--project <name>`, `--repo <path>`. Use fenced code blocks for multiline examples.
+Bare placeholders such as `<name>` are parsed as HTML; VitePress also compiles that HTML as Vue
+and can fail with "Element is missing end tag". Keep raw HTML for intentional markup only;
+use `&lt;` and `&gt;` when literal angle brackets belong in ordinary prose.
+
 ## Dotbrain documents
 
 When writing in a dotbrain-wired project, private Brain, or `$DOTBRAIN_HOME`, read
 [Writing within dotbrain](references/dotbrain-skills.md) for placement, public/private boundaries, and the
 workflows that own document structure and lifecycle.
+
+After editing Markdown in a Brain with `site/site.yaml`, run `dotbrain site build` before
+reporting completion: every Brain Markdown file is a page, including designs and ADRs.
+For VitePress-specific syntax, use the `brain-site` skill's page guidance.
