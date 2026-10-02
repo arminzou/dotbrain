@@ -152,4 +152,6 @@ For an editable CLI, run `./scripts/dev-install.sh` (or `.\scripts\dev-install.p
 then `dotbrain bootstrap`. Bundled skills are authored in [`plugin/skills/`](plugin/skills/).
 See the [CLI reference](https://arminzou.github.io/dotbrain/cli-reference) for commands and options.
 
+For bug reports and pull requests, see [Contributing](CONTRIBUTING.md).
+
 Released under the [MIT License](LICENSE).
