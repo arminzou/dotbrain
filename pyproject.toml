@@ -1,6 +1,6 @@
 [project]
 name = "dotbrain"
-version = "0.4.6"
+version = "0.5.0"
 description = "Wires project Brainspaces and skills into coding agents."
 requires-python = ">=3.11"
 license = "MIT"
