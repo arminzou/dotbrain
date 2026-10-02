@@ -61,8 +61,11 @@ Use the upgrade command for the package manager that installed the CLI.
 
 ### `dotbrain site` fails
 
-Check `node --version`; the site needs Node.js 22.12 or later. A build failure names the file and
-line of the broken link or frontmatter. See [Brain site](brain-site.md#what-fails-the-build).
+Check `node --version`; the site needs Node.js 22.12 or later. Follow the build error to the named
+file and line: missing links, invalid frontmatter, and malformed HTML or Vue markup can fail a
+build. For "Element is missing end tag", look for bare placeholders such as `<name>` or `<path>`
+and wrap them in inline code, including in tables. See
+[Brain site](brain-site.md#what-fails-the-build).
 
 ## FAQ
 

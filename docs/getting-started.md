@@ -113,8 +113,9 @@ pipx install dotbrain
 
 This installs the CLI only — it does not install `bd`
 (Beads), which `dotbrain` shells out to for issue tracking. Run `dotbrain bootstrap` afterward,
-then `dotbrain doctor` to see what else is missing; install `bd` yourself from
-[the Beads repo](https://github.com/gastownhall/beads) if it's flagged.
+then `dotbrain doctor --all` to check machine readiness before wiring a project. Install `bd`
+yourself from [the Beads repo](https://github.com/gastownhall/beads) before wiring a project with
+a tracker. Doctor checks tracker readiness once a project has a tracker configured.
 
 **Or run the plugin's installer by hand.** It provisions `uv` and `bd` for you if either is
 missing, then installs the CLI — no prerequisites needed, from the runtime's plugin cache:
@@ -132,8 +133,9 @@ pwsh -NoProfile -File "$env:USERPROFILE\.claude\plugins\cache\dotbrain\dotbrain\
 :::
 
 Either script installs `uv` and `bd` if they are missing, installs the pinned CLI, and runs
-`dotbrain bootstrap` — which seeds your global dotbrain home with `config.yaml`, global agent
-hooks, and global skill links. Running it a second time is safe.
+`dotbrain bootstrap` — which seeds your global dotbrain home with configuration and delivers
+selected global skills and subagents. The plugin supplies the session-start hook. Running the
+installer a second time is safe.
 
 ::: warning
 Keep the CLI and the plugin on the same version. The plugin's installer pins a matching CLI tag,
@@ -174,11 +176,16 @@ or your own Git server, then push to it:
 
 ```bash
 cd ~/dotbrain
+git status
+git add .
+git commit -m "Back up dotbrain home"
 git remote add origin <private-remote-url>
 git push -u origin HEAD
 ```
 
-Push after Brain changes you want to keep. The remote is also how a second machine gets your Brains:
+Review the files before staging; keep credentials out of Git. Bootstrap initializes the repository
+without creating a commit, so the first push needs the commit above. For later Brain changes,
+stage and commit the changes you want to keep, then push. The remote is also how a second machine gets your Brains:
 [clone it there](#_2-get-the-cli) before wiring anything.
 
 ::: danger Keep the remote private

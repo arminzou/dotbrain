@@ -178,7 +178,7 @@ dotbrain skills list [OPTIONS]
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
 | `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
-| `--project` *text* | — | — |
+| `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain skills link` {#dotbrain-skills-link}
@@ -193,10 +193,10 @@ dotbrain skills link [OPTIONS]
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
 | `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
-| `--scope` *text* | `project` | — |
-| `--project` *text* | — | — |
-| `--repo` *path* | — | — |
-| `--all` | — | — |
+| `--scope` *text* | `project` | Delivery scope: project or global. |
+| `--project` *text* | — | Select a named Brainspace. |
+| `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
+| `--all` | — | Reconcile every registered project. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain agents list` {#dotbrain-agents-list}
@@ -211,7 +211,7 @@ dotbrain agents list [OPTIONS]
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
 | `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
-| `--project` *text* | — | — |
+| `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain agents link` {#dotbrain-agents-link}
@@ -226,10 +226,10 @@ dotbrain agents link [OPTIONS]
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
 | `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
-| `--scope` *text* | `project` | — |
-| `--project` *text* | — | — |
-| `--repo` *path* | — | — |
-| `--all` | — | — |
+| `--scope` *text* | `project` | Delivery scope: project or global. |
+| `--project` *text* | — | Select a named Brainspace. |
+| `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
+| `--all` | — | Reconcile every registered project. |
 | `--json` | — | Emit one structured result. |
 
 ## Beads
