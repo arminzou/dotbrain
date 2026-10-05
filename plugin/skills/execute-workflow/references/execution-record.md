@@ -34,9 +34,7 @@ workflow progress, not a second status system. Interactive or handoff mode belon
 execution, not the item. Beads' own `execution_mode` and documented execution-hint metadata keep
 their meanings as advisory routing input.
 
-Successful verification ends a failed-checkpoint streak. Worker replacement and resume do not reset
-an unresolved streak. A human-authorized extension records the decision and new limit and keeps the
-history. Another attempt never creates a new bead.
+A passing check ends a failed-checkpoint streak, and another attempt never creates a new bead.
 
 ## Write method
 
@@ -68,6 +66,3 @@ full logs into metadata.
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
 ```
-
-A worker may add `Attempt` and `Claim moved` comments on its own item; every other header is the
-lead's.

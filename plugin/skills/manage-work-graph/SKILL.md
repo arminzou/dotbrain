@@ -11,16 +11,11 @@ items that says what work exists and what it depends on. The engine is declared 
 `bd` directly. This file owns the model and graph maintenance;
 [references/beads.md](references/beads.md) owns how to express work in beads' native fields.
 
-Three terms stay distinct:
-
-- **Work graph** — the work items and their dependency edges. The **ready frontier** (open items
-  with no open blockers) is the set eligible to start; blocking edges are the serialization.
-- **Execution graph** — how an agent team carries out a fixed set of items: dispatch, integration,
-  checks, and closure order. `execute-workflow` owns it; it lives in the lead's session, not in
-  the tracker.
-- **Execution record** — the recoverable facts on an item under execution: native status and
-  assignee, a `dotbrain` metadata object, and headed evidence comments. `execute-workflow` owns
-  its contents ([its reference](../execute-workflow/references/execution-record.md)).
+This skill owns the **work graph**: work items and their dependency edges. The **ready frontier**
+(open items with no open blockers) is the set eligible to start; blocking edges are the
+serialization. The **execution graph** (how an agent team carries out a fixed set of items) and each
+item's **execution record** belong to `execute-workflow`
+([its reference](../execute-workflow/references/execution-record.md)).
 
 Boundaries:
 
@@ -92,8 +87,9 @@ everything else unflagged so the agent can flow through the ready frontier.
 ## Operating loop
 
 1. On a new session or after context recovery, run `bd prime` for the Beads protocol. dotbrain
-   injects no Beads context; skip it only when the operator's own Beads hook already supplied it. Then read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty means
-   pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
+   injects no Beads context; skip it only when the operator's own Beads hook already supplied it.
+   Then read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty
+   means pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
    rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
    project Brain context and relevant ADRs.
 2. Inspect the graph with structured, non-interactive output: ready frontier, list, and item detail
@@ -132,10 +128,10 @@ everything else unflagged so the agent can flow through the ready frontier.
 ## Handoff context
 
 When work moves to another agent or session before it closes, record enough that the next
-assignee can act without being spoon-fed: work-item ID, anchor epic (if any), intended scope, required checks,
-review/landing expectations, and the bead's current state: done, next, and any open question. A branch created for the work uses the canonical name
-`<item-id>-<short-slug>` (the issue ID in the configured engine), which supports SessionStart
-anchor inference.
+assignee can act without being spoon-fed: work-item ID, anchor epic (if any), intended scope,
+required checks, review/landing expectations, and the bead's current state: done, next, and any
+open question. A branch created for the work uses the canonical name `<item-id>-<short-slug>` (the
+issue ID in the configured engine).
 
 ## Review beads
 

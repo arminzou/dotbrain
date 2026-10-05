@@ -41,7 +41,7 @@ a team of one: the lead is also the assignee and the only worker.
 
 - No authorized scope: the request names no item, batch, or epic. Ask.
 - An item in the set is human-gated or a `learn:` bead. Leave it out or stop for sign-off.
-- Required checks, the retry limit, or the writing-worker cap cannot be stated. Ask.
+- The required checks cannot be stated. Ask.
 - A required capability is missing — worktree isolation for concurrent writers, a distinct Beads
   actor per worker, or an independent reviewer when review is required. Stop and report; never
   weaken the contract to fit the runtime. If only optional parallelism is missing, report the
@@ -85,8 +85,8 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 Every delegated worker receives a compact assignment in its runtime message:
 
 - work-item IDs and the assigned operation
-- the worker's Beads actor, set through `BEADS_ACTOR` (the default actor is the shared Git user, and
-  a repeated claim by the same actor succeeds silently)
+- the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
+  actor is the shared Git user, and a repeated claim by the same actor succeeds silently
 - allowed actions and file or resource ownership
 - checkout, item branch, and base revision, where applicable
 - absolute paths to the controlling design, the Brain's `AGENTS.md`, the acceptance criteria, and
@@ -102,14 +102,15 @@ Before substantive work, a writing worker:
    Runtimes start worktrees from different commits, so never rely on where the worktree began. A
    replacement worker instead continues on the existing item branch in the stopped worker's
    worktree.
-4. Claims its item under its own actor: `bd update <id> --claim --json --quiet`.
+4. Claims its item under its own actor: `bd update <id> --claim --actor <worker-actor> --json --quiet`.
 
 A failed readiness step stops the worker and reaches the lead. Launch alone does not authorize edits.
 
-On return, the worker's last step hands its claim back: `bd assign <id> <lead-actor>` and a
-`Claim moved: <worker> -> <lead>` comment. The lead is the assignee while it integrates, checks, and
-closes. The lead reclaims from a worker only once that worker is confirmed stopped; when the runtime
-cannot tell, ask the human. Beads itself lets any actor reassign, so this rule is the guard.
+On return, the worker's last step hands its claim back under its own actor:
+`bd assign <id> <lead-actor> --actor <worker-actor>` and a `Claim moved: <worker> -> <lead>`
+comment. The lead is the assignee while it integrates, checks, and closes. The lead reclaims from a
+worker only once that worker is confirmed stopped; when the runtime cannot tell, ask the human.
+Beads itself lets any actor reassign, so this rule is the guard.
 
 In Claude Code, dispatch each concurrent writing worker as a subagent with worktree isolation on the
 call, using a role allowed to create a branch and commit, such as the general-purpose agent. The
@@ -117,8 +118,12 @@ packaged `implementer` cannot: it is a sole writer sharing the lead's checkout f
 and it refuses an item that needs a branch. The isolation guard refuses git commands it cannot
 attribute to the worker's worktree, including chained commands and commands a shell hook rewrites;
 tell workers to run git as plain, separate commands and to set commit identity through the
-`GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. Build outputs, databases, and ports still constrain
-parallelism; separate worktrees do not prove those are independent.
+`GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. Subagent worktrees land under
+`.claude/worktrees/` in the lead's checkout: before the first dispatch, when
+`git check-ignore -q .claude/worktrees/` fails, add `/.claude/worktrees/` to the local exclude file
+`$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages a worker's worktree.
+Build outputs, databases, and ports still constrain parallelism; separate worktrees do not prove
+those are independent.
 
 A session the user launches in a worktree attaches with explicit `dotbrain wire` and is the lead of
 its own execution.

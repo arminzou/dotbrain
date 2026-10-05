@@ -2,9 +2,9 @@
 
 The beads engine reference for `manage-work-graph`, loaded when `execution-engine: beads`. Covers
 how to model, author, and resume work in beads' own fields, and why that beats inventing a label
-vocabulary on top. On a new session or after context recovery, run `bd prime`;
-dotbrain injects no Beads context, so skip it only when the operator's own Beads hook supplied it. It is authoritative for the version-current
-command list and flags, so do not reproduce the full reference here.
+vocabulary on top. On a new session or after context recovery, run `bd prime`; dotbrain injects no
+Beads context, so skip it only when the operator's own Beads hook supplied it. It is authoritative
+for the version-current command list and flags, so do not reproduce the full reference here.
 
 The one rule everything below serves: **beads is a typed, prioritized dependency graph. Express
 work in the native fields the graph already has; reach for labels only for a dimension the graph
