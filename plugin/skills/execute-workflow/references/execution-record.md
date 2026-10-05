@@ -49,8 +49,9 @@ bd comments add <item-id> --file <evidence-file> --json
 Beads merges `--metadata` one level deep: unnamed keys survive, and each named key's value is
 replaced whole, so write `dotbrain_attempts` and `dotbrain_artifacts` complete. `--set-metadata`
 stores an object as an escaped string; use it, if at all, for `dotbrain_phase` alone.
-`bd list --metadata-field dotbrain_phase=<value>` finds items in a phase. Review beads are
-`review-gate`'s and are never executed here.
+`bd list --metadata-field dotbrain_phase=<value>` finds open items in a phase; add `--all` to
+include closed ones, such as `verified` items. Review beads are `review-gate`'s and are never
+executed here.
 
 Check output belongs in evidence comments with revision and environment references. Do not copy
 full logs into metadata.
