@@ -47,6 +47,7 @@ Before changing code, present this contract and wait for the human's explicit `G
   one in-loop Success Criteria gate — the fast tier that must pass for `FINAL`; the full suite at
   the review surface; and the selected final `review-gate` mode (`code` by default; `simplify` or
   `readiness` only when named).
+- **Workers:** the writing-worker cap for each bounded execution (2 by default).
 - **Delivery:** draft-PR authorization, plus the available provider and authenticated account.
 
 `GO` authorizes implementation, the agreed verification, pushing the dedicated branch, and creating
@@ -56,10 +57,12 @@ the loop starts.
 
 ## Worktree preparation
 
-A dedicated branch may run in place or in a git worktree. Before planning in a worktree, verify
-that `.brain` and `.beads` resolve to the main checkout's Brainspace when enabled. When they are
-absent, run `dotbrain wire` in the worktree, directly or through `wire-brain`, before dispatch.
-The CLI resolves the main checkout through Git metadata and preserves its registration.
+A dedicated branch may run in place or in a git worktree. When the user launches this session in a
+worktree, verify before planning that `.brain` and `.beads` resolve to the main checkout's
+Brainspace when enabled. When they are absent, run `dotbrain wire` in the worktree, directly or
+through `wire-brain`, before dispatch. The CLI resolves the main checkout through Git metadata and
+preserves its registration. Delegated workers that `execute-workflow` dispatches into their own
+worktrees need no wiring; their assignment carries absolute references.
 
 ## Read order
 
@@ -94,13 +97,16 @@ bead has closed; `review-gate` then owns that final record.
 Use this protocol throughout the handoff:
 
 1. PLAN: Reread the active design doc fresh — do not rely on an earlier iteration's memory of it,
-   since long runs are where constraints silently drop out of lossy context. Then pick the
-   smallest checkpoint that advances the design.
-2. DO: Implement only that checkpoint.
-3. VERIFY: Run the narrow check for that checkpoint in this same session — the session that made
-   the change owns its check, so never spawn an agent just to check a checkpoint. Reserve the
-   once-only in-loop gate for before final review.
-4. REFLECT: Update the active design doc only for design-relevant learning:
+   since long runs are where constraints silently drop out of lossy context. Then select the next
+   bounded execution: one ready work item or a finite batch of ready items within the approved
+   scope. Never add items silently to an execution already under way.
+2. DO: Run that bounded execution through `execute-workflow`, as its lead. This skill keeps the
+   outer loop, reflection, overall limits, final review, and delivery.
+3. VERIFY: The agent that made a change runs its checkpoint check, inside `execute-workflow`; never
+   spawn an agent just to check a checkpoint. Reserve the once-only in-loop gate for before final
+   review.
+4. REFLECT: As the lead, the only agent that edits the active design doc, update it only for
+   design-relevant learning, including what workers returned:
    - A known unknown was resolved.
    - A new known unknown appeared.
    - An implementation note changes how future work items should be built.
@@ -142,8 +148,9 @@ Two hard guards:
 - Automation: Prefer a direct Goal-mode handoff first. Use scheduled/background automation only
   after the prompt has worked manually.
 - Skill: This file is the reusable workflow wrapper.
-- Sub-agents: Use an explorer for unclear codepaths and an implementer for scoped changes. The
-  session that makes a change runs that checkpoint's check; the `verifier` role is reserved for the
+- Sub-agents: Use an explorer for unclear codepaths. `execute-workflow` dispatches writing workers;
+  the packaged implementer suits only a small change in the lead's checkout. The agent that makes
+  a change runs that checkpoint's check; the `verifier` role is reserved for the
   once-only in-loop gate, and a reviewer supplements the gate before finalizing meaningful changes.
   Do not let the implementer be the only judge of correctness.
 - Connectors: Use available environment and MCP/plugin connectors directly for project context such

@@ -13,14 +13,17 @@ before creating or resuming one.
 
 | Mode | Target and question | Engine |
 | --- | --- | --- |
-| `code` | A diff, commit, branch, PR, or working tree: is it correct and in scope? | A read-only `reviewer`, run in a separate session; native `/review` when available. |
+| `code` | A diff, commit, branch, PR, or working tree: is it correct and in scope? | A read-only `reviewer` agent that authored none of the changes; native `/review` when available. |
 | `simplify` | The same target: what can be deleted, collapsed, or replaced with a native capability? | `ponytail-review`. This is not a correctness review. |
 | `readiness` | A subsystem before a milestone: is it sound enough to build the next thing on? | [Readiness procedure](references/readiness.md), always multi-pass. |
 
 The requester supplies the mode, target/range, and the outcome that the review gates. Do not widen a
 code review into readiness review, or report simplification findings as defects.
 
-A review is judgment and runs in its own session, separate from the work it reviews. The `reviewer`
+A review is judgment and runs in an independent reviewer agent: one that authored none of the
+reviewed changes. It may belong to the same agent team and use the same model. The lead arranges
+the review but cannot be the independent gate for changes it authored; when no such agent is
+available, the gate is blocked, not skipped. The `reviewer`
 produces findings; the `verifier` runs the mechanical gate and returns the evidence the record
 cites. The reviewer supplements the gate, never replaces it.
 
