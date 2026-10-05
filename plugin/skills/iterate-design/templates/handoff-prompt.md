@@ -9,6 +9,7 @@ Linked bead:
 Preflight contract (confirmed by explicit `GO`):
 - Scope: <one work bead | every implementation bead under this design/epic>
 - Dedicated branch and base: <branch / base>
+- Writing-worker cap: <2 unless stated>
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
   the review surface, review mode: <code | simplify | readiness>
 - Delivery: draft PR authorized; provider/auth available: <yes>
@@ -35,11 +36,13 @@ findings, and the agreed draft PR exists.
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
    if present. Do not rely on an earlier iteration's memory of the design doc.
-2. Pick the next smallest checkpoint.
+2. Select the next bounded execution: one ready work item or a finite batch from the work graph,
+   within the approved scope.
 3. If the path is unclear, use a read-only explorer first.
-4. Implement only the checkpoint.
-5. Run the checkpoint's narrow check in this session; never spawn an agent just to check a
-   checkpoint. Run the once-only in-loop Success Criteria gate before final review.
+4. Run that execution through `execute-workflow` as its lead. Only the lead changes the work graph,
+   the execution record, and the active design doc.
+5. The agent that made a change runs its checkpoint's narrow check; never spawn an agent just to
+   check a checkpoint. Run the once-only in-loop Success Criteria gate before final review.
 6. If the verifier fails, make the smallest targeted fix and retry. After 3 consecutive failed
    verify cycles on the same checkpoint, stop and report BLOCKED with the attempt trail.
 7. If design-relevant learning appears, update Known Unknowns, Implementation Notes, Deviations, or
@@ -64,7 +67,7 @@ Progress log:
 Rules:
 - Do not expand scope beyond the design doc.
 - Do not turn the design doc into a task checklist.
-- Keep execution state in beads.
+- Keep work-graph and execution-record state in beads.
 - Keep design learning in the active design doc.
 - Do not call FINAL without `verifier` evidence from the in-loop gate.
 - Never edit Success Criteria or bead acceptance criteria; if they are wrong or

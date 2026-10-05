@@ -115,3 +115,17 @@ def test_slice_is_not_a_noun_for_a_work_item():
             continue  # "slice" there is a scale of module, not a work item
         text = re.sub(r"vertical[\s-]+slices?", "", _text(skill), flags=re.IGNORECASE)
         assert not re.search(r"\bslices?\b", text, re.IGNORECASE), skill
+
+
+def test_review_gate_requires_an_independent_reviewer():
+    """A lead reviewing its own changes is the author grading itself; the gate must name a
+    reviewer that authored none of them, and block rather than skip when none exists."""
+    gate = _text(SKILLS / "review-gate/SKILL.md")
+    assert "authored none of the reviewed changes" in gate
+    assert "the gate is blocked, not skipped" in gate
+
+
+def test_iterate_design_runs_executions_through_execute_workflow():
+    loop = _text(SKILLS / "iterate-design/SKILL.md")
+    assert "through `execute-workflow`" in loop
+    assert "the only agent that edits the active design doc" in loop
