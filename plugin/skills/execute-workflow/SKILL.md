@@ -87,6 +87,7 @@ Every delegated worker receives a compact assignment in its runtime message:
 - work-item IDs and the assigned operation
 - the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
   actor is the shared Git user, and a repeated claim by the same actor succeeds silently
+- the lead's Beads actor, the target of the worker's handback
 - allowed actions and file or resource ownership
 - checkout, item branch, and base revision, where applicable
 - absolute paths to the controlling design, the Brain's `AGENTS.md`, the acceptance criteria, and
