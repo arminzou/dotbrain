@@ -25,7 +25,7 @@ a team of one: the lead is also the assignee and the only worker.
 | Read-only worker (investigator, reviewer, verifier) | Nothing; it reports back | Uncapped, except at most one verifier | No worktree needed |
 
 - While delegated workers run, the lead is the only agent that edits the active design doc, changes
-  the work graph, or writes an item's `dotbrain` object. A worker writes only its own claim and,
+  the work graph, or writes an item's `dotbrain_` metadata. A worker writes only its own claim and,
   when assigned, evidence comments on its own item. It returns candidate results, check evidence,
   discovered work, and design-relevant learning; the lead records them.
 - A work item has at most one active worker. When parts of one item could run concurrently, ask the
@@ -63,7 +63,7 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
 | Integrate | Candidate revision or artifact, intended target, and the claim handed back. | Integrated result. Keep the item open. |
 | Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence, or bounded repair within the same item. |
-| Apply closure rules | Passing acceptance evidence and resolved item-level human gates. | `phase: verified` written, then native item closure through `manage-work-graph`. |
+| Apply closure rules | Passing acceptance evidence and resolved item-level human gates. | `dotbrain_phase: verified` written, then native item closure through `manage-work-graph`. |
 | Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
 | Release dependents | Prerequisite closure and a base containing its integrated result. | Eligible dependent members may start while independent siblings continue. |
 | Finish | All selected items resolved, or a stop or human gate reached. | Bounded result returned to the caller. Design-level verification and review remain separate. |
@@ -131,7 +131,7 @@ its own execution.
 ## Execution record
 
 The lead keeps each item's recoverable facts on the existing bead: native status, assignee, and
-dependencies; a `dotbrain` metadata object for current phase, attempts, and artifacts; and headed
+dependencies; flat `dotbrain_` metadata keys for current phase, attempts, and artifacts; and headed
 append-only evidence comments. The fields, write method, and comment headers are in
 [references/execution-record.md](references/execution-record.md). No execution-only or batch-anchor
 beads.
@@ -139,8 +139,8 @@ beads.
 ## Failure, cancellation, and recovery
 
 - **Retry exhaustion.** The affected worker stops and returns attempts, evidence, and remaining
-  uncertainty. The lead records a `Blocked` comment and `phase: awaiting_human`, adds the `human`
-  label, keeps the item open, and asks the human for a concrete decision with a recommendation.
+  uncertainty. The lead records a `Blocked` comment, adds the `human` label, keeps the item open,
+  and asks the human for a concrete decision with a recommendation.
   While that decision is pending, pause new dispatch and integration across the execution. Running
   unaffected workers may reach a safe checkpoint within their limits and return candidates; a
   compromised shared resource or target stops them. Only the human authorizes more attempts or
