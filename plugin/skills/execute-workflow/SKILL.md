@@ -74,8 +74,9 @@ The lead holds live assignments, pending joins, and the next operation in its ow
   needs acceptance evidence. For other work, name the accepted artifact and its target explicitly.
 - A dependent starts only from a base that contains its prerequisite's integrated result, after the
   prerequisite closes.
-- Clean up with `git worktree remove <path>` and `git branch -d <item-branch>`; never `--force` or
-  `-D`. An unmerged branch or dirty worktree stays and is reported.
+- Clean up with `git worktree remove <path>` and, from the checkout holding the integration target,
+  `git branch -d <item-branch>`; never `--force` or `-D`. Also delete any merged branch the runtime
+  created for the worker's worktree. An unmerged branch or dirty worktree stays and is reported.
 - Repairs stay inside the item's scope and limits. Discoveries become item facts or new work items
   for a later execution; they never join the current set silently.
 
@@ -111,8 +112,12 @@ closes. The lead reclaims from a worker only once that worker is confirmed stopp
 cannot tell, ask the human. Beads itself lets any actor reassign, so this rule is the guard.
 
 In Claude Code, dispatch each concurrent writing worker as a subagent with worktree isolation on the
-call. The packaged `implementer` is a sole writer sharing the lead's checkout for a small change; a
-larger item is not forced through it. Build outputs, databases, and ports still constrain
+call, using a role allowed to create a branch and commit, such as the general-purpose agent. The
+packaged `implementer` cannot: it is a sole writer sharing the lead's checkout for a small change,
+and it refuses an item that needs a branch. The isolation guard refuses git commands it cannot
+attribute to the worker's worktree, including chained commands and commands a shell hook rewrites;
+tell workers to run git as plain, separate commands and to set commit identity through the
+`GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. Build outputs, databases, and ports still constrain
 parallelism; separate worktrees do not prove those are independent.
 
 A session the user launches in a worktree attaches with explicit `dotbrain wire` and is the lead of
