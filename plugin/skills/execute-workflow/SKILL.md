@@ -63,7 +63,7 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
 | Integrate | Candidate revision or artifact, intended target, and the claim handed back. | Integrated result. Keep the item open. |
 | Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence, or bounded repair within the same item. |
-| Apply closure rules | Passing acceptance evidence and resolved item-level human gates. | Native item closure through `manage-work-graph`. |
+| Apply closure rules | Passing acceptance evidence and resolved item-level human gates. | `phase: verified` written, then native item closure through `manage-work-graph`. |
 | Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
 | Release dependents | Prerequisite closure and a base containing its integrated result. | Eligible dependent members may start while independent siblings continue. |
 | Finish | All selected items resolved, or a stop or human gate reached. | Bounded result returned to the caller. Design-level verification and review remain separate. |
