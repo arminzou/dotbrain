@@ -92,9 +92,8 @@ the tracker.
 
 ### Execution record
 
-The recoverable facts on a work item under execution: its native status and assignee, a small
-`dotbrain` metadata object holding its phase, attempts, and artifacts, and headed evidence
-comments.
+The recoverable facts on a work item under execution: its native status and assignee, a few
+`dotbrain_` metadata keys holding its phase, attempts, and artifacts, and headed evidence comments.
 
 ### Lead, assignee, worker, agent team
 
