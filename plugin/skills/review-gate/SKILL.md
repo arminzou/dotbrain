@@ -6,7 +6,7 @@ description: Run a durable engineering review gate with focused code, simplifica
 # Review Gate
 
 Turn a review into a durable gate without claiming that all review methods answer the same question.
-The review bead is the lifecycle record; read [the shared contract](../operate-execution/references/review-beads.md)
+The review bead is the lifecycle record; read [the shared contract](../manage-work-graph/references/review-beads.md)
 before creating or resuming one.
 
 ## Choose the mode

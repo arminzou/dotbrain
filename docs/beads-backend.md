@@ -136,7 +136,7 @@ on purpose: `unwire` disconnects a repo, `drop-db` destroys tracker data.
 
 ## Working With the Tracker
 
-Agents drive Beads through the `operate-execution` skill, but you can use `bd` directly in any wired
+Agents drive Beads through the `manage-work-graph` skill, but you can use `bd` directly in any wired
 repo:
 
 ```bash

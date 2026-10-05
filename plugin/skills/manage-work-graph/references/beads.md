@@ -1,9 +1,9 @@
 # Operating beads: the native model
 
-The beads engine reference for `operate-execution`, loaded when `execution-engine: beads`. Covers
+The beads engine reference for `manage-work-graph`, loaded when `execution-engine: beads`. Covers
 how to model, author, and resume work in beads' own fields, and why that beats inventing a label
-vocabulary on top. On a new session or after context recovery, use the hook-injected `bd prime`
-protocol; run `bd prime` only when it was not injected. It is authoritative for the version-current
+vocabulary on top. On a new session or after context recovery, run `bd prime`;
+dotbrain injects no Beads context, so skip it only when the operator's own Beads hook supplied it. It is authoritative for the version-current
 command list and flags, so do not reproduce the full reference here.
 
 The one rule everything below serves: **beads is a typed, prioritized dependency graph. Express
@@ -89,7 +89,7 @@ sure its blockers are closed; if it should not, add the dependency. Let `bd read
 
 ## Human gate: the mechanics
 
-`operate-execution` owns *when* to flag; this covers *how*. Flag with `bd label add <id> human`;
+`manage-work-graph` owns *when* to flag; this covers *how*. Flag with `bd label add <id> human`;
 read the gated set with `bd human list`.
 
 The `human` label *is* the native gate — `bd human list` filters on it; this is the one case where
@@ -106,12 +106,12 @@ follow-up, scoped tech debt, a discovered blocker.
 Keep two fields distinct, because they have different lifetimes:
 
 - **`--design` is bead-local HOW**: approach, architecture, trade-offs for a direct bead or a
-  slice-local note. It may change during implementation.
+  item-local note. It may change during implementation.
 - **`--acceptance` is WHAT**: the outcomes that define done. It should stay stable across sessions.
 
 For design-doc initiatives, the living design authority is the active design doc linked by
 `--spec-id design:<slug>`. Do not mirror initiative-level design prose into every child bead's
-`--design`; keep that field for slice-local detail only.
+`--design`; keep that field for item-local detail only.
 
 Acceptance criteria must be **outcome-focused and verifiable**, not steps. Self-test: if you
 rebuilt the solution a different way, would the criteria still hold? If not, they are design notes
@@ -131,8 +131,8 @@ beads exists so work survives session boundaries and context compaction; the not
   format (show, do not describe). Skip this weight for simple tasks.
 - On close, document the **actual outcome**, not the original hypothesis: if the design changed,
   say what really happened in the close reason or notes.
-- Recover after compaction with the hook-injected `bd prime` protocol (or run `bd prime` if it
-  was not injected), then `bd list --status in_progress --json --quiet` and
+- Recover after compaction with `bd prime` (dotbrain injects none; skip it only if the operator's
+  own Beads hook supplied it), then `bd list --status in_progress --json --quiet` and
   `bd show <id> --long --json --quiet`.
 
 ## Labels: the one place they earn their keep

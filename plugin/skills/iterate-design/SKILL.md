@@ -23,7 +23,7 @@ Use when:
 - A linked bead or epic exists, or the user explicitly points at a design doc.
 
 Do not use for one-off fixes, pure triage, open-ended brainstorming, or work without a verification
-story. Reach for `operate-execution`, `find-unknowns`, `grill-decisions`, or `to-design` first.
+story. Reach for `manage-work-graph`, `find-unknowns`, `grill-decisions`, or `to-design` first.
 
 ### Loop-worthiness check
 
@@ -65,8 +65,8 @@ The CLI resolves the main checkout through Git metadata and preserves its regist
 
 Before planning, read:
 
-1. The hook-injected `bd prime` protocol on a new session or after context recovery; run `bd prime`
-   only when it was not injected.
+1. `bd prime` on a new session or after context recovery. dotbrain injects no Beads context; skip
+   it only when the operator's own Beads hook already supplied it.
 2. Nearest `AGENTS.md`.
 3. `.brain/CONTEXT.md`, if present.
 4. The active design doc.
@@ -103,7 +103,7 @@ Use this protocol throughout the handoff:
 4. REFLECT: Update the active design doc only for design-relevant learning:
    - A known unknown was resolved.
    - A new known unknown appeared.
-   - An implementation note changes how future slices should be built.
+   - An implementation note changes how future work items should be built.
    - A deviation from the design as written was necessary.
    - A human decision is needed.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
@@ -169,4 +169,4 @@ verification gap, design-relevant learning reflected into the active design doc,
 updated only for execution facts when a bead is linked. An open linked bead records what is done,
 next, and any open question before handoff. A successful automation handoff ends with the agreed
 draft PR and an open `human`-labeled review bead; the PR body carries the audience-safe
-`Verification` section described in `operate-execution`.
+`Verification` section described in `manage-work-graph`.

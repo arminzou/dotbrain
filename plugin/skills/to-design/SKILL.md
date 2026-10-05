@@ -12,7 +12,7 @@ life; this skill covers authoring it.
 ## Stop before you start
 
 A design doc earns its keep only when the initiative is multi-step, crosses modules or workflows,
-needs explicit scope boundaries, or carries meaningful unknowns. Small, obvious, single-slice
+needs explicit scope boundaries, or carries meaningful unknowns. Small, obvious, single-item
 changes go straight into beads instead.
 
 If the initiative warrants an ADR, stop and run `grill-decisions` first. ADRs own durable decision
@@ -69,7 +69,7 @@ Create the tracking epic and link it back to the design doc:
 bd create "<Design title>" --type epic --description "See .brain/designs/<NNNN>-<slug>.md" --spec-id design:<NNNN>-<slug>
 ```
 
-`--spec-id` links the execution graph back to the design doc. The epic stays private even when the
+`--spec-id` links the work graph back to the design doc. The epic stays private even when the
 project configures a public tracker; attach `--external-ref` only when this initiative was promoted
 from an already-existing public collaboration issue.
 
@@ -88,7 +88,7 @@ next step.
 Three artifacts hold different material, and the design doc holds only the middle one:
 
 - **Beads** hold execution: ready, blocked, done, dependencies, claims, acceptance, and
-  slice-local implementation facts.
+  item-local implementation facts.
 - **The design doc** holds the initiative's design story: shape and interfaces, verification
   criteria, unknowns, deviations, rollout.
 - **ADRs** hold durable, cross-cutting, expensive-to-reverse decisions and their rationale. Link

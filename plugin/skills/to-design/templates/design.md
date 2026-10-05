@@ -47,7 +47,7 @@ Ordered by volatility: lead with the decisions most likely to change — data mo
 interfaces, migration shape, UX flows — and put mechanical or obvious work last. Surfacing the
 volatile decisions first is what lets a reviewer catch a wrong turn cheaply.
 
-Use one subsection per coherent piece of the design; `to-issues` echoes these headings in slice
+Use one subsection per coherent piece of the design; `to-issues` echoes these headings in work item
 titles, so a later reader can match a bead back to its exact section by title alone.
 -->
 
@@ -89,7 +89,7 @@ during implementation land here too.
 
 ## Implementation Notes
 
-<!-- Constraints and sequencing that shape how slices get built, without being the slices. -->
+<!-- Constraints and sequencing that shape how work items get built, without being the work items. -->
 
 ## Deviations
 

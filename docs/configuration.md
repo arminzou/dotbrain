@@ -96,7 +96,7 @@ skills:                       # extra skills for this project's workspaces
 | `subagents` | `[]` | Project-only subagents in addition to the packaged four |
 
 `public-tracker` sets up public issue intake and contributor collaboration. It never mirrors the
-private execution graph or turns private work into public issues; see the `triage-public` skill.
+private work graph or turns private work into public issues; see the `triage-public` skill.
 
 ::: info
 `dotbrain refresh` preserves project declarations byte-for-byte. Intentional Beads configuration

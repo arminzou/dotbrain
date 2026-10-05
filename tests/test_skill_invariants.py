@@ -47,12 +47,12 @@ def test_no_skill_creates_a_public_issue_from_private_work():
 def test_private_identifiers_never_reach_a_public_pr():
     """Brain paths, ADR numbers and spec-ids in a PR body leak the private layer to
     anyone reading the repo. The rule has one home; iterate-design points at it."""
-    owner = _text(SKILLS / "operate-execution/references/public-provenance.md")
+    owner = _text(SKILLS / "manage-work-graph/references/public-provenance.md")
     loop = _text(SKILLS / "iterate-design/SKILL.md")
 
     assert "Verification" in owner
     assert re.search(r"`\.brain/` paths, ADR numbers", owner)
-    assert "operate-execution" in loop, "iterate-design must point at the owner"
+    assert "manage-work-graph" in loop, "iterate-design must point at the owner"
     assert not re.search(r"`\.brain/` paths, ADR numbers", loop), "second copy will drift"
 
 
@@ -95,3 +95,23 @@ def test_design_lifecycle_vocabulary_is_one_field_set():
         assert field in stamper, f"{field} missing from close-design"
     for state in ("draft", "active", "shipped", "abandoned", "superseded"):
         assert state in convention
+
+
+def test_lead_is_the_single_writer_during_delegated_execution():
+    """Every worktree reaches the same Brain and tracker. If workers may reshape the graph or
+    edit the design doc, concurrent writers silently overwrite each other's shared state."""
+    owner = _text(SKILLS / "execute-workflow/SKILL.md")
+    assert "the lead is the only agent that edits the active design doc" in owner
+    assert "A worker writes only its own claim" in owner
+    graph = _text(SKILLS / "manage-work-graph/SKILL.md")
+    assert "the lead is the only agent that changes the work graph" in graph
+    assert "only the lead changes the work graph" in _text(CONVENTION)
+
+
+def test_slice_is_not_a_noun_for_a_work_item():
+    """"Work item" is the term; "vertical slice" stays the name of to-issues' technique."""
+    for skill in SKILLS.rglob("*.md"):
+        if "review-architecture" in skill.parts:
+            continue  # "slice" there is a scale of module, not a work item
+        text = re.sub(r"vertical[\s-]+slices?", "", _text(skill), flags=re.IGNORECASE)
+        assert not re.search(r"\bslices?\b", text, re.IGNORECASE), skill

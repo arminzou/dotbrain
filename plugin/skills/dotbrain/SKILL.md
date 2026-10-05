@@ -1,7 +1,7 @@
 ---
 name: dotbrain
 description: >
-  The dotbrain operating convention — how a Brain, its execution graph, and agent
+  The dotbrain operating convention — how a Brain, its work graph, and agent
   workspaces fit together, and the rules that bind work in a wired project. Invoke it
   to hand an agent the convention when the session-start hook did not.
 disable-model-invocation: true
@@ -19,7 +19,8 @@ The convention describes the model; these skills act on it.
 | To do this | Use |
 |---|---|
 | Create or repair `.brain` / `.beads` links | `wire-brain` |
-| Create, claim, or close work items | `operate-execution` |
+| Create, claim, or close work items | `manage-work-graph` |
+| Do an item or a finite batch of items | `execute-workflow` |
 | Formalize an initiative, or record a decision | `to-design`, `grill-decisions` |
 | Edit a project's own rules in `.brain/AGENTS.md` | `curate-project-context` |
 
@@ -56,8 +57,10 @@ Brain template propagate to every brain.
 - Read `.brain/AGENTS.md` before substantial work. It holds this project's own rules and is
   not injected at session start. If it is missing, note the gap and continue.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
-- Execution lives in beads. Work from `bd ready`; record multi-step plans as epics with
-  `blocks` dependencies, not as markdown checklists.
+- The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
+  `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
+  `execute-workflow` carries out an item or finite batch. While delegated workers run, only the
+  lead changes the work graph or the active design doc.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
   Do not drift to synonyms.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
@@ -137,7 +140,7 @@ Cheap moves early — orient, grill, prototype — turn expensive late unknowns 
   canon wins
 - `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,
   never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
-  asks to park a concept for later learning, file it per `operate-execution`'s learning-beads
+  asks to park a concept for later learning, file it per `manage-work-graph`'s learning-beads
   reference
 - `site/` — the Brain site's settings (`site.yaml`, whose nav is the sidebar), its home page
   `index.md`, dotbrain's manual `configure.md`, and optional theme extensions. Optional; `dotbrain site` renders every Markdown file

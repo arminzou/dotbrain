@@ -71,13 +71,37 @@ deviations, and extra skills.
 
 ### Execution engine
 
-The backend that holds the private execution graph for a project. Today that is beads, but the term
+The backend that holds the private work graph for a project. Today that is beads, but the term
 describes the role rather than a specific implementation.
 
 ### Execution store
 
 The live state managed by the execution engine. In practical terms, this is where open work,
 dependencies, readiness, and closure state live.
+
+### Work graph
+
+The work items in the execution store and the dependency edges between them: what work exists and
+what it waits on. The ready frontier is the set of open items with no open blockers.
+
+### Execution graph
+
+How an agent team carries out a fixed set of work items: dispatch, integration, checks, and the
+order in which items close and release their dependents. It lives in the lead's session, not in
+the tracker.
+
+### Execution record
+
+The recoverable facts on a work item under execution: its native status and assignee, a small
+`dotbrain` metadata object holding its phase, attempts, and artifacts, and headed evidence
+comments.
+
+### Lead, assignee, worker, agent team
+
+An agent team is the lead and the workers it dispatches for one bounded execution. The lead
+selects, integrates, checks, and closes items and is the only agent that changes the work graph
+while delegated workers run. A worker carries out an assigned operation and reports back. The
+assignee is the actor holding a work item's claim.
 
 ### Agent runtime
 
@@ -91,7 +115,7 @@ only its selected resources inside it.
 ### Public tracker
 
 The outward-facing issue system used for public intake and contributor collaboration, such as
-GitHub Issues. Existing public issues may be promoted into the private execution graph with a
+GitHub Issues. Existing public issues may be promoted into the private work graph with a
 provenance link. Private designs, epics, and work items are never projected outward as public
 tracking issues; a PR can provide a public review surface without one.
 

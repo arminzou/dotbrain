@@ -1,6 +1,6 @@
 ---
 name: to-issues
-description: Decomposes a settled design doc into independently-workable, vertical-slice bead tasks under its epic, with acceptance criteria and dependencies. Runs once per design doc. NOT for taking work off the ready frontier one item at a time — that is operate-execution.
+description: Decomposes a settled design doc into independently-workable, vertical-slice bead tasks under its epic, with acceptance criteria and dependencies. Runs once per design doc. NOT for taking work off the ready frontier one item at a time — that is manage-work-graph.
 ---
 
 # To Issues
@@ -11,11 +11,11 @@ the initiative-level design authority; beads carry execution.
 
 ## Stop before you start
 
-- No design doc, or a design still in flux — decomposing an unsettled design produces slices you
+- No design doc, or a design still in flux — decomposing an unsettled design produces work items you
   will re-cut. Wait, or run `to-design`.
-- Work that fits in a single bead — `operate-execution`'s `references/work-intake.md` owns that
+- Work that fits in a single bead — `manage-work-graph`'s `references/work-intake.md` owns that
   call.
-- This doc already decomposed — check the epic for existing slices before adding more.
+- This doc already decomposed — check the epic for existing work items before adding more.
 
 ## Process
 
@@ -36,19 +36,19 @@ slicing begins.
 
 ### 2. Draft vertical slices
 
-Decompose the goals and implementation notes into vertical slices. Each slice should deliver a
-narrow but complete path through every relevant layer. A completed slice should be demoable or
+Decompose the goals and implementation notes into vertical slices. Each work item should deliver a
+narrow but complete path through every relevant layer. A completed work item should be demoable or
 otherwise verifiable on its own.
 
-Sequence the slices by volatility: within their dependency constraints, put the ones that resolve the
+Sequence the work items by volatility: within their dependency constraints, put the ones that resolve the
 most volatile, highest-blast-radius decisions — data models, type interfaces, migration shape — first.
-Validating a risky assumption in the first slice is far cheaper than discovering it wrong in the fifth.
+Validating a risky assumption in the first work item is far cheaper than discovering it wrong in the fifth.
 
-Word each slice `Title` to echo the corresponding `Design` subsection heading or a
+Word each work item `Title` to echo the corresponding `Design` subsection heading or a
 distinctive phrase from it. This lets a later reader match a bead straight back to its exact
 design-doc section by title alone, without re-reading the whole document.
 
-For each slice, show:
+For each work item, show:
 
 - `Title`
 - `Gate` (`autonomous` or `human-gated`)
@@ -56,19 +56,19 @@ For each slice, show:
 - `Goals covered`
 - `Acceptance criteria`
 
-Mark a slice human-gated when it needs a person's decision, and be honest about which do: a set
+Mark a work item human-gated when it needs a person's decision, and be honest about which do: a set
 where everything is autonomous is usually a set that has not been read carefully. Keep acceptance
-criteria outcome-focused and verifiable, stating what is true when the slice is done rather than how
+criteria outcome-focused and verifiable, stating what is true when the work item is done rather than how
 it was implemented.
 
-Ask the user to review the slice set and dependency shape before creating anything:
+Ask the user to review the work item set and dependency shape before creating anything:
 
 - Does granularity feel right?
 - Are dependency relationships correct?
-- Should any slices be merged or split?
+- Should any work items be merged or split?
 - Are the human-gated markings correct?
 
-Completion: every goal in the design doc is covered by at least one slice, every slice names the
+Completion: every goal in the design doc is covered by at least one work item, every work item names the
 goals it covers, and the user has signed off on the set.
 
 ### 3. Create the epic if needed
@@ -84,14 +84,14 @@ Create blockers first so dependency links have real IDs.
 Every bead created from the design doc should link back with `--spec-id design:<slug>`.
 
 ```bash
-bd create "<Slice Title>" --parent <epic-id> --type task \
+bd create "<Item Title>" --parent <epic-id> --type task \
   --acceptance "Criterion 1; Criterion 2" \
   --priority <priority> \
   --spec-id design:<slug>
 ```
 
-Do not copy initiative-level design prose into bead `--design`. For design-linked slices, the
-design doc already owns the design story. Use bead notes only for slice-local execution facts.
+Do not copy initiative-level design prose into bead `--design`. For design-linked work items, the
+design doc already owns the design story. Use bead notes only for item-local execution facts.
 
 Link dependencies separately - `bd dep add` reads "**<from> depends on <to>**", so the second
 argument is the prerequisite:
@@ -103,20 +103,20 @@ bd dep add <blocked-id> <blocker-id> # <blocked> waits on <blocker>
 Do **not** use `bd create --deps "blocks:<id>"` for this: `blocks:<id>` means "*this* issue blocks
 `<id>`" - the reverse, which silently inverts the graph.
 
-After linking, confirm with `bd ready`: only slices with no blockers should appear.
+After linking, confirm with `bd ready`: only work items with no blockers should appear.
 
-For human-gated slices, set the gate by adding the `human` label:
+For human-gated work items, set the gate by adding the `human` label:
 
 ```bash
 bd label add <bead-id> human # surfaced by `bd human list`
 ```
 
-Keep every slice in the private execution graph. A configured public tracker is an intake and
-contributor-collaboration surface, not a second execution graph; decomposition never creates public
+Keep every work item in the private work graph. A configured public tracker is an intake and
+contributor-collaboration surface, not a second work graph; decomposition never creates public
 tracking issues.
 
-Completion: every reviewed slice exists as a bead carrying `--spec-id design:<slug>`, `bd ready`
-lists exactly the unblocked ones, and every human-gated slice carries the `human` label.
+Completion: every reviewed work item exists as a bead carrying `--spec-id design:<slug>`, `bd ready`
+lists exactly the unblocked ones, and every human-gated work item carries the `human` label.
 
 ### 5. Hand off
 
@@ -125,6 +125,6 @@ Recommend reviewing the human-gated items before marking them ready.
 
 ## Hard guardrail
 
-**Do not use `--design` for design-linked initiative slices.** Use `--spec-id design:<slug>` and
+**Do not use `--design` for design-linked initiative work items.** Use `--spec-id design:<slug>` and
 keep the living design in the design doc. The field looks like the right home and silently splits
 the design across two places.

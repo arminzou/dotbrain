@@ -56,7 +56,7 @@ the path is. Only learning records hold what the user knows.
 
 All learning path beads and learning backlog beads belong to the project's single deferred
 `Learning` epic, also labelled `learning`. Follow
-[Learning beads](../operate-execution/references/learning-beads.md) to create or reuse it and
+[Learning beads](../manage-work-graph/references/learning-beads.md) to create or reuse it and
 attach existing children. The epic and every child stay deferred; grouping alone does not exclude
 them from the ready frontier. Keep this persistent container separate from implementation epics.
 

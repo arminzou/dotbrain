@@ -17,7 +17,8 @@ Treat the active design doc as the controlling instruction document for this loo
 
 Before entering the loop, and after context recovery:
 
-- Use the hook-injected `bd prime` protocol; run `bd prime` only when it was not injected.
+- Run `bd prime` for the Beads protocol; dotbrain injects none. Skip it only when the operator's own
+  Beads hook already supplied it.
 - If the linked bead names the current work, inspect `bd ready --json --quiet`,
   `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim an unclaimed, ready
   work bead with `bd update <id> --claim --json --quiet`; do not claim an epic merely because it is linked.

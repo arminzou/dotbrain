@@ -24,17 +24,17 @@ and one state label:
 - State: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`
 
 Apply and swap them with `gh issue edit --add-label` / `--remove-label`. These labels live on the
-**public** issue only. Private work uses the engine's native fields — when `operate-execution`
+**public** issue only. Private work uses the engine's native fields — when `manage-work-graph`
 promotes an issue inward, it maps the role to a field, not a beads label (`bug`/`enhancement` →
 `--type`, readiness → the dependency graph, `wontfix` → a close reason). See
-[operate-execution/references/beads.md](../../operate-execution/references/beads.md).
+[manage-work-graph/references/beads.md](../../manage-work-graph/references/beads.md).
 
 ## Triage loop
 
 1. List open issues to survey.
 2. Classify each: category (`bug` / `enhancement`) plus state.
 3. Apply labels and milestones via `gh issue edit`.
-4. For an accepted public issue that needs execution tracking, `operate-execution` records it into
+4. For an accepted public issue that needs execution tracking, `manage-work-graph` records it into
    the private engine and sets an external reference back to `gh-<number>`.
 5. Comment on the issue when acknowledgement is warranted.
 
