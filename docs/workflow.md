@@ -107,6 +107,27 @@ workers, integrates their results, runs the checks, and stops at a retry limit o
 decision. When the build reveals something the design did not expect, the discovery is written back
 into the design and the affected issues, so the next session sees it.
 
+### Parallel workers: what is qualified
+
+`execute-workflow` states its contract without depending on a runtime, but parallel and handover
+behavior is only claimed where it has been run live:
+
+| Combination | Status |
+| --- | --- |
+| Claude Code CLI on Windows, subagent workers each in their own worktree | Qualified (Claude Code 2.1.289, Beads 1.2.2) |
+| Handover of a claimed item from a Codex worker to a Claude Code worker in the same worktree | Qualified (Codex CLI 0.160.0) |
+| Claude Code agent teams | Not yet qualified |
+| Codex parallel workers | Not yet qualified |
+| macOS, Linux, IDE extensions, and the desktop apps | Not yet qualified |
+
+An unqualified combination may still work, but dotbrain makes no claim for it. When parallel
+workers are unavailable, the workflow reports a serial fallback before continuing.
+
+Writing workers need an agent role that may create a branch and commit; the packaged
+`implementer` is for one small change in your own checkout. If a shell hook rewrites `git`
+commands, the runtime's worktree guard may refuse them inside worker worktrees. Exclude `git`
+from the rewrite.
+
 **Or hand it off.** For an unattended run against an active design, `iterate-design` drives the agent's loop mode with
 a mechanical verifier and a hard stop. It runs on a dedicated branch and stops at a draft pull
 request; merging stays with you.
