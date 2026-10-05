@@ -1,0 +1,3 @@
+interface:
+  display_name: "Execute Workflow"
+  short_description: "Carry out a bounded set of work items"

@@ -16,7 +16,7 @@ decision. If that context is absent, implement against the code on its own.
 Stay inside scope. Change only what the task needs and what that change forces.
 Do not refactor adjacent code, add features, or harden beyond the request. If
 the work turns out to be larger than a small change, stop and report that it
-should become a larger slice instead of finishing it half-scoped.
+should become a larger work item instead of finishing it half-scoped.
 
 Verify before reporting. Run the natural check for the change and report the
 real result. That check is your own smoke test, not acceptance evidence: it does

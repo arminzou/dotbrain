@@ -21,7 +21,7 @@ flowchart TD
   design --> issues["`**Split into issues**
   to-issues`"]
   issues --> work["`**Work the issues**
-  operate-execution or iterate-design`"]
+  execute-workflow or iterate-design`"]
   work --> review["`**Review**
   review-gate`"]
   review --> close["`**Close the design**
@@ -35,7 +35,7 @@ flowchart TD
 <li><a href="#_2-settle-decisions"><strong>Settle decisions</strong><code>grill-decisions</code></a></li>
 <li><a href="#_3-write-the-design"><strong>Write the design</strong><code>to-design</code></a></li>
 <li><a href="#_4-split-into-issues"><strong>Split into issues</strong><code>to-issues</code></a></li>
-<li><a href="#_5-work-the-issues"><strong>Work the issues</strong><code>operate-execution</code><code>iterate-design</code></a></li>
+<li><a href="#_5-work-the-issues"><strong>Work the issues</strong><code>manage-work-graph</code><code>execute-workflow</code><code>iterate-design</code></a></li>
 <li><a href="#_6-review"><strong>Review</strong><code>review-gate</code></a></li>
 <li><a href="#_7-close-the-design"><strong>Close the design</strong><code>close-design</code></a></li>
 </ol>
@@ -101,8 +101,10 @@ bd ready
 
 ## 5. Work the Issues
 
-`operate-execution` claims an issue, updates it as work proceeds, and closes it when its criteria
-hold. When the build reveals something the design did not expect, the discovery is written back
+`manage-work-graph` keeps the work graph: it files, links, and claims issues and closes them when
+their criteria hold. `execute-workflow` does the work for one issue or a fixed batch: it dispatches
+workers, integrates their results, runs the checks, and stops at a retry limit or a human
+decision. When the build reveals something the design did not expect, the discovery is written back
 into the design and the affected issues, so the next session sees it.
 
 **Or hand it off.** For an unattended run against an active design, `iterate-design` drives the agent's loop mode with

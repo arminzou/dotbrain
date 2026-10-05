@@ -1,13 +1,13 @@
 # Work intake: bead vs design doc
 
-This reference governs when new work should enter the execution graph as a direct bead and when
-`operate-execution` should suggest a design doc plus epic workflow.
+This reference governs when new work should enter the work graph as a direct bead and when
+`manage-work-graph` should suggest a design doc plus epic workflow.
 
 ## Direct bead
 
 Work can enter as a direct bead, without a design doc, when all of the following are true:
 
-- it is a single unit of work, not a multi-slice initiative
+- it is a single unit of work, not a multi-item initiative
 - the design is obvious enough that a separate design narrative would add little value
 - it does not cross multiple systems, workflows, or operator-facing contracts
 - it does not carry meaningful open questions, phased rollout, or major alternatives
@@ -22,7 +22,7 @@ Typical examples:
 
 Suggest the `to-design` -> `to-issues` workflow when any of the following are true:
 
-- the work is multi-step or will likely decompose into multiple dependent slices
+- the work is multi-step or will likely decompose into multiple dependent work items
 - the work crosses modules, workflows, or user/operator-facing contracts
 - the work has meaningful open questions, competing approaches, or explicit non-goals
 - the work needs phased rollout or a human-readable design trail during execution
@@ -39,8 +39,8 @@ Once an initiative is design-linked:
 - the active design doc owns the design, known unknowns, design-level discoveries, and
   deviations
 - beads own status, dependencies, acceptance, ownership, and closure
-- design-linked slices should link back with `--spec-id design:<slug>` instead of copying the
+- design-linked work items should link back with `--spec-id design:<slug>` instead of copying the
   initiative design into bead `--design`
 
 If implementation reveals something that changes the design story, update the active design doc. If
-the discovery is only slice-local execution detail, keep it in the bead.
+the discovery is only item-local execution detail, keep it in the bead.

@@ -25,7 +25,7 @@ Fix mode writes files, so these bound what it may change:
 - **Report wiring, do not repair it.** `dotbrain doctor` supplies the mechanical baseline and
   `wire-brain` fixes it; use their evidence and route the repair.
 - **Never touch another document's lifecycle.** Design closure and residue promotion are
-  `close-design`'s; Beads state is `operate-execution`'s.
+  `close-design`'s; Beads state is `manage-work-graph`'s.
 - **Credentials belong in the configured secret store**, never in public or private context files.
 
 `write-agent-docs` supplies the writing discipline for pointers, hierarchy, completion criteria, and
@@ -102,7 +102,7 @@ Present findings in priority order:
 |---|---|---|---|---|
 
 Distinguish repairs this skill can apply from work routed to `wire-brain`, `grill-decisions`,
-`close-design`, or `operate-execution`. A clean check says so and lists the surfaces examined.
+`close-design`, or `manage-work-graph`. A clean check says so and lists the surfaces examined.
 
 Completion: every finding has an exact target and no proposed repair silently changes project
 meaning or another document's lifecycle.

@@ -6,7 +6,7 @@ description: Triages public issue tracker items — classify, reproduce, ask rep
 # Triage Public
 
 Operate a project's public collaboration layer. The public tracker is declared in `.brain/project.yaml`
-(`public-tracker:`); execution itself is planned and tracked privately through `operate-execution`.
+(`public-tracker:`); execution itself is planned and tracked privately through `manage-work-graph`.
 This skill is tracker-agnostic — it owns the triage workflow. The tracker's CLI mechanics and label
 vocabulary live in the tracker reference ([references/github.md](references/github.md) for GitHub).
 
@@ -31,7 +31,7 @@ Read at session start, before doing anything else:
      mechanics and labels. Infer the repo from the adopter remote; use `public-tracker-id` only
      when it is explicitly set.
 2. **`.brain/AGENTS.md`** (Project section) — project tracker conventions shared with
-   `operate-execution`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
+   `manage-work-graph`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
 
 ## Triage roles
 
@@ -42,9 +42,9 @@ Every triaged issue carries exactly one **category** and one **state**:
 
 These are the public layer's vocabulary, realized as the tracker's native mechanism (GitHub labels;
 see [references/github.md](references/github.md)). Private work uses the engine's native fields
-instead: when promoting inward, `operate-execution` translates a role to the right field (type,
+instead: when promoting inward, `manage-work-graph` translates a role to the right field (type,
 status, close reason) rather than copying it as a label. A project records any mapping deviations
-in `.brain/docs/labels.md` (owned by `operate-execution`).
+in `.brain/docs/labels.md` (owned by `manage-work-graph`).
 
 ## Public boundary
 
@@ -95,7 +95,7 @@ answered. No public mutation has happened yet.
 ### 5. Apply the outcome
 
 - `ready-for-agent`: post an agent brief (see [agent brief](references/agent-brief.md));
-  promote to a private work item via `operate-execution`.
+  promote to a private work item via `manage-work-graph`.
 - `ready-for-human`: post a brief-style summary and explain why it needs human work.
 - `needs-info`: ask specific reporter questions; summarize what is already established.
 - `wontfix` bug: explain and close.

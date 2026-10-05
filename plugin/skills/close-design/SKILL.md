@@ -9,12 +9,12 @@ A design doc is `active` only while it is the living design authority. Once the 
 dropped, or is replaced, the doc freezes and its durable residue belongs in canon. This skill owns
 that transition.
 
-`operate-execution` reaches this skill when the last open slice under a design-linked epic closes.
+`manage-work-graph` reaches this skill when the last open work item under a design-linked epic closes.
 It is also invoked directly for the sweep and retroactive cases below.
 
 ## Stop before you start
 
-- The initiative is still live — a doc with open slices under its epic is `active` by definition,
+- The initiative is still live — a doc with open work items under its epic is `active` by definition,
   and freezing it strands the work. Only the sweep case below reads a still-`active` doc.
 - You are here to close a bead, not a doc. Closing the epic is the last act of this transition,
   never a way to manage work.
@@ -41,11 +41,11 @@ bd list --spec "design:<slug>" --status open,in_progress,blocked,deferred,closed
 
 `--spec` matches by *prefix*, so a slug that prefixes another slug over-matches (`design:qa-bank`
 also returns `design:qa-bank-variety-pass` items). Filter the result to an exact `spec_id` before
-drawing any conclusion about which slices belong to this doc. `--spec-id` is a `bd create` flag and
+drawing any conclusion about which work items belong to this doc. `--spec-id` is a `bd create` flag and
 is not accepted by `bd list`.
 
 For a sweep, enumerate every doc in `.brain/designs/` with its lifecycle and the state of its epic.
-An `active` doc whose slices are all closed shipped and was never stamped; one whose epic was
+An `active` doc whose work items are all closed shipped and was never stamped; one whose epic was
 dropped is abandoned; one whose design was replaced is superseded, and names its replacement.
 
 Present the classification and confirm before writing anything. A terminal state is a claim about
@@ -81,7 +81,7 @@ Every discovery the initiative produced lands in exactly one place:
 - **`CONTEXT.md`** — a concept the project now names and will keep naming.
 - **`.brain/docs/`** — a maintained "how it works now" description, which the frozen design doc is
   not.
-- **Nowhere** — slice-local facts that die with their beads.
+- **Nowhere** — item-local facts that die with their beads.
 
 Write the ADR ids you created into the doc's `residue:` frontmatter, so provenance survives in both
 directions.

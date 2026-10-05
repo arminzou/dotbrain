@@ -35,7 +35,7 @@ If it does not exist, **stop and ask the operator** before creating one:
 > No dotbrain home on this machine. Do you already have one in git? Give me the remote and I'll
 > clone it. Otherwise I'll create a fresh one.
 
-The home holds every Brainspace — the Brain, the execution graph, the whole private history — and
+The home holds every Brainspace — the Brain, the work graph, the whole private history — and
 it is normally a git repo the operator pushes somewhere. Creating a fresh one on a machine whose
 operator already has a populated one elsewhere leaves them with an empty, diverged home, and they
 usually do not find out until they notice their projects are missing. Nothing on the machine
@@ -100,7 +100,7 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 
 The CLI seeds missing Brain scaffolding and links runtime assets. Agents maintain Brain knowledge
 through the relevant Brain skills: context health through `curate-project-context`, execution
-through `operate-execution`, design through `to-design`, and public intake through
+through `manage-work-graph`, design through `to-design`, and public intake through
 `triage-public`.
 
 ## Wiring contract

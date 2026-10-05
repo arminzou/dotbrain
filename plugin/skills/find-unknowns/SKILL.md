@@ -82,7 +82,7 @@ This skill does not write the Brain. Route each finding to the skill that owns i
 - Durable design gap for an initiative: `to-design` (becomes a `Known Unknowns` entry).
 - Open question needing a human answer: `grill-decisions`.
 - Durable, cross-cutting, expensive-to-reverse decision: an ADR, via `grill-decisions`.
-- Concrete follow-up work: a bead, via `operate-execution`.
+- Concrete follow-up work: a bead, via `manage-work-graph`.
 - If the pass shows the work is actually small and obvious: straight to beads, no design doc.
 
 Completion: every finding has a named next action, and you have recommended the next skill.
