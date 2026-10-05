@@ -102,14 +102,16 @@ everything else unflagged so the agent can flow through the ready frontier.
    every iteration: the gated set changes as items close and new ones are created.
 4. Select the next ready item, skipping learning beads (label `learning`), which are not work:
    - **Human-gated** — stop for sign-off before claiming.
-   - **Autonomous** — claim directly and proceed.
+   - **Autonomous** — proceed. Claim it here only when this session will work it as a team of
+     one; when workers will be dispatched, `execute-workflow` claims under each worker's own actor.
 5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
    implementing. Beads carry execution facts; the design doc carries the design,
    rationale, and file-level scope — do not infer those from the compressed acceptance criteria
    alone.
-6. Hand implementation to `execute-workflow` with the selected item or finite batch. When it
-   returns passing acceptance evidence, apply closure here. Present what was done and confirm
-   before closing, unless the user explicitly asked you to close it. Review beads are the exception: never close one —
+6. Hand implementation to `execute-workflow` with the selected item or finite batch. It applies
+   these closure rules to each item as that item passes, so dependents can be released. For
+   interactive single-item work, present what was done and confirm before closing, unless the user
+   explicitly asked you to close it. Review beads are the exception: never close one —
    record its closeout and leave it for the human (see Review beads below). Work originating from
    an existing public issue may land through its public PR collaboration flow
    ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the

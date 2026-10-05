@@ -21,12 +21,13 @@ Before entering the loop, and after context recovery:
 - Run `bd prime` for the Beads protocol; dotbrain injects none. Skip it only when the operator's own
   Beads hook already supplied it.
 - If the linked bead names the current work, inspect `bd ready --json --quiet`,
-  `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim an unclaimed, ready
-  work bead with `bd update <id> --claim --json --quiet`; do not claim an epic merely because it is linked.
+  `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim a ready work bead
+  yourself only when you will work it as a team of one; otherwise `execute-workflow` claims it under
+  each worker's own actor. Never claim an epic merely because it is linked.
 - Do not start unless the preflight contract is complete and the human has said `GO`.
 
 Objective:
-Implement the smallest coherent checkpoint that advances this design.
+Complete the next bounded execution that advances this design.
 
 Stopping condition:
 Stop when the scoped work satisfies the design doc's Success Criteria, relevant checks pass,

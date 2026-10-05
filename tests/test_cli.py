@@ -304,7 +304,7 @@ def test_skills_link_project_native(
     _asset_checkout(brainspace)
     result = runner.invoke(app, ["skills", "link", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
+    assert not (brainspace / ".claude" / "skills" / "manage-work-graph").exists()
     assert not (brainspace / ".codex" / "skills" / "triage-public").exists()
 
 
@@ -439,7 +439,7 @@ def test_skills_link_project_filter_isolates_one_brainspace(
     _asset_checkout(brainspace)
     result = runner.invoke(app, ["skills", "link", "--scope", "project", "--project", "example"])
     assert result.exit_code == 0, result.output
-    assert not (brainspace / ".claude" / "skills" / "operate-execution").exists()
+    assert not (brainspace / ".claude" / "skills" / "manage-work-graph").exists()
     assert not (other / ".claude" / "skills").exists()                          # others untouched
 
 

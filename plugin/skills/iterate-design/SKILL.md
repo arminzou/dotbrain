@@ -74,8 +74,10 @@ Before planning, read:
 3. `.brain/CONTEXT.md`, if present.
 4. The active design doc.
 5. Linked bead or epic, if present: inspect `bd ready --json --quiet`, `bd human list --json --quiet`,
-   and `bd show <id> --json --quiet`. Claim only an unclaimed, ready work bead with
-   `bd update <id> --claim --json --quiet`; do not claim an epic merely because it is linked.
+   and `bd show <id> --json --quiet`. Claim only when you will work the item yourself as a team of one; when workers will be
+   dispatched, leave the claim to `execute-workflow`'s Dispatch and claim step, which claims under
+   each worker's own actor. Never claim an epic merely because it is
+   linked.
 6. Relevant `.brain/docs/` references or code files only as needed.
 
 ## Controlling instruction document
@@ -89,7 +91,7 @@ If the design doc lacks a `Success Criteria` section, first propose the smallest
 treat it as a human decision gate.
 
 For design/epic scope, repeat the ready-frontier check after closing each scoped implementation bead
-and claim the next ready one. Do not claim the final review bead until every scoped implementation
+and select the next ready one for `execute-workflow`. Do not claim the final review bead until every scoped implementation
 bead has closed; `review-gate` then owns that final record.
 
 ## Loop protocol
