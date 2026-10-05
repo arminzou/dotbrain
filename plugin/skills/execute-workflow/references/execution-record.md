@@ -4,7 +4,8 @@ The execution record is the recoverable state of one work item under `execute-wo
 follows the review-bead pattern: native Beads fields own status, assignee, dependencies,
 acceptance, and specification links; a small `dotbrain` metadata object holds the item's
 queryable current state; headed append-only comments are its evidence history; notes hold
-rationale and a resume summary. Only the lead writes it.
+rationale and a resume summary. Only the lead writes the `dotbrain` object and the lead's
+comment headers; a worker writes only its own claim and its `Attempt` and `Claim moved` comments.
 
 ## The `dotbrain` object
 

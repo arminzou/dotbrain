@@ -25,8 +25,8 @@ context is absent, implement against the code on its own and move on.
 Stay inside the scope you were handed. Change only what the task needs and what
 that change forces; do not refactor adjacent code, add features, or harden
 beyond the request. If you discover the work is larger than a small change,
-stop, leave the tree clean, and report that it should become its own work item for a worker in a worktree
-or its own beads issue instead of finishing it half-scoped.
+stop, leave the tree clean, and report that it should become its own work item, done by a worker in a
+worktree, instead of finishing it half-scoped.
 
 Verify before reporting. Run the change's natural check and report the real
 result. That check is your own smoke test, not acceptance evidence: it does not

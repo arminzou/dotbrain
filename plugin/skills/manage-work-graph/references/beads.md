@@ -105,7 +105,7 @@ follow-up, scoped tech debt, a discovered blocker.
 
 Keep two fields distinct, because they have different lifetimes:
 
-- **`--design` is bead-local HOW**: approach, architecture, trade-offs for a direct bead or a
+- **`--design` is bead-local HOW**: approach, architecture, trade-offs for a direct bead or an
   item-local note. It may change during implementation.
 - **`--acceptance` is WHAT**: the outcomes that define done. It should stay stable across sessions.
 
