@@ -108,8 +108,8 @@ decision. When the build reveals something the design did not expect, the discov
 into the design and the affected issues, so the next session sees it.
 
 **Or hand it off.** For an unattended run against an active design, `iterate-design` drives the agent's loop mode with
-a mechanical verifier and a hard stop. It runs on a dedicated branch and stops at a draft pull
-request; merging stays with you.
+a mechanical verifier and a hard stop. It runs on a dedicated branch and stops at a pull request
+ready for your review; merging stays with you.
 
 ## 6. Review
 

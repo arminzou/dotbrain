@@ -94,8 +94,9 @@ drives it:
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
 - An explicit automation-handoff contract — scope, branch/base, verification plan, review mode,
-  available provider/auth, draft-PR authorization, and an explicit `GO` — authorizes only the
-  agreed push of its dedicated branch and creation of a draft PR. Merge, deploy, publish,
+  available provider/auth, PR authorization, and an explicit `GO` — authorizes only the agreed
+  push of its dedicated branch, a ready-for-review PR, and a request for the human's review.
+  Merge, deploy, publish,
   dependency changes, and every other outward action end the loop and go to the human.
 - A review gate is human-owned at close: an agent records the review's closeout and leaves the bead
   open, never closing its own review. Closing is the human's, or `close-design`'s terminal transition.

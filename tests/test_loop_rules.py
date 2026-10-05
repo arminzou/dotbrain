@@ -17,7 +17,8 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "hard stop" in doc
     assert "report blocked with the attempt trail" in doc
     assert "end the loop and go to the human" in doc
-    assert "draft-PR authorization" in doc
+    assert "PR authorization" in doc
+    assert "ready-for-review PR" in doc
     assert "explicit `GO`" in doc
     assert "review gate is human-owned at close" in doc
     assert "never closing its own review" in doc

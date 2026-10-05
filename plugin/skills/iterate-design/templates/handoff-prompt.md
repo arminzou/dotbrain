@@ -12,7 +12,7 @@ Preflight contract (confirmed by explicit `GO`):
 - Writing-worker cap: <2 unless stated>
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
   the review surface, review mode: <code | simplify | readiness>
-- Delivery: draft PR authorized; provider/auth available: <yes>
+- Delivery: ready-for-review PR authorized, human review requested; provider/auth available: <yes>
 
 Treat the active design doc as the controlling instruction document for this loop.
 
@@ -32,7 +32,7 @@ Complete the next bounded execution that advances this design.
 Stopping condition:
 Stop when the scoped work satisfies the design doc's Success Criteria, relevant checks pass,
 design-relevant discoveries are reflected into the active design doc, final review has no blocking
-findings, and the agreed draft PR exists.
+findings, and the agreed ready-for-review PR exists with the human's review requested.
 
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
@@ -53,7 +53,8 @@ Loop protocol (every iteration, not just the first):
 8. After the in-loop gate passes, run the selected `review-gate` mode. It supplements the `verifier`
    role, never replaces it.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
-10. Before calling FINAL: push only the dedicated branch and create the authorized draft PR. Record
+10. Before calling FINAL: push only the dedicated branch, open the authorized PR ready for review,
+    and request the human's review. Record
     its URL and verification on the review bead, add `human`, and leave that bead open. Never merge,
     deploy, publish, change dependencies, or alter human-owned criteria.
 
@@ -75,5 +76,5 @@ Rules:
   unmeetable, report BLOCKED instead.
 - Never iterate past 3 consecutive failed verify cycles on the same checkpoint.
 - Stop BLOCKED after two cycles with no code change, verification evidence, or resolved scope.
-- `GO` authorizes only the agreed draft PR; human review, merge, and every other outward action stay
-  human-owned.
+- `GO` authorizes only the agreed ready-for-review PR and the review request; human review, merge,
+  and every other outward action stay human-owned.

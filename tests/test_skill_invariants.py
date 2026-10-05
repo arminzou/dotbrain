@@ -56,15 +56,16 @@ def test_private_identifiers_never_reach_a_public_pr():
     assert not re.search(r"`\.brain/` paths, ADR numbers", loop), "second copy will drift"
 
 
-def test_automation_handoff_authorizes_only_an_explicit_draft_pr():
-    """A draft PR is safe only when the human supplied the bounded handoff contract."""
+def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
+    """Opening a PR is safe only under the human's bounded handoff contract; merging stays theirs."""
     convention = _text(CONVENTION)
     loop = _text(SKILLS / "iterate-design/SKILL.md")
 
     assert "explicit `GO`" in convention
-    assert "draft-PR authorization" in convention
+    assert "PR authorization" in convention
+    assert "ready-for-review PR" in convention
     assert "Preflight contract" in loop
-    assert "draft PR" in loop
+    assert "ready-for-review PR" in loop
     assert "does not authorize merge, deploy, publish, dependency changes" in loop
 
 
