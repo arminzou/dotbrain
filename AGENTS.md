@@ -28,10 +28,11 @@ If you are an agent working in this repo, treat it as a normal public codebase: 
 ## Layout
 
 - `src/dotbrain/` — the Python CLI (`wire`, `unwire`, `bootstrap`, `refresh`, `skills link`, …).
-- `plugin/skills/` — bundled product skills and the shared convention.
+- `plugin/` — the runtime plugin: bundled product skills, including the convention skill
+  (`skills/`), and the session-start hook registration (`hooks/`), which calls
+  `dotbrain hook session-start` (implemented in `src/dotbrain/hooks.py`).
 - `src/dotbrain/resources/` — packaged runtime assets:
   - `templates/brain/` — Brain scaffold seeded into a new Brainspace.
-  - `scripts/` — hook implementations invoked through `dotbrain hook ...`.
   - `config.yaml` — shipped example config; seeded into data root by bootstrap.
 - `tests/` — the CLI test suite (`uv run pytest`).
 - `docs/architecture.md` — the design narrative.
@@ -40,7 +41,7 @@ If you are an agent working in this repo, treat it as a normal public codebase: 
 
 ```bash
 ./scripts/dev-install.sh  # installs uv, Beads (bd), and an editable dotbrain CLI
-dotbrain bootstrap        # install agent hooks and link global skills
+dotbrain bootstrap        # seed the data root and link global skills and subagents
 dotbrain wire --repo <repo> # connect a code repo to a Brainspace under your data root
 ```
 
@@ -67,7 +68,7 @@ For the product model (Brainspaces, the Brain/execution split, the public/privat
 [docs/architecture.md](docs/architecture.md). For the *code*, the shape is a strict dependency
 layering under `src/dotbrain/`:
 
-- **`paths.py`** — the pure foundation. Encodes the wiring contracts (the four `BRAINSPACE_LINKS`,
+- **`paths.py`** — the pure foundation. Encodes the wiring contracts (the two `BRAINSPACE_LINKS`,
   exclude entries, the adopter pointer, data-root resolution) as side-effect-free functions. No
   filesystem mutation here; everything else builds on it and depends *into* it, never the reverse.
 - **Concept modules**, each owning one concept and depending only on `paths` (and sometimes
@@ -84,7 +85,7 @@ layering under `src/dotbrain/`:
 - **`cli.py`** — a thin Typer parsing/rendering layer over `workflows` and the modules. Keep logic
   out of here.
 - **`resource_loader.py`** — the only accessor for packaged `dotbrain.resources` (agents,
-  templates, scripts) via `importlib.resources`.
+  templates, the site engine, shipped config) via `importlib.resources`.
 
 Two patterns to know before changing anything:
 
