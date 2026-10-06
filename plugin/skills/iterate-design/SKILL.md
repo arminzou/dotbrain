@@ -48,12 +48,13 @@ Before changing code, present this contract and wait for the human's explicit `G
   the review surface; and the selected final `review-gate` mode (`code` by default; `simplify` or
   `readiness` only when named).
 - **Workers:** the writing-worker cap for each bounded execution (2 by default).
-- **Delivery:** draft-PR authorization, plus the available provider and authenticated account.
+- **Delivery:** PR authorization, plus the available provider and authenticated account. The PR
+  opens ready for review, with the human as the requested reviewer.
 
-`GO` authorizes implementation, the agreed verification, pushing the dedicated branch, and creating
-the draft PR. It does not authorize merge, deploy, publish, dependency changes, or changing scope,
-acceptance, or success criteria. Missing provider/auth or an unconfirmed contract is a stop before
-the loop starts.
+`GO` authorizes implementation, the agreed verification, pushing the dedicated branch, opening the
+ready-for-review PR, and requesting the human's review. It does not authorize merge, deploy,
+publish, dependency changes, or changing scope, acceptance, or success criteria. Missing
+provider/auth or an unconfirmed contract is a stop before the loop starts.
 
 ## Worktree preparation
 
@@ -120,13 +121,15 @@ Use this protocol throughout the handoff:
    mechanical pass/fail check is two optimists agreeing.
 6. DECIDE:
    - Print `FINAL` only when the scoped work satisfies acceptance, the in-loop gate and final review
-     have evidence, and the agreed draft PR exists. Create or update the review bead with the PR
-     URL and verification, add its `human` label, and leave it open for the human gate.
+     have evidence, and the agreed ready-for-review PR exists with the human's review requested.
+     Create or update the review bead with the PR URL and verification, add its `human` label, and
+     leave it open for the human gate.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
      landing path was fixed at handoff — it stays on the branch even if a mid-loop
      human-in-the-loop moment pulls the human in along the way.
-   - The explicit preflight `GO` authorizes only pushing the dedicated branch and creating the
-     draft PR. Merge and every other outward action remain human-owned.
+   - The explicit preflight `GO` authorizes only pushing the dedicated branch, opening the
+     ready-for-review PR, and requesting the human's review. Merge and every other outward action
+     remain human-owned.
    - Print `BLOCKED` and ask the user when scope, safety, or design ambiguity prevents progress.
    - Print `BLOCKED` with the attempt trail after 3 consecutive failed VERIFY cycles on the same
      checkpoint. Do not keep iterating past the cap.
@@ -176,5 +179,5 @@ Finish with the scoped work complete or clearly blocked, verification evidence o
 verification gap, design-relevant learning reflected into the active design doc, and bead state
 updated only for execution facts when a bead is linked. An open linked bead records what is done,
 next, and any open question before handoff. A successful automation handoff ends with the agreed
-draft PR and an open `human`-labeled review bead; the PR body carries the audience-safe
-`Verification` section described in `manage-work-graph`.
+ready-for-review PR, the human's review requested, and an open `human`-labeled review bead; the
+PR body carries the audience-safe `Verification` section described in `manage-work-graph`.

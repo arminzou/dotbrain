@@ -104,7 +104,7 @@ fixed, not when the verdict is GO, not when every acceptance criterion is met. R
 is the agent's terminal act; closing is the human's.
 
 An open review bead therefore means its **review gate is incomplete**, in one of these senses:
-review in progress, remediation in progress, a clean agent verdict awaiting a human, or a draft PR
+review in progress, remediation in progress, a clean agent verdict awaiting a human, or a PR
 awaiting approval or merge.
 
 - **Agent at closeout** — once every finding is fixed, filed as its own bead, or consciously
