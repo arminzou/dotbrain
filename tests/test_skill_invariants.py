@@ -182,3 +182,26 @@ def test_item_review_order_and_record():
         "diff fingerprint",
     ):
         assert rule in record
+
+
+def test_worker_keeps_claim_through_fix_rounds_and_closure():
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    for rule in (
+        "A writing worker keeps its claim until the item closes",
+        "under its own actor while the worker remains assignee",
+        "`SendMessage` to the stopped worker's agent ID",
+        "The lead sets `dotbrain_phase` to `working`",
+        "The resumed worker does not touch its claim",
+        "a delegated sequential worker is resumed like a parallel worker",
+        "Move a claim only for a replacement after the previous worker is confirmed stopped",
+    ):
+        assert rule in owner
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    assert "@ <base> (fix round <n>)" in record
+    assert "a fix round changes phase and history, not the claim" in record
+    for path in SKILLS.rglob("*.md"):
+        text = _text(path).lower()
+        assert not re.search(
+            r"handback|hand(?:ed|s|ing)? (?:its |the )?claim back|claim handed back",
+            text,
+        ), path

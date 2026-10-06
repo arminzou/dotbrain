@@ -8,6 +8,9 @@ rationale and a resume summary. Only the lead writes the `dotbrain_` keys and th
 headers; a writing worker writes only its own claim and its `Attempt` and `Claim moved` comments.
 An item reviewer writes its own `Review` comments under its own Beads actor; the lead never
 transcribes its verdict or findings. Item review is recorded on the work item, never a review bead.
+The worker remains assignee until closure. The lead writes metadata and closes under its own
+actor; a fix round changes phase and history, not the claim. `Claim moved` records only replacement
+of a worker confirmed stopped.
 
 ## The `dotbrain_` keys
 
@@ -65,6 +68,7 @@ full logs into metadata.
 
 ```text
 ## Dispatched: <worker actor> in <checkout> on <branch> @ <base>
+## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)
 ## Attempt <n>: PASS | FAIL @ <revision>
 ## Candidate @ <revision>
 ## Review <n>: APPROVE | CHANGES @ <revision>
