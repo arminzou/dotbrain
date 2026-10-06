@@ -240,3 +240,38 @@ def test_review_closure_requires_a_human_decision():
     assert "disposition does not replace the human close" in gate
     graph = _text(SKILLS / "manage-work-graph/SKILL.md")
     assert "including the observed human merge exception for code review" in graph
+
+
+@pytest.mark.parametrize("path", [
+    "review-gate/SKILL.md",
+    "iterate-design/SKILL.md",
+    "iterate-design/templates/handoff-prompt.md",
+])
+def test_final_review_keeps_branch_boundary_and_optional_passes(path):
+    text = _text(SKILLS / path).replace("`", "")
+    for rule in (
+        "more than one work item",
+        "against its base",
+        "fresh reviewer that ran none of the item reviews",
+        "do not reopen approved item findings" if path != "review-gate/SKILL.md"
+        else "does not reopen approved item findings",
+        "single-item branch skips",
+        "readiness only when the handoff contract names it",
+        "separate review bead under the epic",
+        "non-blocking simplification suggestions",
+        "no finding details",
+        "skip with a note",
+    ):
+        assert rule.lower() in text.lower()
+    assert "never apply" in text.lower() and "findings in-loop" in text
+    assert re.search(r"never blocks? the PR or (?:`)?FINAL", text, re.I)
+
+
+def test_final_review_does_not_turn_simplify_into_a_gate():
+    gate = _text(SKILLS / "review-gate/SKILL.md")
+    assert "The HITL workflow runs simplify only when requested" in gate
+    assert "including when a single-item branch skips final code review" in gate
+    loop = _text(SKILLS / "iterate-design/SKILL.md")
+    assert "required code review is `APPROVE`" in loop
+    assert "any named readiness review is `READY`" in loop
+    assert "A skipped or findings-bearing simplify pass does not prevent `FINAL`" in loop

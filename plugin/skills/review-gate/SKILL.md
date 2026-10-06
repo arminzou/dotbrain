@@ -23,9 +23,27 @@ code review into readiness review, or report simplification findings as defects.
 A review is judgment and runs in an independent reviewer agent: one that authored none of the
 reviewed changes. It may belong to the same agent team and use the same model. The lead arranges
 the review but cannot be the independent gate for changes it authored; when no such agent is
-available, the gate is blocked, not skipped. The `reviewer`
+available for required code or readiness review, the gate is blocked, not skipped. The `reviewer`
 produces findings; the `verifier` runs the mechanical gate and returns the evidence the record
-cites. The reviewer supplements the gate, never replaces it.
+cites. The reviewer supplements the gate, never replaces it. An unavailable `simplify` engine
+is skipped with a note; that optional pass does not block delivery.
+
+## Final branch review
+
+Before it is offered for merge in either workflow, a branch carrying more than one work item requires a final `code` review
+of the whole branch diff against its base. Use a fresh reviewer that ran none of the item
+reviews. It checks interactions between items, consistency, and conformance to the active
+design doc; it does not reopen approved item findings. Record the design-level review bead.
+A single-item branch skips this final code review because its item review covered the diff.
+Run `readiness` only when the handoff contract names it; it does not replace code review.
+
+After the integrated gate passes, the handoff workflow also runs `simplify` beside the final
+code review, including when a single-item branch skips final code review. The HITL workflow
+runs simplify only when requested. Its findings go to a separate review bead under the epic
+when one exists, never the code-review bead. It never blocks the PR or `FINAL`; never apply
+its findings in-loop. When the simplify engine is unavailable, skip with a note.
+The PR body carries one line: "N non-blocking simplification suggestions", with no finding
+details. If skipped, use a one-line skip note instead of claiming that the pass found nothing.
 
 ## Run the gate
 
