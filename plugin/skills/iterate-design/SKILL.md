@@ -48,6 +48,8 @@ Before changing code, present this contract and wait for the human's explicit `G
   the review surface; final whole-branch `code` review for a multi-item branch, plus the default
   non-blocking `simplify` pass; `readiness` only when the handoff contract names it.
 - **Workers:** the writing-worker cap for each bounded execution (2 by default).
+- **Human gates:** every human-gated item in the proposed scope. A handoff that includes one can
+  only end `BLOCKED`, so the human sees that before `GO`.
 - **Delivery:** PR authorization, plus the available provider and authenticated account. The PR
   opens ready for review, with the human as the requested reviewer.
 
@@ -128,10 +130,11 @@ Use this protocol throughout the handoff:
    The PR body adds one line: "N non-blocking simplification suggestions", with no finding
    details, or a one-line skip note. Review supplements the verifier, never replaces it.
 6. DECIDE:
-   - Print `FINAL` only when the scoped work satisfies acceptance, the in-loop gate and final review
-     have evidence, required code review is `APPROVE`, any named readiness review is `READY`,
-     and the agreed ready-for-review PR exists with the human's review requested. A skipped or
-     findings-bearing simplify pass does not prevent `FINAL`.
+   - Print `FINAL` only when every scoped item is closed and none is blocked, the scoped work
+     satisfies acceptance, the in-loop gate and final review have evidence, required code review
+     is `APPROVE`, any named readiness review is `READY`, and the agreed ready-for-review PR exists
+     with the human's review requested. A skipped or findings-bearing simplify pass does not
+     prevent `FINAL`.
      Record the PR URL and verification on the design-level code review bead, add its `human`
      label, and leave it open for the human gate. A single-item branch has no such bead: record
      them on its work item instead.
@@ -141,14 +144,15 @@ Use this protocol throughout the handoff:
    - The explicit preflight `GO` authorizes only pushing the dedicated branch, opening the
      ready-for-review PR, and requesting the human's review. Merge and every other outward action
      remain human-owned.
-   - Print `BLOCKED` and ask the user when scope, safety, or design ambiguity prevents progress.
-   - Print `BLOCKED` with the attempt trail after 3 consecutive failed VERIFY cycles on the same
-     checkpoint. Do not keep iterating past the cap.
+   - Apply the two stop scopes in Stop scopes below: item-level retry exhaustion or a human gate
+     blocks that item and its dependents, not independent work. Print `BLOCKED` immediately for a
+     whole-handoff condition, or when no unblocked work remains. Do not retry a blocked item without human
+     authorization; preserve its attempt trail.
    - Print `BLOCKED` after two cycles without a code change, new verification evidence, or resolved
      scope; report the stalled question rather than spending more turns.
    - Otherwise print `ITERATING` and fix the weakest failing point next.
 
-Two hard guards:
+Hard guards:
 
 - The verifier is not yours to change. Never edit `Success Criteria` in the design
   doc or acceptance criteria on the linked bead from inside the loop. If the criteria are wrong,
@@ -157,6 +161,20 @@ Two hard guards:
   it breaks or drains the budget.
 - The no-progress cap is also a stop condition. A repeated plan or inconclusive check is a question
   for the human, not forward motion.
+
+## Stop scopes
+
+The whole handoff ends at `FINAL`, or `BLOCKED` for wrong or unmeetable criteria; unresolvable
+scope, safety, or design ambiguity; two cycles without a code change, new verification evidence,
+or resolved scope; an action outside `GO`; a missing required capability or a PR that cannot be
+opened; a failure that compromises shared state; or cancellation.
+
+An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
+`CHANGES`, or a human gate. Only that item and its dependents stop; independent items continue.
+End the handoff `BLOCKED` once no unblocked work remains. Report every blocked item with its
+attempt trail and a recommended decision, including waiting dependents. Never mark a PR ready
+while any scoped item is blocked. Keep blocked items in the fixed scope; do not drop them to
+claim success. The HITL workflow instead pauses new dispatch and integration and asks the human.
 
 ## Building blocks
 

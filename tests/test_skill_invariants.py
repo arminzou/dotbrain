@@ -307,3 +307,76 @@ def test_final_review_does_not_turn_simplify_into_a_gate():
     assert "required code review is `APPROVE`" in loop
     assert "any named readiness review is `READY`" in loop
     assert "A skipped or findings-bearing simplify pass does not prevent `FINAL`" in loop
+
+
+WHOLE_HANDOFF_STOPS = (
+    "wrong or unmeetable criteria",
+    "unresolvable scope, safety, or design ambiguity",
+    "two cycles without a code change, new verification evidence, or resolved scope",
+    "an action outside GO",
+    "a missing required capability or a PR that cannot be opened",
+    "a failure that compromises shared state",
+    "cancellation",
+)
+HITL_PAUSE = "the hitl workflow instead pauses new dispatch and integration and asks the human"
+
+
+@pytest.mark.parametrize("path", [
+    "run-execution/SKILL.md",
+    "iterate-design/SKILL.md",
+    "iterate-design/templates/handoff-prompt.md",
+])
+def test_item_blocks_leave_independent_work_running(path):
+    """An item failure must not idle siblings or disappear from the delivery scope."""
+    text = _text(SKILLS / path).replace("`", "").lower()
+    for rule in (
+        "3 consecutive failed checks on one checkpoint",
+        "3 consecutive item-review changes",
+        "or a human gate",
+        "only that item and its dependents stop; independent items continue",
+        "attempt trail and a recommended decision",
+        "including waiting dependents",
+        "keep blocked items in the fixed scope; do not drop them to claim success",
+    ):
+        assert rule in text, (path, rule)
+
+
+@pytest.mark.parametrize("path", [
+    "iterate-design/SKILL.md",
+    "iterate-design/templates/handoff-prompt.md",
+])
+def test_handoff_owns_whole_handoff_stops_and_the_delivery_gate(path):
+    text = _text(SKILLS / path).replace("`", "")
+    for rule in WHOLE_HANDOFF_STOPS + (
+        "BLOCKED once no unblocked work remains",
+        "Never mark a PR ready while any scoped item is blocked",
+    ):
+        assert rule in text, (path, rule)
+
+
+def test_run_execution_leaves_whole_handoff_stops_to_iterate_design():
+    """A third copy of the outer loop's limits drifts, and run-execution has no loop cycles."""
+    owner = _text(SKILLS / "run-execution/SKILL.md").replace("`", "")
+    assert "The conditions that end the whole handoff, and when a PR may be marked ready, belong to iterate-design" in owner
+    for rule in WHOLE_HANDOFF_STOPS[2:4]:
+        assert rule not in owner
+    assert HITL_PAUSE in owner.lower()
+    assert HITL_PAUSE in _text(SKILLS / "iterate-design/SKILL.md").lower()
+    assert "HITL" not in _text(SKILLS / "iterate-design/templates/handoff-prompt.md")
+
+
+def test_stop_scopes_do_not_swallow_the_loop_protocol():
+    loop = (SKILLS / "iterate-design/SKILL.md").read_text(encoding="utf-8")
+    protocol = loop.index("## Loop protocol")
+    assert protocol < loop.index("1. PLAN:") < loop.index("## Stop scopes")
+    assert "### Stop scopes" not in loop
+
+
+@pytest.mark.parametrize("path", [
+    "iterate-design/SKILL.md",
+    "iterate-design/templates/handoff-prompt.md",
+])
+def test_preflight_names_human_gated_items(path):
+    """A gated item in scope means the handoff can only end BLOCKED; the human sees it before GO."""
+    text = _text(SKILLS / path).replace("`", "")
+    assert re.search(r"[Hh]uman[- ]gate[ds]?.*can only end BLOCKED", text), path

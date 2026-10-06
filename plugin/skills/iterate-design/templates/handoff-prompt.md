@@ -10,6 +10,7 @@ Preflight contract (confirmed by explicit `GO`):
 - Scope: <one work bead | every implementation bead under this design/epic>
 - Dedicated branch and base: <branch / base>
 - Writing-worker cap: <2 unless stated>
+- Human-gated items in scope: <none | ids; with any, the handoff can only end BLOCKED>
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
   the review surface, final whole-branch code review for multi-item branches, default non-blocking
   simplify pass, readiness: <only if named in this contract>
@@ -31,11 +32,23 @@ Objective:
 Complete the next bounded execution that advances this design.
 
 Stopping condition:
-Stop when the scoped work satisfies the design doc's Success Criteria, relevant checks pass,
-design-relevant discoveries are reflected into the active design doc, final review has no blocking
-findings (required code review APPROVE, named readiness review READY), and the agreed
-ready-for-review PR exists with the human's review requested. Simplify findings or a missing
-simplify engine never block FINAL.
+Stop successfully only when every scoped item is closed and none is blocked, the scoped work
+satisfies the design doc's Success Criteria, relevant checks pass, design-relevant discoveries
+are reflected into the active design doc, final review has no blocking findings (required code
+review APPROVE, named readiness review READY), and the agreed ready-for-review PR exists with
+the human's review requested. Simplify findings or a missing simplify engine never block FINAL.
+
+Stop scopes:
+- The whole handoff ends BLOCKED for wrong or unmeetable criteria; unresolvable scope, safety,
+  or design ambiguity; two cycles without a code change, new verification evidence, or resolved
+  scope; an action outside GO; a missing required capability or a PR that cannot be opened;
+  a failure that compromises shared state; or cancellation.
+- An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
+  CHANGES, or a human gate. Only that item and its dependents stop; independent items continue.
+  End the handoff BLOCKED once no unblocked work remains. Report every blocked item with its
+  attempt trail and a recommended decision, including waiting dependents. Never mark a PR ready
+  while any scoped item is blocked. Keep blocked items in the fixed scope; do not drop them to
+  claim success.
 
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
@@ -47,8 +60,10 @@ Loop protocol (every iteration, not just the first):
    the execution record, and the active design doc.
 5. The agent that made a change runs its checkpoint's narrow check; never spawn an agent just to
    check a checkpoint. Run the once-only in-loop Success Criteria gate before final review.
-6. If the verifier fails, make the smallest targeted fix and retry. After 3 consecutive failed
-   verify cycles on the same checkpoint, stop and report BLOCKED with the attempt trail.
+6. If an item check fails, make the smallest targeted fix within its retry limit. After 3
+   consecutive failed checks on one checkpoint or 3 consecutive item-review CHANGES, block
+   that item and its dependents and continue independent work. Do not retry the blocked item
+   without human authorization. A failure compromising shared state ends the whole handoff.
 7. If design-relevant learning appears, update Known Unknowns, Implementation Notes, Deviations, or
    Human Decisions Needed in the active design doc.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
@@ -87,7 +102,8 @@ Rules:
 - Do not call FINAL without `verifier` evidence from the in-loop gate.
 - Never edit Success Criteria or bead acceptance criteria; if they are wrong or
   unmeetable, report BLOCKED instead.
-- Never iterate past 3 consecutive failed verify cycles on the same checkpoint.
+- Never retry an item past 3 consecutive failed checks on the same checkpoint; block the item
+  and continue independent work. A failure compromising shared state ends the whole handoff.
 - Stop BLOCKED after two cycles with no code change, verification evidence, or resolved scope.
 - `GO` authorizes only the agreed ready-for-review PR and the review request; human review, merge,
   and every other outward action stay human-owned.
