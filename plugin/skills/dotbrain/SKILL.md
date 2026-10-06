@@ -98,8 +98,11 @@ drives it:
   push of its dedicated branch, a ready-for-review PR, and a request for the human's review.
   Merge, deploy, publish,
   dependency changes, and every other outward action end the loop and go to the human.
-- A review gate is human-owned at close: an agent records the review's closeout and leaves the bead
-  open, never closing its own review. Closing is the human's, or `close-design`'s terminal transition.
+- A review gate is human-owned at close: a clean agent verdict does not close it. Closing is the
+  human's, or `close-design`'s terminal transition. The lead may close a `code` review bead after
+  observing the human's merge of its recorded PR, citing that PR and merge commit. A PR closed
+  unmerged leaves it open. A `simplify` bead does not close on merge and waits for every finding's
+  disposition. Detailed closing rules live in `manage-work-graph/references/review-beads.md`.
 - Automation-handoff / agent-driven loop work runs on a dedicated branch, never directly on
   `main`; manual turn-by-turn work needs no branch — it is reviewed as it happens.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says

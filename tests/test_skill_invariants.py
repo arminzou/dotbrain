@@ -205,3 +205,38 @@ def test_worker_keeps_claim_through_fix_rounds_and_closure():
             r"handback|hand(?:ed|s|ing)? (?:its |the )?claim back|claim handed back",
             text,
         ), path
+
+
+def test_review_modes_keep_distinct_verdicts_and_metadata():
+    record = _text(SKILLS / "manage-work-graph/references/review-beads.md")
+    for row in (
+        "| `code` | `APPROVE` or `CHANGES` | `approve`, `changes` |",
+        "| `readiness` | `READY` or `NOT-READY` | `ready`, `not-ready` |",
+        "| `simplify` | Findings only, never blocking | none |",
+    ):
+        assert row in record
+    assert "A simplify pass records findings without a `## Verdict:` comment or `verdict` metadata" in record
+    assert "Verdict metadata alone does not distinguish the shapes" in record
+    assert "A bare `GO` means only the human's handoff authorization" in _text(SKILLS / "review-gate/SKILL.md")
+    for path in (SKILLS / "review-gate/SKILL.md", SKILLS / "review-gate/references/readiness.md",
+                 SKILLS / "manage-work-graph/references/review-beads.md"):
+        assert not re.search(r"NO-GO|no-go|request changes|verdict=go", _text(path)), path
+
+
+def test_review_closure_requires_a_human_decision():
+    record = _text(SKILLS / "manage-work-graph/references/review-beads.md")
+    for guard in (
+        "never closes it on its own judgment",
+        "the lead may close a `code` review bead after observing the human's merge of the PR recorded on that bead",
+        "Cite that PR and its merge commit in the closeout",
+        "A PR closed unmerged leaves the bead open",
+        "Approval alone is not merge evidence",
+        "A `readiness` bead has no merge-based exception",
+        "A `simplify` bead does not close on merge",
+        "until every finding is applied, filed as its own item, or declined",
+    ):
+        assert guard in record
+    gate = _text(SKILLS / "review-gate/SKILL.md")
+    assert "disposition does not replace the human close" in gate
+    graph = _text(SKILLS / "manage-work-graph/SKILL.md")
+    assert "including the observed human merge exception for code review" in graph
