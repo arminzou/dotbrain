@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
 SKILLS = Path("plugin/skills")
 CONVENTION = Path("src/dotbrain/resources/templates/brain/DOTBRAIN.md")
 
@@ -103,7 +104,7 @@ def test_lead_is_the_single_writer_during_delegated_execution():
     edit the design doc, concurrent writers silently overwrite each other's shared state."""
     owner = _text(SKILLS / "run-execution/SKILL.md")
     assert "the lead is the only agent that edits the active design doc" in owner
-    assert "A worker writes only its own claim" in owner
+    assert "A writing worker writes only its own claim" in owner
     graph = _text(SKILLS / "manage-work-graph/SKILL.md")
     assert "the lead is the only agent that changes the work graph" in graph
     assert "only the lead changes the work graph" in _text(CONVENTION)
@@ -140,3 +141,44 @@ def test_iterate_design_runs_executions_through_run_execution():
     loop = _text(SKILLS / "iterate-design/SKILL.md")
     assert "through `run-execution`" in loop
     assert "the only agent that edits the active design doc" in loop
+
+
+@pytest.mark.parametrize("rule", [
+    "Every work item's behavior change gets an independent `code` item review",
+    "Behavior includes code, tests, build or CI config, and instructions agents execute",
+    "Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt",
+    "## Review skipped: <reason>",
+    "prompt includes the diffstat, the behavior changed, and the lead's recommendation",
+    "Keep the item open until the human answers",
+    "## Review skipped: declined by human — <reason>",
+    "Standing answers hold until the human changes them",
+    "The handoff workflow never asks",
+    "The lead never reviews changes it authored",
+    "An item review never gets a review bead",
+    "Return `CHANGES` only for an unmet acceptance criterion or a `blocker` or `high` finding in the item's own diff",
+    "Return `APPROVE` with `medium` or `low` findings and findings outside the diff",
+    "The same reviewer re-reviews its earlier findings and the fix diff",
+    "Three consecutive `CHANGES` block the item",
+    "A conflict rebase does not count toward the `CHANGES` cap",
+    "Any behavior diff after the last `APPROVE`",
+    "No item closes with an unreviewed behavior change",
+])
+def test_item_review_preserves_its_guards(rule):
+    """A missing guard permits unreviewed closure or unbounded review-fix rounds."""
+    assert rule in _text(SKILLS / "run-execution/SKILL.md")
+
+
+def test_item_review_order_and_record():
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    assert "Parallel order: work and passing worker checks, candidate, item review and fix loop, integrate, integrated check, close as `verified`, clean up, release dependents" in owner
+    assert "Sequential order: work, checks, item review and fix loop, close" in owner
+    assert "Each `CHANGES` is a failed check on the `item-review` checkpoint in `dotbrain_attempts`" in owner
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    for rule in (
+        "## Review <n>: APPROVE | CHANGES @ <revision>",
+        "## Review skipped: <reason>",
+        "--actor <reviewer-actor>",
+        "consecutive `CHANGES` verdicts with limit 3; `APPROVE` resets the streak",
+        "diff fingerprint",
+    ):
+        assert rule in record
