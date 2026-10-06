@@ -37,19 +37,26 @@ cites. The reviewer supplements the gate, never replaces it.
    mechanical gate), not unlocated impressions.
 3. Create or resume the review bead in the shape required by the shared contract. A readiness gate
    creates its multi-pass bead before pass 1; an epic-level gate is parented to its epic and depends
-   on every scoped implementation bead. Record selected modes in the description and every pass in
+   on every scoped implementation bead. Record the selected mode in the description and every pass in
    the append-only record.
-4. Issue a direct verdict. `GO` means the agent review found no blocking reason to stop; it does not
-   merge, release, or erase the human gate. Record findings, evidence, and any uncovered area.
+4. Record the mode's result: `code` returns `APPROVE | CHANGES`, `readiness` returns
+   `READY | NOT-READY`, and `simplify` reports findings only, with no verdict. Write matching
+   verdict metadata as the shared contract specifies. A bare `GO` means only the human's
+   handoff authorization. No review result authorizes merge or release. Record findings,
+   evidence, and any uncovered area.
 
-A review bead is human-gated by definition: never close it, however clean the result. Once every
+A review bead is human-gated by definition: a clean agent result does not close it. Once every
 finding has a disposition, record the closeout, append the PR URL and verification summary when one
 exists, add the `human` label, and leave the bead open with a one-line close recommendation. It
 stays open until the human closes it or `close-design` discharges it with the design's terminal
-transition — see the shared contract's closing rules.
+transition. The lead may also close a `code` review bead after observing the human's merge of
+the PR recorded on that bead, citing the PR and merge commit. A PR closed unmerged leaves the
+bead open. A `simplify` bead does not close on merge and stays open until every finding is
+applied, filed as its own item, or declined; disposition does not replace the human close.
+See the shared contract's closing rules.
 
 ## Completion
 
-Report the mode, exact target, verdict, evidence, findings or clean result, and the review bead id.
+Report the mode, exact target, verdict when applicable, evidence, findings or clean result, and the review bead id.
 Make the boundary explicit: `code` covers correctness/scope, `simplify` covers unnecessary
 complexity, and `readiness` covers a subsystem against its written oracle.

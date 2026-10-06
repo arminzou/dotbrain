@@ -3,11 +3,28 @@
 How to persist any code review's findings as a bead and operate that bead afterward, whatever
 skill, tool, or ad hoc process produced them. A review's own methodology — what it checks, how
 rigorously, its finding vocabulary — stays owned by that review. This reference only covers turning
-its output into a bead and tracking remediation; it applies uniformly to every review, named skill
-or not. `review-gate` selects the review mode; this file owns its shared record.
+its output into a bead and tracking remediation. `review-gate` selects the review mode; this
+file owns its shared record. Item reviews are recorded on the work item by `run-execution`,
+not in a separate review bead.
 
 A review bead *is* a review gate, and a gate is human-owned at its close: an agent records the
-gate's lifecycle but never closes it. That invariant holds for every shape and every verdict below.
+gate's lifecycle and never closes it on its own judgment. The observed human merge exception
+for `code` review beads is in Closing and human review below.
+
+## Verdict vocabulary
+
+| Mode | Result | `verdict` metadata |
+| --- | --- | --- |
+| `code` | `APPROVE` or `CHANGES` | `approve`, `changes` |
+| `readiness` | `READY` or `NOT-READY` | `ready`, `not-ready` |
+| `simplify` | Findings only, never blocking | none |
+
+A bare `GO` means only the human's handoff authorization. A single-pass review records its
+verdict metadata at creation; a multi-pass code or readiness review starts with `verdict=pending`
+and updates it when the verdict is recorded.
+Store `target`, `range`, and `modes` for both shapes. Each bead records one mode, so `modes`
+is a single-element array; separate modes get separate beads. A `simplify` bead has no `verdict` key;
+keep it separate from the `code` bead because their closure rules differ.
 
 ## Pick the shape
 
@@ -25,7 +42,7 @@ relative to when the bead exists*, not of what produced the findings:
 
 - **Type and priority** — `task` by default, `bug` when the findings are predominantly defects;
   priority follows the worst finding's severity. `--parent` the epic under review, when there is one.
-- **Description** — the target, selected review modes, and standard: what was reviewed (commit range, PR, files,
+- **Description** — the shape (single-pass or multi-pass), target, selected review mode, and standard: what was reviewed (commit range, PR, files,
   subsystem) and what it was checked against, when that isn't already obvious from the surrounding
   epic or design doc. For a multi-pass review, the standard goes here **before pass 1 and is never
   revised** — it is the review's premise, and a premise edited mid-review is not a premise.
@@ -41,7 +58,7 @@ relative to when the bead exists*, not of what produced the findings:
 ## Single-pass: notes carry the record
 
 - **Notes** — the compact record, written once and rewritten as remediation changes what's true,
-  never a growing log: verdict (approve / request changes), findings grouped by severity,
+  never a growing log: the mode's result, findings grouped by severity,
   verification evidence actually run, what's next, any open question.
 - **Comments** — append-only remediation progress from the moment work starts: a fix applied, a
   follow-up bead filed with its id, evidence gathered, a finding that turned out wrong. Never edit
@@ -60,20 +77,23 @@ relative to when the bead exists*, not of what produced the findings:
   ```
   ## Pass <n>: <name> @ <commit>
   ## Correction: <finding-id> @ <commit>
-  ## Verdict: GO | NO-GO @ <commit>
+  ## Verdict: APPROVE | CHANGES @ <commit>
+  ## Verdict: READY | NOT-READY @ <commit>
   ## Closeout @ <commit>
   ```
   Never edit or delete a comment; a correction to an earlier finding is a new `## Correction:`
   comment, not a rewrite. The newest comment is the current state — there is no status header to
   maintain.
-- **`--metadata`** — a multi-pass review's recognizable signal:
+- **`--metadata`** — the current queryable result, separate from the append-only record:
   `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'`. Update `verdict` when the
-  call is made, so `bd list --metadata-field verdict=no-go --all` finds every outstanding one.
+  call is made. Query `verdict=changes` or `verdict=not-ready` with
+  `bd list --metadata-field verdict=<value> --all`; an agent verdict does not discharge the gate.
+  A simplify pass records findings without a `## Verdict:` comment or `verdict` metadata.
 
   ```bash
   bd create "<review title> @ <commit>" \
     --type task --priority 1 --parent <epic-id> \
-    --description "<the standard this review checks against — the oracle>" \
+    --description "Multi-pass readiness review: <the standard — the oracle>" \
     --acceptance "All passes recorded; verdict issued; every finding fixed or filed as its own bead." \
     --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'
   ```
@@ -91,17 +111,17 @@ not to this reference. This only covers the bead shape it produces.
 ## Recognizing an existing bead
 
 Before operating on a review bead you didn't create yourself this session, check which shape it is:
-a `metadata.verdict` field or `## Pass`/`## Verdict`/`## Closeout` comment headers mean multi-pass —
-apply the multi-pass rules above, not the single-pass ones. The two disciplines are not
+the description names its shape, and `## Pass` comments identify multi-pass reviews. Verdict
+metadata alone does not distinguish the shapes. If the shape cannot be established, ask before
+rewriting notes. Apply the matching rules above. The two disciplines are not
 interchangeable: rewriting a multi-pass bead's notes as "current state," or editing one of its
 comments, destroys the record the shape exists to protect.
 
 ## Closing and human review
 
 A review bead is **human-gated by definition**: its lifecycle is a review gate, and only a person
-decides when that gate is discharged. An agent never closes a review bead — not when findings are
-fixed, not when the verdict is GO, not when every acceptance criterion is met. Recording the closeout
-is the agent's terminal act; closing is the human's.
+decides when that gate is discharged. Findings fixed, a clean verdict, or acceptance met do not
+authorize an agent to close the bead on its own judgment.
 
 An open review bead therefore means its **review gate is incomplete**, in one of these senses:
 review in progress, remediation in progress, a clean agent verdict awaiting a human, or a PR
@@ -112,7 +132,14 @@ awaiting approval or merge.
   follow-up ids, add the native `human` label, and leave the bead open with a one-line close
   recommendation. The label is the pending-decision signal; never invent a second status label.
 - **Human** — closes it explicitly, or the review bead is discharged by `close-design` as part of a
-  design's terminal transition. `bd close` remains the close signal.
+  design's terminal transition. `bd close` remains the close signal. A `simplify` bead stays open
+  until every finding is applied, filed as its own item, or declined; a human close or terminal
+  transition must account for those dispositions.
+- **Observed human merge** — the lead may close a `code` review bead after observing the human's
+  merge of the PR recorded on that bead. Cite that PR and its merge commit in the closeout, then
+  close. A PR closed unmerged leaves the bead open. Approval alone is not merge evidence.
+  A `readiness` bead has no merge-based exception. A `simplify` bead does not close on merge:
+  merging does not decide whether its suggestions are wanted.
 - **Findings are not the gate** — remediation a review files (defect fixes, follow-up tasks) are
   ordinary beads: autonomous, agent-claimable, and closable. Only the review bead itself is
   human-terminal. Never leave review-derived work open just because it came from a review.

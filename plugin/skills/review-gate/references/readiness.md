@@ -62,7 +62,8 @@ Each finding states kind (`defect`, `gap`, or `design problem`), severity, area,
 locations, relevant canon, concrete failure scenario or deferred cost, evidence, and what remains
 unverified. A correction is a later `## Correction:` comment; never rewrite a finding.
 
-The verdict records the readiness call, ordered blockers, and uncovered work. It is not closeout.
+The verdict is `READY | NOT-READY`, recorded with metadata `ready` or `not-ready`, ordered
+blockers, and uncovered work. It is not closeout.
 At closeout, every finding and uncovered area must be fixed, filed as its own bead, or consciously
 declined; append the disposition and verification, add the `human` label, and leave the bead open.
 A readiness gate is never closed by an agent — the human closes it, or `close-design` discharges it.

@@ -107,14 +107,14 @@ everything else unflagged so the agent can flow through the ready frontier.
 6. Hand implementation to `run-execution` with the selected item or finite batch. It applies
    these closure rules to each item as that item passes, so dependents can be released. For
    single-item work in the HITL workflow, present what was done and confirm before closing, unless the user
-   explicitly asked you to close it. Review beads are the exception: never close one —
-   record its closeout and leave it for the human (see Review beads below). Work originating from
+   explicitly asked you to close it. Review beads follow their human-owned closing rules,
+   including the observed human merge exception for code review (see Review beads below). Work originating from
    an existing public issue may land through its public PR collaboration flow
    ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
    private close signal.
 7. If that close emptied a design-linked epic — no open work items left under an epic carrying
    `spec-id design:<slug>`, ignoring its open review beads — run `close-design` before moving on.
-   Review beads never close autonomously, so an epic whose only open children are review beads has
+   Review beads never close on an agent's own judgment, so an epic whose only open children are review beads has
    reached its final review step, not a stall. The design doc is still marked `active` and its
    residue is still unharvested; that is the moment to settle both, and `close-design` discharges
    the review beads with it.
