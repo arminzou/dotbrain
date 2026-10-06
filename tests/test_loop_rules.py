@@ -53,6 +53,24 @@ def test_workflows_share_branch_and_landing_guards():
         assert "needs no branch" not in text, path
 
 
+def test_landing_rule_sits_with_workflow_rules_not_loop_invariants():
+    """Landing binds the HITL workflow too, so it cannot live under the loop invariants, which
+    bind only iterative or autonomous execution."""
+    landing = "Both the HITL and handoff workflows run on a dedicated branch"
+    for path in (
+        Path("src/dotbrain/resources/templates/brain/DOTBRAIN.md"),
+        Path("plugin/skills/dotbrain/SKILL.md"),
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert text.index("## Rules") < text.index(landing) < text.index("## Working in loops"), path
+    owner = Path("plugin/skills/run-execution/SKILL.md").read_text(encoding="utf-8")
+    assert (
+        owner.index("## Workflow and execution mode")
+        < owner.index("Both workflows run on a dedicated branch")
+        < owner.index("## Agent team")
+    )
+
+
 def test_seeded_brain_distinguishes_main_checkout_and_worktree_wiring(
     dotbrain_home: Path, tmp_path: Path
 ):

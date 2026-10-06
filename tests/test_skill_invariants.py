@@ -178,10 +178,29 @@ def test_item_review_order_and_record():
         "## Review <n>: APPROVE | CHANGES @ <revision>",
         "## Review skipped: <reason>",
         "--actor <reviewer-actor>",
-        "consecutive `CHANGES` verdicts with limit 3; `APPROVE` resets the streak",
+        "consecutive `CHANGES` verdicts with limit 3; only `APPROVE` resets it",
         "diff fingerprint",
     ):
         assert rule in record
+
+
+def test_item_review_streak_survives_worker_checks():
+    """One shared checkpoint slot let a worker's passing check in a fix round overwrite the
+    item-review count, so the three-CHANGES cap never fired and the loop had no hard stop."""
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    assert "keeps a separate streak per checkpoint" in owner
+    assert "a worker's passing checks during a fix round do not reset it" in owner
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    assert "for each checkpoint, keyed by checkpoint reference" in record
+    assert "A passing check ends only its own checkpoint's streak" in record
+    assert "every checkpoint's entry, not only the one that changed" in record
+    assert '"checkpoint":' not in record
+
+
+def test_only_the_lead_moves_a_claim():
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    assert "a writing worker writes only its own claim and its `Attempt` comments" in record
+    assert "the lead's comment headers, including `Claim moved`" in record
 
 
 def test_worker_keeps_claim_through_fix_rounds_and_closure():
