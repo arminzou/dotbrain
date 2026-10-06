@@ -138,7 +138,8 @@ dotbrain unwire
 ```
 
 Attachment creates real local runtime directories, preserves project-owned files, and leaves the
-main-checkout registration and declarations unchanged. Bare maintenance and asset linking inside
+main-checkout registration and declarations unchanged. It does not reseed the shared Brain or sync
+the tracker; the worktree shares both with its main checkout, and `refresh` maintains them. Bare maintenance and asset linking inside
 the wired worktree affect that checkout; refresh also maintains shared Brain conventions and
 tracker state. Named selection and `--all` use registered checkouts rather than sweeping worktrees.
 

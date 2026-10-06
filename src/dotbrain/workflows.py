@@ -191,7 +191,8 @@ def wire_project(
                           if resolved_repo is not None and
                           ((resolved_repo / name).is_symlink() or not (resolved_repo / name).exists())]
 
-    result.logs += [f"shared Brain: updated {relative}" for relative in brainspaces.seed_brain(brainspace, dotbrain_home)]
+    if parent is None:
+        result.logs += [f"shared Brain: updated {relative}" for relative in brainspaces.seed_brain(brainspace, dotbrain_home)]
     active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
     result.warnings += brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, home)
     if resolved_repo is not None:
@@ -205,7 +206,7 @@ def wire_project(
                 result.errors += linked.warnings
                 result.logs += [f"linked {entry}" for entry in linked.linked]
                 result.logs += [f"pruned {entry}" for entry in linked.pruned]
-    if existing and run_beads:
+    if existing and run_beads and parent is None:
         synced = beads.pull_beads_for_all(dotbrain_home, projects=[project], run=run)
         result.logs += _tracker_changes(synced)
         result.warnings += synced.warnings
