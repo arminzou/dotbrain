@@ -61,7 +61,9 @@ sole writer, it is also the assignee: a team of one. One delegated writer is seq
 ## Stop before you start
 
 - No authorized scope: the request names no item, batch, or epic. Ask.
-- An item in the set is human-gated or a `learn:` bead. Leave it out or stop for sign-off.
+- A `learn:` bead is not execution work. Leave it out. A human-gated scoped item blocks:
+  in the HITL workflow stop for sign-off; in the handoff workflow retain it in scope as blocked,
+  leave its dependents waiting, and continue independent items.
 - The required checks cannot be stated. Ask.
 - A required capability is missing — worktree isolation for concurrent writers, a distinct Beads
   actor per worker, or an independent reviewer when review is required. Stop and report; never
@@ -205,10 +207,19 @@ beads.
 
 ## Failure, cancellation, and recovery
 
+An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
+`CHANGES`, or a human gate. In the handoff workflow, only that item and its dependents stop;
+independent items continue, and an item block alone never ends the handoff. Report every blocked
+item with its attempt trail and a recommended decision, including waiting dependents. Keep
+blocked items in the fixed scope; do not drop them to claim success. The HITL workflow instead
+pauses new dispatch and integration and asks the human. The conditions that end the whole
+handoff, and when a PR may be marked ready, belong to `iterate-design`.
+
 - **Retry exhaustion.** The affected worker stops and returns attempts, evidence, and remaining
   uncertainty. The lead records a `Blocked` comment, adds the `human` label, keeps the item open,
-  and asks the human for a concrete decision with a recommendation.
-  While that decision is pending, pause new dispatch and integration across the execution. Running
+  and records a concrete decision needed with a recommendation. In the handoff workflow, continue
+  independent items within the fixed scope; blocked items and their dependents wait. In the HITL
+  workflow, ask the human and pause new dispatch and integration across the execution. Running
   unaffected workers may reach a safe checkpoint within their limits and return candidates; a
   compromised shared resource or target stops them. Only the human authorizes more attempts or
   changed criteria; record the decision and new limit, keeping the attempt history.
