@@ -76,7 +76,7 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 | Dispatch and claim | Required capabilities, the worker cap, and resource constraints. | A `Dispatched` record and an item claimed under the worker's own actor, or a surfaced blocker. |
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
 | Item review | Passing worker checks and the candidate diff against its base. | Independent item review, a recorded exemption, or bounded review-fix rounds. |
-| Integrate | Reviewed candidate, intended target, and the claim handed back. | Integrated result. On a conflict, resume the worker to rebase onto the current target and rerun checks. Keep the item open. |
+| Integrate | Reviewed candidate and intended target; the worker remains assignee. | Integrated result. On a conflict, resume the worker to rebase onto the current target and rerun checks. Keep the item open. |
 | Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence. A failure returns to the worker as a repair; review any new behavior diff before closure. |
 | Apply closure rules | Passing acceptance evidence, resolved item-level human gates, and review of every behavior diff since the last approval. | `dotbrain_phase: verified` written, then native item closure through `manage-work-graph`. |
 | Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
@@ -119,8 +119,12 @@ Return `CHANGES` only for an unmet acceptance criterion or a `blocker` or `high`
 item's own diff. Return `APPROVE` with `medium` or `low` findings and findings outside the diff;
 the lead files those as discovered work for a later bounded execution.
 
-On `CHANGES`, resume the same writing worker to fix its candidate; in sequential execution the
-lead repairs its own work. If the worker cannot resume, use the existing replacement rules.
+On `CHANGES`, resume the same writing worker to fix its candidate; in Claude Code, use
+`SendMessage` to the stopped worker's agent ID. The lead sets `dotbrain_phase` to `working` and
+appends `## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)`.
+The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
+work; a delegated sequential worker is resumed like a parallel worker. If the worker cannot
+resume, use the existing replacement rules.
 The same reviewer re-reviews its earlier findings and the fix diff; a newly spotted `blocker`
 still counts. Each `CHANGES` is a failed check on the `item-review` checkpoint in
 `dotbrain_attempts`. An `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
@@ -139,7 +143,7 @@ Every delegated worker receives a compact assignment in its runtime message:
 - work-item IDs and the assigned operation
 - the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
   actor is the shared Git user, and a repeated claim by the same actor succeeds silently
-- the lead's Beads actor, the target of the worker's handback
+- the lead's Beads actor, for integration, metadata writes, and closure
 - allowed actions and file or resource ownership
 - checkout, item branch, and base revision, where applicable
 - absolute paths to the controlling design, the Brain's `AGENTS.md`, the acceptance criteria, and
@@ -159,10 +163,12 @@ Before substantive work, a writing worker:
 
 A failed readiness step stops the worker and reaches the lead. Launch alone does not authorize edits.
 
-On return, the worker's last step hands its claim back under its own actor:
-`bd assign <id> <lead-actor> --actor <worker-actor>` and a `Claim moved: <worker> -> <lead>`
-comment. The lead is the assignee while it integrates, checks, and closes. The lead reclaims from a
-worker only once that worker is confirmed stopped; when the runtime cannot tell, ask the human.
+A writing worker keeps its claim until the item closes, including every review-fix round.
+Its return supplies the candidate and evidence; it does not change the assignee. A claimed item
+stays out of `bd ready`, and a competing actor's claim is rejected. The lead integrates, checks,
+writes `dotbrain_` metadata, and closes under its own actor while the worker remains assignee.
+Move a claim only for a replacement after the previous worker is confirmed stopped, recording
+`Claim moved: <from actor> -> <to actor>`. When termination is uncertain, ask the human.
 Beads itself lets any actor reassign, so this rule is the guard.
 
 In Claude Code, dispatch each concurrent writing worker as a subagent with worktree isolation on the
