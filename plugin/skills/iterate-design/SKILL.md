@@ -120,8 +120,8 @@ Use this protocol throughout the handoff:
    `code` review for a branch carrying more than one work item, against its base, by a fresh
    reviewer that ran none of the item reviews. Check interactions, consistency, and conformance
    to the active design doc; do not reopen approved item findings. Record the design-level
-   review bead. A single-item branch skips final code review. Run `readiness` only when the
-   handoff contract names it, in addition to code review.
+   review bead. A single-item branch skips it: its item review is the final code review. Run
+   `readiness` only when the handoff contract names it, in addition to code review.
    Run a non-blocking `simplify` pass beside final code review, also for single-item branches.
    Record its findings in a separate review bead under the epic. Never apply simplify findings
    in-loop; they never block the PR or `FINAL`. When its engine is unavailable, skip with a note.
@@ -132,8 +132,9 @@ Use this protocol throughout the handoff:
      have evidence, required code review is `APPROVE`, any named readiness review is `READY`,
      and the agreed ready-for-review PR exists with the human's review requested. A skipped or
      findings-bearing simplify pass does not prevent `FINAL`.
-     Create or update the review bead with the PR URL and verification, add its `human` label, and
-     leave it open for the human gate.
+     Record the PR URL and verification on the design-level code review bead, add its `human`
+     label, and leave it open for the human gate. A single-item branch has no such bead: record
+     them on its work item instead.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
      landing path was fixed at handoff — it stays on the branch even if a mid-loop
      return to the human is needed along the way.

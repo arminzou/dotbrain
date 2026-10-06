@@ -34,7 +34,9 @@ Before it is offered for merge in either workflow, a branch carrying more than o
 of the whole branch diff against its base. Use a fresh reviewer that ran none of the item
 reviews. It checks interactions between items, consistency, and conformance to the active
 design doc; it does not reopen approved item findings. Record the design-level review bead.
-A single-item branch skips this final code review because its item review covered the diff.
+A single-item branch skips this final code review: its item review covered the diff and is the
+final code review. Record the PR URL and verification on that work item, since no design-level
+code review bead exists.
 Run `readiness` only when the handoff contract names it; it does not replace code review.
 
 After the integrated gate passes, the handoff workflow also runs `simplify` beside the final

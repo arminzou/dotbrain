@@ -57,16 +57,18 @@ Loop protocol (every iteration, not just the first):
    carrying more than one work item, against its base, by a fresh reviewer that ran none of
    the item reviews. Check interactions, consistency, and conformance to the active design doc;
    do not reopen approved item findings. Record the design-level review bead. A single-item
-   branch skips final code review. Run readiness only when the handoff contract names it,
-   in addition to code review. Run simplify beside final code review, also for single-item
-   branches; record its findings in a separate review bead under the epic. Never apply simplify
-   findings in-loop; they never block the PR or FINAL. If its engine is unavailable, skip with
-   a note. Add one PR-body line: "N non-blocking simplification suggestions", with no finding
-   details, or a one-line skip note. Review supplements the verifier, never replaces it.
+   branch skips it: its item review is the final code review. Run readiness only when the
+   handoff contract names it, in addition to code review. Run simplify beside final code
+   review, also for single-item branches; record its findings in a separate review bead under
+   the epic. Never apply simplify findings in-loop; they never block the PR or FINAL. If its
+   engine is unavailable, skip with a note. Add one PR-body line: "N non-blocking
+   simplification suggestions", with no finding details, or a one-line skip note. Review
+   supplements the verifier, never replaces it.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
 10. Before calling FINAL: push only the dedicated branch, open the authorized PR ready for review,
-    and request the human's review. Record
-    its URL and verification on the review bead, add `human`, and leave that bead open. Never merge,
+    and request the human's review. Record its URL and verification on the design-level code
+    review bead, add `human`, and leave that bead open; for a single-item branch, record them on
+    its work item instead. Never merge,
     deploy, publish, change dependencies, or alter human-owned criteria.
 
 Progress log:
