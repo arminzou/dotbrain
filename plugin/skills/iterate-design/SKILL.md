@@ -45,8 +45,8 @@ Before changing code, present this contract and wait for the human's explicit `G
 - **Branch and base:** dedicated branch name and base branch.
 - **Verification:** the narrow checkpoint check (run in this session, by whoever made the change);
   one in-loop Success Criteria gate — the fast tier that must pass for `FINAL`; the full suite at
-  the review surface; and the selected final `review-gate` mode (`code` by default; `simplify` or
-  `readiness` only when named).
+  the review surface; final whole-branch `code` review for a multi-item branch, plus the default
+  non-blocking `simplify` pass; `readiness` only when the handoff contract names it.
 - **Workers:** the writing-worker cap for each bounded execution (2 by default).
 - **Delivery:** PR authorization, plus the available provider and authenticated account. The PR
   opens ready for review, with the human as the requested reviewer.
@@ -116,12 +116,22 @@ Use this protocol throughout the handoff:
    - A human decision is needed.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or `BLOCKED`, update the bead notes with what is done, next, and any open question.
-5. REVIEW: Once the full Success Criteria gate passes, run the preflight-selected `review-gate`
-   mode. The reviewer supplements the verifier, never replaces it — a review pass without a
-   mechanical pass/fail check is two optimists agreeing.
+5. REVIEW: After the integrated in-loop gate passes, run `review-gate`'s final whole-branch
+   `code` review for a branch carrying more than one work item, against its base, by a fresh
+   reviewer that ran none of the item reviews. Check interactions, consistency, and conformance
+   to the active design doc; do not reopen approved item findings. Record the design-level
+   review bead. A single-item branch skips final code review. Run `readiness` only when the
+   handoff contract names it, in addition to code review.
+   Run a non-blocking `simplify` pass beside final code review, also for single-item branches.
+   Record its findings in a separate review bead under the epic. Never apply simplify findings
+   in-loop; they never block the PR or `FINAL`. When its engine is unavailable, skip with a note.
+   The PR body adds one line: "N non-blocking simplification suggestions", with no finding
+   details, or a one-line skip note. Review supplements the verifier, never replaces it.
 6. DECIDE:
    - Print `FINAL` only when the scoped work satisfies acceptance, the in-loop gate and final review
-     have evidence, and the agreed ready-for-review PR exists with the human's review requested.
+     have evidence, required code review is `APPROVE`, any named readiness review is `READY`,
+     and the agreed ready-for-review PR exists with the human's review requested. A skipped or
+     findings-bearing simplify pass does not prevent `FINAL`.
      Create or update the review bead with the PR URL and verification, add its `human` label, and
      leave it open for the human gate.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the

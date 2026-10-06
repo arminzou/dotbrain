@@ -11,7 +11,8 @@ Preflight contract (confirmed by explicit `GO`):
 - Dedicated branch and base: <branch / base>
 - Writing-worker cap: <2 unless stated>
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
-  the review surface, review mode: <code | simplify | readiness>
+  the review surface, final whole-branch code review for multi-item branches, default non-blocking
+  simplify pass, readiness: <only if named in this contract>
 - Delivery: ready-for-review PR authorized, human review requested; provider/auth available: <yes>
 
 Treat the active design doc as the controlling instruction document for this loop.
@@ -32,7 +33,9 @@ Complete the next bounded execution that advances this design.
 Stopping condition:
 Stop when the scoped work satisfies the design doc's Success Criteria, relevant checks pass,
 design-relevant discoveries are reflected into the active design doc, final review has no blocking
-findings, and the agreed ready-for-review PR exists with the human's review requested.
+findings (required code review APPROVE, named readiness review READY), and the agreed
+ready-for-review PR exists with the human's review requested. Simplify findings or a missing
+simplify engine never block FINAL.
 
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
@@ -50,8 +53,16 @@ Loop protocol (every iteration, not just the first):
    Human Decisions Needed in the active design doc.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or BLOCKED, update the bead notes with what is done, next, and any open question.
-8. After the in-loop gate passes, run the selected `review-gate` mode. It supplements the `verifier`
-   role, never replaces it.
+8. After the integrated in-loop gate passes, run final whole-branch code review for a branch
+   carrying more than one work item, against its base, by a fresh reviewer that ran none of
+   the item reviews. Check interactions, consistency, and conformance to the active design doc;
+   do not reopen approved item findings. Record the design-level review bead. A single-item
+   branch skips final code review. Run readiness only when the handoff contract names it,
+   in addition to code review. Run simplify beside final code review, also for single-item
+   branches; record its findings in a separate review bead under the epic. Never apply simplify
+   findings in-loop; they never block the PR or FINAL. If its engine is unavailable, skip with
+   a note. Add one PR-body line: "N non-blocking simplification suggestions", with no finding
+   details, or a one-line skip note. Review supplements the verifier, never replaces it.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
 10. Before calling FINAL: push only the dedicated branch, open the authorized PR ready for review,
     and request the human's review. Record
