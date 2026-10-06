@@ -286,6 +286,19 @@ def test_final_review_keeps_branch_boundary_and_optional_passes(path):
     assert re.search(r"never blocks? the PR or (?:`)?FINAL", text, re.I)
 
 
+@pytest.mark.parametrize("path, record", [
+    ("iterate-design/SKILL.md", "A single-item branch has no such bead: record them on its work item instead"),
+    ("iterate-design/templates/handoff-prompt.md", "for a single-item branch, record them on its work item instead"),
+    ("review-gate/SKILL.md", "Record the PR URL and verification on that work item"),
+])
+def test_single_item_branch_has_a_final_review_and_a_pr_record(path, record):
+    """Without these, FINAL demands final-review evidence a single-item branch never produces,
+    and the PR URL has no record to land on."""
+    text = _text(SKILLS / path)
+    assert "is the final code review" in text
+    assert record in text
+
+
 def test_final_review_does_not_turn_simplify_into_a_gate():
     gate = _text(SKILLS / "review-gate/SKILL.md")
     assert "The HITL workflow runs simplify only when requested" in gate
