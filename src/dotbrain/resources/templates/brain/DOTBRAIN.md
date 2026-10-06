@@ -36,6 +36,12 @@ Brain template propagate to every brain.
   `run-execution` carries out an item or finite batch. While delegated workers run, only the
   lead changes the work graph or the active design doc; the lead is the agent running that
   execution.
+- Both the HITL and handoff workflows run on a dedicated branch and land through a review
+  surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
+  into that branch, never into `main`. In the HITL workflow, propose the branch at the first
+  bounded execution; it may span several bounded executions. Ask before pushing or opening a PR.
+  Merge stays human-owned. Local HITL landing requires explicit human instruction, recorded
+  by the lead; it is never the default.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
   Do not drift to synonyms.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
@@ -77,12 +83,6 @@ drives it:
   observing the human's merge of its recorded PR, citing that PR and merge commit. A PR closed
   unmerged leaves it open. A `simplify` bead does not close on merge and waits for every finding's
   disposition. Detailed closing rules live in `manage-work-graph/references/review-beads.md`.
-- Both the HITL and handoff workflows run on a dedicated branch and land through a review
-  surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
-  into that branch, never into `main`. In the HITL workflow, propose the branch at the first
-  bounded execution; it may span several bounded executions. Ask before pushing or opening a PR.
-  Merge stays human-owned. Local HITL landing requires explicit human instruction, recorded
-  by the lead; it is never the default.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 

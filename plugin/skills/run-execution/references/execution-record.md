@@ -5,7 +5,8 @@ follows the review-bead pattern: native Beads fields own status, assignee, depen
 acceptance, and specification links; three flat `dotbrain_` metadata keys hold the item's
 queryable current state; headed append-only comments are its evidence history; notes hold
 rationale and a resume summary. Only the lead writes the `dotbrain_` keys and the lead's comment
-headers; a writing worker writes only its own claim and its `Attempt` and `Claim moved` comments.
+headers, including `Claim moved`; a writing worker writes only its own claim and its `Attempt`
+comments.
 An item reviewer writes its own `Review` comments under its own Beads actor; the lead never
 transcribes its verdict or findings. Item review is recorded on the work item, never a review bead.
 The worker remains assignee until closure. The lead writes metadata and closes under its own
@@ -19,13 +20,16 @@ Optional until the item enters `run-execution`. Populate only facts that exist.
 | Key | Meaning |
 | --- | --- |
 | `dotbrain_phase` | `preparing`, `working`, `candidate`, `integrating`, `checking`, `verified`, or `cancelled`. |
-| `dotbrain_attempts` | Current checkpoint reference, consecutive failed check count, and its approved limit. |
+| `dotbrain_attempts` | Consecutive failed-check count and approved limit for each checkpoint, keyed by checkpoint reference. |
 | `dotbrain_artifacts` | References, each with a `kind`, `purpose`, and `ref`. Purposes are `work` (where the active worker's changes live), `candidate`, `integrated`, and `evidence`. |
 
 ```json
 {
   "dotbrain_phase": "candidate",
-  "dotbrain_attempts": {"checkpoint": "tests-pass", "failed": 0, "limit": 3},
+  "dotbrain_attempts": {
+    "tests-pass": {"failed": 0, "limit": 3},
+    "item-review": {"failed": 1, "limit": 3}
+  },
   "dotbrain_artifacts": [
     {"kind": "worktree", "purpose": "work", "ref": "/abs/path/to/worktree"},
     {"kind": "git-branch", "purpose": "candidate", "ref": "item-123-short-slug@4f2a9c1"}
@@ -40,9 +44,9 @@ workflow progress, not a second status system. A blocked item keeps its last pha
 execution mode belong to the bounded execution, not the item. Beads' own `execution_mode` and documented execution-hint metadata keep their
 meanings as advisory routing input.
 
-A passing check ends a failed-checkpoint streak, and another attempt never creates a new bead.
-The `item-review` checkpoint counts consecutive `CHANGES` verdicts with limit 3; `APPROVE` resets
-the streak. A conflict rebase is not a failed review. Later behavior changes need their own review
+A passing check ends only its own checkpoint's streak, and another attempt never creates a new
+bead. The `item-review` checkpoint counts consecutive `CHANGES` verdicts with limit 3; only
+`APPROVE` resets it, so a worker's passing checks during a fix round leave it intact. A conflict rebase is not a failed review. Later behavior changes need their own review
 before closure even when the earlier candidate was approved.
 
 ## Write method
@@ -55,7 +59,8 @@ bd comments add <item-id> --file <evidence-file> --json
 ```
 
 Beads merges `--metadata` one level deep: unnamed keys survive, and each named key's value is
-replaced whole, so write `dotbrain_attempts` and `dotbrain_artifacts` complete. `--set-metadata`
+replaced whole, so write `dotbrain_attempts` and `dotbrain_artifacts` complete: every checkpoint's
+entry, not only the one that changed. `--set-metadata`
 stores an object as an escaped string; use it, if at all, for `dotbrain_phase` alone.
 `bd list --metadata-field dotbrain_phase=<value>` finds open items in a phase; add `--all` to
 include closed ones, such as `verified` items. Review beads are `review-gate`'s and are never

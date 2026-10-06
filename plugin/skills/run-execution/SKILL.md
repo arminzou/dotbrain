@@ -27,14 +27,14 @@ actors are available. Otherwise choose sequential execution. Write ownership int
 and respect the worker cap. In the HITL workflow, state the mode and ownership split before
 dispatch; the human may override.
 
-## Agent team
-
 Both workflows run on a dedicated branch and land through a review surface: a PR, or the branch
 diff where the project hosts no PRs. At the first HITL bounded execution, propose the branch;
 one branch may span several bounded executions. Parallel workers integrate into that branch,
 never into `main`. Ask before pushing or opening a PR in the HITL workflow. Merge stays
 human-owned. Local HITL landing requires explicit human instruction, recorded by the lead;
 it is never the default.
+
+## Agent team
 
 An agent team is the lead and the workers it dispatches for this execution. When the lead is the
 sole writer, it is also the assignee: a team of one. One delegated writer is sequential execution too.
@@ -134,7 +134,8 @@ work; a delegated sequential worker is resumed like a parallel worker. If the wo
 resume, use the existing replacement rules.
 The same reviewer re-reviews its earlier findings and the fix diff; a newly spotted `blocker`
 still counts. Each `CHANGES` is a failed check on the `item-review` checkpoint in
-`dotbrain_attempts`. An `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
+`dotbrain_attempts`, which keeps a separate streak per checkpoint: a worker's passing checks
+during a fix round do not reset it. Only an `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
 through the retry-exhaustion rules; neither a replacement nor a new reviewer resets the count.
 
 Parallel order: work and passing worker checks, candidate, item review and fix loop, integrate,
