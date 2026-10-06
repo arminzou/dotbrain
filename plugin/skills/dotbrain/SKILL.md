@@ -103,8 +103,12 @@ drives it:
   observing the human's merge of its recorded PR, citing that PR and merge commit. A PR closed
   unmerged leaves it open. A `simplify` bead does not close on merge and waits for every finding's
   disposition. Detailed closing rules live in `manage-work-graph/references/review-beads.md`.
-- Automation-handoff / agent-driven loop work runs on a dedicated branch, never directly on
-  `main`; manual turn-by-turn work needs no branch — it is reviewed as it happens.
+- Both the HITL and handoff workflows run on a dedicated branch and land through a review
+  surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
+  into that branch, never into `main`. In the HITL workflow, propose the branch at the first
+  bounded execution; it may span several bounded executions. Ask before pushing or opening a PR.
+  Merge stays human-owned. Local HITL landing requires explicit human instruction, recorded
+  by the lead; it is never the default.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 
