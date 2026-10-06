@@ -56,8 +56,12 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
 - The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
   `teach-me` resumes and updates it.
 
-Deciding *where* implementation happens — branch, worktree, or the main checkout in place — is not
-this skill's call. That belongs to the user, the session, or `run-execution`'s lead.
+Both the HITL and handoff workflows run on a dedicated branch and land through a review surface:
+a PR, or the branch diff where the project hosts no PRs. `run-execution`'s lead proposes the branch
+at the first HITL bounded execution; one branch may span several bounded executions. Parallel
+workers integrate into that branch, never into `main`. The HITL lead asks before pushing or
+opening a PR. Merge stays human-owned. Local HITL landing requires explicit human instruction,
+recorded by the lead; it is never the default. Checkout or worktree selection belongs to that lead.
 
 ## Who writes the graph
 

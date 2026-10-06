@@ -30,6 +30,29 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "Reread the spec every iteration" in doc
 
 
+def test_workflows_share_branch_and_landing_guards():
+    paths = (
+        Path("src/dotbrain/resources/templates/brain/DOTBRAIN.md"),
+        Path("plugin/skills/dotbrain/SKILL.md"),
+        Path("plugin/skills/manage-work-graph/SKILL.md"),
+        Path("plugin/skills/run-execution/SKILL.md"),
+    )
+    for path in paths:
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        for guard in (
+            "dedicated branch and land through a review surface",
+            "branch diff where the project hosts no PRs",
+            "never into `main`",
+            "may span several bounded executions",
+            "Local HITL landing requires explicit human instruction, recorded by the lead",
+            "it is never the default",
+            "Merge stays human-owned",
+        ):
+            assert guard in text, path
+        assert "before pushing or opening a PR" in text, path
+        assert "needs no branch" not in text, path
+
+
 def test_seeded_brain_distinguishes_main_checkout_and_worktree_wiring(
     dotbrain_home: Path, tmp_path: Path
 ):

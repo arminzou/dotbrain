@@ -29,6 +29,13 @@ dispatch; the human may override.
 
 ## Agent team
 
+Both workflows run on a dedicated branch and land through a review surface: a PR, or the branch
+diff where the project hosts no PRs. At the first HITL bounded execution, propose the branch;
+one branch may span several bounded executions. Parallel workers integrate into that branch,
+never into `main`. Ask before pushing or opening a PR in the HITL workflow. Merge stays
+human-owned. Local HITL landing requires explicit human instruction, recorded by the lead;
+it is never the default.
+
 An agent team is the lead and the workers it dispatches for this execution. When the lead is the
 sole writer, it is also the assignee: a team of one. One delegated writer is sequential execution too.
 
