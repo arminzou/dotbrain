@@ -1,6 +1,6 @@
 # Execution record
 
-The execution record is the recoverable state of one work item under `execute-workflow`. It
+The execution record is the recoverable state of one work item under `run-execution`. It
 follows the review-bead pattern: native Beads fields own status, assignee, dependencies,
 acceptance, and specification links; three flat `dotbrain_` metadata keys hold the item's
 queryable current state; headed append-only comments are its evidence history; notes hold
@@ -9,7 +9,7 @@ headers; a worker writes only its own claim and its `Attempt` and `Claim moved` 
 
 ## The `dotbrain_` keys
 
-Optional until the item enters `execute-workflow`. Populate only facts that exist.
+Optional until the item enters `run-execution`. Populate only facts that exist.
 
 | Key | Meaning |
 | --- | --- |
@@ -31,8 +31,8 @@ Optional until the item enters `execute-workflow`. Populate only facts that exis
 `verified` means the integrated item passed its agreed acceptance checks. It does not close the
 item or bypass a human gate; native status is the authority for closure. The phase describes
 workflow progress, not a second status system. A blocked item keeps its last phase: the native
-`human` label and a `Blocked` comment mark it. Interactive or handoff mode belongs to the execution,
-not the item. Beads' own `execution_mode` and documented execution-hint metadata keep their
+`human` label and a `Blocked` comment mark it. The HITL/handoff workflow and sequential/parallel
+execution mode belong to the bounded execution, not the item. Beads' own `execution_mode` and documented execution-hint metadata keep their
 meanings as advisory routing input.
 
 A passing check ends a failed-checkpoint streak, and another attempt never creates a new bead.

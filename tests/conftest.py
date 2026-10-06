@@ -86,7 +86,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
     plugin_skills_root = _REPO_ROOT / "plugin" / "skills"
     for skill in (
         "brain/iterate-design",
-        "brain/execute-workflow",
+        "brain/run-execution",
         "brain/manage-work-graph",
         "brain/review-gate",
         "brain/teach-me",

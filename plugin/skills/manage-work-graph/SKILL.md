@@ -1,6 +1,6 @@
 ---
 name: manage-work-graph
-description: Maintains the project's private work graph — files, shapes, links, claims, records outcomes for, and closes work items. Use for any interaction with the project issue tracker — filing work items, inspecting the ready frontier, claiming, updating status, applying closure. Hands implementation of an item or finite batch to execute-workflow. NOT for decomposing a design doc into an epic (to-issues), formalizing an initiative (to-design), closing one out (close-design), or triaging public issues (triage-public).
+description: Maintains the project's private work graph — files, shapes, links, claims, records outcomes for, and closes work items. Use for any interaction with the project issue tracker — filing work items, inspecting the ready frontier, claiming, updating status, applying closure. Hands implementation of an item or finite batch to run-execution. NOT for decomposing a design doc into an epic (to-issues), formalizing an initiative (to-design), closing one out (close-design), or triaging public issues (triage-public).
 ---
 
 # Manage Work Graph
@@ -14,8 +14,8 @@ items that says what work exists and what it depends on. The engine is declared 
 This skill owns the **work graph**: work items and their dependency edges. The **ready frontier**
 (open items with no open blockers) is the set eligible to start; blocking edges are the
 serialization. The **execution graph** (how an agent team carries out a fixed set of items) and each
-item's **execution record** belong to `execute-workflow`
-([its reference](../execute-workflow/references/execution-record.md)).
+item's **execution record** belong to `run-execution`
+([its reference](../run-execution/references/execution-record.md)).
 
 Boundaries:
 
@@ -45,7 +45,7 @@ Boundaries:
   ([references/learning-beads.md](references/learning-beads.md))
 
 Implementing an item — dispatch, integration, checks, bounded repair, escalation, and recovery — is
-`execute-workflow`'s. A plain request to do the work starts it.
+`run-execution`'s. A plain request to do the work starts it.
 
 ## Stop before you start
 
@@ -57,7 +57,7 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
   `teach-me` resumes and updates it.
 
 Deciding *where* implementation happens — branch, worktree, or the main checkout in place — is not
-this skill's call. That belongs to the user, the session, or `execute-workflow`'s lead.
+this skill's call. That belongs to the user, the session, or `run-execution`'s lead.
 
 ## Who writes the graph
 
@@ -99,14 +99,14 @@ everything else unflagged so the agent can flow through the ready frontier.
 4. Select the next ready item, skipping learning beads (label `learning`), which are not work:
    - **Human-gated** — stop for sign-off before claiming.
    - **Autonomous** — proceed. Claim it here only when this session will work it as a team of
-     one; when workers will be dispatched, `execute-workflow` claims under each worker's own actor.
+     one; when workers will be dispatched, `run-execution` claims under each worker's own actor.
 5. If the item carries `spec-id design:<slug>`, read `.brain/designs/<slug>.md` before
    implementing. Beads carry execution facts; the design doc carries the design,
    rationale, and file-level scope — do not infer those from the compressed acceptance criteria
    alone.
-6. Hand implementation to `execute-workflow` with the selected item or finite batch. It applies
+6. Hand implementation to `run-execution` with the selected item or finite batch. It applies
    these closure rules to each item as that item passes, so dependents can be released. For
-   interactive single-item work, present what was done and confirm before closing, unless the user
+   single-item work in the HITL workflow, present what was done and confirm before closing, unless the user
    explicitly asked you to close it. Review beads are the exception: never close one —
    record its closeout and leave it for the human (see Review beads below). Work originating from
    an existing public issue may land through its public PR collaboration flow

@@ -13,7 +13,7 @@ active design records current intent, and Beads tracks private execution.
 - **Design and decompose:** [`to-design`](to-design/SKILL.md) writes the living design and opens an epic;
   [`to-issues`](to-issues/SKILL.md) cuts it into workable tasks with dependencies.
 - **Implement and learn:** [`manage-work-graph`](manage-work-graph/SKILL.md) keeps the work graph and
-  its ready frontier; [`execute-workflow`](execute-workflow/SKILL.md) carries out an item or a
+  its ready frontier; [`run-execution`](run-execution/SKILL.md) carries out an item or a
   finite batch. Discoveries feed back into the active design or work graph before the next work item.
   With an explicit handoff, [`iterate-design`](iterate-design/SKILL.md) can run a bounded loop.
 - **Review:** [`review-gate`](review-gate/SKILL.md) records findings and verification evidence for

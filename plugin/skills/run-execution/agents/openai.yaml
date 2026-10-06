@@ -1,3 +1,3 @@
 interface:
-  display_name: "Execute Workflow"
+  display_name: "Run Execution"
   short_description: "Carry out a bounded set of work items"

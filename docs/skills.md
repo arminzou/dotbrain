@@ -72,7 +72,7 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 - **`manage-work-graph`** — file, inspect, claim, split, update, and close work items in the private
   work graph
-- **`execute-workflow`** — carry out one work item or a fixed batch: dispatch workers, integrate,
+- **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, integrate,
   check, repair within limits, and escalate or recover
 - **`iterate-design`** — run an active design doc through the agent's native loop mode: plan,
   implement, verify, reflect, stop on success or blocked

@@ -1,9 +1,9 @@
 ---
-name: execute-workflow
-description: Carries out one work item or a finite batch from the private work graph — selects, dispatches workers, integrates, checks, repairs within limits, closes through manage-work-graph, and escalates or recovers. Use when asked to do, implement, or work an item, a set of items, or an epic's ready work, or via /dotbrain:execute-workflow. NOT for filing or reshaping work items (manage-work-graph), a design-level automation handoff (iterate-design), or independent review (review-gate).
+name: run-execution
+description: Carries out one work item or a finite batch from the private work graph — selects, dispatches workers, integrates, checks, repairs within limits, closes through manage-work-graph, and escalates or recovers. Use when asked to do, implement, or work an item, a set of items, or an epic's ready work, or via /dotbrain:run-execution. NOT for filing or reshaping work items (manage-work-graph), a design-level automation handoff (iterate-design), or independent review (review-gate).
 ---
 
-# Execute Workflow
+# Run Execution
 
 Run one bounded execution: one work item by default, or an explicit finite batch of item IDs. The
 work graph says what depends on what; this skill owns the **execution graph** — how an agent team
@@ -13,10 +13,24 @@ closure rules stay with [`manage-work-graph`](../manage-work-graph/SKILL.md).
 A plain action request ("do X", "work the ready items under this epic") starts this skill.
 Calling it does not require spawning another agent.
 
+## Workflow and execution mode
+
+The **HITL workflow** returns to the human after each bounded execution. The **handoff workflow**
+chains bounded executions through `iterate-design` within the human's approved contract.
+Either workflow can use either **execution mode**: **sequential execution**, one writer at a time
+(the lead or one delegated writer), or **parallel execution**, two or more writing workers at once.
+Read-only workers do not change the execution mode. Neither setting is stored on a work item.
+
+Choose parallel execution when at least two items in the fixed set are ready, their predicted file
+ownership does not overlap, no shared resource collides, and worktree isolation and distinct Beads
+actors are available. Otherwise choose sequential execution. Write ownership into each assignment
+and respect the worker cap. In the HITL workflow, state the mode and ownership split before
+dispatch; the human may override.
+
 ## Agent team
 
-An agent team is the lead and the workers it dispatches for this execution. Sequential execution is
-a team of one: the lead is also the assignee and the only worker.
+An agent team is the lead and the workers it dispatches for this execution. When the lead is the
+sole writer, it is also the assignee: a team of one. One delegated writer is sequential execution too.
 
 | Agent | Writes | Concurrency | Checkout |
 | --- | --- | --- | --- |
@@ -70,7 +84,7 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 
 - A candidate is not acceptance. A returned patch keeps its item open and releases nothing.
 - For code work, integration targets the agreed branch and checks run against the actual integrated
-  revision. Work done interactively in the target checkout may already be integrated, but still
+  revision. Work done in the target checkout under the HITL workflow may already be integrated, but still
   needs acceptance evidence. For other work, name the accepted artifact and its target explicitly.
 - A dependent starts only from a base that contains its prerequisite's integrated result, after the
   prerequisite closes.

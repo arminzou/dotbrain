@@ -13,7 +13,7 @@ reflection rules; the coding agent runs the loop.
 
 ## When to use
 
-This loop is human-triggered: the human explicitly hands off to it as an automation handoff (for
+This loop drives the handoff workflow and is human-triggered: the human explicitly hands off to it as an automation handoff (for
 example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main`.
 
 Use when:
@@ -62,7 +62,7 @@ A dedicated branch may run in place or in a git worktree. When the user launches
 worktree, verify before planning that `.brain` and `.beads` resolve to the main checkout's
 Brainspace when enabled. When they are absent, run `dotbrain wire` in the worktree, directly or
 through `wire-brain`, before dispatch. The CLI resolves the main checkout through Git metadata and
-preserves its registration. Delegated workers that `execute-workflow` dispatches into their own
+preserves its registration. Delegated workers that `run-execution` dispatches into their own
 worktrees need no wiring; their assignment carries absolute references.
 
 ## Read order
@@ -76,7 +76,7 @@ Before planning, read:
 4. The active design doc.
 5. Linked bead or epic, if present: inspect `bd ready --json --quiet`, `bd human list --json --quiet`,
    and `bd show <id> --json --quiet`. Claim only when you will work the item yourself as a team of
-   one; when workers will be dispatched, leave the claim to `execute-workflow`'s Dispatch and claim
+   one; when workers will be dispatched, leave the claim to `run-execution`'s Dispatch and claim
    step, which claims under each worker's own actor. Never claim an epic merely because it is linked.
 6. Relevant `.brain/docs/` references or code files only as needed.
 
@@ -91,7 +91,7 @@ If the design doc lacks a `Success Criteria` section, first propose the smallest
 treat it as a human decision gate.
 
 For design/epic scope, repeat the ready-frontier check after closing each scoped implementation bead
-and select the next ready one for `execute-workflow`. Do not claim the final review bead until every
+and select the next ready one for `run-execution`. Do not claim the final review bead until every
 scoped implementation bead has closed; `review-gate` then owns that final record.
 
 ## Loop protocol
@@ -102,9 +102,9 @@ Use this protocol throughout the handoff:
    since long runs are where constraints silently drop out of lossy context. Then select the next
    bounded execution: one ready work item or a finite batch of ready items within the approved
    scope. Never add items silently to an execution already under way.
-2. DO: Run that bounded execution through `execute-workflow`, as its lead. This skill keeps the
+2. DO: Run that bounded execution through `run-execution`, as its lead. This skill keeps the
    outer loop, reflection, overall limits, final review, and delivery.
-3. VERIFY: The agent that made a change runs its checkpoint check, inside `execute-workflow`; never
+3. VERIFY: The agent that made a change runs its checkpoint check, inside `run-execution`; never
    spawn an agent just to check a checkpoint. Reserve the once-only in-loop gate for before final
    review.
 4. REFLECT: As the lead, the only agent that edits the active design doc, update it only for
@@ -126,7 +126,7 @@ Use this protocol throughout the handoff:
      leave it open for the human gate.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
      landing path was fixed at handoff — it stays on the branch even if a mid-loop
-     human-in-the-loop moment pulls the human in along the way.
+     return to the human is needed along the way.
    - The explicit preflight `GO` authorizes only pushing the dedicated branch, opening the
      ready-for-review PR, and requesting the human's review. Merge and every other outward action
      remain human-owned.
@@ -152,7 +152,7 @@ Two hard guards:
 - Automation: Prefer a direct Goal-mode handoff first. Use scheduled/background automation only
   after the prompt has worked manually.
 - Skill: This file is the reusable workflow wrapper.
-- Sub-agents: Use an explorer for unclear codepaths. `execute-workflow` dispatches writing workers;
+- Sub-agents: Use an explorer for unclear codepaths. `run-execution` dispatches writing workers;
   the packaged implementer suits only a small change in the lead's checkout. The agent that makes
   a change runs that checkpoint's check; the `verifier` role is reserved for the
   once-only in-loop gate, and a reviewer supplements the gate before finalizing meaningful changes.
