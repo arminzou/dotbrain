@@ -36,10 +36,10 @@ sole writer, it is also the assignee: a team of one. One delegated writer is seq
 | --- | --- | --- | --- |
 | Lead | Execution record, work graph, design doc, integration | One per execution | The target checkout |
 | Writing worker | Its own claim, evidence comments, and its item's files | At most the cap at once, 2 by default | Its own worktree whenever another agent can write at the same time; a sole writer may share the lead's checkout |
-| Read-only worker (investigator, reviewer, verifier) | Nothing; it reports back | Uncapped, except at most one verifier | No worktree needed |
+| Read-only worker (investigator, reviewer, verifier) | Its own item-review comment when assigned as reviewer; otherwise nothing | Uncapped, except at most one verifier | No worktree needed |
 
 - While delegated workers run, the lead is the only agent that edits the active design doc, changes
-  the work graph, or writes an item's `dotbrain_` metadata. A worker writes only its own claim and,
+  the work graph, or writes an item's `dotbrain_` metadata. A writing worker writes only its own claim and,
   when assigned, evidence comments on its own item. It returns candidate results, check evidence,
   discovered work, and design-relevant learning; the lead records them.
 - A work item has at most one active worker. When parts of one item could run concurrently, ask the
@@ -75,9 +75,10 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 | Select | Authorized scope, ready frontier, human gates, routing hints, and limits. | Fixed item set and eligible members; any split agreed with the human first. |
 | Dispatch and claim | Required capabilities, the worker cap, and resource constraints. | A `Dispatched` record and an item claimed under the worker's own actor, or a surfaced blocker. |
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
-| Integrate | Candidate revision or artifact, intended target, and the claim handed back. | Integrated result. Keep the item open. |
-| Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence, or bounded repair within the same item. |
-| Apply closure rules | Passing acceptance evidence and resolved item-level human gates. | `dotbrain_phase: verified` written, then native item closure through `manage-work-graph`. |
+| Item review | Passing worker checks and the candidate diff against its base. | Independent item review, a recorded exemption, or bounded review-fix rounds. |
+| Integrate | Reviewed candidate, intended target, and the claim handed back. | Integrated result. On a conflict, resume the worker to rebase onto the current target and rerun checks. Keep the item open. |
+| Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence. A failure returns to the worker as a repair; review any new behavior diff before closure. |
+| Apply closure rules | Passing acceptance evidence, resolved item-level human gates, and review of every behavior diff since the last approval. | `dotbrain_phase: verified` written, then native item closure through `manage-work-graph`. |
 | Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
 | Release dependents | Prerequisite closure and a base containing its integrated result. | Eligible dependent members may start while independent siblings continue. |
 | Finish | All selected items resolved, or a stop or human gate reached. | Bounded result returned to the caller. Design-level verification and review remain separate. |
@@ -93,6 +94,43 @@ The lead holds live assignments, pending joins, and the next operation in its ow
   created for the worker's worktree. An unmerged branch or dirty worktree stays and is reported.
 - Repairs stay inside the item's scope and limits. Discoveries become item facts or new work items
   for a later execution; they never join the current set silently.
+
+## Item review
+
+Every work item's behavior change gets an independent `code` item review before integration in
+parallel execution, and before closure in sequential execution. Behavior includes code, tests,
+build or CI config, and instructions agents execute: skills, prompts, and agent definitions.
+Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt;
+the lead records `## Review skipped: <reason>` on the work item.
+
+In the HITL workflow only, the lead may ask whether a small behavior change needs review. The
+prompt includes the diffstat, the behavior changed, and the lead's recommendation. Keep the item
+open until the human answers. Record a decline as
+`## Review skipped: declined by human — <reason>`. Standing answers hold until the human changes
+them. The handoff workflow never asks; it reviews every behavior change.
+
+Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
+it authored. Fix the boundary at the item's diff against its base and its acceptance criteria.
+The reviewer appends `## Review <n>: APPROVE | CHANGES @ <revision>` to the work item under its own
+Beads actor, naming that actor and each finding's severity (`blocker`, `high`, `medium`, `low`)
+and `file:line`. An item review never gets a review bead.
+
+Return `CHANGES` only for an unmet acceptance criterion or a `blocker` or `high` finding in the
+item's own diff. Return `APPROVE` with `medium` or `low` findings and findings outside the diff;
+the lead files those as discovered work for a later bounded execution.
+
+On `CHANGES`, resume the same writing worker to fix its candidate; in sequential execution the
+lead repairs its own work. If the worker cannot resume, use the existing replacement rules.
+The same reviewer re-reviews its earlier findings and the fix diff; a newly spotted `blocker`
+still counts. Each `CHANGES` is a failed check on the `item-review` checkpoint in
+`dotbrain_attempts`. An `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
+through the retry-exhaustion rules; neither a replacement nor a new reviewer resets the count.
+
+Parallel order: work and passing worker checks, candidate, item review and fix loop, integrate,
+integrated check, close as `verified`, clean up, release dependents. Sequential order: work,
+checks, item review and fix loop, close. A conflict rebase does not count toward the `CHANGES` cap.
+Any behavior diff after the last `APPROVE`, including a conflict rebase or integrated-check repair,
+gets an item review of that diff before closure. No item closes with an unreviewed behavior change.
 
 ## Worker assignment
 
