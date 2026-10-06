@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, workflows, subagents
+from dotbrain import adopter_repos, beads, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -48,6 +48,39 @@ def test_wire_worktree_preserves_registration_and_declarations(lifecycle):
     repeated = workflows.wire_project(dotbrain_home=home, repo=worktree)
     assert not repeated.errors
     assert repeated.logs == []
+
+
+@pytest.mark.parametrize('linked_worktree', [True, False])
+def test_wire_shared_maintenance_only_for_main_checkout(lifecycle, monkeypatch, linked_worktree):
+    home, brainspace, main, worktree = lifecycle
+    brain = brainspace / '.brain'
+    (brain / 'project.yaml').write_text(
+        'agents: [codex]\nskills: []\nbeads:\n  mode: embedded\n', encoding='utf-8'
+    )
+    (brainspace / '.beads').mkdir()
+    convention = brain / 'DOTBRAIN.md'
+    convention.write_text('previous convention\n', encoding='utf-8')
+    before = {p.relative_to(brain): p.read_bytes() for p in brain.rglob('*') if p.is_file()}
+    pulls = []
+
+    def pull(dotbrain_home, *, projects, run):
+        pulls.append(projects)
+        return beads.BootstrapResult(logs=['tracker synced'])
+
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', pull)
+    checkout = worktree if linked_worktree else main
+    result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+
+    assert not result.errors
+    assert (checkout / '.brain').resolve() == brain
+    assert (checkout / '.beads').resolve() == brainspace / '.beads'
+    assert subagents.is_managed_copy(checkout / '.codex' / 'agents' / 'reviewer.toml')
+    if linked_worktree:
+        assert {p.relative_to(brain): p.read_bytes() for p in brain.rglob('*') if p.is_file()} == before
+        assert pulls == []
+    else:
+        assert convention.read_text(encoding='utf-8') != 'previous convention\n'
+        assert pulls == [['custom']]
 
 
 @pytest.mark.parametrize('problem', ['unwired', 'conflict', 'foreign'])
