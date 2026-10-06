@@ -1,8 +1,31 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tomllib
 
 from dotbrain import subagents
+
+
+def test_packaged_reviewer_item_review_contract():
+    agents = Path("src/dotbrain/resources/agents")
+    claude = (agents / "claude/reviewer.md").read_text(encoding="utf-8")
+    codex = tomllib.loads((agents / "codex/reviewer.toml").read_text(encoding="utf-8"))
+    # A forced read-only sandbox prevents the reviewer's one permitted Beads write.
+    assert "sandbox_mode" not in codex
+    for prompt in (claude, codex["developer_instructions"]):
+        for rule in (
+            "blocker / high / medium / low",
+            "only for an unmet acceptance",
+            "blocker or high finding in the reviewed diff",
+            "findings outside that diff accompany",
+            "## Review <n>: APPROVE | CHANGES @ <revision>",
+            "bd comments add <item-id> <review-text> --actor <reviewer-actor> --json",
+            "only allowed mutation",
+            "Do not create a review bead, claim, assign, close, or write",
+            "the lead must not transcribe it as your review",
+            "diff fingerprint",
+        ):
+            assert rule in " ".join(prompt.split())
 
 
 def _write(path: Path, text: str) -> None:
