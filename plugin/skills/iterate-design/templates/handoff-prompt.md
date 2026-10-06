@@ -22,7 +22,7 @@ Before entering the loop, and after context recovery:
   Beads hook already supplied it.
 - If the linked bead names the current work, inspect `bd ready --json --quiet`,
   `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim a ready work bead
-  yourself only when you will work it as a team of one; otherwise `execute-workflow` claims it under
+  yourself only when you will work it as a team of one; otherwise `run-execution` claims it under
   each worker's own actor. Never claim an epic merely because it is linked.
 - Do not start unless the preflight contract is complete and the human has said `GO`.
 
@@ -40,7 +40,7 @@ Loop protocol (every iteration, not just the first):
 2. Select the next bounded execution: one ready work item or a finite batch from the work graph,
    within the approved scope.
 3. If the path is unclear, use a read-only explorer first.
-4. Run that execution through `execute-workflow` as its lead. Only the lead changes the work graph,
+4. Run that execution through `run-execution` as its lead. Only the lead changes the work graph,
    the execution record, and the active design doc.
 5. The agent that made a change runs its checkpoint's narrow check; never spawn an agent just to
    check a checkpoint. Run the once-only in-loop Success Criteria gate before final review.

@@ -33,7 +33,7 @@ Brain template propagate to every brain.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
-  `execute-workflow` carries out an item or finite batch. While delegated workers run, only the
+  `run-execution` carries out an item or finite batch. While delegated workers run, only the
   lead changes the work graph or the active design doc; the lead is the agent running that
   execution.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.

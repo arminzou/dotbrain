@@ -20,7 +20,7 @@ The convention describes the model; these skills act on it.
 |---|---|
 | Create or repair `.brain` / `.beads` links | `wire-brain` |
 | Create, claim, or close work items | `manage-work-graph` |
-| Do an item or a finite batch of items | `execute-workflow` |
+| Do an item or a finite batch of items | `run-execution` |
 | Formalize an initiative, or record a decision | `to-design`, `grill-decisions` |
 | Edit a project's own rules in `.brain/AGENTS.md` | `curate-project-context` |
 
@@ -59,7 +59,7 @@ Brain template propagate to every brain.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
-  `execute-workflow` carries out an item or finite batch. While delegated workers run, only the
+  `run-execution` carries out an item or finite batch. While delegated workers run, only the
   lead changes the work graph or the active design doc; the lead is the agent running that
   execution.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.

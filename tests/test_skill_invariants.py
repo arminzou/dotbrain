@@ -101,7 +101,7 @@ def test_design_lifecycle_vocabulary_is_one_field_set():
 def test_lead_is_the_single_writer_during_delegated_execution():
     """Every worktree reaches the same Brain and tracker. If workers may reshape the graph or
     edit the design doc, concurrent writers silently overwrite each other's shared state."""
-    owner = _text(SKILLS / "execute-workflow/SKILL.md")
+    owner = _text(SKILLS / "run-execution/SKILL.md")
     assert "the lead is the only agent that edits the active design doc" in owner
     assert "A worker writes only its own claim" in owner
     graph = _text(SKILLS / "manage-work-graph/SKILL.md")
@@ -136,7 +136,7 @@ def test_review_gate_requires_an_independent_reviewer():
     assert "the gate is blocked, not skipped" in gate
 
 
-def test_iterate_design_runs_executions_through_execute_workflow():
+def test_iterate_design_runs_executions_through_run_execution():
     loop = _text(SKILLS / "iterate-design/SKILL.md")
-    assert "through `execute-workflow`" in loop
+    assert "through `run-execution`" in loop
     assert "the only agent that edits the active design doc" in loop
