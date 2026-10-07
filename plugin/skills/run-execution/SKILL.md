@@ -13,6 +13,12 @@ closure rules stay with [`manage-work-graph`](../manage-work-graph/SKILL.md).
 A plain action request ("do X", "work the ready items under this epic") starts this skill.
 Calling it does not require spawning another agent.
 
+Before worker preparation or dispatch, read the applicable runtime reference:
+[Claude Code](references/claude-code.md) or [Codex](references/codex.md). Read it again before
+runtime-specific fix rounds, cancellation, or recovery. These references supply the runtime
+mechanisms; the shared contract below still governs both paths. Stop if the runtime cannot
+perform a required operation rather than substitute an unqualified mechanism silently.
+
 ## Workflow and execution mode
 
 The **HITL workflow** returns to the human after each bounded execution. The **handoff workflow**
@@ -128,8 +134,8 @@ Return `CHANGES` only for an unmet acceptance criterion or a `blocker` or `high`
 item's own diff. Return `APPROVE` with `medium` or `low` findings and findings outside the diff;
 the lead files those as discovered work for a later bounded execution.
 
-On `CHANGES`, resume the same writing worker to fix its candidate; in Claude Code, use
-`SendMessage` to the stopped worker's agent ID. The lead sets `dotbrain_phase` to `working` and
+On `CHANGES`, resume the same writing worker to fix its candidate using the applicable runtime
+reference. The lead sets `dotbrain_phase` to `working` and
 appends `## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)`.
 The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
 work; a delegated sequential worker is resumed like a parallel worker. If the worker cannot
@@ -165,8 +171,9 @@ Every delegated worker receives a compact assignment in its runtime message:
 Before substantive work, a writing worker:
 
 1. Reads the referenced authority.
-2. Confirms that `bd where` names the expected Brainspace store. An unwired linked worktree needs
-   no preparation: Beads resolves the shared store through the main checkout's Git metadata.
+2. Confirms that `bd where` names the expected Brainspace store. For tracker access, an unwired
+   linked worktree needs no preparation: Beads resolves the shared store through the main
+   checkout's Git metadata. Runtime references may still prepare the checkout for other reasons.
 3. Runs `git switch -c <item-branch> <base>` in its fresh worktree and confirms `HEAD` is the base.
    Runtimes start worktrees from different commits, so never rely on where the worktree began. A
    replacement worker instead continues on the existing item branch in the stopped worker's
@@ -191,18 +198,6 @@ Move a claim only for a replacement after the previous worker is confirmed stopp
 `Claim moved: <from actor> -> <to actor>`. When termination is uncertain, ask the human.
 Beads itself lets any actor reassign, so this rule is the guard.
 
-In Claude Code, dispatch each concurrent writing worker as a background subagent with worktree
-isolation on the call, using a role allowed to create a branch and commit, such as the
-general-purpose agent. The launch returns the agent ID at once, and the worker's checkout is
-`.claude/worktrees/agent-<agent-id>` in the lead's checkout, so the lead writes `Dispatched` while
-the worker is still starting. The packaged `implementer` cannot: it is a sole writer sharing the lead's checkout for a small change,
-and it refuses an item that needs a branch. The isolation guard refuses git commands it cannot
-attribute to the worker's worktree, including chained commands and commands a shell hook rewrites;
-tell workers to run git as plain, separate commands and to set commit identity through the
-`GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. Subagent worktrees land under
-`.claude/worktrees/` in the lead's checkout: before the first dispatch, when
-`git check-ignore -q .claude/worktrees/` fails, add `/.claude/worktrees/` to the local exclude file
-`$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages a worker's worktree.
 Build outputs, databases, and ports still constrain parallelism; separate worktrees do not prove
 those are independent.
 
