@@ -109,7 +109,7 @@ See [Learning your project](learning.md) for learning paths, parked concepts, an
 ## Subagents
 
 Alongside the skills, dotbrain delivers four Brain-aware subagents into each workspace:
-`investigator`, `implementer`, `reviewer`, and `verifier`. See
+`worker`, `explorer`, `reviewer`, and `verifier`. See
 [Session context](session-context.md#subagents).
 
 ## Installing Them

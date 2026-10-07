@@ -253,7 +253,8 @@ def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
         assert "[Run Execution](../SKILL.md)" in text
         assert "dotbrain_attempts" not in text
     claude = _text(SKILLS / "run-execution/references/claude-code.md")
-    assert "background subagent with worktree isolation" in claude
+    assert "set worktree isolation on the `Agent` call" in claude
+    assert "its definition never sets isolation" in claude
     assert "`.claude/worktrees/agent-<agent-id>`" in claude
     assert "`SendMessage` to that original ID" in claude
     codex = _text(SKILLS / "run-execution/references/codex.md")

@@ -72,5 +72,8 @@ worker; use the same checkout without creating its branch again.
 If an assignment requires a custom agent, verify its availability by actually spawning that role
 in this CLI session. A delivered TOML file is insufficient. Count nested writing agents toward
 the shared writing-worker cap and track their termination; avoid nested writers when direct CLI
-workers cover the assignment. A nested reviewer follows the shared item-review rules. Record
+workers cover the assignment. Packaged subagents are spawned as `dotbrain-<role>`, for example
+a nested reviewer as `dotbrain-reviewer`, and follow the shared item-review rules. A `codex exec`
+writer cannot select an agent, so its assignment points it to the packaged worker's definition,
+`.codex/agents/dotbrain-worker.toml` in its checkout. Record
 direct execution and nested spawning separately; evidence for one does not qualify the other.

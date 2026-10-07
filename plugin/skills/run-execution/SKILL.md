@@ -49,7 +49,7 @@ sole writer, it is also the assignee: a team of one. One delegated writer is seq
 | --- | --- | --- | --- |
 | Lead | Execution record, work graph, design doc, integration | One per execution | The target checkout |
 | Writing worker | Its own claim, evidence comments, and its item's files | At most the cap at once, 2 by default | Its own worktree whenever another agent can write at the same time; a sole writer may share the lead's checkout |
-| Read-only worker (investigator, reviewer, verifier) | Its own item-review comment when assigned as reviewer; otherwise nothing | Uncapped, except at most one verifier | No worktree needed |
+| Read-only worker (explorer, reviewer, verifier) | Its own item-review comment when assigned as reviewer; otherwise nothing | Uncapped, except at most one verifier | No worktree needed |
 
 - While delegated workers run, the lead is the only agent that edits the active design doc, changes
   the work graph, or writes an item's `dotbrain_` metadata. A writing worker writes only its own claim and,
