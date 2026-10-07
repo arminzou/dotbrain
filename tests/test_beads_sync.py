@@ -91,7 +91,7 @@ def test_sync_remote_discovery_failure_never_reaches_pull(tmp_path, failure):
     assert len(calls) == 1
 
 
-def test_failed_hydration_stops_target_and_continues_batch(tmp_path):
+def test_failed_sync_stops_target_and_continues_batch(tmp_path):
     project(tmp_path, "bad", "beads:\n  mode: embedded\n  remote: https://example.test/bad\n")
     good = project(tmp_path, "good", "beads:\n  mode: embedded\n  remote: https://example.test/good\n")
     (good / ".beads").mkdir()
@@ -107,7 +107,7 @@ def test_failed_hydration_stops_target_and_continues_batch(tmp_path):
     assert len(calls) == 3  # bad target never reaches remote discovery or a pull
 
 
-def test_server_custom_database_hydration_failure_rolls_back_generated_files(tmp_path):
+def test_server_custom_database_sync_failure_rolls_back_generated_files(tmp_path):
     root = project(tmp_path, "custom", "beads:\n  mode: server\n  database: legacy-db\n")
     (tmp_path / "config.yaml").write_text("beads:\n  server:\n    host: localhost\n")
     def run(argv, **kwargs):

@@ -126,11 +126,11 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
         )
         result.agents_seeded = True
         result.logs.append(f"seeded agents/agents.yaml into {root}")
-    seeded_subagents = subagents.rehydrate_packaged_subagents(root)
+    seeded_subagents = subagents.sync_packaged_subagents(root)
     if seeded_subagents:
         result.agents_seeded = True
         result.logs += [
-            f"rehydrated {path.relative_to(root).as_posix()} into {root}" for path in seeded_subagents
+            f"synced {path.relative_to(root).as_posix()} into {root}" for path in seeded_subagents
         ]
 
     return result

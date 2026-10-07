@@ -369,10 +369,10 @@ def migrate_beads(
 def beads_sync(
     project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
     all_projects: bool = typer.Option(False, "--all", help="Sync every registered project."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview tracker hydration and configured pulls."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview tracker sync and configured pulls."),
     home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Hydrate declared local tracker bindings and pull configured remotes; never push."""
+    """Sync declared local tracker bindings and pull configured remotes; never push."""
     root = home or paths.resolve_dotbrain_home()
     try:
         with activity("Syncing all trackers..." if all_projects else "Syncing tracker...", enabled=not json_output and not dry_run):

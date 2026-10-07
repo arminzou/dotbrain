@@ -120,7 +120,7 @@ def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
     assert list(foreign.iterdir()) == []
     (home / ".cache").symlink_to(foreign, target_is_directory=True)
     with pytest.raises(ValueError):
-        subagents.rehydrate_packaged_subagents(home)
+        subagents.sync_packaged_subagents(home)
     assert list(foreign.iterdir()) == []
 
 

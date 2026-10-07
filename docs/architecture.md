@@ -112,7 +112,7 @@ flowchart LR
 ```
 
 The design says where to go; the tracker says where you are. The store is machine-local runtime
-state hydrated from configuration, so the same project can run embedded on one machine or against a
+state synced from configuration, so the same project can run embedded on one machine or against a
 shared server. See [Beads backend](beads-backend.md).
 
 ## Skills

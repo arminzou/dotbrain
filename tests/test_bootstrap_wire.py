@@ -148,7 +148,7 @@ def test_ensure_server_beads_metadata_writes_server_metadata(tmp_path: Path):
         run=fake_run,
     )
 
-    assert result and "hydrated" in result
+    assert result and "synced" in result
     assert json.loads((beads / "metadata.json").read_text()) == {
         "database": "dolt",
         "backend": "dolt",

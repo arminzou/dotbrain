@@ -121,7 +121,7 @@ def _runner_failing_bd_init(calls: list[list[str]], stderr: str):
 
 
 def test_init_beads_attaches_to_existing_server_db(dotbrain_home: Path):
-    # bd init reports the server DB already exists -> attach via metadata hydration.
+    # bd init reports the server DB already exists -> attach by syncing metadata.
     brainspace = dotbrain_home / "brainspaces" / "fresh"
     brainspace.mkdir(parents=True)
     calls: list[list[str]] = []

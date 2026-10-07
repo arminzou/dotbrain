@@ -37,11 +37,11 @@ def _write_server_defaults(dotbrain_home: Path, *projects: str) -> None:
     (dotbrain_home / "dotbrain.yaml").write_text(text)
 
 
-def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
+def test_pull_beads_syncs_metadata_from_dotbrain_defaults(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     _write_server_defaults(dotbrain_home, "myproject")
-    # Hydration targets the Brainspace directly, not an adopter repo.
+    # The sync targets the Brainspace directly, not an adopter repo.
     brainspace = paths.brainspace(dotbrain_home, "myproject")
     beads = brainspace / ".beads"
     beads.mkdir(parents=True)
@@ -71,10 +71,10 @@ def test_pull_beads_hydrates_metadata_from_dotbrain_defaults(
     assert (beads / "dolt-server.port").read_text() == "3307\n"
 
 
-def test_pull_beads_hydrates_repo_less_brainspace(
+def test_pull_beads_syncs_repo_less_brainspace(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    # Regression (dotbrain-o71): a Brainspace with no wired code repo must still be hydrated.
+    # Regression (dotbrain-o71): a Brainspace with no wired code repo must still be synced.
     _write_server_defaults(dotbrain_home, "brain-only")
     brainspace = paths.brainspace(dotbrain_home, "brain-only")
     beads = brainspace / ".beads"
@@ -99,7 +99,7 @@ def test_pull_beads_creates_missing_beads_dir(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     # .beads is never tracked, so a fresh clone has no directory at all;
-    # hydration must create it instead of skipping the Brainspace.
+    # the sync must create it instead of skipping the Brainspace.
     _write_server_defaults(dotbrain_home, "freshclone")
     brainspace = paths.brainspace(dotbrain_home, "freshclone")
     brainspace.mkdir(parents=True)
@@ -177,7 +177,7 @@ def test_pull_beads_uses_declared_database_name(
     assert metadata["dolt_database"] == "legacy_name"
 
 
-def test_pull_beads_hydrates_declared_embedded_project(
+def test_pull_beads_syncs_declared_embedded_project(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     (dotbrain_home / "dotbrain.yaml").write_text(
@@ -215,7 +215,7 @@ def test_pull_beads_hydrates_declared_embedded_project(
     assert sorted(init_calls) == [
         ("empty-fork", ""), ("fork", "https://example.com/fork"),
     ]
-    assert any("hydrated embedded beads for fork" in log for log in result.logs)
+    assert any("synced embedded beads for fork" in log for log in result.logs)
     assert any("empty-fork: declared embedded with no remote" in w for w in result.warnings)
 
 

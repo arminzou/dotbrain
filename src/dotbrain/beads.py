@@ -1,10 +1,10 @@
-"""Beads tracker setup, hydration, and admin.
+"""Beads tracker setup, sync, and admin.
 
 Everything that drives the ``bd`` CLI and the ``.beads`` workspace, in three bands:
 
 - **init**: ``bd init --stealth`` in a Brainspace, server-mode metadata
   (write/normalize/attach), and the project-#0 root-``.beads`` hijack guard.
-- **load/hydrate**: bring a Brainspace's ``.beads`` into existence from ``config.yaml`` and pull
+- **load/sync**: bring a Brainspace's ``.beads`` into existence from ``config.yaml`` and pull
   remote state, plus the dry-run preview.
 - **remote admin**: list/drop databases on the shared Dolt sql-server.
 
@@ -123,7 +123,7 @@ def attach_existing_server_beads(
     database: str,
     run: Runner = _default_run,
 ) -> str:
-    """Attach to an already-existing server beads DB via metadata hydration.
+    """Attach to an already-existing server beads DB by syncing its metadata.
 
     When ``bd init`` reports the server database already exists, a create is wrong: write the
     server-mode ``.beads`` scaffolding (metadata.json + port) and verify the
@@ -138,7 +138,7 @@ def attach_existing_server_beads(
     beads.mkdir(parents=True, exist_ok=True)
     write_server_beads_metadata(beads, host=host, port=port, user=user, database=database)
     run(["bd", "dolt", "test"], cwd=brainspace, env=_beads_env(brainspace), check=True)
-    return f"attached to existing server beads DB {host}:{port}/{database} (hydrated metadata)"
+    return f"attached to existing server beads DB {host}:{port}/{database} (synced metadata)"
 
 
 def init_beads(
@@ -161,7 +161,7 @@ def init_beads(
     workspace hijack, which is workspace resolution, not a commit.
 
     In server mode, an existing server database makes ``bd init`` fail with a create error; that
-    case falls back to attaching via metadata hydration rather than a destructive
+    case falls back to attaching by syncing metadata rather than a destructive
     re-init. Any other ``bd init`` failure surfaces as a clean ``RuntimeError`` carrying bd's stderr.
     """
     brainspace = Path(brainspace)
@@ -275,7 +275,7 @@ def _configure_dolt_server(
         run(["bd", "dolt", "set", key, value], cwd=brainspace, env=env, check=True)
 
 
-# --------------------------------------------------------------------------- load / hydrate
+# --------------------------------------------------------------------------- load / sync
 
 
 def ensure_server_beads_metadata(
@@ -288,10 +288,10 @@ def ensure_server_beads_metadata(
     database: str = "",
     run: Runner = _default_run,
 ) -> str | None:
-    """Hydrate server-mode ``metadata.json`` from config.yaml defaults, if needed.
+    """Sync server-mode ``metadata.json`` from config.yaml defaults, if needed.
 
     Creates the ``.beads`` directory when absent: it is never git-tracked, so on a
-    fresh clone hydration is what brings it into existence.
+    a fresh clone's sync is what brings it into existence.
     """
     beads_dir = paths.confined_path(repo, ".beads")
     metadata = paths.confined_path(beads_dir, "metadata.json")
@@ -313,7 +313,7 @@ def ensure_server_beads_metadata(
         metadata.unlink(missing_ok=True)
         port_file.unlink(missing_ok=True)
         raise
-    return f"hydrated server beads metadata for {name} at {server_host}:{port}/{database}"
+    return f"synced server beads metadata for {name} at {server_host}:{port}/{database}"
 
 
 def ensure_embedded_beads(
@@ -323,7 +323,7 @@ def ensure_embedded_beads(
     remote: str = "",
     run: Runner = _default_run,
 ) -> tuple[str | None, str | None]:
-    """Hydrate a declared-embedded Brainspace via ``bd init --stealth``. Returns (log, warning).
+    """Sync a declared-embedded Brainspace via ``bd init --stealth``. Returns (log, warning).
 
     With a declared remote the tracker is cloned from it; without one only an empty tracker can
     be created, since embedded data was never recoverable from git.
@@ -332,7 +332,7 @@ def ensure_embedded_beads(
         return None, None
     init_beads(brainspace, brainspace.name, dotbrain_home, remote=remote, run=run)
     if remote:
-        return f"hydrated embedded beads for {brainspace.name} from {remote}", None
+        return f"synced embedded beads for {brainspace.name} from {remote}", None
     return (
         f"initialized empty embedded beads for {brainspace.name}",
         f"{brainspace.name}: declared embedded with no remote; tracker starts empty",
@@ -342,7 +342,7 @@ def ensure_embedded_beads(
 def _preview_load(brainspace: Path, beads_cfg, cfg) -> list[str]:
     """Pure dry-run preview of what :func:`pull_beads_for_all` would do for one Brainspace.
 
-    Mirrors the live branch selection (embedded vs server, already-hydrated skip) without touching
+    Mirrors the live branch selection (embedded vs server, already-synced skip) without touching
     the filesystem or invoking ``bd``, then always notes the pull. Keeping this free of mutators is
     what makes ``--dry-run`` provably side-effect-free (unwire-dry-run lesson, 9cfc44f).
     """
@@ -351,14 +351,14 @@ def _preview_load(brainspace: Path, beads_cfg, cfg) -> list[str]:
     if beads_cfg.mode == "embedded":
         if not (brainspace / ".beads").is_dir():
             if beads_cfg.remote:
-                lines.append(f"would hydrate embedded beads for {name} from {beads_cfg.remote}")
+                lines.append(f"would sync embedded beads for {name} from {beads_cfg.remote}")
             else:
                 lines.append(f"would initialize empty embedded beads for {name}")
     elif not (brainspace / ".beads" / "metadata.json").is_file() and cfg.beads_server.host:
         database = beads_cfg.database or name
         port = cfg.beads_server.port or "3307"
         lines.append(
-            f"would hydrate server beads metadata for {name} "
+            f"would sync server beads metadata for {name} "
             f"at {cfg.beads_server.host}:{port}/{database}"
         )
     if beads_cfg.mode == "embedded" and beads_cfg.remote:
@@ -374,11 +374,11 @@ def pull_beads_for_all(
     projects: Sequence[str] | None = None,
     dry_run: bool = False,
 ) -> BootstrapResult:
-    """Hydrate and pull beads state for Brainspaces declared to use beads.
+    """Sync and pull beads state for Brainspaces declared to use beads.
 
     Drives off the resolved config.yaml config, not an existing ``.beads`` directory: brainspace
-    roots' ``.beads`` are never git-tracked, so on a fresh clone hydration creates them. Targets
-    each Brainspace directly, so repo-less projects are hydrated too.
+    roots' ``.beads`` are never git-tracked, so on a fresh clone the sync creates them. Targets
+    each Brainspace directly, so repo-less projects are synced too.
 
     ``projects`` restricts the run to the named Brainspaces (``None`` = all); a requested name
     with no Brainspace yields a warning. ``dry_run`` only previews via :func:`_preview_load`,
@@ -450,7 +450,7 @@ def pull_beads_for_all(
                 )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
                 OSError, RuntimeError, ValueError) as exc:
-            message = f"failed to hydrate beads metadata for {brainspace.name}: {exc}"
+            message = f"failed to sync beads metadata for {brainspace.name}: {exc}"
             result.errors.append(message)
             target["errors"].append(message)
             target["status"] = "failure"
