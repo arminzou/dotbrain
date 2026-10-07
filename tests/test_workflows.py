@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import beads, bootstrap as bootstrap_mod, config, paths, skills, workflows
+from dotbrain import beads, bootstrap as bootstrap_mod, config, paths, skills, subagents, workflows
 
 
 @pytest.mark.parametrize("conflict", ["other-project", "foreign-root", "invalid-name", "symlink-escape"])
@@ -325,7 +325,7 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     assert not (repo / ".claude" / "agents" / "verifier.md").exists()
     assert (repo / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
     assert (repo / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
-    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 4  # Codex only; the plugin delivers to Claude Code
+    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == len(subagents.PROJECT_BASELINE)  # Codex only; the plugin delivers to Claude Code
 
 
 def test_refresh_project_honors_declared_agent_workspaces(

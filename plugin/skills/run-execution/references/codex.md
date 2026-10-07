@@ -77,3 +77,31 @@ a nested reviewer as `dotbrain-reviewer`, and follow the shared item-review rule
 writer cannot select an agent, so its assignment points it to the packaged worker's definition,
 `.codex/agents/dotbrain-worker.toml` in its checkout. Record
 direct execution and nested spawning separately; evidence for one does not qualify the other.
+
+## Researcher availability
+
+Spawn the packaged researcher as `dotbrain-researcher`. It uses shell tools to read, list,
+and search local Brain and codebase files, and dedicated web tools for outside sources.
+Its prompt forbids writes, shell networking, installs, permission escalation, credential reads,
+and nested delegation. It requests high effort, live web search, and a read-only sandbox.
+If local reads are denied, it reports the missing context instead of bypassing restrictions.
+
+These are behavior rules under the parent's effective permissions, not a guaranteed tool
+allowlist or independently enforced read-only boundary. In native Windows CLI 0.160.1 probes,
+a child requesting read-only under a full-access lead could mutate disposable files and open an
+outbound TCP connection. A read-only lead blocked reading the challenge script, leaving its
+write/network challenges untested. The shell-reading path accepts that parent-policy tradeoff;
+do not claim that the custom TOML prevents writes when the lead runs with broader permissions.
+
+Collaboration tools also remained exposed despite `multi_agent = false`. The researcher must
+follow its no-delegation instruction. Web-page reads succeeded through an inherited connector;
+that does not separately establish the effect of the native `web_search` setting.
+
+No reader MCP server is required or provisioned. An earlier no-shell probe could combine private
+context and web sources using a local read-only MCP reader registered in the parent session,
+but the packaged researcher uses shell reads instead. Claude Code retains its native file-read
+tool allowlist and has no shell access.
+
+The [official custom-agent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+explains configuration inheritance and the parent live permission overrides. Verify the
+effective permissions in the actual launch rather than relying on file defaults alone.

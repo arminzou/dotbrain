@@ -22,6 +22,6 @@ public-tracker: none
 # skills:
 #   - some-collection/some-skill
 #
-# Project-scoped subagents only. The packaged four are always wired into active workspaces.
+# Project-scoped subagents only. Packaged subagents are always wired into active workspaces.
 # subagents:
 #   - some-project-only-subagent

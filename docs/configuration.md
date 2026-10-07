@@ -79,7 +79,7 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-# subagents:                  # project-only subagents; the packaged four are always wired
+# subagents:                  # project-only subagents; packaged subagents are always wired
 #   - some-project-only-subagent
 ```
 
@@ -93,7 +93,7 @@ skills:                       # extra skills for this project's workspaces
 | `beads.remote` | — | Dolt remote for an embedded tracker |
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
-| `subagents` | `[]` | Project-only subagents in addition to the packaged four |
+| `subagents` | `[]` | Project-only subagents in addition to the packaged subagents |
 
 `public-tracker` sets up public issue intake and contributor collaboration. It never mirrors the
 private work graph or turns private work into public issues; see the `triage-public` skill.

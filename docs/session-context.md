@@ -63,7 +63,7 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 
 ## Subagents
 
-dotbrain ships four packaged subagents. Claude Code receives them from the plugin as
+dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
 Each reads the Brain before acting:
@@ -74,6 +74,7 @@ Each reads the Brain before acting:
 | `worker` | The writing worker: carries out an assigned change in your checkout or its own worktree, and commits it |
 | `reviewer` | Reviews a change for correctness, regressions, security, and missing tests |
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
+| `researcher` | Answers a question from the Brain, the codebase, and the web, and flags where outside sources and the Brain disagree. Codex uses shell tools for local reads under the parent's effective permissions; see [runtime limitations](../plugin/skills/run-execution/references/codex.md#researcher-availability) |
 
 The packaged subagents can't be overridden: a file with the same name in your private agent
 sources is ignored. To customize one, write your own agent under a different name. Add your own
