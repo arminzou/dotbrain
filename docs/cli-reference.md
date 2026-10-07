@@ -34,7 +34,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`skills link`](#dotbrain-skills-link) | Reconcile selected skills in project or explicit global scope. |
 | [`agents list`](#dotbrain-agents-list) | Discover locally available agents. |
 | [`agents link`](#dotbrain-agents-link) | Reconcile selected agents in project or explicit global scope. |
-| [`beads sync`](#dotbrain-beads-sync) | Hydrate declared local tracker bindings and pull configured remotes; never push. |
+| [`beads sync`](#dotbrain-beads-sync) | Sync declared local tracker bindings and pull configured remotes; never push. |
 | [`beads migrate`](#dotbrain-beads-migrate) | Migrate embedded trackers to a server, keeping history and rollback backups. |
 | [`beads list-db`](#dotbrain-beads-list-db) | List remote database identifiers, including databases without a Brainspace. |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | Explicitly delete a remote database; never infer it from the current project. |
@@ -238,7 +238,7 @@ Manage the Beads tracker's state and backend. See [Beads backend](beads-backend.
 
 ### `dotbrain beads sync` {#dotbrain-beads-sync}
 
-Hydrate declared local tracker bindings and pull configured remotes; never push.
+Sync declared local tracker bindings and pull configured remotes; never push.
 
 ```text
 dotbrain beads sync [OPTIONS]
@@ -248,7 +248,7 @@ dotbrain beads sync [OPTIONS]
 | --- | --- | --- |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--all` | — | Sync every registered project. |
-| `--dry-run` | — | Preview tracker hydration and configured pulls. |
+| `--dry-run` | — | Preview tracker sync and configured pulls. |
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 

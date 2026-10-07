@@ -70,7 +70,7 @@ Then set `beads.mode: server` in the project and run `dotbrain wire` or `dotbrai
 
 ### `beads sync`
 
-Hydrates local tracker state from declarations: attaches server trackers, initializes embedded
+Syncs local tracker state from declarations: attaches server trackers, initializes embedded
 ones, and pulls only when an embedded remote is declared. Disabled Beads is a no-op; a local
 embedded tracker without a remote is prepared without a pull. Sync never pushes or changes wiring.
 
@@ -89,7 +89,7 @@ sync reports an actionable error rather than pulling another remote. Configure a
 with `bd dolt remote add <name> <declared-url>`, then repeat sync.
 
 `--json` returns one result with per-project outcomes; independent targets continue after failures.
-Tracker subprocess waits are bounded. Hydration, missing-tool, or pull failures exit unsuccessfully.
+Tracker subprocess waits are bounded. Sync, missing-tool, or pull failures exit unsuccessfully.
 
 ### `beads migrate`
 

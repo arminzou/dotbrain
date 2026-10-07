@@ -220,7 +220,7 @@ def wire_project(
     if beads_log:
         result.logs.append(beads_log)
     if run_beads and not existing:
-        # a deviating backend must be durable in project.yaml or hydration cannot
+        # a deviating backend must be durable in project.yaml or a sync cannot
         # reproduce it on a fresh clone
         record_log = config.record_project_beads(
             dotbrain_home, project,
@@ -251,8 +251,8 @@ def wire_project(
     )
     if (parent is not None and config.load_project_config(dotbrain_home, project).mode != "none"
             and not (brainspace / ".beads").exists()):
-        # a worktree attachment never syncs the shared tracker; refresh hydrates it and attaches .beads
-        result.warnings.append("shared tracker is not hydrated; run `dotbrain refresh` to hydrate it and attach .beads")
+        # a worktree attachment never syncs the shared tracker; refresh syncs it and attaches .beads
+        result.warnings.append("shared tracker is not synced; run `dotbrain refresh` to sync it and attach .beads")
     if paths.INJECT_ADOPTER_POINTER:
         result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
     expected_links = (".brain",)
@@ -371,7 +371,7 @@ def refresh_projects(
             target.data['shared_tracker_changes'] += tracker_changes
             target.changes += [f'shared tracker: {entry}' for entry in tracker_changes]
             target.findings += [{'severity': 'warning', 'message': entry} for entry in synced.warnings]
-            # Hydration can create the execution store; attach it only after it succeeds.
+            # Sync can create the execution store; attach it only after it succeeds.
             if selected.checkout is not None and not synced.errors:
                 repo = selected.checkout
                 mode = config.load_project_config(dotbrain_home, selected.project).mode

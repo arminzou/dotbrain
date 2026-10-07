@@ -109,6 +109,16 @@ def test_lead_is_the_single_writer_during_delegated_execution():
     assert "only the lead changes the work graph" in _text(CONVENTION)
 
 
+def test_sync_replaces_the_retired_term_hydrate():
+    """"Sync" is the word for bringing tracker state or packaged assets into place; "hydrate" is retired."""
+    roots = (Path("src/dotbrain"), SKILLS, Path("docs"))
+    for root in roots:
+        for path in root.rglob("*"):
+            if not path.is_file() or ".vitepress" in path.parts or path.suffix not in {".py", ".md", ".toml", ".yaml"}:
+                continue
+            assert not re.search(r"hydrat", path.read_text(encoding="utf-8"), re.IGNORECASE), path
+
+
 def test_slice_is_not_a_noun_for_a_work_item():
     """"Work item" is the term; "vertical slice" stays the name of to-issues' technique."""
     for skill in SKILLS.rglob("*.md"):

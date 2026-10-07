@@ -324,7 +324,7 @@ def test_safe_migrate_project_reports_ssh_failure_cleanly(dotbrain_home: Path):
 
 def test_migrate_removes_embedded_entry_from_config(dotbrain_home: Path):
     # After a successful migration the project is server-mode; a stale embedded
-    # entry would make bootstrap hydrate it as embedded on a fresh clone.
+    # entry would make bootstrap sync it as embedded on a fresh clone.
     (dotbrain_home / "dotbrain.yaml").write_text(
         "version: 2\nprojects:\n  example:\n    beads:\n      mode: embedded\n"
     )

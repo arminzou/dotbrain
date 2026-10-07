@@ -26,7 +26,7 @@ The convention describes the model; these skills act on it.
 
 # DOTBRAIN.md
 
-Shared operating rules for all dotbrain brains. Owned by dotbrain; rehydrated by
+Shared operating rules for all dotbrain brains. Owned by dotbrain; synced by
 `dotbrain refresh`. Do not edit per project — changes to the packaged dotbrain
 Brain template propagate to every brain.
 

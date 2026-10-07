@@ -89,7 +89,7 @@ def _copy_resource_file(resource_path: str, dest: Path) -> bool:
     return True
 
 
-def rehydrate_packaged_subagents(dotbrain_home: Path) -> list[Path]:
+def sync_packaged_subagents(dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home)
     cached: list[Path] = []
     for rel, _src in resource_loader.iter_resource_files("agents"):

@@ -151,7 +151,7 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     for runtime, ext in (("claude", "md"), ("codex", "toml")):
         for name in ("reviewer", "implementer", "investigator", "verifier"):
             assert (root / ".cache" / "agents" / runtime / f"{name}.{ext}").is_file()
-    assert any("rehydrated .cache/agents/claude/reviewer.md" in line for line in result.logs)
+    assert any("synced .cache/agents/claude/reviewer.md" in line for line in result.logs)
     assert (root / ".cache" / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")
 
 

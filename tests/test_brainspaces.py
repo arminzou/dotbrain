@@ -31,7 +31,7 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     for sub in ("adr", "designs", "docs"):
         assert (brain / sub).is_dir()
         assert (brain / sub / "README.md").is_file(), \
-            f"dotbrain-owned README.md not hydrated to .brain/{sub}/"
+            f"dotbrain-owned README.md not synced to .brain/{sub}/"
     # the agents/ skill-config dir is retired and no longer seeded
     assert not (brain / "agents").exists()
     # site/ opts a Brain into a Brain site, so only `dotbrain site init` writes it
