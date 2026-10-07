@@ -5,10 +5,11 @@ preparation or dispatch and before fix rounds, cancellation, or recovery.
 
 ## Prepare and dispatch
 
-Dispatch each concurrent writing worker as a background subagent with worktree isolation on the
-`Agent` call, using a role allowed to create a branch and commit, such as `general-purpose`.
-The packaged `implementer` is a sole writer sharing the lead's checkout for a small change,
-and refuses an item that needs a branch.
+Dispatch the packaged worker as `dotbrain:worker`; read-only roles are `dotbrain:explorer`,
+`dotbrain:reviewer`, and `dotbrain:verifier`. The worker's definition always launches it in the
+background. For in-place work, dispatch it without isolation. For isolated work, which every
+concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
+isolation, so the lead chooses per dispatch.
 
 The launch returns the agent ID at once, and the worker's checkout is
 `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when

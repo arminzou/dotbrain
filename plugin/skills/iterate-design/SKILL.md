@@ -206,11 +206,11 @@ claim success. The HITL workflow instead pauses new dispatch and integration and
 - Automation: Prefer a direct Goal-mode handoff first. Use scheduled/background automation only
   after the prompt has worked manually.
 - Skill: This file is the reusable workflow wrapper.
-- Sub-agents: Use an explorer for unclear codepaths. `run-execution` dispatches writing workers;
-  the packaged implementer suits only a small change in the lead's checkout. The agent that makes
+- Sub-agents: Use an explorer for unclear codepaths. `run-execution` dispatches the packaged worker,
+  in the lead's checkout or in its own worktree as the lead instructs. The agent that makes
   a change runs that checkpoint's check; the `verifier` role is reserved for the
   once-only in-loop gate, and a reviewer supplements the gate before finalizing meaningful changes.
-  Do not let the implementer be the only judge of correctness.
+  Do not let the worker be the only judge of correctness.
 - Connectors: Use available environment and MCP/plugin connectors directly for project context such
   as issue trackers, GitHub, browser checks, docs, or telemetry.
 - Verifier: The `verifier` role runs the once-only in-loop gate and returns evidence — the commands

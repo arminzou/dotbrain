@@ -149,7 +149,7 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
     for runtime, ext in (("claude", "md"), ("codex", "toml")):
-        for name in ("reviewer", "implementer", "investigator", "verifier"):
+        for name in ("reviewer", "worker", "explorer", "verifier"):
             assert (root / ".cache" / "agents" / runtime / f"{name}.{ext}").is_file()
     assert any("synced .cache/agents/claude/reviewer.md" in line for line in result.logs)
     assert (root / ".cache" / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")

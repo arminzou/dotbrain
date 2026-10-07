@@ -57,7 +57,7 @@ you look:
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
 Then explore the codebase with local search/read tools. For broad sweeps, fan out to an
-`investigator` when available — it returns a map of where the territory is, and you still read the
+`explorer` when available — it returns a map of where the territory is, and you still read the
 parts the candidates depend on; otherwise inspect directly. Don't follow rigid heuristics — explore
 organically and note where you experience friction:
 

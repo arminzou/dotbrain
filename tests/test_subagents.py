@@ -6,6 +6,56 @@ import tomllib
 from dotbrain import subagents
 
 
+def test_packaged_worker_contract_on_both_runtimes():
+    """One writing worker replaces the in-place-only implementer; the assignment, not the agent,
+    picks its mode, and it commits but never pushes, merges, or closes."""
+    agents = Path("src/dotbrain/resources/agents")
+    claude = (agents / "claude/worker.md").read_text(encoding="utf-8")
+    codex = tomllib.loads((agents / "codex/worker.toml").read_text(encoding="utf-8"))
+    frontmatter = claude.split("---")[1]
+    # Background keeps dispatch recordable at launch; isolation stays a per-dispatch choice.
+    assert "background: true" in frontmatter
+    assert "isolation" not in frontmatter
+    assert "Skill" in frontmatter
+    assert codex["name"] == "worker"
+    for prompt in (claude, codex["developer_instructions"]):
+        text = " ".join(prompt.split()).replace("`", "").lower()
+        for rule in (
+            "it decides your mode; you never choose it",
+            "when the assignment names no worktree",
+            "if that branch is the default branch, stop and report",
+            "git switch -c <item-branch> <base>",
+            "--claim --actor <worker-actor>",
+            "commit your finished candidate",
+            "keep your claim",
+            "push, merge, or rewrite shared history",
+        ):
+            assert rule in text, rule
+    for path in agents.rglob("*.*"):
+        assert not {"implementer", "investigator"} & set(path.stem.split("-")), path
+
+
+def test_explorer_replaces_investigator():
+    agents = Path("src/dotbrain/resources/agents")
+    assert (agents / "claude/explorer.md").read_text(encoding="utf-8").startswith("---\nname: explorer\n")
+    assert tomllib.loads((agents / "codex/explorer.toml").read_text(encoding="utf-8"))["name"] == "explorer"
+
+
+def test_shared_skills_name_roles_not_runtime_dispatch_names():
+    """Runtime spellings live only in the runtime references, so a runtime's naming change stays there."""
+    import re
+
+    skills = Path("plugin/skills")
+    runtime_name = re.compile(r"dotbrain[:-](worker|explorer|reviewer|verifier)\b")
+    for path in skills.rglob("*.md"):
+        if path.parent.name == "references" and path.parent.parent.name == "run-execution":
+            continue
+        assert not runtime_name.search(path.read_text(encoding="utf-8")), path
+    refs = skills / "run-execution/references"
+    assert "`dotbrain:worker`" in (refs / "claude-code.md").read_text(encoding="utf-8")
+    assert "`dotbrain-reviewer`" in (refs / "codex.md").read_text(encoding="utf-8")
+
+
 def test_packaged_reviewer_item_review_contract():
     agents = Path("src/dotbrain/resources/agents")
     claude = (agents / "claude/reviewer.md").read_text(encoding="utf-8")
@@ -265,7 +315,7 @@ def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brai
 def test_project_link_set_prepends_core_and_deduplicates() -> None:
     names = subagents.project_link_set(("reviewer", "custom", "verifier"))
 
-    assert names[:4] == ("implementer", "investigator", "reviewer", "verifier")
+    assert names[:4] == ("explorer", "reviewer", "verifier", "worker")
     assert names[-1] == "custom"
     assert names.count("reviewer") == 1
     assert names.count("verifier") == 1
