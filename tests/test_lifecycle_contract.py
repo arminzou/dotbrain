@@ -83,6 +83,31 @@ def test_wire_shared_maintenance_only_for_main_checkout(lifecycle, monkeypatch, 
         assert pulls == [['custom']]
 
 
+@pytest.mark.parametrize('mode, hydrated, hinted', [
+    ('embedded', False, True),
+    ('embedded', True, False),
+    ('none', False, False),
+])
+def test_wire_worktree_names_refresh_for_an_unhydrated_tracker(lifecycle, monkeypatch, mode, hydrated, hinted):
+    # A worktree attachment no longer pulls the tracker, so a main checkout attached with
+    # --skip-beads (or a failed pull) leaves .beads missing; refresh is the recovery.
+    home, brainspace, main, worktree = lifecycle
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        f'agents: []\nskills: []\nbeads:\n  mode: {mode}\n', encoding='utf-8'
+    )
+    if hydrated:
+        (brainspace / '.beads').mkdir()
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all',
+                        lambda *a, **k: pytest.fail('a worktree attachment must not pull the tracker'))
+    result = workflows.wire_project(dotbrain_home=home, repo=worktree)
+
+    assert not result.errors
+    hint = [w for w in result.warnings if 'dotbrain refresh' in w]
+    assert bool(hint) is hinted, result.warnings
+    if hinted:
+        assert hint == ['shared tracker is not hydrated; run `dotbrain refresh` to hydrate it and attach .beads']
+
+
 @pytest.mark.parametrize('problem', ['unwired', 'conflict', 'foreign'])
 def test_wire_worktree_rejects_parent_conflicts_before_writes(lifecycle, problem, tmp_path):
     home, brainspace, main, worktree = lifecycle
