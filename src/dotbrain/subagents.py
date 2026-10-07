@@ -43,6 +43,36 @@ def _required_core() -> tuple[str, ...]:
 
 PROJECT_BASELINE = _required_core()
 
+# Packaged subagents: Claude Code receives them from the plugin (namespaced dotbrain:<role>); Codex has
+# no plugin agents, so the CLI generates them as dotbrain-<role>. They are never overridden.
+PACKAGED_PREFIX = "dotbrain-"
+
+
+def is_packaged(name: str) -> bool:
+    return name in PROJECT_BASELINE
+
+
+def plugin_delivered(name: str, runtime: str) -> bool:
+    """True when the plugin, not the CLI, delivers this subagent to this runtime."""
+    return is_packaged(name) and runtime == "claude-code"
+
+
+def delivered_stem(name: str, runtime: str) -> str:
+    """File stem the CLI writes into a runtime's agent home."""
+    return f"{PACKAGED_PREFIX}{name}" if is_packaged(name) and runtime == "codex" else name
+
+
+def packaged_body(name: str, runtime: str) -> str:
+    """Packaged definition text as delivered: a Codex agent's name carries the prefix."""
+    directory, suffix = RUNTIME_SPEC[runtime]
+    text = resource_loader.resource(f"agents/{directory}/{name}{suffix}").read_text(encoding="utf-8")
+    if runtime == "codex":
+        line = f'name = "{name}"'
+        if text.count(line) != 1:
+            raise ValueError(f"packaged subagent {name}: expected one {line!r} line")
+        text = text.replace(line, f'name = "{delivered_stem(name, runtime)}"', 1)
+    return text
+
 
 @dataclass
 class GlobalConfig:
@@ -71,74 +101,45 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _copy_resource_file(resource_path: str, dest: Path) -> bool:
-    desired = resource_loader.resource(resource_path).read_text(encoding="utf-8")
+def _cache_packaged(root: Path, name: str, runtime: str) -> tuple[Path, bool]:
+    directory, suffix = RUNTIME_SPEC[runtime]
+    dest = paths.confined_path(root, f".cache/agents/{directory}/{delivered_stem(name, runtime)}{suffix}")
+    desired = packaged_body(name, runtime)
     if dest.is_file() and not dest.is_symlink() and dest.read_text(encoding="utf-8") == desired:
-        return False
-    if dest.exists() or dest.is_symlink():
-        if dest.is_dir() and not dest.is_symlink():
-            shutil.rmtree(dest)
-        else:
-            dest.unlink()
+        return dest, False
+    if dest.is_symlink() or dest.exists():
+        dest.unlink()
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(
-        desired,
-        encoding="utf-8",
-        newline="\n",
-    )
-    return True
+    dest.write_text(desired, encoding="utf-8", newline="\n")
+    return dest, True
 
 
 def sync_packaged_subagents(dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home)
     cached: list[Path] = []
-    for rel, _src in resource_loader.iter_resource_files("agents"):
-        dest = paths.confined_path(root, f".cache/agents/{rel.as_posix()}")
-        if _copy_resource_file(f"agents/{rel.as_posix()}", dest):
-            cached.append(dest)
+    for name in PROJECT_BASELINE:
+        for runtime in RUNTIME_SPEC:
+            if plugin_delivered(name, runtime):
+                continue
+            dest, changed = _cache_packaged(root, name, runtime)
+            if changed:
+                cached.append(dest)
     return cached
 
 
-def seed_private_subagents(dotbrain_home: Path) -> list[Path]:
-    """Seed bundled examples into the private agents tree without overwriting overrides."""
-
-    root = Path(dotbrain_home)
-    seeded: list[Path] = []
-    for rel, src in resource_loader.iter_resource_files("agents"):
-        dest = paths.confined_path(root, f"agents/{rel.as_posix()}")
-        if dest.exists() or dest.is_symlink():
-            continue
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(
-            src.read_text(encoding="utf-8"),
-            encoding="utf-8",
-            newline="\n",
-        )
-        seeded.append(dest)
-    return seeded
-
-
 def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
+    """Source file per runtime the CLI delivers; packaged subagents never read a private source."""
     paths.validate_project_name(name)
     resolved: dict[str, Path] = {}
     root = Path(dotbrain_home)
     for runtime, (subdir, ext) in RUNTIME_SPEC.items():
+        if is_packaged(name):
+            if not plugin_delivered(name, runtime):
+                resolved[runtime] = _cache_packaged(root, name, runtime)[0]
+            continue
         private_src = paths.confined_path(root / "agents", f"{subdir}/{name}{ext}")
         if private_src.is_file():
             resolved[runtime] = private_src
-            continue
-
-        resource_path = f"agents/{subdir}/{name}{ext}"
-        try:
-            resource = resource_loader.resource(resource_path)
-        except FileNotFoundError:
-            continue
-        if not resource.is_file():
-            continue
-
-        cached = paths.confined_path(root, f".cache/agents/{subdir}/{name}{ext}")
-        _copy_resource_file(resource_path, cached)
-        resolved[runtime] = cached
     return resolved
 
 
@@ -149,10 +150,11 @@ def validate_selection(dotbrain_home: Path, names: Sequence[str], runtimes: Sequ
         paths.validate_project_name(name)
         available: set[str] = set()
         for runtime, (directory, suffix) in RUNTIME_SPEC.items():
+            if is_packaged(name):
+                available.add(runtime)
+                continue
             private = paths.confined_path(Path(dotbrain_home) / "agents", f"{directory}/{name}{suffix}")
-            resource = resource_loader.resource(f"agents/{directory}/{name}{suffix}")
-            if private.is_file() or resource.is_file():
-                paths.confined_path(Path(dotbrain_home), f".cache/agents/{directory}/{name}{suffix}")
+            if private.is_file():
                 available.add(runtime)
         if not available:
             errors.append(f"subagent not found: {name}")

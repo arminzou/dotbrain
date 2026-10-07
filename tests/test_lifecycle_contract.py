@@ -74,7 +74,7 @@ def test_wire_shared_maintenance_only_for_main_checkout(lifecycle, monkeypatch, 
     assert not result.errors
     assert (checkout / '.brain').resolve() == brain
     assert (checkout / '.beads').resolve() == brainspace / '.beads'
-    assert subagents.is_managed_copy(checkout / '.codex' / 'agents' / 'reviewer.toml')
+    assert subagents.is_managed_copy(checkout / '.codex' / 'agents' / 'dotbrain-reviewer.toml')
     if linked_worktree:
         assert {p.relative_to(brain): p.read_bytes() for p in brain.rglob('*') if p.is_file()} == before
         assert pulls == []

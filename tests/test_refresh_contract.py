@@ -119,7 +119,7 @@ def test_owned_workspace_migrates_and_undeclared_runtime_rejected_before_writes(
     result = workflows.refresh_project(home, 'custom', runtime='codex')
     assert not result.errors
     assert not (checkout / '.codex').is_symlink()
-    assert (checkout / '.codex' / 'agents' / 'reviewer.toml').is_file()
+    assert (checkout / '.codex' / 'agents' / 'dotbrain-reviewer.toml').is_file()
     assert workflows.refresh_project(home, 'custom', runtime='codex').logs == []
 
 

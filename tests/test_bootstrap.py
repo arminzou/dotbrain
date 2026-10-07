@@ -148,11 +148,11 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
-    for runtime, ext in (("claude", "md"), ("codex", "toml")):
-        for name in ("reviewer", "worker", "explorer", "verifier"):
-            assert (root / ".cache" / "agents" / runtime / f"{name}.{ext}").is_file()
-    assert any("synced .cache/agents/claude/reviewer.md" in line for line in result.logs)
-    assert (root / ".cache" / "agents" / "claude" / "reviewer.md").read_text().startswith("---\n")
+    # Claude Code receives packaged subagents from the plugin; Codex gets prefixed generated copies.
+    for name in ("reviewer", "worker", "explorer", "verifier"):
+        assert (root / ".cache" / "agents" / "codex" / f"dotbrain-{name}.toml").is_file()
+    assert not (root / ".cache" / "agents" / "claude").exists()
+    assert any("synced .cache/agents/codex/dotbrain-reviewer.toml" in line for line in result.logs)
 
 
 def test_wire_project_does_not_seed_project_default_subagents(
@@ -207,7 +207,7 @@ def test_link_global_subagents_links_configured_target(
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex", home=tmp_path)
 
     assert result.warnings == []
-    assert subagents.is_managed_copy(dest / "reviewer.toml")
+    assert subagents.is_managed_copy(dest / "dotbrain-reviewer.toml")
     assert any(line.startswith("delivered global") for line in result.logs)
 
 

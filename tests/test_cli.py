@@ -322,9 +322,9 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
     result = runner.invoke(app, ["agents", "link", "--project", "example"])
 
     assert result.exit_code == 0, result.output
-    assert (checkout / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (checkout / ".codex" / "agents" / "reviewer.toml").is_file()
-    assert not (checkout / ".codex" / "agents" / "reviewer.toml").is_symlink()
+    assert not (checkout / ".claude" / "agents" / "reviewer.md").exists()
+    assert (checkout / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
+    assert not (checkout / ".codex" / "agents" / "dotbrain-reviewer.toml").is_symlink()
 
 
 def test_agents_link_repo_links_into_target_checkout(
@@ -342,9 +342,9 @@ def test_agents_link_repo_links_into_target_checkout(
     )
 
     assert result.exit_code == 0, result.output
-    assert (checkout / ".claude" / "agents" / "verifier.md").is_symlink()
-    assert (checkout / ".codex" / "agents" / "verifier.toml").is_file()
-    assert not (checkout / ".codex" / "agents" / "verifier.toml").is_symlink()
+    assert not (checkout / ".claude" / "agents" / "verifier.md").exists()
+    assert (checkout / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
+    assert not (checkout / ".codex" / "agents" / "dotbrain-verifier.toml").is_symlink()
     assert not (brainspace / ".codex" / "agents").exists()
 
 
@@ -382,7 +382,7 @@ def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_pat
 
     first = runner.invoke(app, ["agents", "link", "--scope", "global", "--runtime", "codex"])
     assert first.exit_code == 0, first.output
-    agent_file = tmp_path / ".codex" / "agents" / "reviewer.toml"
+    agent_file = tmp_path / ".codex" / "agents" / "dotbrain-reviewer.toml"
     assert agent_file.is_file() and not agent_file.is_symlink()
 
     (dotbrain_home / "agents" / "agents.yaml").write_text("global: []\n")

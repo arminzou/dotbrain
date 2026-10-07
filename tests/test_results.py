@@ -131,8 +131,10 @@ def test_bootstrap_preserves_global_yaml(tmp_path, fake_home):
 def test_bootstrap_foreign_asset_is_preserved_and_failed(tmp_path, fake_home):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    (root / "agents" / "agents.yaml").write_text("global: [reviewer]\n")
-    foreign = fake_home / ".claude" / "agents" / "reviewer.md"
+    # A packaged subagent reaches Claude Code through the plugin, so use the operator's own agent.
+    (root / "agents" / "claude" / "custom.md").write_text("custom")
+    (root / "agents" / "agents.yaml").write_text("global: [custom]\n")
+    foreign = fake_home / ".claude" / "agents" / "custom.md"
     foreign.parent.mkdir(parents=True)
     foreign.write_text("user owned")
     result = runner.invoke(app, ["bootstrap", "--home", str(root), "--runtime", "claude", "--json"])
@@ -144,7 +146,8 @@ def test_bootstrap_foreign_asset_is_preserved_and_failed(tmp_path, fake_home):
 def test_bootstrap_symlink_privilege_failure_json(tmp_path, fake_home, monkeypatch):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    (root / "agents" / "agents.yaml").write_text("global: [reviewer]\n")
+    (root / "agents" / "claude" / "custom.md").write_text("custom")
+    (root / "agents" / "agents.yaml").write_text("global: [custom]\n")
     def denied(self, target, target_is_directory=False):
         exc = OSError("A required privilege is not held by the client")
         exc.winerror = 1314

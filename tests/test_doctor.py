@@ -177,7 +177,7 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     selected_agents = subagents.project_link_set(())
     subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})
     skills.link_project(root, brainspace, (".codex",), ["bundle"], workspace_dirs={".codex": repo / ".codex"})
-    entries = ["/.brain", "/.codex/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
+    entries = ["/.brain", "/.codex/skills/one"] + [f"/.codex/agents/dotbrain-{name}.toml" for name in selected_agents]
     write(repo / ".git/info/exclude", "\n".join(entries) + "\n")
     # Real-file Codex delivery needs no cache at diagnosis time.
     import shutil
@@ -186,7 +186,7 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
     assert not errors(report.projects["example"])
     assert snapshot(tmp_path) == before and not (root / ".cache").exists()
-    dest = repo / f".codex/agents/{selected_agents[0]}.toml"
+    dest = repo / f".codex/agents/dotbrain-{selected_agents[0]}.toml"
     dest.write_text(dest.read_text() + "# stale\n")
     skill = repo / ".codex/skills/one"
     skill.unlink()
