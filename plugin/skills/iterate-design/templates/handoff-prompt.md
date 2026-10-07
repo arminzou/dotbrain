@@ -14,7 +14,9 @@ Preflight contract (confirmed by explicit `GO`):
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
   the review surface, final whole-branch code review for multi-item branches, default non-blocking
   simplify pass, readiness: <only if named in this contract>
-- Delivery: ready-for-review PR authorized, human review requested; provider/auth available: <yes>
+- Delivery: draft at first push, pushes after integrated checks, one mention per blocked stop,
+  ready at FINAL with human review requested; provider/auth: <available>; agent identity:
+  <distinct from human>; base ruleset: <reviewed PR required, stale approvals dismissed>
 
 Treat the active design doc as the controlling instruction document for this loop.
 
@@ -27,6 +29,25 @@ Before entering the loop, and after context recovery:
   yourself only when you will work it as a team of one; otherwise `run-execution` claims it under
   each worker's own actor. Never claim an epic merely because it is linked.
 - Do not start unless the preflight contract is complete and the human has said `GO`.
+  Confirm provider/auth, agent identity distinct from the human reviewer, and the base-branch
+  ruleset requiring a reviewed PR and dismissing stale approvals. Use that agent identity for
+  every host action; never fall back to the human's credentials.
+
+Handoff delivery:
+- After the first item integrates and passes its integrated check, push the dedicated branch and
+  open a draft PR at the first push. Record the URL privately and attach it where supported.
+  Do not create a placeholder commit to open it at preflight.
+- Push after each integrated item that passes its integrated check. Post no progress comments
+  and make no body updates between the first push and FINAL; commits show progress.
+- When the whole handoff ends BLOCKED, leave the PR draft and post one PR comment that @-mentions
+  the human with an audience-safe reason. Each blocked stop gets one mention. Check existing
+  comments and the delivery record before posting or retrying, keyed to this stop's revision and
+  reason: a retry of the same stop never posts twice, and a new stop after a resume gets its own
+  mention. Record the comment URL with that key. Private item IDs and attempt details stay in the
+  tracker and session. Before the first push, use the runtime's own notification where available,
+  otherwise the session report. Report notification failures in the session and remain BLOCKED.
+- At FINAL, write the Verification section and simplify count or skip note, mark the existing
+  draft PR ready, and request the human's review. Never mark it ready with a blocked scoped item.
 
 Objective:
 Complete the next bounded execution that advances this design.
@@ -80,8 +101,8 @@ Loop protocol (every iteration, not just the first):
    simplification suggestions", with no finding details, or a one-line skip note. Review
    supplements the verifier, never replaces it.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
-10. Before calling FINAL: push only the dedicated branch, open the authorized PR ready for review,
-    and request the human's review. Record its URL and verification on the design-level code
+10. Before calling FINAL: complete Handoff delivery above, marking the existing draft ready
+    and requesting the human's review. Record its URL and verification on the design-level code
     review bead, add `human`, and leave that bead open; for a single-item branch, record them on
     its work item instead. Never merge,
     deploy, publish, change dependencies, or alter human-owned criteria.
@@ -105,5 +126,5 @@ Rules:
 - Never retry an item past 3 consecutive failed checks on the same checkpoint; block the item
   and continue independent work. A failure compromising shared state ends the whole handoff.
 - Stop BLOCKED after two cycles with no code change, verification evidence, or resolved scope.
-- `GO` authorizes only the agreed ready-for-review PR and the review request; human review, merge,
+- `GO` authorizes only the agreed Handoff delivery sequence; human review, merge,
   and every other outward action stay human-owned.

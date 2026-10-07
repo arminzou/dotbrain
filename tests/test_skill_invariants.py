@@ -65,6 +65,9 @@ def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
     assert "explicit `GO`" in convention
     assert "PR authorization" in convention
     assert "ready-for-review PR" in convention
+    assert "a draft PR at the first push" in convention
+    assert "one mention of the human for each blocked stop" in convention
+    assert "authorizes only the agreed push of its dedicated branch, a ready-for-review PR" not in convention
     assert "Preflight contract" in loop
     assert "ready-for-review PR" in loop
     assert "does not authorize merge, deploy, publish, dependency changes" in loop
