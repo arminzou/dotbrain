@@ -33,7 +33,7 @@ Before starting the loop, confirm all five hold. If any is missing, stay in ordi
 2. The agent can run what it changes (execute the gate itself, not wait on an external process).
 3. The in-loop gate is fast enough to run within the retry budget.
 4. A hard stop is set (a retry cap or budget the loop will actually honor).
-5. The preflight contract below covers the only permitted delivery action; every other irreversible
+5. The preflight contract below covers the permitted delivery actions; every other irreversible
    action still has a human gate.
 
 ## Preflight contract
@@ -50,13 +50,38 @@ Before changing code, present this contract and wait for the human's explicit `G
 - **Workers:** the writing-worker cap for each bounded execution (2 by default).
 - **Human gates:** every human-gated item in the proposed scope. A handoff that includes one can
   only end `BLOCKED`, so the human sees that before `GO`.
-- **Delivery:** PR authorization, plus the available provider and authenticated account. The PR
-  opens ready for review, with the human as the requested reviewer.
+- **Delivery:** authorize the Handoff delivery sequence below. Confirm the provider and auth, a
+  base-branch ruleset requiring a reviewed PR and dismissing stale approvals, and an agent
+  identity distinct from the human reviewer; mentions and review requests come from that agent
+  identity.
 
-`GO` authorizes implementation, the agreed verification, pushing the dedicated branch, opening the
-ready-for-review PR, and requesting the human's review. It does not authorize merge, deploy,
-publish, dependency changes, or changing scope, acceptance, or success criteria. Missing
-provider/auth or an unconfirmed contract is a stop before the loop starts.
+`GO` authorizes implementation, the agreed verification, pushing the dedicated branch, opening a
+draft PR at the first push, one mention of the human for each blocked stop, and marking the PR
+ready with the human's review requested at `FINAL`. It does not authorize merge, deploy, publish,
+dependency changes, or changing scope, acceptance, or success criteria. Missing provider/auth,
+agent identity, required ruleset, or an unconfirmed contract is a stop before the loop starts.
+
+## Handoff delivery
+
+After the first item integrates and passes its integrated check, push the dedicated branch and
+open a draft PR at the first push. Record its URL in the private execution record and the active
+design, and attach it in the runtime where supported. Do not create a placeholder commit to open
+it at preflight. Push after each integrated item that passes its integrated check. The pushed
+commits show progress; post no progress comments and make no body updates between the first push
+and FINAL.
+
+When the whole handoff ends BLOCKED, leave the PR draft and post one PR comment that @-mentions
+the human with an audience-safe reason. Each blocked stop gets one mention. Check existing
+comments and the delivery record before posting or retrying, keyed to this stop's revision and
+reason: a retry of the same stop never posts twice, and a new stop after a resume gets its own
+mention. Record the comment URL with that key. Keep item IDs, attempt details, and private
+context in the tracker and session. Before the first push, use the runtime's own notification
+where available, otherwise the session report. A notification failure remains BLOCKED and is
+reported in the session.
+
+At FINAL, write the Verification section and the simplify count or skip note, mark the existing
+draft PR ready, and request the human's review. Never mark it ready with a blocked scoped item.
+Use the project's PR delivery capability for all host actions under the confirmed agent identity.
 
 ## Worktree preparation
 
@@ -141,9 +166,8 @@ Use this protocol throughout the handoff:
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
      landing path was fixed at handoff — it stays on the branch even if a mid-loop
      return to the human is needed along the way.
-   - The explicit preflight `GO` authorizes only pushing the dedicated branch, opening the
-     ready-for-review PR, and requesting the human's review. Merge and every other outward action
-     remain human-owned.
+   - Among outward actions, the explicit preflight `GO` authorizes only the Handoff delivery
+     sequence above. Merge and every other outward action remain human-owned.
    - Apply the two stop scopes in Stop scopes below: item-level retry exhaustion or a human gate
      blocks that item and its dependents, not independent work. Print `BLOCKED` immediately for a
      whole-handoff condition, or when no unblocked work remains. Do not retry a blocked item without human

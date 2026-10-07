@@ -1,6 +1,38 @@
 from pathlib import Path
 
+import pytest
+
 from dotbrain import brainspaces
+
+
+@pytest.mark.parametrize("path", [
+    "plugin/skills/iterate-design/SKILL.md",
+    "plugin/skills/iterate-design/templates/handoff-prompt.md",
+])
+def test_handoff_delivery_keeps_draft_notification_and_final_gates(path):
+    text = " ".join(Path(path).read_text(encoding="utf-8").split()).replace("`", "")
+    for rule in (
+        "agent identity distinct from the human reviewer",
+        "ruleset requiring a reviewed PR and dismissing stale approvals",
+        "first item integrates and passes its integrated check",
+        "open a draft PR at the first push",
+        "Push after each integrated item that passes its integrated check",
+        "no progress comments",
+        "no body updates between the first push and FINAL",
+        "whole handoff ends BLOCKED",
+        "one PR comment that @-mentions the human with an audience-safe reason",
+        "Check existing comments and the delivery record before posting or retrying",
+        # Keyed to the stop: a guard keyed to the handoff hid a second stop after a resume.
+        "Each blocked stop gets one mention",
+        "keyed to this stop's revision and reason",
+        "a new stop after a resume gets its own mention",
+        "runtime's own notification where available, otherwise the session report",
+        "At FINAL, write the Verification section",
+        "draft PR ready, and request the human's review",
+        "Never mark it ready with a blocked scoped item",
+        "Do not create a placeholder commit",
+    ):
+        assert rule in text, (path, rule)
 
 
 def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Path):
@@ -19,6 +51,8 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "end the loop and go to the human" in doc
     assert "PR authorization" in doc
     assert "ready-for-review PR" in doc
+    assert "a draft PR at the first push" in doc
+    assert "one mention of the human for each blocked stop" in doc
     assert "explicit `GO`" in doc
     assert "review gate is human-owned at close" in doc
     assert "a clean agent verdict does not close it" in doc
