@@ -211,7 +211,6 @@ def test_worker_keeps_claim_through_fix_rounds_and_closure():
     for rule in (
         "A writing worker keeps its claim until the item closes",
         "under its own actor while the worker remains assignee",
-        "`SendMessage` to the stopped worker's agent ID",
         "The lead sets `dotbrain_phase` to `working`",
         "The resumed worker does not touch its claim",
         "a delegated sequential worker is resumed like a parallel worker",
@@ -238,12 +237,44 @@ def test_dispatched_is_recorded_while_the_worker_runs():
         "As soon as the runtime identifies the worker, record `## Dispatched`",
         "with the runtime's agent or session ID in the comment body, before waiting on the worker",
         "If a runtime can launch only in the foreground, record `Dispatched` before launching",
-        "background subagent with worktree isolation",
-        "`.claude/worktrees/agent-<agent-id>`",
     ):
         assert rule in owner, rule
     record = _text(SKILLS / "run-execution/references/execution-record.md")
     assert "Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it" in record
+
+
+def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    assert "Before worker preparation or dispatch, read the applicable runtime reference" in owner
+    assert "Read it again before runtime-specific fix rounds, cancellation, or recovery" in owner
+    for filename in ("claude-code.md", "codex.md"):
+        assert f"references/{filename}" in owner
+        text = _text(SKILLS / "run-execution/references" / filename)
+        assert "[Run Execution](../SKILL.md)" in text
+        assert "dotbrain_attempts" not in text
+    claude = _text(SKILLS / "run-execution/references/claude-code.md")
+    assert "background subagent with worktree isolation" in claude
+    assert "`.claude/worktrees/agent-<agent-id>`" in claude
+    assert "`SendMessage` to that original ID" in claude
+    codex = _text(SKILLS / "run-execution/references/codex.md")
+    for mechanism in (
+        "git worktree add --detach <worktree> <base>",
+        "dotbrain wire --repo <worktree>",
+        "--sandbox danger-full-access --json",
+        "session ID from `thread.started`",
+        "codex exec resume <session-id>",
+        "a shell-wrapper exit is not proof",
+        "actually spawning that role",
+        # Workers told only to "use the project's skills" denied having a catalog and stopped.
+        "name it in the assignment by its exact name (`$<skill-name>`)",
+        "add the session ID to the worker's `work` entry in `dotbrain_artifacts`",
+    ):
+        assert mechanism in codex
+    # Shared rules stay in SKILL.md; the reference points to them instead of restating them.
+    for restated in ("Exit zero alone is not acceptance", "retries beyond the existing checkpoint limits",
+                     "must not have authored the change"):
+        assert restated not in codex
+    assert "For tracker access, an unwired linked worktree needs no preparation" in owner
 
 
 def test_comment_files_are_written_verbatim_on_every_os():
