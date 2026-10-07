@@ -69,6 +69,13 @@ executed here.
 Check output belongs in evidence comments with revision and environment references. Do not copy
 full logs into metadata.
 
+Write each comment file so its text arrives verbatim on Windows, macOS, and Linux, in a temporary
+location outside the project. Prefer the runtime's own file-writing tool. From a shell, use a
+quoted heredoc in bash or zsh, including Git Bash on Windows (`cat > <file> <<'EOF'`), or a
+single-quoted here-string in PowerShell 7 (`@'...'@ | Set-Content -Encoding utf8NoBOM <file>`); the
+quoting keeps `$` and backslashes literal. Never build comment text with `printf` or `echo -e`:
+they turn the backslashes in a Windows path into control characters.
+
 ## Comment headers
 
 ```text
@@ -84,6 +91,10 @@ full logs into metadata.
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
 ```
+
+Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it, and put the
+runtime's agent or session ID in its body: a fix round resumes that worker by ID, and a takeover
+needs to know which worker to confirm stopped.
 
 Each `Review` names the reviewer's actor and findings with severity (`blocker`, `high`, `medium`,
 `low`) and `file:line`. The revision identifies the candidate or fix diff reviewed. For an
