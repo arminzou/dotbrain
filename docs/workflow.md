@@ -103,19 +103,56 @@ bd ready
 
 `manage-work-graph` keeps the work graph: it files, links, and claims issues and closes them when
 their criteria hold. `run-execution` does the work for one issue or a fixed batch: it dispatches
-workers, integrates their results, runs the checks, and stops at a retry limit or a human
-decision. When the build reveals something the design did not expect, the discovery is written back
-into the design and the affected issues, so the next session sees it.
+workers, has each change reviewed, integrates the results, runs the checks, and stops at a retry
+limit or a human decision. When the build reveals something the design did not expect, the
+discovery is written back into the design and the affected issues, so the next session sees it.
 
-**Or hand it off.** For an unattended run against an active design, `iterate-design` drives the agent's loop mode with
-a mechanical verifier and a hard stop. It runs on a dedicated branch and stops at a pull request
-ready for your review; merging stays with you.
+Each run makes two independent choices: who drives, and how many agents write at once.
+
+| | Sequential | Parallel |
+|---|---|---|
+| **Human-in-the-loop**: you direct each step | One agent writes at a time, usually your own session. | Workers take independent issues at once, each in its own worktree. |
+| **Handoff**: the agent continues within a contract you approve | `iterate-design` works the issues one at a time. | `iterate-design` runs independent issues side by side. |
+
+The agent runs issues in parallel only when they are ready together, touch different files, and
+share no build outputs, databases, or ports. When you are directing the work, it tells you the
+split before starting, and you can change it.
+
+Either way, the work happens on a dedicated branch and reaches `main` through a pull request you
+review. The agent asks before pushing or opening that pull request, and lands work directly on
+`main` only when you tell it to.
+
+**Or hand it off.** For an unattended run against an active design, `iterate-design` drives the
+agent's loop mode with a mechanical verifier and a hard stop. You approve a contract first: the
+scope, the branch, the checks, how many workers may run at once, and how the pull request is
+delivered. Then:
+
+- At its first push it opens a draft pull request, and it pushes again after each finished issue.
+- When an issue fails its checks three times in a row, or needs your decision, only that issue and
+  the issues waiting on it stop. Independent issues continue.
+- When the run stops blocked, it mentions you on the pull request, so you are notified.
+- When everything is done and reviewed, it marks the pull request ready and requests your review.
+  Merging stays with you.
 
 ## 6. Review
 
-`review-gate` runs a focused review (correctness, simplification, or readiness) and records the
-outcome on the issue. The agent records the result but does not close its own review; that call is
-yours.
+Reviews happen at two levels:
+
+- **Each issue.** Every change to code, tests, build or CI config, or agent instructions gets an
+  independent review before its issue closes, from a reviewer agent that wrote none of it. The
+  reviewer approves or asks for changes, the same agent fixes its own work, and three requests for
+  changes in a row stop the issue for your decision. Changes to prose alone are exempt. When you
+  are directing the work, the agent may ask whether a small change needs a review, and says what
+  it recommends.
+- **The branch.** Before a branch carrying several issues is offered for merge, a fresh reviewer
+  checks the whole diff: how the issues fit together and whether they match the design. A handoff
+  also runs a simplification pass. Its suggestions never block the pull request; you decide on
+  them alongside it.
+
+`review-gate` runs these reviews in focused modes (correctness, simplification, or readiness) and
+records each outcome in the tracker. The agent never closes a review on its own judgment: it closes
+a code review's record once it sees you merge the reviewed pull request, and every other review
+waits for you.
 
 ## 7. Close the Design
 

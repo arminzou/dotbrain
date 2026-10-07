@@ -72,15 +72,17 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 - **`manage-work-graph`** — file, inspect, claim, split, update, and close work items in the private
   work graph
-- **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, integrate,
-  check, repair within limits, and escalate or recover
+- **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, have each
+  change reviewed independently, integrate, check, repair within limits, and escalate or recover
 - **`iterate-design`** — run an active design doc through the agent's native loop mode: plan,
-  implement, verify, reflect, stop on success or blocked
+  implement, verify, reflect, deliver through a draft pull request that becomes ready for your
+  review, and stop on success or blocked
 
 ## Triage And Review
 
 - **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
-  outcome on the issue; closing the review stays with you
+  outcome on the issue; a code review closes once you merge its pull request, and other reviews
+  close with you
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution

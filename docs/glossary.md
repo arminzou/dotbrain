@@ -93,14 +93,45 @@ the tracker.
 ### Execution record
 
 The recoverable facts on a work item under execution: its native status and assignee, a few
-`dotbrain_` metadata keys holding its phase, attempts, and artifacts, and headed evidence comments.
+`dotbrain_` metadata keys holding its phase, attempts, and artifacts, and headed evidence comments,
+including its item reviews.
+
+### Human-in-the-loop (HITL) workflow
+
+The workflow in which you direct the agent step by step and see changes as they happen. The agent
+returns to you after each bounded execution, and its work still reaches `main` through a pull
+request you review. See [The workflow](workflow.md#_5-work-the-issues).
+
+### Handoff workflow
+
+The workflow in which an agent continues within a contract you approved with an explicit `GO`,
+until it finishes, reaches a human gate, or hits a hard stop. `iterate-design` runs it and delivers
+the work through a pull request that becomes ready for your review.
+
+### Execution mode
+
+How many agents write at once during one bounded execution: sequential execution, one writer at a
+time, or parallel execution, two or more writing workers each in its own worktree. Either workflow
+can use either mode.
+
+### Bounded execution
+
+One run of `run-execution` over a fixed set of work items. It ends when every item is closed, or
+open with a recorded blocker, human gate, or cancellation.
+
+### Item review
+
+An independent code review of one work item's change to code, tests, build or CI config, or agent
+instructions, by a reviewer agent that wrote none of it, before the item closes. The reviewer
+records its verdict, `APPROVE` or `CHANGES`, on the work item itself.
 
 ### Lead, assignee, worker, agent team
 
 An agent team is the lead and the workers it dispatches for one bounded execution. The lead
 selects, integrates, checks, and closes items and is the only agent that changes the work graph
 while delegated workers run. A worker carries out an assigned operation and reports back. The
-assignee is the actor holding a work item's claim.
+assignee is the actor holding a work item's claim; a worker keeps its claim until the item closes,
+while the lead integrates and closes it.
 
 ### Agent runtime
 
