@@ -99,10 +99,11 @@ needs to know which worker to confirm stopped.
 Each `Review` names the reviewer's actor and findings with severity (`blocker`, `high`, `medium`,
 `low`) and `file:line`. The revision identifies the candidate or fix diff reviewed. For an
 uncommitted candidate, include HEAD and a diff fingerprint so the verdict cannot be mistaken
-for approval of HEAD alone. The reviewer appends its own record:
+for approval of HEAD alone. The reviewer appends its own record, passing the review as inline
+text or a file as its definition says:
 
 ```bash
-bd comments add <item-id> --file <review-file> --actor <reviewer-actor> --json
+bd comments add <item-id> <review-text> --actor <reviewer-actor> --json
 ```
 
 Only unmet acceptance or a `blocker` or `high` finding in the item's diff produces `CHANGES`.
