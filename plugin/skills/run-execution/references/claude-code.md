@@ -9,7 +9,13 @@ Dispatch the packaged worker as `dotbrain:worker`; read-only roles are `dotbrain
 `dotbrain:reviewer`, and `dotbrain:verifier`. The worker's definition always launches it in the
 background. For in-place work, dispatch it without isolation. For isolated work, which every
 concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
-isolation, so the lead chooses per dispatch.
+isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
+agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
+lead's working directory instead. Address the worker by its agent ID.
+
+Packaged subagents inherit the lead session's permission mode, and their permission prompts surface
+in the lead's session. In an unattended run nobody answers them, so the session must already allow
+the `git` and `bd` commands its workers and reviewers run.
 
 The launch returns the agent ID at once, and the worker's checkout is
 `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
@@ -20,7 +26,8 @@ their assignments carry absolute authority references.
 Before the first dispatch, when `git check-ignore -q .claude/worktrees/` fails, add
 `/.claude/worktrees/` to `$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages
 a worker's worktree. The isolation guard refuses Git commands it cannot attribute to the worker's
-worktree, including chained commands and commands a shell hook rewrites. Tell workers to run Git
+worktree, including chained commands and commands a shell hook rewrites. It inspects Bash command
+text only; PowerShell commands get just the working-directory check. Tell workers to run Git
 as plain, separate commands and set commit identity through the `GIT_AUTHOR_*` and
 `GIT_COMMITTER_*` environment variables.
 

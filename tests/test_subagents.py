@@ -69,14 +69,49 @@ def test_packaged_reviewer_item_review_contract():
             "blocker or high finding in the reviewed diff",
             "findings outside that diff accompany",
             "## Review <n>: APPROVE | CHANGES @ <revision>",
-            "bd comments add <item-id> --file <review-file> --actor <reviewer-actor> --json",
-            "temporary file outside the project",
             "only allowed mutation",
             "Do not create a review bead, claim, assign, close, or write",
             "the lead must not transcribe it as your review",
             "diff fingerprint",
         ):
             assert rule in " ".join(prompt.split())
+    # A temporary file outside the project prompts for permission; Windows PowerShell 5.1 drops
+    # double quotes from native arguments, so the reviewer checks the text bd returns.
+    text = " ".join(claude.split())
+    for rule in (
+        "bd comments add <item-id> <review-text> --actor <reviewer-actor> --json",
+        "with no temporary file",
+        "return no verdict and name what is missing",
+        "Confirm that the comment text `bd` returns matches what you wrote",
+    ):
+        assert rule in text, rule
+
+
+def test_claude_agents_reach_a_shell_on_every_platform_and_never_nest():
+    """Windows without Git Bash offers only PowerShell; plugin agents ignore permissionMode, hooks,
+    and mcpServers, so the allowlist and prompt are the only capability levers."""
+    efforts = {"worker": "medium", "explorer": "medium", "reviewer": "high", "verifier": "low"}
+    for name in subagents.PROJECT_BASELINE:
+        text = (Path("plugin/agents") / f"{name}.md").read_text(encoding="utf-8")
+        frontmatter = text.split("---")[1]
+        fields = dict(line.split(": ", 1) for line in frontmatter.strip().splitlines())
+        tools = {tool.strip() for tool in fields["tools"].split(",")}
+        assert {"Bash", "PowerShell"} <= tools, name
+        assert "Agent" not in tools, name
+        assert fields["effort"] == efforts[name], name
+        assert not {"model", "memory", "skills", "maxTurns", "permissionMode", "hooks", "mcpServers"} & set(fields), name
+    worker = " ".join((Path("plugin/agents") / "worker.md").read_text(encoding="utf-8").split())
+    # A lead's assignment fills every field; a direct request names only the change and falls back.
+    for rule in (
+        "from a lead or straight from a request",
+        "if it does not name what to change, or names a work item without your beads actor, return without editing",
+        "when it names none, read the brain's agents.md",
+        "when none are assigned, run the smallest relevant checks",
+        "the repository's written commit rules, else the style of its recent history",
+        "if that branch is the default branch, stop and report",
+    ):
+        assert rule in worker.lower().replace("`", ""), rule
+    assert "Write comment files with the file-writing tool, never through the shell" in worker
 
 
 def _write(path: Path, text: str) -> None:

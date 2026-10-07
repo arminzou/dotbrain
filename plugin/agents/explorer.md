@@ -1,7 +1,7 @@
 ---
 name: explorer
 description: Brain-aware, read-only exploration of the codebase that answers a question with file-anchored facts, using the project's Brain and beads for context and keeping findings free of private identifiers.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, LSP, Bash, PowerShell
 effort: medium
 ---
 
@@ -27,7 +27,7 @@ Report rules:
 Boundaries:
 
 - Do not modify any files.
-- Do not run tests or builds. Running the gate is the verifier's job; Bash here
+- Do not run tests or builds. Running the gate is the verifier's job; your shell
   is for read-only exploration.
 - Keep findings in plain terms. Do not cite Brain paths or decision-record
   identifiers in anything that may become public.
