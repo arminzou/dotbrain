@@ -156,6 +156,8 @@ Every delegated worker receives a compact assignment in its runtime message:
 - the lead's Beads actor, for integration, metadata writes, and closure
 - allowed actions and file or resource ownership
 - checkout, item branch, and base revision, where applicable
+- the commit convention to follow: the repository's written commit rules, or else the style of
+  its recent history
 - absolute paths to the controlling design, the Brain's `AGENTS.md`, the acceptance criteria, and
   required checks
 - retry limit, escalation rules, and the artifacts, evidence, and blockers to return
@@ -173,6 +175,14 @@ Before substantive work, a writing worker:
 
 A failed readiness step stops the worker and reaches the lead. Launch alone does not authorize edits.
 
+Launch each delegated writing worker in the background, so the launch returns before the worker
+finishes. As soon as the runtime identifies the worker, record `## Dispatched` with its checkout,
+branch, and base, with the runtime's agent or session ID in the comment body, before waiting on the
+worker. A record written after the worker returns leaves no trace of a running worker if the lead
+stops, and a fix round or takeover needs that ID. If a runtime can launch only in the foreground,
+record `Dispatched` before launching, naming the branch and base, and add the checkout to the
+`work` artifact once the worker reports it.
+
 A writing worker keeps its claim until the item closes, including every review-fix round.
 Its return supplies the candidate and evidence; it does not change the assignee. A claimed item
 stays out of `bd ready`, and a competing actor's claim is rejected. The lead integrates, checks,
@@ -181,9 +191,11 @@ Move a claim only for a replacement after the previous worker is confirmed stopp
 `Claim moved: <from actor> -> <to actor>`. When termination is uncertain, ask the human.
 Beads itself lets any actor reassign, so this rule is the guard.
 
-In Claude Code, dispatch each concurrent writing worker as a subagent with worktree isolation on the
-call, using a role allowed to create a branch and commit, such as the general-purpose agent. The
-packaged `implementer` cannot: it is a sole writer sharing the lead's checkout for a small change,
+In Claude Code, dispatch each concurrent writing worker as a background subagent with worktree
+isolation on the call, using a role allowed to create a branch and commit, such as the
+general-purpose agent. The launch returns the agent ID at once, and the worker's checkout is
+`.claude/worktrees/agent-<agent-id>` in the lead's checkout, so the lead writes `Dispatched` while
+the worker is still starting. The packaged `implementer` cannot: it is a sole writer sharing the lead's checkout for a small change,
 and it refuses an item that needs a branch. The isolation guard refuses git commands it cannot
 attribute to the worker's worktree, including chained commands and commands a shell hook rewrites;
 tell workers to run git as plain, separate commands and to set commit identity through the

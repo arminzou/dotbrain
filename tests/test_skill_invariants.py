@@ -229,6 +229,46 @@ def test_worker_keeps_claim_through_fix_rounds_and_closure():
         ), path
 
 
+def test_dispatched_is_recorded_while_the_worker_runs():
+    """A foreground launch returned only after the worker finished, so Dispatched landed after its
+    work and a lead that stopped mid-run left no trace of where the worker was."""
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    for rule in (
+        "Launch each delegated writing worker in the background",
+        "As soon as the runtime identifies the worker, record `## Dispatched`",
+        "with the runtime's agent or session ID in the comment body, before waiting on the worker",
+        "If a runtime can launch only in the foreground, record `Dispatched` before launching",
+        "background subagent with worktree isolation",
+        "`.claude/worktrees/agent-<agent-id>`",
+    ):
+        assert rule in owner, rule
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    assert "Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it" in record
+
+
+def test_comment_files_are_written_verbatim_on_every_os():
+    """printf turned the backslashes of a Windows worktree path into control characters."""
+    record = _text(SKILLS / "run-execution/references/execution-record.md")
+    for rule in (
+        "so its text arrives verbatim on Windows, macOS, and Linux",
+        "Prefer the runtime's own file-writing tool",
+        "quoted heredoc in bash or zsh, including Git Bash on Windows (`cat > <file> <<'EOF'`)",
+        "single-quoted here-string in PowerShell 7",
+        "Never build comment text with `printf` or `echo -e`",
+    ):
+        assert rule in record, rule
+
+
+def test_assignment_names_the_repository_commit_convention():
+    """Workers follow the repository's own commit rules; shipped skills never depend on a user's
+    personal commit skill."""
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    assert ("the commit convention to follow: the repository's written commit rules, or else the "
+            "style of its recent history") in owner
+    for path in list(SKILLS.rglob("*.md")) + list(Path("src/dotbrain/resources/agents").rglob("*.*")):
+        assert "conventional-commits" not in path.read_text(encoding="utf-8"), path
+
+
 def test_review_modes_keep_distinct_verdicts_and_metadata():
     record = _text(SKILLS / "manage-work-graph/references/review-beads.md")
     for row in (
