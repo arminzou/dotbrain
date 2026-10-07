@@ -321,11 +321,11 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents")
 
     assert result.refreshed == ["refresh-subagents"]
-    assert (repo / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert (repo / ".claude" / "agents" / "verifier.md").is_symlink()
-    assert (repo / ".codex" / "agents" / "reviewer.toml").is_file()
-    assert (repo / ".codex" / "agents" / "verifier.toml").is_file()
-    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 8
+    assert not (repo / ".claude" / "agents" / "reviewer.md").exists()
+    assert not (repo / ".claude" / "agents" / "verifier.md").exists()
+    assert (repo / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
+    assert (repo / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
+    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 4  # Codex only; the plugin delivers to Claude Code
 
 
 def test_refresh_project_honors_declared_agent_workspaces(

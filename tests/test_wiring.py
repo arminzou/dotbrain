@@ -329,9 +329,9 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     assert claude_tracked.read_text() == "project-owned\n"
     assert codex_tracked.read_text() == "project-owned\n"
     assert not (claude / "skills" / "manage-work-graph").exists()
-    assert (claude / "agents" / "reviewer.md").is_symlink()
+    assert not (claude / "agents" / "reviewer.md").exists()
     assert not (codex / "skills" / "manage-work-graph").exists()
-    assert (codex / "agents" / "reviewer.toml").is_file()
+    assert (codex / "agents" / "dotbrain-reviewer.toml").is_file()
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=repo,

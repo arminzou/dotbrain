@@ -10,7 +10,7 @@ def test_packaged_worker_contract_on_both_runtimes():
     """One writing worker replaces the in-place-only implementer; the assignment, not the agent,
     picks its mode, and it commits but never pushes, merges, or closes."""
     agents = Path("src/dotbrain/resources/agents")
-    claude = (agents / "claude/worker.md").read_text(encoding="utf-8")
+    claude = (Path("plugin/agents") / "worker.md").read_text(encoding="utf-8")
     codex = tomllib.loads((agents / "codex/worker.toml").read_text(encoding="utf-8"))
     frontmatter = claude.split("---")[1]
     # Background keeps dispatch recordable at launch; isolation stays a per-dispatch choice.
@@ -37,7 +37,7 @@ def test_packaged_worker_contract_on_both_runtimes():
 
 def test_explorer_replaces_investigator():
     agents = Path("src/dotbrain/resources/agents")
-    assert (agents / "claude/explorer.md").read_text(encoding="utf-8").startswith("---\nname: explorer\n")
+    assert (Path("plugin/agents") / "explorer.md").read_text(encoding="utf-8").startswith("---\nname: explorer\n")
     assert tomllib.loads((agents / "codex/explorer.toml").read_text(encoding="utf-8"))["name"] == "explorer"
 
 
@@ -58,7 +58,7 @@ def test_shared_skills_name_roles_not_runtime_dispatch_names():
 
 def test_packaged_reviewer_item_review_contract():
     agents = Path("src/dotbrain/resources/agents")
-    claude = (agents / "claude/reviewer.md").read_text(encoding="utf-8")
+    claude = (Path("plugin/agents") / "reviewer.md").read_text(encoding="utf-8")
     codex = tomllib.loads((agents / "codex/reviewer.toml").read_text(encoding="utf-8"))
     # A forced read-only sandbox prevents the reviewer's one permitted Beads write.
     assert "sandbox_mode" not in codex
@@ -130,86 +130,30 @@ def test_load_global_config_rejects_invalid_targets(tmp_path: Path):
         raise AssertionError("expected invalid targets to raise ValueError")
 
 
-def test_seed_private_subagents_copies_bundled_examples_once(
-    dotbrain_home: Path, monkeypatch
-):
-    payloads = {
-        "agents/claude/reviewer.md": "claude-example",
-        "agents/codex/reviewer.toml": "codex-example",
-    }
+def test_private_source_defines_own_agents_but_never_overrides_packaged(dotbrain_home: Path):
+    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude-private")
+    _write(dotbrain_home / "agents" / "codex" / "custom.toml", "codex-private")
+    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude-override")
+    _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex-override")
 
-    class FakeResource:
-        def __init__(self, text: str):
-            self._text = text
+    custom = subagents._resolve_subagent_files(dotbrain_home, "custom")
+    assert custom["claude-code"].read_text() == "claude-private"
+    assert custom["codex"].read_text() == "codex-private"
 
-        def read_text(self, encoding: str | None = None) -> str:
-            return self._text
-
-    def fake_iter(path: str):
-        assert path == "agents"
-        for rel, text in (
-            (Path("claude/reviewer.md"), payloads["agents/claude/reviewer.md"]),
-            (Path("codex/reviewer.toml"), payloads["agents/codex/reviewer.toml"]),
-        ):
-            yield rel, FakeResource(text)
-
-    monkeypatch.setattr(subagents.resource_loader, "iter_resource_files", fake_iter)
-
-    seeded = subagents.seed_private_subagents(dotbrain_home)
-
-    assert [path.relative_to(dotbrain_home) for path in seeded] == [
-            Path("agents/claude/reviewer.md"),
-            Path("agents/codex/reviewer.toml"),
-    ]
-    assert (dotbrain_home / "agents" / "claude" / "reviewer.md").read_text() == "claude-example"
-    assert (dotbrain_home / "agents" / "codex" / "reviewer.toml").read_text() == "codex-example"
-
-    (dotbrain_home / "agents" / "claude" / "reviewer.md").write_text("my override")
-    seeded = subagents.seed_private_subagents(dotbrain_home)
-
-    assert seeded == []
-    assert (dotbrain_home / "agents" / "claude" / "reviewer.md").read_text() == "my override"
+    # A same-named private file never replaces a packaged subagent.
+    packaged = subagents._resolve_subagent_files(dotbrain_home, "reviewer")
+    assert set(packaged) == {"codex"}
+    assert "codex-override" not in packaged["codex"].read_text()
 
 
-def test_resolve_subagent_files_prefers_private(dotbrain_home: Path):
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude-private")
-    _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex-private")
-
+def test_packaged_subagent_reaches_codex_prefixed_and_claude_through_the_plugin(dotbrain_home: Path):
     resolved = subagents._resolve_subagent_files(dotbrain_home, "reviewer")
 
-    assert resolved["claude-code"].read_text() == "claude-private"
-    assert resolved["codex"].read_text() == "codex-private"
-
-
-def test_resolve_subagent_files_caches_bundled(dotbrain_home: Path, monkeypatch):
-    payloads = {
-        "agents/claude/reviewer.md": "claude-bundled",
-        "agents/codex/reviewer.toml": "codex-bundled",
-    }
-
-    class FakeResource:
-        def __init__(self, text: str):
-            self._text = text
-
-        def is_file(self) -> bool:
-            return True
-
-        def read_text(self, encoding: str | None = None) -> str:
-            return self._text
-
-    def fake_resource(path: str):
-        if path not in payloads:
-            raise FileNotFoundError(path)
-        return FakeResource(payloads[path])
-
-    monkeypatch.setattr(subagents.resource_loader, "resource", fake_resource)
-
-    resolved = subagents._resolve_subagent_files(dotbrain_home, "reviewer")
-
-    assert resolved["claude-code"] == dotbrain_home / ".cache" / "agents" / "claude" / "reviewer.md"
-    assert resolved["codex"] == dotbrain_home / ".cache" / "agents" / "codex" / "reviewer.toml"
-    assert resolved["claude-code"].read_text() == "claude-bundled"
-    assert resolved["codex"].read_text() == "codex-bundled"
+    assert set(resolved) == {"codex"}
+    assert resolved["codex"] == dotbrain_home / ".cache" / "agents" / "codex" / "dotbrain-reviewer.toml"
+    assert tomllib.loads(resolved["codex"].read_text(encoding="utf-8"))["name"] == "dotbrain-reviewer"
+    assert subagents.plugin_delivered("reviewer", "claude-code")
+    assert not subagents.plugin_delivered("custom", "claude-code")
 
 
 def test_link_files_into_prunes_only_owned_links(dotbrain_home: Path, tmp_path: Path):
@@ -254,46 +198,70 @@ def test_link_files_into_leaves_foreign_regular_file(dotbrain_home: Path, tmp_pa
 
 
 def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude")
-    _write(dotbrain_home / "agents" / "codex" / "reviewer.toml", "codex")
+    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude")
+    _write(dotbrain_home / "agents" / "codex" / "custom.toml", "codex")
 
     result = subagents.link_project_subagents(
         dotbrain_home,
         brainspace,
         (".claude", ".codex"),
-        ("reviewer",),
+        ("custom",),
     )
 
-    assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert subagents.is_managed_copy(brainspace / ".codex" / "agents" / "reviewer.toml")
-    assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
+    assert (brainspace / ".claude" / "agents" / "custom.md").is_symlink()
+    assert subagents.is_managed_copy(brainspace / ".codex" / "agents" / "custom.toml")
+    assert result.linked == [".claude/agents/custom.md", ".codex/agents/custom.toml"]
 
 
 def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "claude")
+    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude")
 
     result = subagents.link_project_subagents(
         dotbrain_home,
         brainspace,
-        (".claude", ".codex"),
-        ("reviewer",),
+        (".claude",),
+        ("custom",),
     )
 
-    assert (brainspace / ".claude" / "agents" / "reviewer.md").is_symlink()
-    assert subagents.is_managed_copy(brainspace / ".codex" / "agents" / "reviewer.toml")
-    assert result.linked == [".claude/agents/reviewer.md", ".codex/agents/reviewer.toml"]
+    assert (brainspace / ".claude" / "agents" / "custom.md").is_symlink()
+    assert result.linked == [".claude/agents/custom.md"]
+
+
+def test_packaged_subagents_leave_claude_to_the_plugin_and_prune_old_deliveries(dotbrain_home: Path, brainspace: Path):
+    claude_dir = brainspace / ".claude" / "agents"
+    codex_dir = brainspace / ".codex" / "agents"
+    # Earlier deliveries: a Claude link into the packaged cache and an unprefixed Codex copy.
+    old_cache = dotbrain_home / ".cache" / "agents" / "claude" / "implementer.md"
+    _write(old_cache, "old")
+    claude_dir.mkdir(parents=True)
+    (claude_dir / "implementer.md").symlink_to(old_cache)
+    _write(codex_dir / "reviewer.toml", subagents.GENERATED_NOTICE + "\n" + subagents.MANAGED_MARKER + "\n\nold\n")
+
+    result = subagents.link_project_subagents(dotbrain_home, brainspace, (".claude", ".codex"), subagents.PROJECT_BASELINE)
+
+    assert not result.warnings
+    assert list(claude_dir.iterdir()) == []
+    assert sorted(path.name for path in codex_dir.iterdir()) == [
+        f"dotbrain-{name}.toml" for name in sorted(subagents.PROJECT_BASELINE)
+    ]
+    for name in subagents.PROJECT_BASELINE:
+        delivered = codex_dir / f"dotbrain-{name}.toml"
+        assert subagents.is_managed_copy(delivered)
+        assert tomllib.loads(delivered.read_text(encoding="utf-8"))["name"] == f"dotbrain-{name}"
+    assert ".claude/agents/implementer.md" in result.pruned
+    assert ".codex/agents/reviewer.toml" in result.pruned
 
 
 def test_project_subagent_collision_warns_and_skips(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "reviewer")
-    collision = brainspace / ".claude" / "agents" / "reviewer.md"
+    _write(dotbrain_home / "agents" / "claude" / "custom.md", "custom")
+    collision = brainspace / ".claude" / "agents" / "custom.md"
     _write(collision, "project-owned")
 
     result = subagents.link_project_subagents(
         dotbrain_home,
         brainspace,
         (".claude",),
-        ("reviewer",),
+        ("custom",),
     )
 
     assert collision.read_text() == "project-owned"
@@ -322,6 +290,8 @@ def test_project_link_set_prepends_core_and_deduplicates() -> None:
 
 
 def test_project_baseline_has_packaged_files_for_each_runtime(tmp_path: Path) -> None:
+    plugin_agents = Path("plugin/agents")
     for name in subagents.PROJECT_BASELINE:
         resolved = subagents._resolve_subagent_files(tmp_path, name)
-        assert set(resolved) == {"claude-code", "codex"}
+        assert set(resolved) == {"codex"}
+        assert (plugin_agents / f"{name}.md").read_text(encoding="utf-8").startswith(f"---\nname: {name}\n")

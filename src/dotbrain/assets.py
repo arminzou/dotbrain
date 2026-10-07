@@ -1,7 +1,7 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, paths, projects, resource_loader, skills, subagents
+from dotbrain import adopter_repos, config, paths, projects, skills, subagents
 
 
 def runtime_key(runtime: str) -> str:
@@ -81,7 +81,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         if kind == "skills":
             linked = skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True)
         else:
-            linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values()],
+            linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
                                                label=k, preserve_collisions=True, runtime=k)
         for field in ("linked", "pruned", "stashed", "warnings"):
             getattr(result, field).extend(getattr(linked, field))
@@ -108,11 +108,15 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
         if key != "all" and key != k:
             continue
         names = {p.stem for p in (home / "agents" / directory).glob(f"*{suffix}") if p.is_file()}
-        bundled = resource_loader.resource(f"agents/{directory}")
-        names.update(Path(p.name).stem for p in bundled.iterdir() if p.is_file() and p.name.endswith(suffix))
+        names.update(subagents.PROJECT_BASELINE)
         for name in sorted(names):
             private = paths.confined_path(home / "agents", f"{directory}/{name}{suffix}")
-            source = str(private) if private.is_file() else f"bundled:agents/{directory}/{name}{suffix}"
+            if subagents.plugin_delivered(name, k):
+                source = f"plugin:dotbrain:{name}"
+            elif subagents.is_packaged(name):
+                source = f"bundled:agents/{directory}/{name}{suffix}"
+            else:
+                source = str(private)
             entry = entries.setdefault(name, {"name": name, "selected": name in selected, "sources": {}})
             entry["sources"]["claude" if k == "claude-code" else k] = source
     return [entries[name] for name in sorted(entries)]

@@ -63,8 +63,9 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 
 ## Subagents
 
-`dotbrain bootstrap` prepares configured global subagents in runtime homes. `dotbrain wire`
-delivers the four packaged roles plus project extras into declared project workspaces.
+dotbrain ships four packaged subagents. Claude Code receives them from the plugin as
+`dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
+generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
 Each reads the Brain before acting:
 
 | Subagent | Does |
@@ -74,10 +75,12 @@ Each reads the Brain before acting:
 | `reviewer` | Reviews a change for correctness, regressions, security, and missing tests |
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
 
-Add project-only subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml).
+The packaged subagents can't be overridden: a file with the same name in your private agent
+sources is ignored. To customize one, write your own agent under a different name. Add your own
+subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml), or under
+`global:` in `agents/agents.yaml`; `dotbrain bootstrap` prepares the global ones in your runtime homes.
 
-Claude definitions are symlinks. Codex definitions are real TOML copies generated with
-`# dotbrain-managed-agent: v1`. Customize the private source definition; dotbrain can overwrite
-or prune delivered managed copies. `dotbrain agents link` reconciles the current wired checkout;
+Your own Claude definitions are delivered as symlinks. Codex definitions are real TOML copies
+generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain agents link` reconciles the current wired checkout;
 use `--scope global` for global homes. Doctor checks file type and delivered content, while a
 successful role spawn confirms the runtime actually consumed a definition.

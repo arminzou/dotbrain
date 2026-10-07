@@ -84,8 +84,8 @@ def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch):
             link = worktree / workspace / "skills" / name
             assert link.is_symlink()
             assert link.resolve() == home / "skills" / "bundle" / name
-    assert subagents.is_managed_copy(worktree / ".codex" / "agents" / "reviewer.toml")
-    assert (worktree / ".claude" / "agents" / "reviewer.md").is_symlink()
+    assert subagents.is_managed_copy(worktree / ".codex" / "agents" / "dotbrain-reviewer.toml")
+    assert not (worktree / ".claude" / "agents" / "reviewer.md").exists()
     assert {path: path.read_bytes() for path in before} == before
     assert [path.name for path in (home / "brainspaces").iterdir()] == ["sample"]
     def snapshot():

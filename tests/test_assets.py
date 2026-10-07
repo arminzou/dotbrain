@@ -124,18 +124,6 @@ def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
     assert list(foreign.iterdir()) == []
 
 
-def test_private_agent_seed_cannot_write_through_foreign_directory(tmp_path):
-    import pytest
-    home = tmp_path / "home"
-    home.mkdir()
-    foreign = tmp_path / "foreign"
-    foreign.mkdir()
-    (home / "agents").symlink_to(foreign, target_is_directory=True)
-    with pytest.raises(ValueError):
-        subagents.seed_private_subagents(home)
-    assert list(foreign.iterdir()) == []
-
-
 def test_skill_cache_parent_escape_preserves_external_data_and_destination(tmp_path):
     home = tmp_path / "home"
     write(home / "skills/source/SKILL.md", "skill")
