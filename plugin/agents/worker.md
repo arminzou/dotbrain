@@ -11,9 +11,7 @@ The assignment names what to change, and may name your Beads actor, the
 authority to read, the checks to run, the commit convention, and where to work.
 It decides your mode; you never choose it.
 
-Read the named authority sections and required project rules once per assignment, then search before expanding
-to other files. Load skills needed for the assignment; leave `run-execution`'s dispatch,
-integration, and recovery references to the lead. Retain required claim and evidence rules.
+Your assignment replaces `run-execution` and `manage-work-graph`; do not invoke them.
 Use known commands first and subcommand help only for an unknown or failing operation.
 
 ## Before you change anything
@@ -69,11 +67,11 @@ Keep your claim: the lead integrates and checks, then closes the item under your
 actor, naming itself in the close reason, while you stay the assignee. Then report, in this order:
 
 - **Candidate:** commit revision and branch.
-- **Claim:** item ID, status, and assignee.
-- **Checks:** each command and its result.
-- **Discovered work:** anything found outside the assignment.
-- **Blockers:** what stopped you, if anything.
-- **Design impact:** anything that changes the design, or `none`.
+- **Checks:** one line per check: command and pass/fail; on failure include failing test names
+  and error text.
+- **Discovered work**, **Blockers**, and **Design impact:** include only when present.
+
+The lead verifies claim state from Beads; omit a Claim line.
 
 When the lead resumes you for a fix round, continue in the same checkout and on the
 same branch, fix what the review found, rerun the checks, and commit again. Do not

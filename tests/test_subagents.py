@@ -109,22 +109,91 @@ def test_bounded_dispatch_preserves_assignment_and_model_constraints():
     ):
         assert rule in codex, rule
     assert "unless the user explicitly requests a different model" in claude
+    assert "Dispatch packaged roles by name, never as a fork of the lead's conversation" in claude
 
 
-def test_packaged_roles_bound_reads_without_skipping_worker_rules():
-    narrow_reads = {
-        "worker": "once per assignment, then search before expanding",
-        "reviewer": "expanding reads only to resolve a specific question",
+def test_role_cleanup_preserves_authority_and_ownership():
+    required_rules = {
+        "worker": "Your assignment replaces `run-execution` and `manage-work-graph`; do not invoke them",
+        "reviewer": "Read explicitly assigned skills",
         "researcher": "read matching sections before searching outside",
         "verifier": "do not reread the design doc or explore beyond what the gate requires",
     }
-    for role, rule in narrow_reads.items():
+    for role, rule in required_rules.items():
         for text in (subagents.packaged_body(role, "codex"),
                      Path(f"plugin/agents/{role}.md").read_text(encoding="utf-8")):
             prompt = " ".join(text.split())
             assert rule in prompt, role
-            assert "`run-execution`'s dispatch, integration, and recovery references to the lead" in prompt, role
-            assert "Retain required claim and evidence rules" in prompt, role
+            assert "references to the lead" not in prompt, role
+            assert "search before expanding" not in prompt, role
+            assert "batch reads" not in prompt, role
+    worker = tomllib.loads(subagents.packaged_body("worker", "codex"))["developer_instructions"]
+    for rule in ("--claim --actor <worker-actor>", "Keep your claim", "invoke that skill by its exact name"):
+        assert rule in " ".join(worker.split()), rule
+
+
+def test_codex_collection_checks_recovery_signals_before_reading_prose():
+    reference = Path("plugin/skills/run-execution/references/codex.md").read_text(encoding="utf-8")
+    collect = " ".join(reference.split("## Collect and fix", 1)[1].split("## Stop and recover", 1)[0].split())
+    for rule in (
+        "Check process exit", "session ID from `thread.started`", "`turn.completed`, `turn.failed`",
+        "error events by event type in the JSONL", "Confirm nested-process termination and required artifacts",
+        "Read the final response file as the worker's report",
+        "Read transcript prose and tool output only when diagnosing a failure revealed by these signals",
+        "A zero exit is process evidence only",
+    ):
+        assert rule in collect, rule
+
+
+def test_reports_preserve_evidence_and_omit_empty_sections():
+    worker = " ".join(tomllib.loads(subagents.packaged_body("worker", "codex"))["developer_instructions"].split())
+    finish = worker.split("## Finish", 1)[1].split("## Never", 1)[0]
+    for rule in (
+        "commit revision and branch", "one line per check: command and pass/fail",
+        "on failure include failing test names and error text", "include only when present",
+        "The lead verifies claim state from Beads; omit a Claim line",
+    ):
+        assert rule in finish, rule
+    assert "**Claim:**" not in finish
+    assert "or `none`" not in finish
+    reviewer = " ".join(tomllib.loads(subagents.packaged_body("reviewer", "codex"))["developer_instructions"].split())
+    for rule in (
+        "return the verdict and findings", "when approving with no findings, return `APPROVE`",
+        "only when material, a brief caveat about evidence or scope limits", "Omit empty findings sections",
+        "Return only the comment ID and verdict", "report findings only and no verdict",
+        "report the capability blocker", "Confirm that the comment text `bd` returns matches what you wrote",
+    ):
+        assert rule in reviewer, rule
+
+
+def test_verifier_distinguishes_no_gate_from_partial_and_failed_runs():
+    verifier = " ".join(tomllib.loads(subagents.packaged_body("verifier", "codex"))["developer_instructions"].split())
+    for rule in (
+        "If no gate command ran, return `not run`, the reason, and what is needed to run the gate",
+        "with the revision and environment when available",
+        "Omit the full record table and PR-ready block",
+        "When reusing existing evidence, identify its source and say that no fresh gate ran",
+        "For partial or failed runs, preserve observed results, exit codes, failing test names, and failure output verbatim",
+        "mark remaining checks `not run`",
+        "For gate commands that ran, report verification evidence in two renderings",
+    ):
+        assert rule in verifier, rule
+
+
+def test_assignment_omits_only_role_defaults_and_lead_actor():
+    shared = Path("plugin/skills/run-execution/SKILL.md").read_text(encoding="utf-8")
+    assignment = " ".join(shared.split("## Worker assignment", 1)[1].split("Before substantive work", 1)[0].split())
+    for rule in (
+        "the worker's Beads actor", "project rules, acceptance criteria, task limits, permission boundaries, and named skills",
+        "allowed actions and file or resource ownership", "required checks",
+        "relevant authority text or precise source sections", "source identity and enough context to resolve conflicts",
+        "required project rules still apply", "any override of a role default",
+        "Omit only duplicated role defaults and the lead's Beads actor",
+        "keep the worker's own actor and every assignment-specific override",
+    ):
+        assert rule in assignment, rule
+    assert "- the lead's Beads actor" not in assignment
+    assert "- retry limit, escalation rules" not in assignment
 
 
 def test_explorer_uses_builtins_and_is_not_packaged():

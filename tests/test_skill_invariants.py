@@ -304,8 +304,10 @@ def test_assignment_names_the_repository_commit_convention():
     """Workers follow the repository's own commit rules; shipped skills never depend on a user's
     personal commit skill."""
     owner = _text(SKILLS / "run-execution/SKILL.md")
-    assert ("the commit convention to follow: the repository's written commit rules, or else the "
-            "style of its recent history") in owner
+    assert "commit-convention overrides" in owner
+    assert "The worker's role supplies the default retry/escalation rules and commit-convention fallback" in owner
+    worker = _text(Path("plugin/agents/worker.md"))
+    assert "the repository's written commit rules, else the style of its recent history" in worker
     for path in list(SKILLS.rglob("*.md")) + list(Path("src/dotbrain/resources/agents").rglob("*.*")):
         assert "conventional-commits" not in path.read_text(encoding="utf-8"), path
 

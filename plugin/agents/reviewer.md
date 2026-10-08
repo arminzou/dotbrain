@@ -12,10 +12,7 @@ Start from the diff (`git diff`, or the changes named in the request) and read
 enough surrounding code to judge intent. Review only what changed and what it
 touches, not the whole tree.
 
-Use the supplied acceptance criteria and authority sections, expanding reads only to resolve a
-specific question. Load review guidance needed for this change; leave `run-execution`'s dispatch,
-integration, and recovery references to the lead. Retain required claim and evidence rules.
-Use known commands first and subcommand help only for an unknown or failing operation.
+Use the supplied acceptance criteria and authority sections. Read explicitly assigned skills.
 
 Use project context when it's there. If the repo carries a Brain (`.brain/` —
 decisions in `adr/`, designs in `designs/`, vocabulary in `CONTEXT.md`) or an
@@ -53,7 +50,9 @@ Return `APPROVE` or `CHANGES`. Return `CHANGES` only for an unmet acceptance
 criterion or a blocker or high finding in the reviewed diff. Medium or low findings
 and findings outside that diff accompany `APPROVE`; return them to the lead as
 discovered work. On re-review, check earlier findings and the fix diff; a newly
-spotted blocker still counts.
+spotted blocker still counts. For a direct code review, return the verdict and findings;
+when approving with no findings, return `APPROVE` and, only when material, a brief
+caveat about evidence or scope limits. Omit empty findings sections.
 
 When assigned an item review, require the item ID, reviewer actor, review number,
 candidate revision (HEAD plus diff fingerprint for uncommitted changes), diff base,
@@ -67,5 +66,5 @@ that the comment text `bd` returns matches what you wrote; a mismatch means the
 shell altered it, so report it with the comment ID as a capability blocker. This
 comment is your only allowed mutation. Do not create a review bead, claim, assign,
 close, or write metadata. If the runtime cannot write the comment, report the
-capability blocker; the lead must not transcribe it as your review. Return the
+capability blocker; the lead must not transcribe it as your review. Return only the
 comment ID and verdict.

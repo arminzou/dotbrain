@@ -109,8 +109,9 @@ An item-review assignment also names the reviewer actor, review number, candidat
 
 ### How the coding agent runs them
 
-Claude Code receives the roles from the plugin. `run-execution` dispatches `dotbrain:worker`
-in the background and uses worktree isolation for concurrent changes.
+Claude Code receives the roles from the plugin. `run-execution` dispatches packaged roles by name,
+with `dotbrain:worker` in the background and worktree isolation for concurrent changes.
+Packaged jobs start with their own assignment rather than a fork of the lead's conversation.
 
 Codex receives generated agent definitions in each wired checkout. For isolated implementation,
 the current workflow creates and wires worktrees, then launches separate Codex CLI sessions with
@@ -129,11 +130,30 @@ For role names and ready-to-send requests, see [Example prompts](prompts.md#pack
 
 The lead supplies the constraints and exact authority sections each job needs, rather than copying
 the whole conversation. Where Codex exposes a history control, bounded jobs start without inherited
-conversation history. Agents search before expanding their reads and return concise evidence.
+conversation history; if the runtime cannot bound history, the lead reports that limitation.
+Assignments retain project rules, acceptance criteria, ownership, permissions, required skills,
+and task-specific overrides. They omit duplicated role defaults and the lead's Beads actor,
+while keeping the worker's own actor.
 Agents inherit the configured model unless you explicitly request a different model;
 packaged roles retain their effort settings without pinning a model. Separate Codex CLI writing
 sessions explicitly set medium effort on launch and resume, since reading a worker definition
-does not apply its TOML settings.
+does not apply its TOML settings. A user-requested model is applied again on resume.
+
+For CLI workers, the lead checks process exit, session and turn outcomes, error events,
+nested-process termination, and artifacts, then reads the final response. It reads transcript
+prose and tool output when those signals reveal a failure that needs diagnosis.
+
+Workers return the candidate revision and branch, one line per check, and discoveries, blockers,
+or design impact when present. Failed checks retain failing test names and error text; the lead
+checks claim state directly in Beads. Item reviewers return the verdict and their Beads comment
+ID, with findings in that comment. Direct reviews return findings; approval without findings
+returns `APPROVE`, with a brief evidence or scope caveat only when material.
+Simplification reviews retain their findings-only format.
+
+When no gate command ran, the verifier returns `not run`, why, and what is needed, with available
+revision and environment information. It omits an empty record table and PR-ready block.
+Partial or failed runs preserve observed results and verbatim failure evidence. Completed gates
+keep the full record and public Verification block, with passing logs summarized.
 
 ## From Assignment to Accepted Result
 

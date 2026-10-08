@@ -7,7 +7,8 @@ preparation or dispatch and before fix rounds, cancellation, or recovery.
 
 Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
 `dotbrain:reviewer`, `dotbrain:verifier`, and `dotbrain:researcher`. For the explorer role,
-use Claude Code's built-in `Explore` agent. The worker's definition always launches it in the
+use Claude Code's built-in `Explore` agent. Dispatch packaged roles by name, never as a fork
+of the lead's conversation. The worker's definition always launches it in the
 background. For in-place work, dispatch it without isolation. For isolated work, which every
 concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
 isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
@@ -29,7 +30,7 @@ The launch returns the agent ID at once, and the worker's checkout is
 `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
 available. Record dispatch while the worker is still starting, before waiting for completion.
 Workers discover the shared tracker through Git metadata without wiring their subagent worktrees;
-their assignments carry absolute authority references.
+their assignments carry precise authority sections and source references.
 
 Before the first dispatch, when `git check-ignore -q .claude/worktrees/` fails, add
 `/.claude/worktrees/` to `$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages
