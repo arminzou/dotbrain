@@ -84,7 +84,7 @@ dotbrain 的全局配置文件，通常在 `~/dotbrain/config.yaml`。它存放�
 执行中的工作项上可以恢复的信息：它原生的状态和负责人、几个记录阶段、尝试次数和产物的 `dotbrain_` 元数据键，
 以及带标题的证据评论，包括它的 item review。
 
-### Human-in-the-loop (HITL) workflow
+### Human-in-the-Loop (HITL) workflow
 
 由你一步步指挥 Agent、并随时看到改动的工作流程。每完成一次 bounded execution，Agent 都会回到你这里；
 它的工作仍然通过你审阅的 PR 进入 `main`。见[工作流程](workflow.md#_5-work-the-issues)。

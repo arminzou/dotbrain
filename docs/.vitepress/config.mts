@@ -34,7 +34,7 @@ export default defineConfig({
       description: '为 Coding Agent 提供私有的项目上下文，不放进公开代码仓库。',
       themeConfig: {
         nav: [
-          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
           { text: '参考', link: '/zh/cli-reference', activeMatch: '^/zh/(cli-reference|configuration|skills|glossary)' },
           { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
         ],
@@ -44,12 +44,14 @@ export default defineConfig({
             items: [
               { text: '为什么用 Dotbrain？', link: '/zh/why-dotbrain' },
               { text: '快速开始', link: '/zh/getting-started' },
+              { text: '示例提示词', link: '/zh/prompts' },
             ],
           },
           {
             text: '使用场景',
             items: [
               { text: '开发项目', link: '/zh/workflow' },
+              { text: '和 Agent 团队一起工作', link: '/zh/agent-team' },
               { text: '学习项目', link: '/zh/learning' },
               { text: '浏览 Brain', link: '/zh/brain-site' },
             ],
@@ -119,7 +121,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -129,12 +131,14 @@ export default defineConfig({
         items: [
           { text: 'Why Dotbrain?', link: '/why-dotbrain' },
           { text: 'Getting started', link: '/getting-started' },
+          { text: 'Example prompts', link: '/prompts' },
         ],
       },
       {
         text: 'Use cases',
         items: [
           { text: 'Develop a project', link: '/workflow' },
+          { text: 'Work with an agent team', link: '/agent-team' },
           { text: 'Learn your project', link: '/learning' },
           { text: 'Browse the Brain', link: '/brain-site' },
         ],

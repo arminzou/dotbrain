@@ -109,9 +109,12 @@ discovery is written back into the design and the affected issues, so the next s
 
 Each run makes two independent choices: who drives, and how many agents write at once.
 
+For assignments, ownership, and how the packaged subagents work together, see
+[Working with an agent team](agent-team.md).
+
 | | Sequential | Parallel |
 |---|---|---|
-| **Human-in-the-loop**: you direct each step | One agent writes at a time, usually your own session. | Workers take independent issues at once, each in its own worktree. |
+| **Human-in-the-Loop**: you direct each step | One agent writes at a time, usually your own session. | Workers take independent issues at once, each in its own worktree. |
 | **Handoff**: the agent continues within a contract you approve | `iterate-design` works the issues one at a time. | `iterate-design` runs independent issues side by side. |
 
 The agent runs issues in parallel only when they are ready together, touch different files, and
