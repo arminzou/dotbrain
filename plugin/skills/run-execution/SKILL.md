@@ -91,7 +91,7 @@ The lead holds live assignments, pending joins, and the next operation in its ow
 | Dispatch and claim | Required capabilities, the worker cap, and resource constraints. | A `Dispatched` record and an item claimed under the worker's own actor, or a surfaced blocker. |
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
 | Item review | Passing worker checks and the candidate diff against its base. | Independent item review, a recorded exemption, or bounded review-fix rounds. |
-| Integrate | Reviewed candidate and intended target; the worker remains assignee. | Integrated result. On a conflict, resume the worker to rebase onto the current target and rerun checks. Keep the item open. |
+| Integrate | Reviewed candidate and intended target; the worker remains assignee. | Integrated result: rebase the item branch onto the current target, then fast-forward the target with `git merge --ff-only <item-branch>`; never create a merge commit. On a conflict, resume the worker to resolve it and rerun checks. Keep the item open. |
 | Check | Integrated result, agreed item checks, and no other verifier running. The lead runs item checks itself unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence. A failure returns to the worker as a repair; review any new behavior diff before closure. |
 | Apply closure rules | Passing acceptance evidence, resolved item-level human gates, and review of every behavior diff since the last approval. | `dotbrain_phase: verified` written, then native item closure through `manage-work-graph`. |
 | Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
@@ -104,6 +104,10 @@ The lead holds live assignments, pending joins, and the next operation in its ow
   needs acceptance evidence. For other work, name the accepted artifact and its target explicitly.
 - A dependent starts only from a base that contains its prerequisite's integrated result, after the
   prerequisite closes.
+- Name every branch with a short slug only, never a work-item ID: branch names and merge messages
+  reach the public repo, and the item's `Dispatched` record and `work` artifact already map the
+  item to its branch. The `Integrated` record names both the reviewed candidate and its rebased
+  revision, since rebasing changes commit hashes.
 - Clean up with `git worktree remove <path>` and, from the checkout holding the integration target,
   `git branch -d <item-branch>`; never `--force` or `-D`. Also delete any merged branch the runtime
   created for the worker's worktree. An unmerged branch or dirty worktree stays and is reported.

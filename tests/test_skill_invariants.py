@@ -464,3 +464,15 @@ def test_preflight_names_human_gated_items(path):
     """A gated item in scope means the handoff can only end BLOCKED; the human sees it before GO."""
     text = _text(SKILLS / path).replace("`", "")
     assert re.search(r"[Hh]uman[- ]gate[ds]?.*can only end BLOCKED", text), path
+
+
+def test_branches_and_integration_never_carry_work_item_ids():
+    """Branch names and merge messages reach the public repo; a branch named after its item, and a
+    merge commit naming that branch, published private tracker IDs."""
+    owner = _text(SKILLS / "run-execution/SKILL.md")
+    assert "rebase the item branch onto the current target, then fast-forward the target with `git merge --ff-only <item-branch>`; never create a merge commit" in owner
+    assert "Name every branch with a short slug only, never a work-item ID" in owner
+    assert "never a work-item ID" in _text(SKILLS / "manage-work-graph/SKILL.md")
+    assert "(candidate <revision>)" in _text(SKILLS / "run-execution/references/execution-record.md")
+    for path in SKILLS.rglob("*.md"):
+        assert "<item-id>-<short-slug>" not in _text(path), path

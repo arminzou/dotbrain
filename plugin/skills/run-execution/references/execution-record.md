@@ -87,7 +87,7 @@ they turn the backslashes in a Windows path into control characters.
 ## Review <n>: APPROVE | CHANGES @ <revision>
 ## Review skipped: <reason>
 ## Review skipped: declined by human — <reason>
-## Integrated @ <revision> on <target>
+## Integrated @ <revision> on <target> (candidate <revision>)
 ## Blocked @ <revision>
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
