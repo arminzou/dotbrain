@@ -59,6 +59,8 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 ## 子 Agent {#subagents}
 
+各角色的适用场景、提示词和 lead 如何协调结果，见[和 Agent 团队一起工作](agent-team.md#the-packaged-subagents)。
+
 dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
 Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
 比如 `dotbrain-worker`。它们在行动前都会先读 Brain：

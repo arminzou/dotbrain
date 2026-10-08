@@ -144,8 +144,10 @@ dotbrain doctor
 <div>
 <h3>指南</h3>
 <a href="./getting-started"><strong>快速开始</strong><span>安装、连接仓库并验证结果。</span></a>
+<a href="./prompts"><strong>示例提示词</strong><span>每类常见工作该怎么跟 Agent 说。</span></a>
 <a href="./architecture"><strong>架构</strong><span>Brainspace、Brain 与执行的分离，以及公开/私有的边界。</span></a>
 <a href="./workflow"><strong>工作流程</strong><span>从最初的想法到结束设计，每一步对应一个技能。</span></a>
+<a href="./agent-team"><strong>Agent 团队</strong><span>由你指挥或交给 Agent，了解一个或多个 worker 怎样协作。</span></a>
 <a href="./wiring"><strong>项目连接</strong><span>会链接哪些东西，什么时候该 wire、refresh 或 unwire。</span></a>
 <a href="./session-context"><strong>会话上下文</strong><span>会话开始时 Agent 知道些什么。</span></a>
 <a href="./beads-backend"><strong>Beads 后端</strong><span>任务跟踪的 embedded 模式和 server 模式。</span></a>

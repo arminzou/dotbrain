@@ -144,8 +144,10 @@ dotbrain doctor
 <div>
 <h3>Guide</h3>
 <a href="./getting-started"><strong>Getting started</strong><span>Install, wire a repo, and verify the result.</span></a>
+<a href="./prompts"><strong>Example prompts</strong><span>What to ask your agent for each common job.</span></a>
 <a href="./architecture"><strong>Architecture</strong><span>Brainspaces, the Brain and execution split, the public/private boundary.</span></a>
 <a href="./workflow"><strong>The workflow</strong><span>From first idea to closed design, one skill per step.</span></a>
+<a href="./agent-team"><strong>Agent team</strong><span>Direct the work or hand it off, with one worker or several.</span></a>
 <a href="./wiring"><strong>Wiring</strong><span>What gets linked, and when to wire, refresh, or unwire.</span></a>
 <a href="./session-context"><strong>Session context</strong><span>What the agent knows when a session starts.</span></a>
 <a href="./beads-backend"><strong>Beads backend</strong><span>Embedded and server modes for the issue tracker.</span></a>

@@ -7,10 +7,12 @@ fine on GitHub.
 
 - [why-dotbrain.md](why-dotbrain.md) — candid comparisons, trade-offs, and when to skip it.
 - [getting-started.md](getting-started.md) — install, wire a repo, and verify the result.
+- [prompts.md](prompts.md) — example prompts for each common job, and the skill each triggers.
 
 ## Use Cases
 
 - [workflow.md](workflow.md) — develop a project from first idea to closed design, one skill per step.
+- [agent-team.md](agent-team.md) — HITL and handoff, sequential and parallel work, and packaged subagents.
 - [learning.md](learning.md) — learn across sessions, park concepts, and capture demonstrated understanding.
 - [brain-site.md](brain-site.md) — read, search, and navigate the private Brain.
 

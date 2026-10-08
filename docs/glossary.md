@@ -96,7 +96,7 @@ The recoverable facts on a work item under execution: its native status and assi
 `dotbrain_` metadata keys holding its phase, attempts, and artifacts, and headed evidence comments,
 including its item reviews.
 
-### Human-in-the-loop (HITL) workflow
+### Human-in-the-Loop (HITL) workflow
 
 The workflow in which you direct the agent step by step and see changes as they happen. The agent
 returns to you after each bounded execution, and its work still reaches `main` through a pull

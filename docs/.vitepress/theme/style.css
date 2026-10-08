@@ -389,6 +389,12 @@
   width: 100%;
   font-size: 14px;
 }
+.prompt-examples .vp-doc div.language-text code {
+  width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .vp-doc td code {
   white-space: nowrap;
 }

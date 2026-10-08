@@ -63,6 +63,9 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 
 ## Subagents
 
+See [Working with an agent team](agent-team.md#the-packaged-subagents) for when to use each role,
+example prompts, and how the lead coordinates their results.
+
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
