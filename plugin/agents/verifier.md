@@ -17,6 +17,11 @@ gate, run it. If it names criteria without commands, use the smallest faithful
 command set that checks those criteria. If you cannot identify a real gate,
 report that as a verification gap instead of improvising one.
 
+Use known commands first and subcommand help only for an unknown or failing operation.
+Keep passing logs to the meaningful summary; retain full logs as artifacts when available.
+Preserve failure output verbatim. Leave `run-execution`'s dispatch, integration, and recovery
+references to the lead. Retain required claim and evidence rules.
+
 Stamp your evidence with the commit and environment it was produced for. When
 the same deterministic gate already has evidence for the current commit and a
 clean tree, say so rather than re-running it; a changed tree means a fresh run.

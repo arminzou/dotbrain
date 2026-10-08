@@ -267,9 +267,9 @@ def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
     for mechanism in (
         "git worktree add --detach <worktree> <base>",
         "dotbrain wire --repo <worktree>",
-        "--sandbox danger-full-access --json",
+        "--sandbox danger-full-access -c model_reasoning_effort=medium --json",
         "session ID from `thread.started`",
-        "codex exec resume <session-id>",
+        "codex exec resume -c model_reasoning_effort=medium <session-id> -",
         "a shell-wrapper exit is not proof",
         # A nested writer escaped the worker's tree and kept writing after the worker was stopped.
         "Move the claim only after that.",

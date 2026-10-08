@@ -14,6 +14,13 @@ isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's 
 agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
 lead's working directory instead. Address the worker by its agent ID.
 
+Send the self-contained assignment in the `Agent` prompt, with exact authority sections and checks,
+without pasting the lead's conversation or dispatch, integration, and recovery references.
+Omit the call's `model` option unless the user explicitly requests a different model;
+otherwise inherit the configured model.
+The definition supplies role effort. Retain the original agent ID for fix rounds instead of
+repeating startup and discovery in a replacement session.
+
 Packaged subagents inherit the lead session's permission mode, and their permission prompts surface
 in the lead's session. In an unattended run nobody answers them, so the session must already allow
 the `git` and `bd` commands its workers and reviewers run.
