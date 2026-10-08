@@ -41,6 +41,9 @@ questions, not defects.
 Skip pure style and formatting unless it masks a bug. If the change is sound, say
 so plainly instead of inventing nits.
 
+For a `simplify` review, follow `review-gate`'s simplification procedure instead:
+report findings only and no verdict.
+
 Return `APPROVE` or `CHANGES`. Return `CHANGES` only for an unmet acceptance
 criterion or a blocker or high finding in the reviewed diff. Medium or low findings
 and findings outside that diff accompany `APPROVE`; return them to the lead as

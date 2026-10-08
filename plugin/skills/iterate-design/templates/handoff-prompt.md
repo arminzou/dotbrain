@@ -57,7 +57,7 @@ Stop successfully only when every scoped item is closed and none is blocked, the
 satisfies the design doc's Success Criteria, relevant checks pass, design-relevant discoveries
 are reflected into the active design doc, final review has no blocking findings (required code
 review APPROVE, named readiness review READY), and the agreed ready-for-review PR exists with
-the human's review requested. Simplify findings or a missing simplify engine never block FINAL.
+the human's review requested. Simplify findings or an unavailable simplify reviewer never block FINAL.
 
 Stop scopes:
 - The whole handoff ends BLOCKED for wrong or unmeetable criteria; unresolvable scope, safety,
@@ -96,8 +96,9 @@ Loop protocol (every iteration, not just the first):
    branch skips it: its item review is the final code review. Run readiness only when the
    handoff contract names it, in addition to code review. Run simplify beside final code
    review, also for single-item branches; record its findings in a separate review bead under
-   the epic. Never apply simplify findings in-loop; they never block the PR or FINAL. If its
-   engine is unavailable, skip with a note. Add one PR-body line: "N non-blocking
+   the epic. Never apply simplify findings in-loop; they never block the PR or FINAL. Use
+   review-gate's bundled simplification procedure; if no independent simplify reviewer is
+   available, skip with a note. Add one PR-body line: "N non-blocking
    simplification suggestions", with no finding details, or a one-line skip note. Review
    supplements the verifier, never replaces it.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.

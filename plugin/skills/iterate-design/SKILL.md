@@ -152,7 +152,8 @@ Use this protocol throughout the handoff:
    `readiness` only when the handoff contract names it, in addition to code review.
    Run a non-blocking `simplify` pass beside final code review, also for single-item branches.
    Record its findings in a separate review bead under the epic. Never apply simplify findings
-   in-loop; they never block the PR or `FINAL`. When its engine is unavailable, skip with a note.
+   in-loop; they never block the PR or `FINAL`. Use review-gate's bundled simplification procedure;
+   when no independent simplify reviewer is available, skip with a note.
    The PR body adds one line: "N non-blocking simplification suggestions", with no finding
    details, or a one-line skip note. Review supplements the verifier, never replaces it.
 6. DECIDE:
