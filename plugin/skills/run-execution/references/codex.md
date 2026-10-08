@@ -68,6 +68,21 @@ creation identities and inspect the descendant tree: a shell-wrapper exit is not
 Codex child or tools stopped. Use process-tree control when required and verify no recorded writer
 remains. If termination is uncertain, apply the shared uncertain-termination rule.
 
+A nested writer can outlive its outer worker. A nested `codex exec` started by the worker
+through `Start-Process` was already outside the worker's process tree, and stopping the
+worker's handle left it running and writing. Before cancelling, record every nested writer's
+PID and creation time; the worker must report them. Stop each recorded identity's tree, then
+confirm that no recorded identity remains and that its activity and tracker writes have stopped.
+Move the claim only after that. A quiet window and an empty worker tree do not establish
+termination: a writer with no recorded identity kept writing after both checks passed. Keep its
+claim, report the uncertainty and wait for the human decision. Beads refuses an unforced
+reassign of a live claim.
+
+Qualified on Windows with Codex CLI 0.161.0 and embedded Beads 1.3.1 for nested writers that
+the worker starts as separate processes. Not qualified: native subagent writers, cooperative
+stop of a nested writer, claim lease expiry, server-mode trackers, and resumed implementation
+after cancellation.
+
 Retain dirty files, untracked files, branches, worktrees and available evidence. Treat a failed
 process under the shared failure and attempt rules; it is not a reason to reset or clean up. On
 authorized recovery, reconcile the actual tracker and artifacts before replacing or resuming a

@@ -268,6 +268,9 @@ def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
         "session ID from `thread.started`",
         "codex exec resume <session-id>",
         "a shell-wrapper exit is not proof",
+        # A nested writer escaped the worker's tree and kept writing after the worker was stopped.
+        "Move the claim only after that.",
+        "wait for the human decision",
         "actually spawning that role",
         # Workers told only to "use the project's skills" denied having a catalog and stopped.
         "name it in the assignment by its exact name (`$<skill-name>`)",
