@@ -9,8 +9,9 @@ headers, including `Claim moved`; a writing worker writes only its own claim and
 comments.
 An item reviewer writes its own `Review` comments under its own Beads actor; the lead never
 transcribes its verdict or findings. Item review is recorded on the work item, never a review bead.
-The worker remains assignee until closure. The lead writes metadata and closes under its own
-actor; a fix round changes phase and history, not the claim. `Claim moved` records only replacement
+The worker remains assignee until closure. The lead writes metadata under its own actor and closes
+under the worker's actor, naming itself in the close reason, because Beads lets only the assignee
+close; a fix round changes phase and history, not the claim. `Claim moved` records only replacement
 of a worker confirmed stopped.
 
 ## The `dotbrain_` keys

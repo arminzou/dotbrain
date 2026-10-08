@@ -26,9 +26,16 @@ bd create "Epic title" --type epic --json --quiet
 bd create "Child" --parent <epic-id> --type task --json --quiet
 bd dep add <blocked-id> <blocker-id> --json --quiet       # "<blocked> depends on <blocker>"
 bd update <id> --claim --json --quiet                     # sets in_progress + ownership
-bd close <id> --reason "..." --json --quiet
+bd close <id> --reason "..." --json --quiet             # only the assignee may close; see below
 bd dolt pull --json --quiet   /   bd dolt push --json --quiet  # sync the shared store
 ```
+
+Beads 1.3 guards ownership: an actor other than the assignee cannot close, unclaim, reassign, or
+claim an `in_progress` item, and a claim's lease expiring does not release it. Comments, metadata,
+notes, labels, dependencies, and status changes stay open to every actor. To close an item another
+actor holds, close under the holder's actor and name yourself in the reason:
+`bd close <id> --actor <holder> --reason "<reason> (closed by <you>)"`. Do not use `bd close --force`,
+which also overrides gates and open children, or `bd reclaim` on work someone still holds.
 
 ## Choose `--type` deliberately
 

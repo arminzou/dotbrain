@@ -192,11 +192,17 @@ record `Dispatched` before launching, naming the branch and base, and add the ch
 
 A writing worker keeps its claim until the item closes, including every review-fix round.
 Its return supplies the candidate and evidence; it does not change the assignee. A claimed item
-stays out of `bd ready`, and a competing actor's claim is rejected. The lead integrates, checks,
-writes `dotbrain_` metadata, and closes under its own actor while the worker remains assignee.
-Move a claim only for a replacement after the previous worker is confirmed stopped, recording
-`Claim moved: <from actor> -> <to actor>`. When termination is uncertain, ask the human.
-Beads itself lets any actor reassign, so this rule is the guard.
+stays out of `bd ready`, and a competing actor's claim is rejected, even after its lease expires.
+The lead integrates, checks, and writes `dotbrain_` metadata under its own actor. Beads lets only
+the assignee close an item, so the lead closes under the worker's actor and names itself in the
+reason, which keeps the worker as assignee:
+`bd close <id> --actor <worker-actor> --reason "<reason> (closed by <lead-actor>)" --json --quiet`.
+Never pass `--force` to `bd close`, which also overrides gates, and never run `bd reclaim` on a
+worker's item.
+Move a claim only for a replacement after the previous worker is confirmed stopped:
+`bd update <id> --assignee <new-actor> --force`, recording `Claim moved: <from actor> -> <to actor>`.
+Beads refuses to reassign a live claim without `--force`; the confirmed stop is what makes forcing
+it legitimate. When termination is uncertain, ask the human.
 
 Build outputs, databases, and ports still constrain parallelism; separate worktrees do not prove
 those are independent.
