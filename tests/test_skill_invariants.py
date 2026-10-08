@@ -118,7 +118,7 @@ def test_sync_replaces_the_retired_term_hydrate():
     roots = (Path("src/dotbrain"), SKILLS, Path("docs"))
     for root in roots:
         for path in root.rglob("*"):
-            if not path.is_file() or ".vitepress" in path.parts or path.suffix not in {".py", ".md", ".toml", ".yaml"}:
+            if not path.is_file() or {".vitepress", "node_modules"}.intersection(path.parts) or path.suffix not in {".py", ".md", ".toml", ".yaml"}:
                 continue
             assert not re.search(r"hydrat", path.read_text(encoding="utf-8"), re.IGNORECASE), path
 
