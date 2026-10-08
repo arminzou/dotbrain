@@ -51,6 +51,8 @@ Brain template propagate to every brain.
   is not auto-injected into context. Before answering how this project builds, runs, deploys,
   integrates, or otherwise works, check and search `.brain/docs/` first — do not infer from
   the public repo or generic conventions when the Brain has a documented answer.
+- Search the Brain by targeting `.brain/`: it is hidden and gitignored, so a search from
+  the repo root skips it.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
 - Public-facing repo docs (README.md, repo-root AGENTS.md) must not expose private Brain
