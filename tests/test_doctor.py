@@ -162,7 +162,7 @@ def test_bounded_readonly_beads_failures_do_not_stop_other_projects(tmp_path, fa
     before = snapshot(tmp_path)
     report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True, run=recording_run(tmp_path, calls, fail))
     assert errors(report.projects["failed"]) and not errors(report.projects["healthy"])
-    assert len(calls) == 2
+    assert len(calls) == 3  # bd version, dolt test, ready
     assert all("--readonly" in argv for argv, _ in calls)
     assert all(kwargs["env"]["BEADS_DIR"] == str(root / "brainspaces/failed/.beads") for _, kwargs in calls)
     assert doctor.as_result(report).status == "partial"
@@ -339,3 +339,18 @@ def test_doctor_spinner_only_in_interactive_text_and_clears_before_report(tmp_pa
     assert "Checking machine" not in result.stdout
     if json_output:
         assert json.loads(result.stdout)["command"] == "doctor"
+
+
+@pytest.mark.parametrize("stdout, status", [
+    ("bd version 1.2.2 (6c124203e: HEAD@6c124203e771)\n", "warn"),
+    ("bd version 1.3.1 (c1c4b642a: HEAD@c1c4b642ac1c)\n", "ok"),
+    ("bd version 1.4.0 (abc)\n", "ok"),
+    ("garbled\n", "info"),
+])
+def test_bd_version_reports_releases_older_than_the_qualified_one(tmp_path, stdout, status):
+    # bd 1.3 guards ownership and migrates the schema; older releases miss the behavior the skills rely on.
+    def run(argv, **kwargs):
+        assert argv == ["bd", "--readonly", "version"]
+        return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
+
+    assert doctor._check_bd_version(tmp_path, run).status == status

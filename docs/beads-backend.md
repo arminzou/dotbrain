@@ -144,3 +144,25 @@ bd ready              # issues with no open blockers
 bd show <id>          # one issue with its dependencies
 bd list --status open
 ```
+
+Only an item's assignee can close it, release it, or reassign it. To close an item someone else
+holds, close it under their actor and name yourself in the reason:
+
+```bash
+bd close <id> --actor <assignee> --reason "<reason> (closed by <you>)"
+```
+
+Avoid `bd close --force`, which also skips gates and open children.
+
+## Upgrading `bd`
+
+dotbrain is qualified on `bd` 1.3.1; `dotbrain doctor` warns when an older release is on `PATH`.
+Before upgrading from 1.2.x, export each tracker with the version you have:
+
+```bash
+bd export --all -o <backup>.jsonl
+```
+
+An embedded tracker migrates its schema on first use. A shared server does not: upgrade `bd` on
+every machine that uses the server first, then run `bd migrate schema` once per database. Until
+then the server refuses `bd dolt pull` and `bd dolt push`.

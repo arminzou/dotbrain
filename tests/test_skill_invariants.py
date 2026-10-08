@@ -210,7 +210,10 @@ def test_worker_keeps_claim_through_fix_rounds_and_closure():
     owner = _text(SKILLS / "run-execution/SKILL.md")
     for rule in (
         "A writing worker keeps its claim until the item closes",
-        "under its own actor while the worker remains assignee",
+        # Beads 1.3 lets only the assignee close, so the lead closes as the worker and names itself.
+        "closes under the worker's actor and names itself in the reason, which keeps the worker as assignee",
+        "Never pass `--force` to `bd close`, which also overrides gates, and never run `bd reclaim`",
+        "`bd update <id> --assignee <new-actor> --force`",
         "The lead sets `dotbrain_phase` to `working`",
         "The resumed worker does not touch its claim",
         "a delegated sequential worker is resumed like a parallel worker",

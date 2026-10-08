@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -200,6 +201,27 @@ def _probe(argv: list[str], brainspace: Path, run: Runner, label: str) -> Findin
         return Finding("error", f"{label} unavailable: {exc}", "install bd and check tracker configuration")
 
 
+# The bd release dotbrain's tracker calls and closure rules were last qualified on.
+QUALIFIED_BD = (1, 3, 1)
+
+
+def _check_bd_version(brainspace: Path, run: Runner) -> Finding:
+    qualified = ".".join(map(str, QUALIFIED_BD))
+    try:
+        response = run(["bd", "--readonly", "version"], cwd=brainspace, check=False, timeout=PROBE_TIMEOUT,
+                       env=beads._beads_env(brainspace))
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Finding("error", f"bd version unavailable: {exc}", "install bd")
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", response.stdout or "")
+    if not match:
+        return Finding("info", f"bd version unrecognized; dotbrain is qualified on bd {qualified}")
+    found = tuple(int(part) for part in match.groups())
+    if found < QUALIFIED_BD:
+        return Finding("warn", f"bd {match.group(0)} is older than {qualified}, the version dotbrain is qualified on",
+                       f"upgrade bd to {qualified} or later")
+    return Finding("ok", f"bd {match.group(0)} (qualified on {qualified})")
+
+
 def _check_beads_state(brainspace: Path, name: str, dotbrain_home: Path, *, run: Runner = _default_run) -> list[Finding]:
     declaration = config.load_project_config(dotbrain_home, name)
     if declaration.mode == "none":
@@ -209,7 +231,7 @@ def _check_beads_state(brainspace: Path, name: str, dotbrain_home: Path, *, run:
     beads = paths.confined_path(brainspace, ".beads")
     if not (beads / "metadata.json").is_file():
         return [Finding("error", ".beads not initialized", "run dotbrain beads sync for this project")]
-    findings = []
+    findings = [_check_bd_version(brainspace, run)]
     if declaration.mode == "server":
         findings.append(_probe(["bd", "--readonly", "dolt", "test"], brainspace, run, "beads server"))
     findings.append(_probe(["bd", "--readonly", "-C", str(brainspace), "ready"], brainspace, run, "bd ready"))

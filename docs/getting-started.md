@@ -114,8 +114,8 @@ pipx install dotbrain
 This installs the CLI only — it does not install `bd`
 (Beads), which `dotbrain` shells out to for issue tracking. Run `dotbrain bootstrap` afterward,
 then `dotbrain doctor --all` to check machine readiness before wiring a project. Install `bd`
-yourself from [the Beads repo](https://github.com/gastownhall/beads) before wiring a project with
-a tracker. Doctor checks tracker readiness once a project has a tracker configured.
+1.3.1 or later yourself from [the Beads repo](https://github.com/gastownhall/beads) before wiring a
+project with a tracker. Doctor checks tracker readiness once a project has a tracker configured.
 
 **Or run the plugin's installer by hand.** It provisions `uv` and `bd` for you if either is
 missing, then installs the CLI — no prerequisites needed, from the runtime's plugin cache:
