@@ -34,6 +34,8 @@ def test_packaged_worker_contract_on_both_runtimes():
             "commit your finished candidate",
             "keep your claim",
             "push, merge, or rewrite shared history",
+        "when the assignment names a work item, confirm that bd where",
+        "closes the item under your actor, naming itself in the close reason",
         ):
             assert rule in text, rule
     for path in agents.rglob("*.*"):

@@ -120,8 +120,15 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
                 continue
             hooks = json.loads(hook_file.read_text(encoding="utf-8"))
             if isinstance(hooks, dict) and (hooks.get("hooks") or {}).get("SessionStart"):
-                return [Finding("ok", f"{runtime}: registered dotbrain plugin has SessionStart hook files"),
-                        Finding("info", f"{runtime}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
+                findings = [Finding("ok", f"{runtime}: registered dotbrain plugin has SessionStart hook files"),
+                            Finding("info", f"{runtime}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
+                # Linking leaves packaged Claude Code agents to the plugin, so an older plugin leaves them undelivered.
+                missing = [name for name in subagents.PROJECT_BASELINE if subagents.plugin_delivered(name, runtime)
+                           and not (Path(location).expanduser() / "agents" / f"{name}.md").is_file()]
+                if missing:
+                    findings.append(Finding("warn", f"{runtime}: registered dotbrain plugin lacks packaged agents: {', '.join(missing)}",
+                                            "update the dotbrain plugin"))
+                return findings
         return [Finding("warn", f"{runtime}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
     except DIAGNOSIS_ERRORS as exc:
         return [Finding("warn", f"{runtime}: plugin installation check unavailable: {exc}", "inspect the runtime plugin manager")]

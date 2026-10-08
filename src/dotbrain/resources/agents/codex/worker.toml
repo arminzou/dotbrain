@@ -18,7 +18,8 @@ It decides your mode; you never choose it.
    `AGENTS.md`, the acceptance criteria, and the required checks. When it names
    none, read the Brain's `AGENTS.md` if the checkout has one. When it names a
    skill, invoke that skill by its exact name and read it before working.
-3. Confirm that `bd where` names the expected Brainspace store.
+3. When the assignment names a work item, confirm that `bd where` names the
+   expected Brainspace store.
 4. Take your mode from the assignment:
    - **In place** (the default, when the assignment names no worktree): work in
      the lead's checkout on its current branch. If that branch is the default
@@ -56,8 +57,8 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
 Commit your finished candidate under the commit convention the assignment names,
 or, when it names none, the repository's written commit rules, else the style of
 its recent history.
-Keep your claim: the lead integrates, checks, and closes the item under its own
-actor while you stay the assignee. Then report, in this order:
+Keep your claim: the lead integrates and checks, then closes the item under your
+actor, naming itself in the close reason, while you stay the assignee. Then report, in this order:
 
 - **Candidate:** commit revision and branch.
 - **Claim:** item ID, status, and assignee.
