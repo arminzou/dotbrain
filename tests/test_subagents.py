@@ -18,6 +18,11 @@ def test_packaged_worker_contract_on_both_runtimes():
     assert "isolation" not in frontmatter
     assert "Skill" in frontmatter
     assert codex["name"] == "worker"
+    fields = dict(line.split(": ", 1) for line in frontmatter.strip().splitlines())
+    assert codex["description"] == fields["description"]
+    assert codex["model_reasoning_effort"] == fields["effort"] == "medium"
+    assert codex["developer_instructions"].strip() == claude.split("---", 2)[2].strip()
+    assert "Carry out one assignment, from a lead or directly from a user." in codex["developer_instructions"]
     for prompt in (claude, codex["developer_instructions"]):
         text = " ".join(prompt.split()).replace("`", "").lower()
         for rule in (
@@ -35,10 +40,39 @@ def test_packaged_worker_contract_on_both_runtimes():
         assert not {"implementer", "investigator"} & set(path.stem.split("-")), path
 
 
-def test_explorer_replaces_investigator():
-    agents = Path("src/dotbrain/resources/agents")
-    assert (Path("plugin/agents") / "explorer.md").read_text(encoding="utf-8").startswith("---\nname: explorer\n")
-    assert tomllib.loads((agents / "codex/explorer.toml").read_text(encoding="utf-8"))["name"] == "explorer"
+def test_packaged_verifier_contract_on_both_runtimes():
+    claude = (Path("plugin/agents") / "verifier.md").read_text(encoding="utf-8")
+    fields = dict(line.split(": ", 1) for line in claude.split("---", 2)[1].strip().splitlines())
+    codex = tomllib.loads(subagents.packaged_body("verifier", "codex"))
+    assert codex["description"] == fields["description"]
+    assert codex["developer_instructions"].strip() == claude.split("---", 2)[2].strip()
+    assert codex["model_reasoning_effort"] == fields["effort"] == "low"
+    assert codex["sandbox_mode"] == "workspace-write"  # Gates may produce caches/artifacts.
+    prompt = " ".join(codex["developer_instructions"].split())
+    for rule in (
+        "do not reread the design doc or explore beyond what the gate requires",
+        "including gates that write their own caches and artifacts",
+        "Never treat an author's self-check as acceptance evidence",
+        "the report is the failure, verbatim",
+        "Exit codes, failing test names, and error output",
+        "Never include Brain references in this block",
+    ):
+        assert rule in prompt, rule
+
+
+def test_explorer_uses_builtins_and_is_not_packaged():
+    import re
+
+    assert "explorer" not in subagents.PROJECT_BASELINE
+    assert not Path("plugin/agents/explorer.md").exists()
+    assert not Path("src/dotbrain/resources/agents/codex/explorer.toml").exists()
+    refs = Path("plugin/skills/run-execution/references")
+    assert "built-in `Explore`" in (refs / "claude-code.md").read_text(encoding="utf-8")
+    assert "built-in `explorer`" in (refs / "codex.md").read_text(encoding="utf-8")
+    retired = re.compile(r"dotbrain[:-]explorer\b")
+    for directory in (Path("docs"), Path("plugin"), Path("src/dotbrain/resources")):
+        for path in directory.rglob("*.md"):
+            assert not retired.search(path.read_text(encoding="utf-8")), path
 
 
 def test_shared_skills_name_roles_not_runtime_dispatch_names():
@@ -60,6 +94,10 @@ def test_packaged_reviewer_item_review_contract():
     agents = Path("src/dotbrain/resources/agents")
     claude = (Path("plugin/agents") / "reviewer.md").read_text(encoding="utf-8")
     codex = tomllib.loads((agents / "codex/reviewer.toml").read_text(encoding="utf-8"))
+    fields = dict(line.split(": ", 1) for line in claude.split("---", 2)[1].strip().splitlines())
+    assert codex["description"] == fields["description"]
+    assert codex["model_reasoning_effort"] == fields["effort"] == "high"
+    assert codex["developer_instructions"].strip() == claude.split("---", 2)[2].strip()
     # A forced read-only sandbox prevents the reviewer's one permitted Beads write.
     assert "sandbox_mode" not in codex
     for prompt in (claude, codex["developer_instructions"]):
@@ -77,7 +115,7 @@ def test_packaged_reviewer_item_review_contract():
             assert rule in " ".join(prompt.split())
     # A temporary file outside the project prompts for permission; Windows PowerShell 5.1 drops
     # double quotes from native arguments, so the reviewer checks the text bd returns.
-    text = " ".join(claude.split())
+    text = " ".join(codex["developer_instructions"].split())
     for rule in (
         "bd comments add <item-id> <review-text> --actor <reviewer-actor> --json",
         "with no temporary file",
@@ -90,7 +128,7 @@ def test_packaged_reviewer_item_review_contract():
 def test_claude_agents_reach_a_shell_on_every_platform_and_never_nest():
     """Windows without Git Bash offers only PowerShell; plugin agents ignore permissionMode, hooks,
     and mcpServers, so the allowlist and prompt are the only capability levers."""
-    efforts = {"worker": "medium", "explorer": "medium", "reviewer": "high", "verifier": "low"}
+    efforts = {"worker": "medium", "reviewer": "high", "verifier": "low"}
     for name in subagents.PROJECT_BASELINE:
         if name == "researcher":
             continue  # The research-only tool allowlist is checked separately below.
@@ -105,7 +143,7 @@ def test_claude_agents_reach_a_shell_on_every_platform_and_never_nest():
     worker = " ".join((Path("plugin/agents") / "worker.md").read_text(encoding="utf-8").split())
     # A lead's assignment fills every field; a direct request names only the change and falls back.
     for rule in (
-        "from a lead or straight from a request",
+        "from a lead or directly from a user",
         "if it does not name what to change, or names a work item without your beads actor, return without editing",
         "when it names none, read the brain's agents.md",
         "when none are assigned, run the smallest relevant checks",
@@ -274,6 +312,7 @@ def test_packaged_subagents_leave_claude_to_the_plugin_and_prune_old_deliveries(
     (claude_dir / "implementer.md").symlink_to(old_cache)
     _write(codex_dir / "reviewer.toml", subagents.GENERATED_NOTICE + "\n" + subagents.MANAGED_MARKER + "\n\nold\n")
 
+    _write(codex_dir / "dotbrain-explorer.toml", subagents.GENERATED_NOTICE + "\n" + subagents.MANAGED_MARKER + "\n\nold\n")
     result = subagents.link_project_subagents(dotbrain_home, brainspace, (".claude", ".codex"), subagents.PROJECT_BASELINE)
 
     assert not result.warnings
@@ -287,6 +326,7 @@ def test_packaged_subagents_leave_claude_to_the_plugin_and_prune_old_deliveries(
         assert tomllib.loads(delivered.read_text(encoding="utf-8"))["name"] == f"dotbrain-{name}"
     assert ".claude/agents/implementer.md" in result.pruned
     assert ".codex/agents/reviewer.toml" in result.pruned
+    assert ".codex/agents/dotbrain-explorer.toml" in result.pruned
 
 
 def test_project_subagent_collision_warns_and_skips(dotbrain_home: Path, brainspace: Path):
@@ -320,7 +360,7 @@ def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brai
 def test_project_link_set_prepends_core_and_deduplicates() -> None:
     names = subagents.project_link_set(("reviewer", "custom", "verifier"))
 
-    assert names[:5] == ("explorer", "researcher", "reviewer", "verifier", "worker")
+    assert names[:4] == ("researcher", "reviewer", "verifier", "worker")
     assert names[-1] == "custom"
     assert names.count("reviewer") == 1
     assert names.count("verifier") == 1

@@ -5,8 +5,9 @@ preparation or dispatch and before fix rounds, cancellation, or recovery.
 
 ## Prepare and dispatch
 
-Dispatch the packaged worker as `dotbrain:worker`; read-only roles are `dotbrain:explorer`,
-`dotbrain:reviewer`, and `dotbrain:verifier`. The worker's definition always launches it in the
+Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
+`dotbrain:reviewer`, `dotbrain:verifier`, and `dotbrain:researcher`. For the explorer role,
+use Claude Code's built-in `Explore` agent. The worker's definition always launches it in the
 background. For in-place work, dispatch it without isolation. For isolated work, which every
 concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
 isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with

@@ -5,6 +5,12 @@ preparation or dispatch and before fix rounds, cancellation, or recovery. The pa
 separate `codex exec` CLI sessions. Native subagent conversations do not establish separate
 writing worktrees; do not treat an assigned shell directory as worktree isolation.
 
+## Explorer role
+
+For the read-only explorer role, use Codex's built-in `explorer` agent. If that role is
+unavailable, explore in the lead or use a subagent under the session's read-only permissions.
+Do not assume a child's requested sandbox overrides broader parent permissions.
+
 ## Prepare
 
 The lead creates one detached checkout per writing worker at the assigned base:

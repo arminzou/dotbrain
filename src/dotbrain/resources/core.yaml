@@ -12,7 +12,6 @@ version: 1
 
 subagents:
   project_required:
-    - explorer
     - researcher
     - reviewer
     - verifier
