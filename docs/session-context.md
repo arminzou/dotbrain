@@ -74,7 +74,7 @@ Each reads the Brain before acting:
 | `worker` | The writing worker: carries out an assigned change in your checkout or its own worktree, and commits it |
 | `reviewer` | Reviews a change for correctness, regressions, security, and missing tests |
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
-| `researcher` | Answers a question from the Brain, the codebase, and the web, and flags where outside sources and the Brain disagree. Codex uses shell tools for local reads under the parent's effective permissions; see [runtime limitations](../plugin/skills/run-execution/references/codex.md#researcher-availability) |
+| `researcher` | Answers a question from the Brain, the codebase, and the web, and flags where outside sources and the Brain disagree. On Codex it reads local files with shell commands under the lead session's permissions; its instructions forbid writes and network commands, but a lead with broader permissions passes them to it |
 
 The packaged subagents can't be overridden: a file with the same name in your private agent
 sources is ignored. To customize one, write your own agent under a different name. Add your own
