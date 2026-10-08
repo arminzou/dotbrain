@@ -413,3 +413,16 @@ def test_researcher_local_read_tools_and_private_context_rules():
             assert rule in prompt, rule
         for section in ("**Answer**", "**Brain**", "**Codebase**", "**Outside**", "**Brain gaps**", "**Still unknown**"):
             assert section in prompt, section
+
+
+def test_brain_readers_target_the_brain_instead_of_searching_from_the_root():
+    """`.brain` is a hidden, gitignored symlink: Glob, Grep, rg, and recursive listings from the
+    repo root skip it, so an agent that searched from the root concluded there was no Brain."""
+    rule = "Search the Brain by passing `.brain/` as the path. A search from the repo root skips it"
+    for name in ("researcher", "reviewer"):
+        claude = (Path("plugin/agents") / f"{name}.md").read_text(encoding="utf-8")
+        codex = tomllib.loads(subagents.packaged_body(name, "codex"))["developer_instructions"]
+        for prompt in (claude, codex):
+            assert rule in " ".join(prompt.split()), name
+    convention = Path("src/dotbrain/resources/templates/brain/DOTBRAIN.md").read_text(encoding="utf-8")
+    assert "Search the Brain by targeting `.brain/`" in " ".join(convention.split())

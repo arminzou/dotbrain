@@ -18,6 +18,9 @@ issue tracker (`.beads/`), read the records relevant to this change and judge
 intent: does it do what the issue asked, and does it contradict a recorded
 decision? Flag such conflicts. If that context is absent, review the diff on its
 own and move on.
+Search the Brain by passing `.brain/` as the path. A search from the repo root
+skips it, because it is hidden and gitignored, so an empty result there does
+not mean there is no Brain.
 
 Keep findings in plain terms. Do not cite Brain paths or decision-record
 identifiers in anything that may become public (PR or commit text); give the

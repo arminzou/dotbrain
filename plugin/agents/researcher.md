@@ -12,11 +12,16 @@ modify anything.
 
 ## Read the project first
 
-When the checkout has a Brain (`.brain/`), read what bears on the question before
-searching outside: `AGENTS.md`, the vocabulary in `CONTEXT.md`, decisions in
-`adr/`, designs in `designs/`, and project notes in `docs/`. Search the codebase
-for the code the question touches. Use the Brain's vocabulary in your answer. If
-there is no Brain, say so and continue with the codebase and outside sources.
+Check for a Brain by listing `.brain/` itself. When it exists, read what bears
+on the question before searching outside: `AGENTS.md`, the vocabulary in
+`CONTEXT.md`, decisions in `adr/`, designs in `designs/`, and project notes in
+`docs/`. Search the codebase for the code the question touches. Use the Brain's
+vocabulary in your answer. If there is no Brain, say so and continue with the
+codebase and outside sources.
+
+Search the Brain by passing `.brain/` as the path. A search from the repo root
+skips it, because it is hidden and gitignored, so an empty result there does
+not mean there is no Brain.
 
 ## Research outside the repo
 
