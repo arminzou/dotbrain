@@ -14,16 +14,16 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/arminzou/dotbrain/ci.yml?branch=main&style=flat&logo=github&label=CI)](https://github.com/arminzou/dotbrain/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/dotbrain?style=flat&logo=python)](https://pypi.org/project/dotbrain/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-117967?style=flat)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-read-117967?style=flat)](https://arminzou.github.io/dotbrain/)
+[![Documentation](https://img.shields.io/badge/docs-read-117967?style=flat)](https://arminzou.github.io/dotbrain/zh/)
 
 **为 Claude Code 和 Codex 提供私有的项目上下文。**
 
-让每个编程 Agent 都能读到项目的决策、术语和任务。这些上下文有版本记录，
+让每个 Coding Agent 都能读到项目的决策、术语和任务。这些上下文有版本记录，
 但不放在代码仓库里。
 
-[文档](https://arminzou.github.io/dotbrain/) ·
-[快速开始](https://arminzou.github.io/dotbrain/getting-started) ·
-[工作流程](https://arminzou.github.io/dotbrain/workflow)
+[文档](https://arminzou.github.io/dotbrain/zh/) ·
+[快速开始](https://arminzou.github.io/dotbrain/zh/getting-started) ·
+[工作流程](https://arminzou.github.io/dotbrain/zh/workflow)
 
 ### 为什么做这个
 
@@ -43,7 +43,7 @@ Dotbrain 是本地工具，不是托管的团队知识库。
 
 ## 快速开始
 
-把插件装进你的编程 Agent 即可，不需要克隆本仓库。
+把插件装进你的 Coding Agent 即可，不需要克隆本仓库。
 
 **Claude Code**：下面两行要分两次发送：
 
@@ -79,7 +79,7 @@ dotbrain doctor
 
 在连接好的仓库里新开一个 Agent 会话，就会加载项目的 Brain 上下文。
 手动安装、备份、在第二台机器上配置以及故障排查，见
-[快速开始](https://arminzou.github.io/dotbrain/getting-started)。
+[快速开始](https://arminzou.github.io/dotbrain/zh/getting-started)。
 
 ### 更新
 
@@ -100,7 +100,7 @@ dotbrain refresh --all
 ```
 
 如果 CLI 是用 pipx 或 pip 装的，就用对应的工具升级。详见
-[保持更新](https://arminzou.github.io/dotbrain/getting-started#staying-current)。
+[保持更新](https://arminzou.github.io/dotbrain/zh/getting-started#staying-current)。
 
 ## 工作原理
 
@@ -128,9 +128,9 @@ Brainspace。在其他目录下运行时，用 `--project <name>` 指定项目�
 
 Brain 用 Git 管理版本，请备份到**私有**远程仓库。Beads 数据库不在 Git 里，
 要备份或共享任务，需要单独配置 Dolt remote 或共享服务器。
-详见[架构](https://arminzou.github.io/dotbrain/architecture)、
-[项目连接](https://arminzou.github.io/dotbrain/wiring)和
-[Beads 后端](https://arminzou.github.io/dotbrain/beads-backend)。
+详见[架构](https://arminzou.github.io/dotbrain/zh/architecture)、
+[项目连接](https://arminzou.github.io/dotbrain/zh/wiring)和
+[Beads 后端](https://arminzou.github.io/dotbrain/zh/beads-backend)。
 
 ## 工作闭环
 
@@ -153,8 +153,8 @@ Brain 存长期知识，设计记录当前意图，Beads 记录执行状态。�
 成功标准和最终审阅由你说了算。工作跨多个会话或还有悬而未决的问题时，走完整个闭环；
 小改动只用需要的那几步就行。
 
-操作示例见[工作流程](https://arminzou.github.io/dotbrain/workflow)，
-完整的技能列表见[技能](https://arminzou.github.io/dotbrain/skills)。
+操作示例见[工作流程](https://arminzou.github.io/dotbrain/zh/workflow)，
+完整的技能列表见[技能](https://arminzou.github.io/dotbrain/zh/skills)。
 
 ## 开发
 
@@ -171,7 +171,7 @@ uv run pytest
 要以 editable 模式安装 CLI，运行 `./scripts/dev-install.sh`（Windows 上运行
 `.\scripts\dev-install.ps1`），然后运行 `dotbrain bootstrap`。
 内置技能的源码在 [`plugin/skills/`](plugin/skills/)。
-命令和选项见 [CLI 参考](https://arminzou.github.io/dotbrain/cli-reference)。
+命令和选项见 [CLI 参考](https://arminzou.github.io/dotbrain/zh/cli-reference)。
 
 提交 bug 或 PR 前，请先看[贡献指南](CONTRIBUTING.md)。
 
