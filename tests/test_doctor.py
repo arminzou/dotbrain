@@ -354,3 +354,15 @@ def test_bd_version_reports_releases_older_than_the_qualified_one(tmp_path, stdo
         return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
 
     assert doctor._check_bd_version(tmp_path, run).status == status
+
+
+def test_plugin_check_warns_when_the_plugin_lacks_packaged_claude_agents(tmp_path):
+    # Linking leaves packaged Claude Code agents to the plugin; an older plugin must not read as healthy.
+    install = tmp_path / "plugin-install"
+    write(install / "hooks/hooks.json", json.dumps({"hooks": {"SessionStart": [{"hooks": [{"command": "dotbrain hook session-start"}]}]}}))
+    write(tmp_path / ".claude/plugins/installed_plugins.json", json.dumps({"plugins": {"dotbrain@dotbrain": [{"installPath": str(install)}]}}))
+    findings = doctor._check_plugin(tmp_path, "claude-code")
+    assert any(f.status == "warn" and "lacks packaged agents" in f.message for f in findings)
+    for name in subagents.PROJECT_BASELINE:
+        write(install / "agents" / f"{name}.md", "---\nname: x\n---\n")
+    assert not any(f.status == "warn" for f in doctor._check_plugin(tmp_path, "claude-code"))
