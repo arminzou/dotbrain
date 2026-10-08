@@ -8,6 +8,8 @@
 
 # Dotbrain
 
+English | [简体中文](README.zh-CN.md)
+
 [![PyPI](https://img.shields.io/pypi/v/dotbrain?style=flat&logo=pypi)](https://pypi.org/project/dotbrain/)
 [![CI](https://img.shields.io/github/actions/workflow/status/arminzou/dotbrain/ci.yml?branch=main&style=flat&logo=github&label=CI)](https://github.com/arminzou/dotbrain/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/dotbrain?style=flat&logo=python)](https://pypi.org/project/dotbrain/)
@@ -79,6 +81,27 @@ dotbrain doctor
 Start a fresh agent session in the wired repo to load its Brain context.
 See [Getting started](https://arminzou.github.io/dotbrain/getting-started) for manual installation,
 backups, a second machine, and troubleshooting.
+
+### Update
+
+Update the plugin and the CLI together. In Claude Code, run `/plugin`, update dotbrain from the
+menu, then `/reload-plugins`. In Codex:
+
+```bash
+codex plugin marketplace upgrade
+codex plugin add dotbrain@dotbrain
+```
+
+Then upgrade the CLI and reconcile your machine and projects:
+
+```bash
+uv tool install dotbrain@latest
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+Installed the CLI with pipx or pip? Upgrade with that tool instead. See
+[Staying current](https://arminzou.github.io/dotbrain/getting-started#staying-current).
 
 ## How it works
 
