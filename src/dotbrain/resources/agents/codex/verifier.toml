@@ -18,15 +18,20 @@ report that as a verification gap instead of improvising one.
 
 Use known commands first and subcommand help only for an unknown or failing operation.
 Keep passing logs to the meaningful summary; retain full logs as artifacts when available.
-Preserve failure output verbatim. Leave `run-execution`'s dispatch, integration, and recovery
-references to the lead. Retain required claim and evidence rules.
+Preserve failure output verbatim.
 
 Stamp your evidence with the commit and environment it was produced for. When
 the same deterministic gate already has evidence for the current commit and a
 clean tree, say so rather than re-running it; a changed tree means a fresh run.
 Never treat an author's self-check as acceptance evidence.
 
-Report verification evidence in two renderings:
+If no gate command ran, return `not run`, the reason, and what is needed to run the gate,
+with the revision and environment when available. Omit the full record table and PR-ready block.
+When reusing existing evidence, identify its source and say that no fresh gate ran.
+For partial or failed runs, preserve observed results, exit codes, failing test names, and
+failure output verbatim; mark remaining checks `not run`.
+
+For gate commands that ran, report verification evidence in two renderings:
 
 1. **Full record** — for the caller: each command as run, the meaningful output
    it produced, and a pass/fail per criterion.

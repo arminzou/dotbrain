@@ -92,7 +92,8 @@ Lead 准备完整的任务说明：checkout 和分支、文件归属、需要时
 
 ### Coding Agent 怎么运行它们 {#how-the-coding-agent-runs-them}
 
-Claude Code 从插件获得这些角色。`run-execution` 在后台分派 `dotbrain:worker`，同时修改代码时使用 worktree 隔离。
+Claude Code 从插件获得这些角色。`run-execution` 按角色名分派任务，`dotbrain:worker` 在后台运行，
+同时修改代码时使用 worktree 隔离。内置角色接收自己的任务说明，不从 lead 的对话分叉。
 
 Codex 在每个已连接的 checkout 中获得生成的 Agent 定义。当前工作流进行隔离实现时，先创建并连接 worktree，
 再启动独立的 Codex CLI 会话，任务说明指向内置 worker 定义。CLI 会话不能直接选择自定义 Agent。
@@ -107,9 +108,24 @@ Beads 保存认领和执行状态。运行时能力和权限必须支持所需�
 ### 只提供任务需要的上下文 {#keep-assignments-focused}
 
 Lead 提供任务需要的约束和具体文档章节，不复制整段对话。Codex 的分派工具支持控制历史记录时，
-范围明确的任务不继承主会话的对话历史。Agent 先搜索，再按需要补读，并简洁地返回证据。
+范围明确的任务不继承主会话的对话历史；运行时无法限制历史时，lead 会说明这个限制。
+任务说明保留项目规则、验收标准、文件归属、权限边界、必需的技能，以及针对当前任务覆盖的默认规则。
+省略角色说明已有的默认规则和 lead 的 Beads actor，但保留 worker 自己的 actor。
 Agent 默认继承已配置的模型，只有你明确指定其他模型时才切换；内置角色保留各自的 effort 设置，不固定模型。
 独立的 Codex CLI 写入会话在启动和恢复时显式设置 medium effort，因为读取 worker 定义并不会应用其中的 TOML 配置。
+你明确指定了模型时，恢复会话也使用同一模型。
+
+对于 CLI worker，lead 检查进程退出状态、会话和轮次结果、错误事件、嵌套进程是否停止，以及所需产物，
+然后读取最终回复。只有这些信号显示需要诊断的失败时，才读取对话正文和工具输出。
+
+Worker 返回候选版本和分支，每项检查用一行报告；有额外发现、阻塞或设计影响时才列出。
+检查失败时保留失败测试名称和错误文本；认领状态由 lead 直接查询 Beads。
+单任务 reviewer 只返回判定和自己写入的 Beads 评论 ID，发现保存在评论中。
+直接审阅返回发现；没有发现时返回 `APPROVE`，仅在证据或审阅范围存在重要限制时附上简短说明。简化审阅仍只返回发现，不给判定。
+
+没有运行任何检查命令时，verifier 返回 `not run`、原因和运行所需条件，并附上可取得的版本与环境信息，
+不输出空记录表或 PR-ready block。检查只运行了一部分或失败时，保留已观察到的结果和原样的失败证据。
+完成检查后仍提供完整记录和可公开使用的 Verification block，通过的日志只保留摘要。
 
 ## 从任务分配到验收 {#from-assignment-to-accepted-result}
 

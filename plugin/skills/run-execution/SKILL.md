@@ -163,17 +163,19 @@ Every delegated worker receives a compact assignment in its runtime message:
 - work-item IDs and the assigned operation
 - the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
   actor is the shared Git user, and a repeated claim by the same actor succeeds silently
-- the lead's Beads actor, for integration, metadata writes, and closure
+- project rules, acceptance criteria, task limits, permission boundaries, and named skills
 - allowed actions and file or resource ownership
 - checkout, item branch, and base revision, where applicable
-- the commit convention to follow: the repository's written commit rules, or else the style of
-  its recent history
-- absolute paths to the controlling design, the Brain's `AGENTS.md`, the acceptance criteria, and
-  required checks
-- retry limit, escalation rules, and the artifacts, evidence, and blockers to return
+- relevant authority text or precise source sections, with source identity and enough context
+  to resolve conflicts; required project rules still apply
+- required checks and the artifacts, evidence, and blockers to return
+- any override of a role default, including retry, escalation, or commit-convention overrides
 
 Make the assignment self-contained: include settled constraints and exact authority sections,
-not the lead's conversation or whole workflow documents. The lead loads `run-execution`'s dispatch,
+not the lead's conversation or whole workflow documents. Omit only duplicated role defaults and
+the lead's Beads actor; keep the worker's own actor and every assignment-specific override.
+The worker's role supplies the default retry/escalation rules and commit-convention fallback.
+The lead loads `run-execution`'s dispatch,
 integration, and recovery references;
 workers load their role contract, project rules, and task-relevant sections and skills. Supply known
 tool names and commands; discover capabilities or read subcommand help only when something is

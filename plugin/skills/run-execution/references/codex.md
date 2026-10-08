@@ -53,9 +53,12 @@ Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
 
-Wait on the retained process handle. Record its terminal exit and inspect `turn.completed`,
-`turn.failed` and error events together with candidate artifacts and check evidence. A zero exit
-is process evidence only; acceptance follows the shared contract.
+Wait on the retained process handle. Check process exit, session ID from `thread.started`,
+turn outcomes (`turn.completed`, `turn.failed`), and error events by event type in the JSONL.
+Confirm nested-process termination and required artifacts from their recorded identities and sources.
+Read the final response file as the worker's report. Read transcript prose and tool output only
+when diagnosing a failure revealed by these signals. A zero exit is process evidence only;
+acceptance follows the shared contract.
 
 When the installed CLI supports it, continue a stopped session with
 `codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original
