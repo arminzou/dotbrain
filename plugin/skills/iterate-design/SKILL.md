@@ -42,7 +42,7 @@ Before changing code, present this contract and wait for the human's explicit `G
 
 - **Scope:** one named work bead, or every implementation bead under the named design/epic in
   dependency order. An epic is never claimed merely because it anchors the scope.
-- **Branch and base:** dedicated branch name and base branch.
+- **Branch and base:** dedicated branch name, a short slug with no work-item ID, and base branch.
 - **Verification:** the narrow checkpoint check (run in this session, by whoever made the change);
   one in-loop Success Criteria gate — the fast tier that must pass for `FINAL`; the full suite at
   the review surface; final whole-branch `code` review for a multi-item branch, plus the default

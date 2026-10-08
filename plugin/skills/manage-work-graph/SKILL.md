@@ -134,8 +134,8 @@ everything else unflagged so the agent can flow through the ready frontier.
 When work moves to another agent or session before it closes, record enough that the next
 assignee can act without being spoon-fed: work-item ID, anchor epic (if any), intended scope,
 required checks, review/landing expectations, and the bead's current state: done, next, and any
-open question. A branch created for the work uses the canonical name `<item-id>-<short-slug>` (the
-issue ID in the configured engine).
+open question. A branch created for the work uses a short descriptive slug and never a work-item
+ID: branch names reach the public repo, and the item's record already names its branch.
 
 ## Review beads
 
