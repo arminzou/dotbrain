@@ -28,9 +28,12 @@ Before the first dispatch, when `git check-ignore -q .claude/worktrees/` fails, 
 `/.claude/worktrees/` to `$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages
 a worker's worktree. The isolation guard refuses Git commands it cannot attribute to the worker's
 worktree, including chained commands and commands a shell hook rewrites. It inspects Bash command
-text only; PowerShell commands get just the working-directory check. Tell workers to run Git
-as plain, separate commands and set commit identity through the `GIT_AUTHOR_*` and
-`GIT_COMMITTER_*` environment variables.
+text only. On Claude Code 2.1.293 on Windows, the PowerShell tool is not guarded: Git aimed at the
+main checkout through it (`git -C`, `GIT_DIR`, `Set-Location`, a nested `pwsh`) runs and commits,
+where the same commands through Bash are refused. Tell workers to run Git only through the Bash
+tool, never through PowerShell, as plain, separate commands, and to set commit identity through
+the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. After an isolated worker finishes,
+confirm the lead checkout's branch, `HEAD`, and status are unchanged before integrating.
 
 ## Collect and fix
 

@@ -260,6 +260,8 @@ def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
     assert "its definition never sets isolation" in claude
     assert "`.claude/worktrees/agent-<agent-id>`" in claude
     assert "`SendMessage` to that original ID" in claude
+    # The isolation guard does not cover the PowerShell tool; workers must keep Git in Bash.
+    assert "run Git only through the Bash tool, never through PowerShell" in claude
     codex = _text(SKILLS / "run-execution/references/codex.md")
     for mechanism in (
         "git worktree add --detach <worktree> <base>",
