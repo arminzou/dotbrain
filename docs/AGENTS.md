@@ -16,6 +16,12 @@ npm run build                        # must pass before a push
 - `configuration.md` is tested: `tests/test_configuration_docs.py` loads the first YAML block under
   ``## `config.yaml` `` and ``## `project.yaml` `` through the real config loader. Keep those
   headings exact, keep the fences plain ```` ```yaml ````, and keep every key the test reads.
+- `zh/` holds the Simplified Chinese pages, one per English page with the same file name. They are
+  hand-maintained, best effort: write natural Chinese, keep commands, code, diagrams and terms
+  developers know in English (Agent, Coding Agent, PR, worktree, checkout) as is. When translating a
+  heading that is a link target, keep the English slug with `{#english-slug}`. `zh/cli-reference.md`
+  is a hand translation, not generated. Chinese nav and sidebar live under `locales.zh` in
+  `.vitepress/config.mts`.
 - Name a code block's file in a `# path` comment on its first line. A `[title]` after the language
   only renders inside a `::: code-group`.
 - Use `::: code-group` for alternatives (Claude Code / Codex, macOS / Windows, uv / pipx).
