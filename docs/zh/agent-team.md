@@ -104,6 +104,13 @@ Beads 保存认领和执行状态。运行时能力和权限必须支持所需�
 
 角色名和可以直接发送的请求，见[示例提示词](prompts.md#packaged-subagents)。
 
+### 只提供任务需要的上下文 {#keep-assignments-focused}
+
+Lead 提供任务需要的约束和具体文档章节，不复制整段对话。Codex 的分派工具支持控制历史记录时，
+范围明确的任务不继承主会话的对话历史。Agent 先搜索，再按需要补读，并简洁地返回证据。
+Agent 默认继承已配置的模型，只有你明确指定其他模型时才切换；内置角色保留各自的 effort 设置，不固定模型。
+独立的 Codex CLI 写入会话在启动和恢复时显式设置 medium effort，因为读取 worker 定义并不会应用其中的 TOML 配置。
+
 ## 从任务分配到验收 {#from-assignment-to-accepted-result}
 
 1. **准备。** Lead 固定任务范围、分支、检查项和归属。分派出去的 worker 用自己的 Beads actor 认领任务，

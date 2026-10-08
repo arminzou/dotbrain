@@ -172,6 +172,19 @@ Every delegated worker receives a compact assignment in its runtime message:
   required checks
 - retry limit, escalation rules, and the artifacts, evidence, and blockers to return
 
+Make the assignment self-contained: include settled constraints and exact authority sections,
+not the lead's conversation or whole workflow documents. The lead loads `run-execution`'s dispatch,
+integration, and recovery references;
+workers load their role contract, project rules, and task-relevant sections and skills. Supply known
+tool names and commands; discover capabilities or read subcommand help only when something is
+missing or fails. Keep local code questions in the lead or built-in explorer; use the researcher
+when outside sources must be reconciled with project knowledge.
+
+Inherit the configured model unless the user explicitly requests a different model. Record the
+user-requested model or that the model inherits the runtime setting in the assignment.
+Packaged definitions keep their role effort and no model pin.
+Runtime references own history controls and how to apply model and effort settings.
+
 Before substantive work, a writing worker:
 
 1. Reads the referenced authority.

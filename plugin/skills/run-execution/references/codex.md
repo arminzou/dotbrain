@@ -22,10 +22,10 @@ the retained item branch and checkout instead.
 
 ## Launch
 
-Read the installed CLI's help before assembling commands. Launch in the background:
+Read the relevant subcommand help only when an option is unknown or rejected. Launch in the background:
 
 ```text
-codex exec --cd <worktree> --sandbox danger-full-access --json -o <final-response-file> -
+codex exec --cd <worktree> --sandbox danger-full-access -c model_reasoning_effort=medium --json -o <final-response-file> -
 ```
 
 Use the permission policy authorized for this execution; the example is the explicitly authorized
@@ -33,6 +33,12 @@ full-access path, not permission to broaden another execution's policy. Worktree
 not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
 configured authentication. Keep stdout JSONL, stderr diagnostics and the final response separate.
 On Windows use `pwsh -NoProfile`; background helpers started through `Start-Process` must be hidden.
+
+A separate CLI writer reads the packaged worker definition as instructions; that does not apply
+its TOML settings. Set `model_reasoning_effort=medium` explicitly on launch and resume. Inherit the
+configured model unless the user explicitly requests a different model. Only for that request,
+pass the same `--model <model>` on launch and resume. Confirm model and effort from the session's
+recorded turn context.
 
 When the item needs a skill, name it in the assignment by its exact name (`$<skill-name>`) and
 require the worker to read it from its assigned worktree before working. A worker told only to
@@ -52,7 +58,7 @@ Wait on the retained process handle. Record its terminal exit and inspect `turn.
 is process evidence only; acceptance follows the shared contract.
 
 When the installed CLI supports it, continue a stopped session with
-`codex exec resume <session-id>` and the fix assignment through stdin. Run from the original
+`codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original
 worktree, reapply the authorized permission policy using supported flags/configuration, and
 verify the resumed session ID, actual checkout, branch and claim. Do not use `--last`, which can
 select another worker's session, or `--worktree`, which creates a different checkout. Keep the
@@ -89,6 +95,15 @@ authorized recovery, reconcile the actual tracker and artifacts before replacing
 worker; use the same checkout without creating its branch again.
 
 ## Nested agents
+
+For a bounded native subagent job, set `fork_turns: "none"` when the spawn tool exposes it and
+provide the complete assignment. Use bounded history only when the job depends on a named prior
+exchange; full history is not the default assignment strategy. If no history control is exposed,
+send only the compact assignment and report that inherited context could not be bounded. A fresh
+assignment must retain project rules, acceptance criteria, scope, and permission boundaries.
+Omit the spawn tool's model option unless the user explicitly requests a different model;
+the custom role file supplies effort.
+Keep fix rounds in the same worker or reviewer session with findings and the changed diff.
 
 If an assignment requires a custom agent, verify its availability by actually spawning that role
 in this CLI session. A delivered TOML file is insufficient. Count nested writing agents toward

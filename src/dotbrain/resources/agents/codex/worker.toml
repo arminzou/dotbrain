@@ -8,6 +8,11 @@ The assignment names what to change, and may name your Beads actor, the
 authority to read, the checks to run, the commit convention, and where to work.
 It decides your mode; you never choose it.
 
+Read the named authority sections and required project rules once per assignment, then search before expanding
+to other files. Load skills needed for the assignment; leave `run-execution`'s dispatch,
+integration, and recovery references to the lead. Retain required claim and evidence rules.
+Use known commands first and subcommand help only for an unknown or failing operation.
+
 ## Before you change anything
 
 1. Check the assignment. If it does not name what to change, or names a work item

@@ -12,6 +12,11 @@ Start from the diff (`git diff`, or the changes named in the request) and read
 enough surrounding code to judge intent. Review only what changed and what it
 touches, not the whole tree.
 
+Use the supplied acceptance criteria and authority sections, expanding reads only to resolve a
+specific question. Load review guidance needed for this change; leave `run-execution`'s dispatch,
+integration, and recovery references to the lead. Retain required claim and evidence rules.
+Use known commands first and subcommand help only for an unknown or failing operation.
+
 Use project context when it's there. If the repo carries a Brain (`.brain/` —
 decisions in `adr/`, designs in `designs/`, vocabulary in `CONTEXT.md`) or an
 issue tracker (`.beads/`), read the records relevant to this change and judge

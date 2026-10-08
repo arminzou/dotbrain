@@ -58,8 +58,73 @@ def test_packaged_verifier_contract_on_both_runtimes():
         "the report is the failure, verbatim",
         "Exit codes, failing test names, and error output",
         "Never include Brain references in this block",
+        "Keep passing logs to the meaningful summary",
+        "retain full logs as artifacts when available",
+        "Preserve failure output verbatim",
+        "each command as run, the meaningful output it produced, and a pass/fail per criterion",
     ):
         assert rule in prompt, rule
+
+
+def test_cli_writer_examples_apply_packaged_effort_on_launch_and_resume():
+    """Reading a role file in a CLI session does not apply its configuration."""
+    import re
+    import shlex
+
+    reference = Path("plugin/skills/run-execution/references/codex.md").read_text(encoding="utf-8")
+    worker = tomllib.loads(subagents.packaged_body("worker", "codex"))
+    commands = re.findall(r"codex exec (?:--cd|resume)[^`\n]+", reference)
+    assert len(commands) == 2  # Both first launch and same-session fixes must carry the setting.
+    for command in commands:
+        argv = shlex.split(command)
+        key, value = argv[argv.index("-c") + 1].split("=", 1)
+        assert key == "model_reasoning_effort"
+        assert value == worker["model_reasoning_effort"]
+        assert argv[-1] == "-"  # Each invocation receives its bounded assignment through stdin.
+
+
+def test_packaged_codex_roles_preserve_operator_model_selection():
+    for role in subagents.PROJECT_BASELINE:
+        assert "model" not in tomllib.loads(subagents.packaged_body(role, "codex")), role
+
+
+def test_bounded_dispatch_preserves_assignment_and_model_constraints():
+    shared = " ".join(Path("plugin/skills/run-execution/SKILL.md").read_text(encoding="utf-8").split())
+    codex = " ".join(Path("plugin/skills/run-execution/references/codex.md").read_text(encoding="utf-8").split())
+    claude = " ".join(Path("plugin/skills/run-execution/references/claude-code.md").read_text(encoding="utf-8").split())
+    for rule in (
+        "Make the assignment self-contained",
+        "exact authority sections",
+        "unless the user explicitly requests a different model",
+        "Record the user-requested model or that the model inherits the runtime setting",
+    ):
+        assert rule in shared, rule
+    for rule in (
+        'fork_turns: "none"',
+        "report that inherited context could not be bounded",
+        "must retain project rules, acceptance criteria, scope, and permission boundaries",
+        "Read the relevant subcommand help only when an option is unknown or rejected",
+        "unless the user explicitly requests a different model",
+        "pass the same `--model <model>` on launch and resume",
+    ):
+        assert rule in codex, rule
+    assert "unless the user explicitly requests a different model" in claude
+
+
+def test_packaged_roles_bound_reads_without_skipping_worker_rules():
+    narrow_reads = {
+        "worker": "once per assignment, then search before expanding",
+        "reviewer": "expanding reads only to resolve a specific question",
+        "researcher": "read matching sections before searching outside",
+        "verifier": "do not reread the design doc or explore beyond what the gate requires",
+    }
+    for role, rule in narrow_reads.items():
+        for text in (subagents.packaged_body(role, "codex"),
+                     Path(f"plugin/agents/{role}.md").read_text(encoding="utf-8")):
+            prompt = " ".join(text.split())
+            assert rule in prompt, role
+            assert "`run-execution`'s dispatch, integration, and recovery references to the lead" in prompt, role
+            assert "Retain required claim and evidence rules" in prompt, role
 
 
 def test_explorer_uses_builtins_and_is_not_packaged():

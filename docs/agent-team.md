@@ -125,6 +125,16 @@ for delivery and customization.
 
 For role names and ready-to-send requests, see [Example prompts](prompts.md#packaged-subagents).
 
+### Keep assignments focused
+
+The lead supplies the constraints and exact authority sections each job needs, rather than copying
+the whole conversation. Where Codex exposes a history control, bounded jobs start without inherited
+conversation history. Agents search before expanding their reads and return concise evidence.
+Agents inherit the configured model unless you explicitly request a different model;
+packaged roles retain their effort settings without pinning a model. Separate Codex CLI writing
+sessions explicitly set medium effort on launch and resume, since reading a worker definition
+does not apply its TOML settings.
+
 ## From Assignment to Accepted Result
 
 1. **Prepare.** The lead fixes the issue set, branch, checks, and ownership. Each delegated worker
