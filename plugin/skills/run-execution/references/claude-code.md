@@ -30,10 +30,11 @@ a worker's worktree. The isolation guard refuses Git commands it cannot attribut
 worktree, including chained commands and commands a shell hook rewrites. It inspects Bash command
 text only. On Claude Code 2.1.293 on Windows, the PowerShell tool is not guarded: Git aimed at the
 main checkout through it (`git -C`, `GIT_DIR`, `Set-Location`, a nested `pwsh`) runs and commits,
-where the same commands through Bash are refused. Tell workers to run Git only through the Bash
-tool, never through PowerShell, as plain, separate commands, and to set commit identity through
-the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. After an isolated worker finishes,
-confirm the lead checkout's branch, `HEAD`, and status are unchanged before integrating.
+where the same commands through Bash are refused. Tell workers to run Git through the Bash tool
+where it exists, since only Bash is guarded; where PowerShell is the only shell, to run Git only
+inside their own worktree, never with `-C`, `GIT_DIR`, or a location outside it. Either way, run
+Git as plain, separate commands and set commit identity through the `GIT_AUTHOR_*` and
+`GIT_COMMITTER_*` environment variables.
 
 ## Collect and fix
 
