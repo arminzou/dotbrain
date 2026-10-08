@@ -70,7 +70,6 @@ Each reads the Brain before acting:
 
 | Subagent | Does |
 | --- | --- |
-| `explorer` | Read-only exploration that answers a question with file-anchored facts |
 | `worker` | The writing worker: carries out an assigned change in your checkout or its own worktree, and commits it |
 | `reviewer` | Reviews a change for correctness, regressions, security, and missing tests |
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |

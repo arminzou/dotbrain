@@ -108,7 +108,7 @@ See [Learning your project](learning.md) for learning paths, parked concepts, an
 
 ## Subagents
 
-Alongside the skills, dotbrain ships Brain-aware subagents: `worker`, `explorer`, `reviewer`,
+Alongside the skills, dotbrain ships Brain-aware subagents: `worker`, `reviewer`,
 `verifier`, and `researcher`. See
 [Session context](session-context.md#subagents).
 

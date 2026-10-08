@@ -149,7 +149,7 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
     # Claude Code receives packaged subagents from the plugin; Codex gets prefixed generated copies.
-    for name in ("reviewer", "worker", "explorer", "verifier", "researcher"):
+    for name in ("reviewer", "worker", "verifier", "researcher"):
         assert (root / ".cache" / "agents" / "codex" / f"dotbrain-{name}.toml").is_file()
     assert not (root / ".cache" / "agents" / "claude").exists()
     assert any("synced .cache/agents/codex/dotbrain-reviewer.toml" in line for line in result.logs)
