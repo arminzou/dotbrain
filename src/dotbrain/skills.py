@@ -175,7 +175,6 @@ def resolve_selection(dotbrain_home: Path, entries: Iterable[str]) -> tuple[str,
             effective.setdefault(physical, physical.relative_to(root.resolve()).as_posix())
     leaves: dict[str, str] = {}
     for candidate in sorted(effective.values()):
-        # ponytail: portable casefold collision policy; probe receiver filesystems if case-only names are needed.
         leaf = Path(candidate).name.casefold()
         if leaf in leaves and leaves[leaf] != candidate:
             raise ValueError(f"skill destination collision: {leaves[leaf]} and {candidate}")
