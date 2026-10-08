@@ -99,12 +99,30 @@ writer cannot select an agent, so its assignment points it to the packaged worke
 `.codex/agents/dotbrain-worker.toml` in its checkout. Record
 direct execution and nested spawning separately; evidence for one does not qualify the other.
 
+## Pre-push notification
+
+If a handoff blocks before its first push, report `BLOCKED` in the current session, naming the
+blocker and required human action. No supported agent-invocable runtime-native notification
+channel was identified in Codex CLI 0.161.0 or the inspected Windows app surface
+(OpenAI.Codex 26.930.7945.0).
+
+Codex supports user-configured turn-completion notifications: `notify` invokes an external
+program, TUI notifications emit terminal alerts, and desktop settings control completion and
+input alerts. These do not establish a lead-invoked notification tool or guaranteed human receipt.
+Do not treat a completion hook as qualified pre-push delivery.
+
+The official [advanced configuration](https://learn.chatgpt.com/docs/config-file/config-advanced),
+[configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference),
+[desktop settings](https://learn.chatgpt.com/docs/reference/settings), and
+[notifications](https://learn.chatgpt.com/docs/notifications) pages were checked on 2026-10-08.
+
 ## Researcher availability
 
 Spawn the packaged researcher as `dotbrain-researcher`. It uses shell tools to read, list,
 and search local Brain and codebase files, and dedicated web tools for outside sources.
 Its prompt forbids writes, shell networking, installs, permission escalation, credential reads,
-and nested delegation. It requests high effort, live web search, and a read-only sandbox.
+and nested delegation. It requests high effort and a read-only sandbox. Web access depends on
+dedicated web tools exposed by the parent runtime; report missing web capability when none exists.
 If local reads are denied, it reports the missing context instead of bypassing restrictions.
 
 These are behavior rules under the parent's effective permissions, not a guaranteed tool
@@ -115,8 +133,17 @@ write/network challenges untested. The shell-reading path accepts that parent-po
 do not claim that the custom TOML prevents writes when the lead runs with broader permissions.
 
 Collaboration tools also remained exposed despite `multi_agent = false`. The researcher must
-follow its no-delegation instruction. Web-page reads succeeded through an inherited connector;
-that does not separately establish the effect of the native `web_search` setting.
+follow its no-delegation instruction. Web-page reads succeeded through the inherited
+`mcp__codex_apps__search_service_web_run` connector. Use that dedicated tool when available;
+do not substitute shell networking when web tools are absent.
+
+CLI 0.161.0 qualification spawned the packaged researcher under parent `web_search` values
+`disabled` and `live`, keeping the child setting `live`. Both exposed the inherited search
+connector and no native web tool. Because the parent-live control also lacked native search,
+these observations do not isolate whether the child setting was consumed, ignored, or masked.
+The unverified child `web_search` override has been removed; it does not qualify independent
+native access. The official [custom-agent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+and [web-search documentation](https://learn.chatgpt.com/docs/web-search) were checked on 2026-10-08.
 
 No reader MCP server is required or provisioned. An earlier no-shell probe could combine private
 context and web sources using a local read-only MCP reader registered in the parent session,

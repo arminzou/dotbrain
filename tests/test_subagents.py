@@ -383,7 +383,7 @@ def test_researcher_local_read_tools_and_private_context_rules():
     assert codex["name"] == "dotbrain-researcher"
     assert codex["model_reasoning_effort"] == "high"
     assert codex["sandbox_mode"] == "read-only"
-    assert codex["web_search"] == "live"
+    assert "web_search" not in codex
     assert codex["features"] == {"shell_tool": True, "multi_agent": False}
     assert "Never delegate work to another agent." in codex["developer_instructions"]
     for rule in (
