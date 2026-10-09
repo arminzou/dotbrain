@@ -94,8 +94,8 @@ Write literal placeholders as inline code, including in tables: `--project <name
 `--repo <path>`. Keep raw HTML for intentional markup. An "Element is missing end tag" error
 can mean a bare placeholder was parsed as an unclosed tag; check the named file and line.
 
-Because agents edit the Brain too, the `brain-site` skill keeps every edit building and knows the
-VitePress and Mermaid syntax pages can use.
+Invoke `brain-site` when you want to set up, change, or verify the site. Ordinary Brain edits use
+its VitePress and Mermaid syntax references without automatically running site operations.
 
 ## Changing the Look
 

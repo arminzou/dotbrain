@@ -81,8 +81,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 
 ## Brain 站点 {#brain-site}
 
-- **`brain-site`**：用 `dotbrain site` 创建、维护和构建 Brain 的私有站点：安排侧边栏、预览、修复构建失败，
-  以及用 VitePress 和 Mermaid 语法编写页面
+- **`brain-site`**：手动调用，用 `dotbrain site` 创建、维护、构建或预览 Brain 的私有站点，
+  包括侧边栏、主题和页面渲染检查
 
 ## 学习 {#learning}
 

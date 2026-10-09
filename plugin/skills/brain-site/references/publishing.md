@@ -136,10 +136,8 @@ the Brain's own: add one for the topic if the home page has them.
 
 ## Check
 
-Run `dotbrain site build`. It passes when every page compiles, every lesson and reference names a
-mission topic, every nav link resolves, and every internal link resolves. Preview with
-`dotbrain site dev`, which serves on `127.0.0.1`.
+Site verification belongs to the `brain-site` workflow. A successful check means every page
+compiles, every lesson and reference names a mission topic, and every nav and internal link resolves.
 
-When the Brain has no `.brain/site/`, it has no site: write the pages to this format anyway, skip
-the build, and tell the user. Committing the Brain, and anything outward,
+When the Brain has no `.brain/site/`, write the pages to this format anyway. Committing the Brain, and anything outward,
 waits for the user's go-ahead.
