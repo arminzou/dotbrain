@@ -1,6 +1,6 @@
 # Credits
 
-dotbrain's bundled skills build on ideas from these open-source projects.
+dotbrain's bundled skills build on ideas from these sources.
 
 - **[mattpocock/skills](https://github.com/mattpocock/skills)** by Matt Pocock. Several planning
   and review skills are inspired by and adapted from its approach: grilling a plan against the
@@ -9,3 +9,5 @@ dotbrain's bundled skills build on ideas from these open-source projects.
 - **[ponytail](https://github.com/DietrichGebert/ponytail)** by Dietrich Gebert. The `simplify`
   review in `review-gate` follows the shape of ponytail's over-engineering review: one tagged,
   located finding per cut, each naming what replaces it, and a closing line-count estimate.
+- **[Article by @trq212 on X](https://x.com/trq212/article/2073100352921215386?lang=en)**.
+  The `find-unknowns` skill draws inspiration from this article.
