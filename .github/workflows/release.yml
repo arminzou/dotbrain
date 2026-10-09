@@ -5,13 +5,17 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write # trusted publishing to PyPI
     steps:
       - uses: actions/checkout@v4
@@ -25,21 +29,16 @@ jobs:
           pinned=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
           tag="${GITHUB_REF_NAME#v}"
           if [ "$pinned" != "$tag" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $pinned — run scripts/bump.py $tag"
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject version $pinned"
             exit 1
           fi
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      # Guards the other five version pins (plugin manifests, installers, __version__).
+      # Guards plugin manifests, installers, runtime version, and the local lockfile entry.
       - name: Verify version pins are in lockstep
-        run: uv run pytest tests/test_plugin_build.py
-
-      - name: Create the GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: uv run --locked pytest tests/test_plugin_build.py
 
       - name: Publish to PyPI
         run: |

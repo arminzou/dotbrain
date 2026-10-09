@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "python",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "extra-files": [
+        {"type": "json", "path": "plugin/.claude-plugin/plugin.json", "jsonpath": "$.version"},
+        {"type": "json", "path": "plugin/.codex-plugin/plugin.json", "jsonpath": "$.version"},
+        "plugin/scripts/install.sh",
+        "plugin/scripts/install.ps1",
+        {"type": "toml", "path": "uv.lock", "jsonpath": "$.package[?(@.name.value==\"dotbrain\")].version"}
+      ]
+    }
+  }
+}

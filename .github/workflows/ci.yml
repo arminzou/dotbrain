@@ -70,7 +70,7 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA "Programs\bd")
 
       - name: Sync dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Run tests
         run: uv run pytest

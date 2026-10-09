@@ -109,6 +109,10 @@ def test_first_run_installers_pin_the_plugin_cli_version():
         )
         assert manifest["version"] == version
     assert __version__ == version
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    assert next(
+        package["version"] for package in lock["package"] if package["name"] == "dotbrain"
+    ) == version
 
     for name in ("install.sh", "install.ps1"):
         text = (scripts / name).read_text(encoding="utf-8")

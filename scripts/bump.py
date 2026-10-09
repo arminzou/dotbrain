@@ -54,4 +54,8 @@ if __name__ == "__main__":
     target = sys.argv[1]
     for relpath in bump(target):
         print(f"{relpath} -> {target}")
-    print(f"\nNext:\n  git commit -am 'chore(release): bump dotbrain to {target}'\n  git tag v{target}\n  git push origin main\n  git push origin v{target}")
+    print(
+        "\nManual preparation only; normal releases use Release Please.\n"
+        "Next: run uv lock and review the version changes on a dedicated branch.\n"
+        "See .github/RELEASING.md before committing or publishing."
+    )
