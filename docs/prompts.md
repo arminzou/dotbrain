@@ -117,9 +117,10 @@ delegate to one `worker`; either is sequential. Behavior changes get independent
 
 ### HITL: parallel execution
 
-::: info Default worker cap
-Parallel execution allows up to two workers at once by default, in either workflow.
-You only need to specify a worker cap in the prompt when you want to change it.
+::: info Worker cap
+In either workflow, the lead announces a finite active-writing cap from runtime capacity,
+resource isolation, and limits unless you specify one. It fills and refills ready slots within
+the fixed scope, reserving capacity for coordination, review, and verification.
 :::
 
 ```text

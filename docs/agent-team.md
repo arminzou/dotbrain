@@ -39,8 +39,9 @@ one issue while a reviewer reads another is still sequential execution.
 
 ::: info Defaults
 HITL with sequential execution is the default; you do not need to name either in your prompt.
-Parallel execution defaults to up to two workers changing code at once, in either workflow.
-Specify a different cap only when you want to change it.
+Unless you specify a cap, the lead announces a finite active-writing cap based on runtime capacity,
+resource isolation, and limits. It reserves capacity for lead, review, and verification operations.
+The authorized issue count is separate from this cap.
 :::
 
 ### Stay involved after each execution
@@ -49,7 +50,7 @@ Specify a different cap only when you want to change it.
 execution, checks the result, and returns to you. The same branch can hold later executions.
 It asks before pushing or opening a PR; merging stays with you.
 
-The lead shows the issues, file ownership, and integration branch before dispatch, and you can
+The lead shows the issues, behavioral ownership, known file overlap, and integration branch before dispatch, and you can
 change the split. It keeps the batch inside the agreed scope.
 
 ### Hand off an active design
@@ -60,7 +61,7 @@ base, checks and review, worker cap, human gates, and PR delivery. It also confi
 authentication, a distinct agent identity, and the required branch ruleset.
 
 Your `GO` authorizes the agreed implementation and delivery: push the dedicated branch, open a
-draft PR at the first push, push each integrated and checked issue, then mark the PR ready and
+draft PR at the first push, push each accepted integration group, then mark the PR ready and
 request your review after successful verification and review. It does not authorize merge,
 deployment, publication, dependency changes, or changes to scope or success criteria.
 
@@ -68,22 +69,31 @@ deployment, publication, dependency changes, or changes to scope or success crit
 
 For orders pagination, a query implementation and an update to a client SDK might be separate
 issues. They can run together only if the API contract is already settled, neither depends on the
-other's unfinished code, and their files and shared resources do not overlap. If both need to
+other's unfinished code, and mutable resources are isolated or scheduled exclusively. Separable
+changes may touch the same files in separate worktrees. If both need to
 change the response schema, settle that prerequisite first.
 
 Before dispatching, the lead checks that:
 
 - At least two scoped issues are ready together, with no open blockers.
-- Each worker has explicit file ownership; those assignments do not overlap.
-- Build outputs, databases, and ports will not collide.
+- Each worker has explicit behavioral ownership and known file overlap; shared interfaces are settled.
+- Mutable build outputs, databases, and ports are isolated or scheduled exclusively.
 - Each worker can have its own worktree and a distinct Beads actor for claims and evidence.
 
 Separate worktrees isolate edits; they do not isolate database access or filesystem permissions.
 When safe parallel work is unavailable, the lead explains why and proceeds one issue at a time
 if parallelism was optional. A missing required capability stops the work.
 
-Both workflows use a dedicated integration branch. Workers' changes reach that branch after
-review and checks, never directly into `main`. Where a project has no PR host, the branch diff
+The fixed scope may include waiting dependents. They become eligible only after prerequisite
+acceptance and closure, resolved human gates, and a ready-frontier check; capacity never adds
+unrelated issues. The lead fills and refills available slots from ready issues inside the fixed scope, reducing
+concurrency when integration, checks, or shared resources become the bottleneck. A candidate return
+frees writing capacity; it does not accept the issue or release its claim.
+
+Both workflows use a dedicated delivery branch kept at its last accepted revision. Integration
+is serialized on isolated group candidate branches from that revision. Passing candidates may be
+provisionally integrated before review; their issues remain open and release no dependents.
+Changes never go directly into `main`. Where a project has no PR host, the branch diff
 provides the review surface. Direct local landing needs your explicit instruction.
 
 ## The Packaged Subagents
@@ -105,7 +115,8 @@ more directly.
 The lead prepares complete assignments: checkout and branch, file ownership,
 issue and actor where needed, acceptance criteria, checks, and what evidence to return. A worker
 will stop on the default branch unless your explicit local-landing instruction was recorded.
-An item-review assignment also names the reviewer actor, review number, candidate revision, and diff base.
+A review assignment identifies the reviewer, review number, exact base/head, included issues,
+and their acceptance criteria.
 
 ### How the coding agent runs them
 
@@ -145,8 +156,13 @@ prose and tool output when those signals reveal a failure that needs diagnosis.
 
 Workers return the candidate revision and branch, one line per check, and discoveries, blockers,
 or design impact when present. Failed checks retain failing test names and error text; the lead
-checks claim state directly in Beads. Item reviewers return the verdict and their Beads comment
-ID, with findings in that comment. Direct reviews return findings; approval without findings
+checks claim state directly in Beads. Reviewers return complete structured reports and write no
+work-graph comments. Reports name base/head, included issues, acceptance coverage, per-issue
+verdicts, stable finding IDs, affected issues, severity, location, problem, and material limits.
+The lead preserves reviewer identity, revisions, wording, severity, and verdicts in member records
+before routing repairs. A cross-issue finding has one responsible worker and a full durable record
+on its issue; other affected issues reference that comment and finding ID. Ownership notes are
+the lead's additions; disagreements go back to the reviewer or you. Direct reviews return findings; approval without findings
 returns `APPROVE`, with a brief evidence or scope caveat only when material.
 Simplification reviews retain their findings-only format.
 
@@ -161,27 +177,50 @@ keep the full record and public Verification block, with passing logs summarized
    claims its issue under its own Beads actor and keeps that claim through review fixes.
 2. **Implement.** The worker makes its change, runs the checkpoint checks, commits the candidate,
    and returns its revision, results, discoveries, and blockers.
-3. **Review.** The lead runs the review-fix loop with an independent reviewer before integration.
-4. **Integrate and check.** The lead integrates the reviewed candidate into the dedicated branch
-   and runs the agreed checks against the integrated result. New behavior changes need review too.
-5. **Accept and record.** Once acceptance and human gates are satisfied, the lead records evidence
-   and applies the closure rules. For a delegated issue it closes under the assignee's actor,
+3. **Provisionally integrate.** The lead serializes integration of passing candidates into an
+   isolated group candidate branch from the accepted delivery head. Issues stay open with their
+   claims, and dependents wait; the delivery branch stays at its accepted head.
+4. **Review and check.** An independent reviewer covers a coherent group at the exact integrated
+   revision, including unchanged consumers and interactions. Combined checks cover every member's
+   acceptance criteria. Review promptly when accepting a prerequisite can unlock dependent work;
+   groups follow completed features and interfaces, not whole launch waves or epics.
+5. **Accept and record.** Once acceptance and human gates are satisfied, the lead fast-forwards
+   the delivery branch to the exact reviewed and checked candidate head, records evidence,
+   and applies the closure rules. If the delivery head advanced, first rebase or rebuild the
+   candidate from that accepted head and refresh review and combined checks. For a delegated issue
+   it closes under the assignee's actor,
    naming the lead in the reason; the worker does not close the issue or hand back its claim.
 
 ### Review-fix loop
 
-The lead sends the worker's change to an independent reviewer. If the reviewer returns `CHANGES`,
-the lead sends the findings back to the same worker, which fixes the change in the same checkout,
+The lead sends the integrated group to an independent reviewer. An unmet acceptance criterion or
+a change-caused blocker/high regression produces `CHANGES`, even in an unchanged consumer.
+Unrelated existing defects are discovered work; medium/low findings remain non-blocking. Safety
+claims need evidence, a concrete trace, or a small targeted check; missing evidence is a gap.
+If the reviewer returns `CHANGES`, the lead records the report before sending the durable finding
+references back to the original responsible worker, which fixes the change in the same checkout,
 reruns its checks, and commits the fix. The lead then asks the same reviewer to review it again.
-The loop ends with `APPROVE`, or stops for your decision after three consecutive `CHANGES` verdicts.
+The same reviewer checks the fixes and affected interactions. Passing worker checks alone do not
+resolve findings. Three consecutive `CHANGES` verdicts hold the affected group for your decision.
+Group records retain revision ranges, member coverage, review provenance, checks, and finding
+references. Changed patches or integration context affecting coverage need refreshed evidence.
+Closure and dependent release wait for required review, combined checks, acceptance, and human
+gates; dependents start from a base containing accepted prerequisites.
 
 The worker's own tests are checkpoint evidence, not independent acceptance. The lead normally
 runs integrated item checks itself; a handoff reserves the `verifier` for the final in-loop gate.
 Only one verifier runs at a time.
 
-Code, tests, build/CI configuration, and agent instructions require independent item review;
+Code, tests, build/CI configuration, and agent instructions require independent review;
 prose-only changes are exempt. In HITL, the lead can ask you to exempt a small change and states
-its recommendation. A multi-item branch gets a fresh whole-branch code review before delivery.
+its recommendation. A multi-item branch requires independent whole-branch code review before
+delivery. The final integration review can supply it only with explicit coverage of the entire
+branch diff, all scoped items, interactions, and the active design at the exact final revision.
+Approval of only the latest group is insufficient. The reviewer must have authored none of the
+reviewed changes, but need not be fresh. Otherwise arrange a whole-branch review. Mechanical
+checks, the final human review record, and your merge gate remain.
+A single-item branch reuses its item review only if it covers the whole final diff; otherwise it
+also needs a whole-branch review.
 A handoff also gets a non-blocking simplification pass when an independent reviewer is available;
 you decide what to do with its suggestions.
 
@@ -191,8 +230,15 @@ An issue stops after three consecutive failed checks on one checkpoint, three co
 `CHANGES` item-review verdicts, or a human gate. The lead preserves the attempt trail and explains
 the decision needed. Only you authorize more attempts or changed criteria.
 
-In **HITL**, the lead pauses new dispatch and integration and comes back to you. In **handoff**,
-the blocked issue and its dependents wait while independent scoped issues continue. The handoff
+In either workflow, a failed integration group and its dependents wait while genuinely independent
+scoped issues continue. The lead preserves the held revision, findings, claims, and attempt counts,
+and proves isolation from the failed group. Independent work starts from accepted bases and uses
+isolated integration candidates; failed contributions and unrelated accepted changes are preserved.
+Held group branches stay separate from the delivery branch, so another accepted group can be
+promoted without the held changes. Recovery never resets or rewrites the delivery branch.
+If isolation cannot be established, report the blocker and stop affected work. Splitting a failed
+group requires explicit new review boundaries and fresh evidence; earlier item verdicts alone do
+not accept the changed group. The handoff
 ends blocked when no unblocked work remains; its PR stays draft while any scoped issue is blocked.
 
 A whole handoff stops immediately for a missing required capability, compromised shared state,
@@ -202,6 +248,18 @@ cannot be met. It also stops after two cycles without progress, or when you canc
 Cancellation preserves unfinished files, branches, worktrees, and evidence. A replacement takes
 over a claim only after the previous worker is confirmed stopped; a returned result or expired
 lease does not prove that. Recovery keeps the original scope, checks, and attempt history.
+
+## Investigate Before Asking
+
+For an unknown, inspect observable facts first and research recorded history when rationale
+matters; current code alone does not establish historical intent. Report evidence, inference,
+unresolved gaps, the cheapest next action, and whether it blocks the decision, or defer it with a
+reason. Small experiments stay within existing scope and limits. Reversible implementation
+defaults can be chosen within scope; preferences, authority, acceptance changes, consequential
+tradeoffs, and evidence-unsettled decisions come to you with evidence and a recommendation.
+`find-unknowns` stays read-only. Active designs own initiative uncertainty, Beads owns execution
+state, and established workflows own durable canon. Designs and issue decomposition use concrete
+seams, independently verifiable outcomes, verification boundaries, and interface/resource dependencies.
 
 ## Related
 

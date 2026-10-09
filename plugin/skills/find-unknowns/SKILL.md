@@ -65,6 +65,17 @@ Now look for what you did not think to ask. Deliberately hunt unknown-unknowns a
 For each finding, capture three things: what it is, why it matters, and its blast radius (would this
 change the architecture, the contract, or just an implementation detail?).
 
+Investigate observable questions before escalating them: inspect code, configuration, tests, and
+available observations. When rationale matters, research recorded decisions and history; current
+code shows behavior, not the intent behind it. Separate observed evidence, inference, and unresolved
+gaps. A small targeted experiment is an option only within existing scope, permissions, and limits;
+this scan remains read-only and does not authorize additional pilots, budgets, or outward actions.
+
+For each remaining unknown, name the cheapest next action and whether it blocks the current
+decision. Explicitly defer irrelevant uncertainty with a reason. Choose reversible implementation
+defaults within scope; send preferences, authority, acceptance changes, consequential tradeoffs,
+and questions the evidence cannot settle to the human with evidence and a recommendation.
+
 Present the findings sorted by blast radius, largest first. The architecture-changing unknowns are the
 expensive ones to discover late.
 
@@ -73,7 +84,8 @@ that way is a generic checklist item ("did you consider error handling?"), which
 have produced anyway: drop it rather than padding the list.
 
 Completion: a triaged list of findings, each grounded in something read and carrying a blast-radius
-call, ordered largest-first.
+call, ordered largest-first; evidence, inference, and unresolved gaps are distinguishable, and each
+unknown has a cheapest next action and blocking status or an explicit reasoned deferral.
 
 ### 4. Hand off
 
@@ -84,6 +96,10 @@ This skill does not write the Brain. Route each finding to the skill that owns i
 - Durable, cross-cutting, expensive-to-reverse decision: an ADR, via `grill-decisions`.
 - Concrete follow-up work: a bead, via `manage-work-graph`.
 - If the pass shows the work is actually small and obvious: straight to beads, no design doc.
+
+Active designs own initiative uncertainty; Beads owns execution state. Route updates through
+those existing owners rather than creating a separate uncertainty ledger. Durable canon updates
+remain with the workflows above.
 
 Completion: every finding has a named next action, and you have recommended the next skill.
 

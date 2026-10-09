@@ -4,8 +4,23 @@ How to persist any code review's findings as a bead and operate that bead afterw
 skill, tool, or ad hoc process produced them. A review's own methodology — what it checks, how
 rigorously, its finding vocabulary — stays owned by that review. This reference only covers turning
 its output into a bead and tracking remediation. `review-gate` selects the review mode; this
-file owns its shared record. Item reviews are recorded on the work item by `run-execution`,
-not in a separate review bead.
+file owns its shared record. Item and integration reviews return to the lead, who records them
+on member work items using `run-execution`'s
+[execution record](../../run-execution/references/execution-record.md), not a separate batch
+review bead. The independent reviewer writes no tracker records.
+
+For any returned review, the lead preserves reviewer identity, base/head revision references,
+covered items and acceptance coverage, verdicts, full finding wording, severity, stable finding
+IDs, and material evidence or coverage limits before dispatching repairs. Ownership and
+coordination notes are labeled as lead additions; disputes return to the reviewer or human
+without silently changing a verdict. Cross-item findings have one responsible worker, a full
+durable finding on that worker's item, and references to its comment and finding ID on all other
+affected items. Repair references go to the original workers.
+
+Code review includes change-caused consequences in unchanged consumers and interactions.
+Unmet acceptance or a blocker/high regression caused by the reviewed change produces `CHANGES`
+wherever its symptom appears; unrelated existing defects and medium/low findings remain
+non-blocking discovered work. Missing safety evidence is a reported gap, not a verified claim.
 
 A review bead *is* a review gate, and a gate is human-owned at its close: an agent records the
 gate's lifecycle and never closes it on its own judgment. The observed human merge exception

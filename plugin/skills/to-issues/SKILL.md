@@ -40,6 +40,12 @@ Decompose the goals and implementation notes into vertical slices. Each work ite
 narrow but complete path through every relevant layer. A completed work item should be demoable or
 otherwise verifiable on its own.
 
+Cut at concrete seams: a behavior, interface, or integration outcome with its own evidence. State
+the verification boundary — what each check proves and leaves unproven — and the interface
+prerequisites and shared resources needed to verify it independently. Preserve vertical slices;
+unrelated file layout is not a reason to split or serialize work. Model actual interface and
+resource dependencies, including integration checks where individually passing pieces interact.
+
 Sequence the work items by volatility: within their dependency constraints, put the ones that resolve the
 most volatile, highest-blast-radius decisions — data models, type interfaces, migration shape — first.
 Validating a risky assumption in the first work item is far cheaper than discovering it wrong in the fifth.
@@ -55,11 +61,21 @@ For each work item, show:
 - `Blocked by`
 - `Goals covered`
 - `Acceptance criteria`
+- `Verification boundary` (checks, what they prove, and what remains for integration)
+- `Interface/resource prerequisites` (dependencies and shared resource constraints)
 
 Mark a work item human-gated when it needs a person's decision, and be honest about which do: a set
 where everything is autonomous is usually a set that has not been read carefully. Keep acceptance
 criteria outcome-focused and verifiable, stating what is true when the work item is done rather than how
 it was implemented.
+
+Investigate observable unknowns before assigning a human gate. Choose reversible implementation
+defaults within scope; preferences, authority, acceptance changes, consequential tradeoffs, and
+questions the evidence cannot settle remain human decisions, with evidence and a recommendation.
+Name the cheapest next action and blocking status, or explicitly defer uncertainty with a reason.
+Keep evidence, inference, and unresolved gaps distinct. The active design owns initiative
+uncertainty; beads own execution state. Small targeted experiments stay within existing
+authorization and limits and do not authorize additional pilots, budgets, or outward actions.
 
 Ask the user to review the work item set and dependency shape before creating anything:
 

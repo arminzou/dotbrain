@@ -108,8 +108,12 @@ everything else unflagged so the agent can flow through the ready frontier.
    implementing. Beads carry execution facts; the design doc carries the design,
    rationale, and file-level scope — do not infer those from the compressed acceptance criteria
    alone.
-6. Hand implementation to `run-execution` with the selected item or finite batch. It applies
-   these closure rules to each item as that item passes, so dependents can be released. For
+6. Hand implementation to `run-execution` with the selected item or finite batch. Provisional
+   integration closes no items and releases no dependents. Its lead applies these closure rules
+   only after required review, combined checks, each member's acceptance, and resolved human gates
+   cover the exact integrated revision; dependent bases contain accepted prerequisites. Failed
+   or uncovered groups and their dependents stay held while only proven independent work continues
+   from accepted bases with isolated candidates in either workflow. For
    single-item work in the HITL workflow, present what was done and confirm before closing, unless the user
    explicitly asked you to close it. Review beads follow their human-owned closing rules,
    including the observed human merge exception for code review (see Review beads below). Work originating from

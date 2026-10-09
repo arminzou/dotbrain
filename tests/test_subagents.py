@@ -160,8 +160,8 @@ def test_reports_preserve_evidence_and_omit_empty_sections():
     for rule in (
         "return the verdict and findings", "when approving with no findings, return `APPROVE`",
         "only when material, a brief caveat about evidence or scope limits", "Omit empty findings sections",
-        "Return only the comment ID and verdict", "report findings only and no verdict",
-        "report the capability blocker", "Confirm that the comment text `bd` returns matches what you wrote",
+        "Return all findings, rather than a summary or comment ID", "report findings only and no verdict",
+        "return no verdict and name what is missing", "the lead owns tracker records",
     ):
         assert rule in reviewer, rule
 
@@ -234,31 +234,31 @@ def test_packaged_reviewer_item_review_contract():
     assert codex["description"] == fields["description"]
     assert codex["model_reasoning_effort"] == fields["effort"] == "high"
     assert codex["developer_instructions"].strip() == claude.split("---", 2)[2].strip()
-    # A forced read-only sandbox prevents the reviewer's one permitted Beads write.
+    # Tracker mutations are forbidden by the role contract in both runtimes.
     assert "sandbox_mode" not in codex
     for prompt in (claude, codex["developer_instructions"]):
         for rule in (
             "blocker / high / medium / low",
             "only for an unmet acceptance",
-            "blocker or high finding in the reviewed diff",
-            "findings outside that diff accompany",
-            "## Review <n>: APPROVE | CHANGES @ <revision>",
-            "only allowed mutation",
-            "Do not create a review bead, claim, assign, close, or write",
-            "the lead must not transcribe it as your review",
+            "blocker or high regression caused by a reviewed change",
+            "including unchanged consumers and interactions",
+            "Per-item `APPROVE` or `CHANGES` verdicts",
+            "never claim, assign, close, create beads, append comments, or write metadata",
+            "Return one complete structured review to the lead",
+            "the lead owns tracker records",
             "diff fingerprint",
         ):
             assert rule in " ".join(prompt.split())
-    # A temporary file outside the project prompts for permission; Windows PowerShell 5.1 drops
-    # double quotes from native arguments, so the reviewer checks the text bd returns.
     text = " ".join(codex["developer_instructions"].split())
     for rule in (
-        "bd comments add <item-id> <review-text> --actor <reviewer-actor> --json",
-        "with no temporary file",
+        "reviewer identity, review number, reviewed head",
+        "Covered items and acceptance coverage per criterion",
         "return no verdict and name what is missing",
-        "Confirm that the comment text `bd` returns matches what you wrote",
+        "Material evidence and coverage limits, including missing evidence",
     ):
         assert rule in text, rule
+    assert "bd comments add" not in text
+    assert "only allowed mutation" not in text
 
 
 def test_claude_agents_reach_a_shell_on_every_platform_and_never_nest():

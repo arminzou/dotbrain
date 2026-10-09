@@ -9,12 +9,13 @@ Linked bead:
 Preflight contract (confirmed by explicit `GO`):
 - Scope: <one work bead | every implementation bead under this design/epic>
 - Dedicated branch and base: <branch / base>
-- Writing-worker cap: <2 unless stated>
+- Writing-worker cap: <announced finite cap; human-specified or lead-selected from actual runtime
+  capacity and isolation, reserving lead/review/verification capacity; separate from total scope>
 - Human-gated items in scope: <none | ids; with any, the handoff can only end BLOCKED>
 - Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
   the review surface, final whole-branch code review for multi-item branches, default non-blocking
   simplify pass, readiness: <only if named in this contract>
-- Delivery: draft at first push, pushes after integrated checks, one mention per blocked stop,
+- Delivery: draft at first push, pushes after accepted integration groups, one mention per blocked stop,
   ready at FINAL with human review requested; provider/auth: <available>; agent identity:
   <distinct from human>; base ruleset: <reviewed PR required, stale approvals dismissed>
 
@@ -34,10 +35,11 @@ Before entering the loop, and after context recovery:
   every host action; never fall back to the human's credentials.
 
 Handoff delivery:
-- After the first item integrates and passes its integrated check, push the dedicated branch and
+- After the first item passes integration review, combined checks, and acceptance, push the dedicated branch and
   open a draft PR at the first push. Record the URL privately and attach it where supported.
   Do not create a placeholder commit to open it at preflight.
-- Push after each integrated item that passes its integrated check. Post no progress comments
+- Push after each accepted integration group; hold failed or uncovered contributions. Push only
+  the accepted delivery branch after candidate promotion; held group branches stay local. Post no progress comments
   and make no body updates between the first push and FINAL; commits show progress.
 - When the whole handoff ends BLOCKED, leave the PR draft and post one PR comment that @-mentions
   the human with an audience-safe reason. Each blocked stop gets one mention. Check existing
@@ -65,7 +67,11 @@ Stop scopes:
   scope; an action outside GO; a missing required capability or a PR that cannot be opened;
   a failure that compromises shared state; or cancellation.
 - An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
-  CHANGES, or a human gate. Only that item and its dependents stop; independent items continue.
+  CHANGES, or a human gate. Hold failed or incomplete integration groups and their dependents.
+  In either workflow, unrelated authorized work continues only from accepted bases with isolated
+  candidates and proven containment under `run-execution`; preserve original workers, claims,
+  worktrees, budgets, per-item attempts, and review history. Unresolved scope, safety, or acceptance
+  stops the whole execution. Retry exhaustion requires a human decision for the affected work.
   End the handoff BLOCKED once no unblocked work remains. Report every blocked item with its
   attempt trail and a recommended decision, including waiting dependents. Never mark a PR ready
   while any scoped item is blocked. Keep blocked items in the fixed scope; do not drop them to
@@ -74,8 +80,11 @@ Stop scopes:
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
    if present. Do not rely on an earlier iteration's memory of the design doc.
-2. Select the next bounded execution: one ready work item or a finite batch from the work graph,
-   within the approved scope.
+2. Select the next bounded execution: one ready work item or a fixed finite item set from the work
+   graph within the approved scope. The set may include waiting dependents; dispatch only from
+   the actual ready frontier after prerequisite acceptance and closure, with human gates resolved
+   and capacity available. Refill eligible slots as prerequisites close while independent siblings
+   continue. Never add items silently to an execution already under way.
 3. If the path is unclear, use a read-only explorer first.
 4. Run that execution through `run-execution` as its lead. Only the lead changes the work graph,
    the execution record, and the active design doc.
@@ -83,17 +92,23 @@ Loop protocol (every iteration, not just the first):
    check a checkpoint. Run the once-only in-loop Success Criteria gate before final review.
 6. If an item check fails, make the smallest targeted fix within its retry limit. After 3
    consecutive failed checks on one checkpoint or 3 consecutive item-review CHANGES, block
-   that item and its dependents and continue independent work. Do not retry the blocked item
+   the affected group and its dependents and continue only proven independent work from accepted
+   bases with isolated candidates. Provisional integration closes no items and releases no
+   dependents; required review, combined checks, member acceptance, and resolved human gates cover
+   the exact integrated revision before closure. Dependent bases contain accepted prerequisites.
+   Refresh evidence when patches or integration context affect coverage. Do not retry the blocked item
    without human authorization. A failure compromising shared state ends the whole handoff.
 7. If design-relevant learning appears, update Known Unknowns, Implementation Notes, Deviations, or
    Human Decisions Needed in the active design doc.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or BLOCKED, update the bead notes with what is done, next, and any open question.
-8. After the integrated in-loop gate passes, run final whole-branch code review for a branch
-   carrying more than one work item, against its base, by a fresh reviewer that ran none of
-   the item reviews. Check interactions, consistency, and conformance to the active design doc;
-   do not reopen approved item findings. Record the design-level review bead. A single-item
-   branch skips it: its item review is the final code review. Run readiness only when the
+8. After the integrated in-loop gate passes, apply `review-gate`'s final whole-branch code review
+   rules. Reuse the final integration review only with explicit coverage of the agreed branch base
+   to exact final head, all scoped items, interactions, and design conformance. The reviewer
+   authored none of the reviewed changes but need not be fresh. Otherwise arrange whole-branch
+   review; latest-group approval is insufficient and stale coverage needs refreshing. Record the
+   design-level review bead with report provenance. A single-item branch uses its item review
+   only if it covers the whole final diff. Run readiness only when the
    handoff contract names it, in addition to code review. Run simplify beside final code
    review, also for single-item branches; record its findings in a separate review bead under
    the epic. Never apply simplify findings in-loop; they never block the PR or FINAL. Use
@@ -124,8 +139,9 @@ Rules:
 - Do not call FINAL without `verifier` evidence from the in-loop gate.
 - Never edit Success Criteria or bead acceptance criteria; if they are wrong or
   unmeetable, report BLOCKED instead.
-- Never retry an item past 3 consecutive failed checks on the same checkpoint; block the item
-  and continue independent work. A failure compromising shared state ends the whole handoff.
+- Never retry an item past 3 consecutive failed checks on the same checkpoint; hold its group
+  and dependents, and continue only proven independent work under the containment rules.
+  A failure compromising shared state ends the whole handoff.
 - Stop BLOCKED after two cycles with no code change, verification evidence, or resolved scope.
 - `GO` authorizes only the agreed Handoff delivery sequence; human review, merge,
   and every other outward action stay human-owned.

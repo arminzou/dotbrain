@@ -49,6 +49,8 @@ volatile decisions first is what lets a reviewer catch a wrong turn cheaply.
 
 Use one subsection per coherent piece of the design; `to-issues` echoes these headings in work item
 titles, so a later reader can match a bead back to its exact section by title alone.
+Describe concrete seams, independently verifiable outcomes, interface prerequisites, and shared
+resources. File layout alone does not define a seam or require serialization.
 -->
 
 ## Success Criteria
@@ -59,6 +61,8 @@ concrete commands, tests, screenshots, metrics. Name which commands are the fast
 they must pass before the loop reaches `FINAL` — and which belong to the full run at the review
 surface. Where no automated verifier exists, state the judgment criterion explicitly as a human
 decision gate rather than dressing it up as mechanical.
+For each outcome, state the verification boundary: what the check proves, what it leaves unproven,
+and any interface or resource prerequisites needed to run it independently.
 
 These are human-owned, which makes them changeable but not silently. A criterion that turns out to
 be wrong, ambiguous, or unmeetable gets raised under `Human Decisions Needed` with what it should
@@ -85,6 +89,11 @@ still catches the failure it was written for (gates rot).
 Open questions that could change the design, each with what would resolve it. An empty section
 here means the unknowns were surfaced and none remain — not that nobody looked. Unknowns found
 during implementation land here too.
+Distinguish evidence, inference, and unresolved gaps. Each unknown carries the cheapest next action
+and blocking status or an explicit reasoned deferral. Inspect observable facts before human
+escalation; historical rationale needs recorded evidence, not inferred intent from current code.
+Small targeted experiments stay within existing authorization and limits; they authorize no
+additional pilots, budgets, or outward actions. Execution state remains in Beads.
 -->
 
 ## Implementation Notes

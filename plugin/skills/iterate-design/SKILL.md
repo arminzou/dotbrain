@@ -47,7 +47,9 @@ Before changing code, present this contract and wait for the human's explicit `G
   one in-loop Success Criteria gate — the fast tier that must pass for `FINAL`; the full suite at
   the review surface; final whole-branch `code` review for a multi-item branch, plus the default
   non-blocking `simplify` pass; `readiness` only when the handoff contract names it.
-- **Workers:** the writing-worker cap for each bounded execution (2 by default).
+- **Workers:** an announced finite writing-worker cap for each bounded execution, human-specified
+  or selected from actual runtime capacity and isolation by the lead, reserving lead/review/check
+  capacity as `run-execution` requires; total authorized scope stays separate.
 - **Human gates:** every human-gated item in the proposed scope. A handoff that includes one can
   only end `BLOCKED`, so the human sees that before `GO`.
 - **Delivery:** authorize the Handoff delivery sequence below. Confirm the provider and auth, a
@@ -63,10 +65,12 @@ agent identity, required ruleset, or an unconfirmed contract is a stop before th
 
 ## Handoff delivery
 
-After the first item integrates and passes its integrated check, push the dedicated branch and
+After the first item passes integration review, combined checks, and acceptance, push the dedicated branch and
 open a draft PR at the first push. Record its URL in the private execution record and the active
 design, and attach it in the runtime where supported. Do not create a placeholder commit to open
-it at preflight. Push after each integrated item that passes its integrated check. The pushed
+it at preflight. Push after each accepted integration group; hold failed or uncovered contributions.
+Push only the accepted delivery branch after candidate promotion; held group branches stay local.
+The pushed
 commits show progress; post no progress comments and make no body updates between the first push
 and FINAL.
 
@@ -119,7 +123,7 @@ If the design doc lacks a `Success Criteria` section, first propose the smallest
 treat it as a human decision gate.
 
 For design/epic scope, repeat the ready-frontier check after closing each scoped implementation bead
-and select the next ready one for `run-execution`. Do not claim the final review bead until every
+and refill eligible slots within the fixed execution scope. Do not claim the final review bead until every
 scoped implementation bead has closed; `review-gate` then owns that final record.
 
 ## Loop protocol
@@ -128,8 +132,11 @@ Use this protocol throughout the handoff:
 
 1. PLAN: Reread the active design doc fresh — do not rely on an earlier iteration's memory of it,
    since long runs are where constraints silently drop out of lossy context. Then select the next
-   bounded execution: one ready work item or a finite batch of ready items within the approved
-   scope. Never add items silently to an execution already under way.
+   bounded execution: one ready work item or a fixed finite item set within the approved scope.
+   The set may include waiting dependents; dispatch only from the actual ready frontier after
+   prerequisite acceptance and closure, with human gates resolved and capacity available. Refill
+   eligible slots as prerequisites close while independent siblings continue. Never add items
+   silently to an execution already under way.
 2. DO: Run that bounded execution through `run-execution`, as its lead. This skill keeps the
    outer loop, reflection, overall limits, final review, and delivery.
 3. VERIFY: The agent that made a change runs its checkpoint check, inside `run-execution`; never
@@ -144,11 +151,13 @@ Use this protocol throughout the handoff:
    - A human decision is needed.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or `BLOCKED`, update the bead notes with what is done, next, and any open question.
-5. REVIEW: After the integrated in-loop gate passes, run `review-gate`'s final whole-branch
-   `code` review for a branch carrying more than one work item, against its base, by a fresh
-   reviewer that ran none of the item reviews. Check interactions, consistency, and conformance
-   to the active design doc; do not reopen approved item findings. Record the design-level
-   review bead. A single-item branch skips it: its item review is the final code review. Run
+5. REVIEW: After the integrated in-loop gate passes, apply `review-gate`'s final whole-branch
+   `code` review rules. Reuse the final integration review only with explicit coverage of the
+   agreed branch base to exact final head, all scoped items, interactions, and design conformance.
+   The reviewer authored none of the reviewed changes but need not be fresh. Otherwise arrange a
+   whole-branch review; latest-group approval is insufficient and stale coverage needs refreshing.
+   Record the design-level review bead with report provenance. A single-item branch uses its item
+   review only if it covers the whole final diff. Run
    `readiness` only when the handoff contract names it, in addition to code review.
    Run a non-blocking `simplify` pass beside final code review, also for single-item branches.
    Record its findings in a separate review bead under the epic. Never apply simplify findings
@@ -196,11 +205,14 @@ or resolved scope; an action outside `GO`; a missing required capability or a PR
 opened; a failure that compromises shared state; or cancellation.
 
 An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
-`CHANGES`, or a human gate. Only that item and its dependents stop; independent items continue.
+`CHANGES`, or a human gate. Hold failed or incomplete integration groups and their dependents.
+In either workflow, unrelated authorized work continues only from accepted bases with isolated
+candidates and proven containment under `run-execution`; preserve workers, claims, and limits.
 End the handoff `BLOCKED` once no unblocked work remains. Report every blocked item with its
 attempt trail and a recommended decision, including waiting dependents. Never mark a PR ready
 while any scoped item is blocked. Keep blocked items in the fixed scope; do not drop them to
-claim success. The HITL workflow instead pauses new dispatch and integration and asks the human.
+claim success. Shared-state compromise or unresolved scope, safety, or acceptance stops the whole
+execution; retry exhaustion requires a human decision for the affected work, not a blanket HITL pause.
 
 ## Building blocks
 

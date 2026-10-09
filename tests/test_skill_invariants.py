@@ -147,7 +147,7 @@ def test_iterate_design_runs_executions_through_run_execution():
 
 
 @pytest.mark.parametrize("rule", [
-    "Every work item's behavior change gets an independent `code` item review",
+    "Every work item's behavior change gets required independent `code` review before closure",
     "Behavior includes code, tests, build or CI config, and instructions agents execute",
     "Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt",
     "## Review skipped: <reason>",
@@ -157,13 +157,14 @@ def test_iterate_design_runs_executions_through_run_execution():
     "Standing answers hold until the human changes them",
     "The handoff workflow never asks",
     "The lead never reviews changes it authored",
-    "An item review never gets a review bead",
-    "Return `CHANGES` only for an unmet acceptance criterion or a `blocker` or `high` finding in the item's own diff",
-    "Return `APPROVE` with `medium` or `low` findings and findings outside the diff",
+    "Item and integration reviews never get a batch review bead",
+    "Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed changes",
+    "including symptoms in unchanged consumers or interactions",
+    "Return `APPROVE` with `medium` or `low` findings and unrelated existing defects",
     "The same reviewer re-reviews its earlier findings and the fix diff",
     "Three consecutive `CHANGES` block the item",
     "A conflict rebase does not count toward the `CHANGES` cap",
-    "Any behavior diff after the last `APPROVE`",
+    "Any changed patch or integration context affecting acceptance or review/check coverage",
     "No item closes with an unreviewed behavior change",
 ])
 def test_item_review_preserves_its_guards(rule):
@@ -173,18 +174,19 @@ def test_item_review_preserves_its_guards(rule):
 
 def test_item_review_order_and_record():
     owner = _text(SKILLS / "run-execution/SKILL.md")
-    assert "Parallel order: work and passing worker checks, candidate, item review and fix loop, integrate, integrated check, close as `verified`, clean up, release dependents" in owner
-    assert "Sequential order: work, checks, item review and fix loop, close" in owner
+    assert "Both execution modes: passing worker checks, candidate, provisional integration, coherent group review and combined checks, member acceptance and resolved human gates, close as `verified`, clean up, release dependents" in owner
+    assert "Provisional integration closes no items and releases no dependents" in owner
     assert "Each `CHANGES` is a failed check on the `item-review` checkpoint in `dotbrain_attempts`" in owner
     record = _text(SKILLS / "run-execution/references/execution-record.md")
     for rule in (
         "## Review <n>: APPROVE | CHANGES @ <revision>",
         "## Review skipped: <reason>",
-        "--actor <reviewer-actor>",
+        "--actor <lead-actor>",
         "consecutive `CHANGES` verdicts with limit 3; only `APPROVE` resets it",
         "diff fingerprint",
     ):
         assert rule in record
+    assert "--actor <reviewer-actor>" not in record
 
 
 def test_item_review_streak_survives_worker_checks():
@@ -198,6 +200,27 @@ def test_item_review_streak_survives_worker_checks():
     assert "A passing check ends only its own checkpoint's streak" in record
     assert "every checkpoint's entry, not only the one that changed" in record
     assert '"checkpoint":' not in record
+
+
+@pytest.mark.parametrize("path, contracts, obsolete", [
+    ("docs/agent-team.md", (
+        "finite active-writing cap", "fills and refills", "separate worktrees",
+        "write no work-graph comments", "exact integrated revision",
+        "approval of only the latest group is insufficient", "proves isolation",
+        "final human review record", "cheapest next action", "verification boundaries",
+    ), ("up to two workers", "fresh whole-branch code review", "their Beads comment ID")),
+    ("docs/zh/agent-team.md", (
+        "有限的同时写入人数上限", "继续补位", "不同 worktree",
+        "不写工作图评论", "准确的集成版本", "只批准最后一组改动不够",
+        "证明继续的工作与失败组隔离", "最终人工审阅记录", "成本最低的下一步", "验证边界",
+    ), ("默认最多同时有两个 worker", "一位新 reviewer", "自己写入的 Beads 评论 ID")),
+])
+def test_agent_team_guides_preserve_acceptance_and_coordination_boundaries(path, contracts, obsolete):
+    text = _text(Path(path)).lower()
+    for contract in contracts:
+        assert contract.lower() in text, (path, contract)
+    for retired in obsolete:
+        assert retired.lower() not in text, (path, retired)
 
 
 def test_only_the_lead_moves_a_claim():
@@ -355,12 +378,11 @@ def test_review_closure_requires_a_human_decision():
 def test_final_review_keeps_branch_boundary_and_optional_passes(path):
     text = _text(SKILLS / path).replace("`", "")
     for rule in (
-        "more than one work item",
-        "against its base",
-        "fresh reviewer that ran none of the item reviews",
-        "do not reopen approved item findings" if path != "review-gate/SKILL.md"
-        else "does not reopen approved item findings",
-        "single-item branch skips",
+        "whole-branch",
+        "exact final head",
+        "authored none of the reviewed changes",
+        "need not be fresh",
+        "single-item branch",
         "readiness only when the handoff contract names it",
         "separate review bead under the epic",
         "non-blocking simplification suggestions",
@@ -368,6 +390,8 @@ def test_final_review_keeps_branch_boundary_and_optional_passes(path):
         "skip with a note",
     ):
         assert rule.lower() in text.lower()
+    assert "fresh reviewer that ran none of the item reviews" not in text
+    assert re.search(r"latest.group|latest group", text, re.I)
     assert "never apply" in text.lower() and "findings in-loop" in text
     assert re.search(r"never blocks? the PR or (?:`)?FINAL", text, re.I)
 
@@ -381,14 +405,14 @@ def test_single_item_branch_has_a_final_review_and_a_pr_record(path, record):
     """Without these, FINAL demands final-review evidence a single-item branch never produces,
     and the PR URL has no record to land on."""
     text = _text(SKILLS / path)
-    assert "is the final code review" in text
+    assert "whole final diff" in text
     assert record in text
 
 
 def test_final_review_does_not_turn_simplify_into_a_gate():
     gate = _text(SKILLS / "review-gate/SKILL.md")
     assert "The HITL workflow runs simplify only when requested" in gate
-    assert "including when a single-item branch skips final code review" in gate
+    assert "including when a single-item branch reuses its complete integration review" in gate
     loop = _text(SKILLS / "iterate-design/SKILL.md")
     assert "required code review is `APPROVE`" in loop
     assert "any named readiness review is `READY`" in loop
@@ -419,7 +443,8 @@ def test_item_blocks_leave_independent_work_running(path):
         "3 consecutive failed checks on one checkpoint",
         "3 consecutive item-review changes",
         "or a human gate",
-        "only that item and its dependents stop; independent items continue",
+        "accepted bases",
+        "isolated",
         "attempt trail and a recommended decision",
         "including waiting dependents",
         "keep blocked items in the fixed scope; do not drop them to claim success",
@@ -446,8 +471,9 @@ def test_run_execution_leaves_whole_handoff_stops_to_iterate_design():
     assert "The conditions that end the whole handoff, and when a PR may be marked ready, belong to iterate-design" in owner
     for rule in WHOLE_HANDOFF_STOPS[2:4]:
         assert rule not in owner
-    assert HITL_PAUSE in owner.lower()
-    assert HITL_PAUSE in _text(SKILLS / "iterate-design/SKILL.md").lower()
+    assert HITL_PAUSE not in owner.lower()
+    assert HITL_PAUSE not in _text(SKILLS / "iterate-design/SKILL.md").lower()
+    assert "both workflows" in owner.lower()
     assert "HITL" not in _text(SKILLS / "iterate-design/templates/handoff-prompt.md")
 
 
@@ -472,7 +498,8 @@ def test_branches_and_integration_never_carry_work_item_ids():
     """Branch names and merge messages reach the public repo; a branch named after its item, and a
     merge commit naming that branch, published private tracker IDs."""
     owner = _text(SKILLS / "run-execution/SKILL.md")
-    assert "rebase the item branch onto the current target, then fast-forward the target with `git merge --ff-only <item-branch>`; never create a merge commit" in owner
+    assert "rebase the item branch onto the current group candidate, then fast-forward the group candidate with `git merge --ff-only <item-branch>`; never create a merge commit" in owner
+    assert "Fast-forward the agreed delivery branch with `git merge --ff-only <group-branch>`" in owner
     assert "Name every branch with a short slug only, never a work-item ID" in owner
     assert "never a work-item ID" in _text(SKILLS / "manage-work-graph/SKILL.md")
     assert "(candidate <revision>)" in _text(SKILLS / "run-execution/references/execution-record.md")

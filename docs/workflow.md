@@ -130,7 +130,7 @@ agent's loop mode with a mechanical verifier and a hard stop. You approve a cont
 scope, the branch, the checks, how many workers may run at once, and how the pull request is
 delivered. Then:
 
-- At its first push it opens a draft pull request, and it pushes again after each finished issue.
+- At its first push it opens a draft pull request, and it pushes again after each accepted integration group.
 - When an issue fails its checks three times in a row, or needs your decision, only that issue and
   the issues waiting on it stop. Independent issues continue.
 - When the run stops blocked, it mentions you on the pull request, so you are notified.
@@ -143,12 +143,19 @@ Reviews happen at two levels:
 
 - **Each issue.** Every change to code, tests, build or CI config, or agent instructions gets an
   independent review before its issue closes, from a reviewer agent that wrote none of it. The
-  reviewer approves or asks for changes, the same agent fixes its own work, and three requests for
+  review may cover a coherent group of provisionally integrated candidates. The reviewer returns
+  full findings to the lead, which records them before routing repairs to the original workers.
+  Review includes change-caused regressions in unchanged consumers and interactions. Combined
+  checks and required review cover the exact integrated revision before closure or dependent release.
+  The reviewer approves or asks for changes, the same agent fixes its own work, and three requests for
   changes in a row stop the issue for your decision. Changes to prose alone are exempt. When you
   are directing the work, the agent may ask whether a small change needs a review, and says what
   it recommends.
-- **The branch.** Before a branch carrying several issues is offered for merge, a fresh reviewer
-  checks the whole diff: how the issues fit together and whether they match the design. A handoff
+- **The branch.** Before a branch carrying several issues is offered for merge, an independent
+  reviewer checks the whole diff: how the issues fit together and whether they match the design.
+  The final integration review can supply this only with explicit whole-branch coverage at the
+  exact final revision; approval of the latest group alone is insufficient. Otherwise arrange a
+  whole-branch review. Later changes affecting coverage need refreshed evidence. A handoff
   also runs a simplification pass. Its suggestions never block the pull request; you decide on
   them alongside it.
 

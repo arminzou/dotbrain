@@ -104,6 +104,12 @@ design docs speak one language:
 
 Cheap moves early — orient, grill, prototype — turn expensive late unknowns into known knowns.
 
+`find-unknowns` is read-only: investigate facts first; report the cheapest next action and blocking
+status or reasoned deferral. Choose reversible defaults within scope. `grill-decisions` owns human
+preferences, authority, acceptance changes, consequential tradeoffs, and evidence-unsettled decisions.
+These skills detail evidence and experiment limits. Active designs own uncertainty; Beads owns
+execution state. `to-design` and `to-issues` detail verifiable seams and interface/resource prerequisites.
+
 ## Brain structure
 
 - `CONTEXT.md` — domain vocabulary for this project

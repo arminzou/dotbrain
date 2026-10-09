@@ -3,6 +3,12 @@
 Use this reference with the shared contract in [Run Execution](../SKILL.md), before worker
 preparation or dispatch and before fix rounds, cancellation, or recovery.
 
+Inspect actual runtime capacity before dispatch and apply the shared writing-worker cap, reserving
+capacity for the lead and required review and verification. Each concurrent writer needs an actual
+isolated worktree, including separable changes to overlapping files. Give workers separate mutable
+outputs and resource instances or schedule shared resources exclusively; a worktree alone does
+not isolate build outputs, databases, or ports.
+
 ## Prepare and dispatch
 
 Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
@@ -50,6 +56,11 @@ Collect the native task completion notification and the worker's candidate and c
 Retain the agent ID for follow-up. A completed task can resume with `SendMessage` to that original
 ID in the lead session that spawned it; use this for item-review fixes and conflict rebases.
 The resumed worker continues in its original worktree.
+
+A confirmed completed candidate frees a writing slot for another eligible ready item in the fixed
+scope; retain its claim and agent ID for fixes. Acquire a writing slot before resume and serialize
+target integration under the shared contract. These instructions do not establish higher-fan-out
+runtime qualification.
 
 ## Stop and recover
 

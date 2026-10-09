@@ -5,6 +5,12 @@ preparation or dispatch and before fix rounds, cancellation, or recovery. The pa
 separate `codex exec` CLI sessions. Native subagent conversations do not establish separate
 writing worktrees; do not treat an assigned shell directory as worktree isolation.
 
+Before launch, inspect actual CLI and native-agent capacity and apply the shared dispatch cap,
+reserving capacity for the lead and required review and verification. Count direct CLI writers
+and nested writers together. Use separate worktrees for concurrent writers, including separable
+changes to overlapping files; allocate separate mutable outputs, databases, and ports or schedule
+shared resources exclusively. Native conversation IDs and assigned paths do not prove isolation.
+
 ## Explorer role
 
 For the read-only explorer role, use Codex's built-in `explorer` agent. If that role is
@@ -59,6 +65,11 @@ Confirm nested-process termination and required artifacts from their recorded id
 Read the final response file as the worker's report. Read transcript prose and tool output only
 when diagnosing a failure revealed by these signals. A zero exit is process evidence only;
 acceptance follows the shared contract.
+
+Once completion and termination are established, the candidate frees its writing slot for another
+eligible ready item in the fixed scope; keep the candidate's claim and original session for fixes.
+Acquire a writing slot before resume, and serialize target integration as the shared contract
+requires. These instructions do not qualify higher-fan-out or native-writer isolation.
 
 When the installed CLI supports it, continue a stopped session with
 `codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original
