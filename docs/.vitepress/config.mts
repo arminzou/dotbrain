@@ -3,25 +3,25 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Dotbrain',
   description: 'Private project context for coding agents, kept out of your code repo.',
-  base: '/dotbrain/',
+  base: '/',
   cleanUrls: true,
   lastUpdated: true,
   // README.md is the index for browsing docs/ on GitHub, and AGENTS.md/CLAUDE.md guide agents
   // editing docs/; index.md is the site's home.
   srcExclude: ['README.md', 'AGENTS.md', 'CLAUDE.md'],
   head: [
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/dotbrain/assets/favicon-light-32.png' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/dotbrain/assets/favicon-light-32.png', media: '(prefers-color-scheme: light)' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/dotbrain/assets/favicon-dark-32.png', media: '(prefers-color-scheme: dark)' }],
-    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/dotbrain/assets/apple-touch-icon-light.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-light-32.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-light-32.png', media: '(prefers-color-scheme: light)' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/assets/favicon-dark-32.png', media: '(prefers-color-scheme: dark)' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/assets/apple-touch-icon-light.png' }],
     ['meta', { property: 'og:site_name', content: 'Dotbrain' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:image', content: 'https://arminzou.github.io/dotbrain/assets/social-light.png' }],
+    ['meta', { property: 'og:image', content: 'https://dotbrain.net/assets/social-light.png' }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
     ['meta', { property: 'og:image:alt', content: 'Dotbrain connected brain mark and wordmark' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:image', content: 'https://arminzou.github.io/dotbrain/assets/social-light.png' }],
+    ['meta', { name: 'twitter:image', content: 'https://dotbrain.net/assets/social-light.png' }],
     ['meta', { name: 'twitter:image:alt', content: 'Dotbrain connected brain mark and wordmark' }],
   ],
   // English stays at the root so existing URLs keep working; zh/ mirrors its file names.
