@@ -122,6 +122,5 @@ When writing in a dotbrain-wired project, private Brain, or `$DOTBRAIN_HOME`, re
 [Writing within dotbrain](references/dotbrain-skills.md) for placement, public/private boundaries, and the
 workflows that own document structure and lifecycle.
 
-After editing Markdown in a Brain with `site/site.yaml`, run `dotbrain site build` before
-reporting completion: every Brain Markdown file is a page, including designs and ADRs.
-For VitePress-specific syntax, use the `brain-site` skill's page guidance.
+For VitePress-specific syntax, read [page guidance](../brain-site/references/vitepress.md).
+Before drawing a Mermaid diagram, read [diagram guidance](../brain-site/references/mermaid.md).

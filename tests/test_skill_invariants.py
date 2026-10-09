@@ -27,6 +27,20 @@ def _text(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
 
 
+def test_ordinary_brain_edits_do_not_authorize_site_operations():
+    """Site operations require user invocation; authoring loads syntax references directly."""
+    site_skill = (SKILLS / "brain-site/SKILL.md").read_text(encoding="utf-8")
+    assert "disable-model-invocation: true" in site_skill.split("---")[1]
+    assert "allow_implicit_invocation: false" in _text(SKILLS / "brain-site/agents/openai.yaml")
+    assert "`dotbrain site build` passes" in site_skill
+    writer = _text(SKILLS / "write-agent-docs/SKILL.md")
+    assert "../brain-site/references/vitepress.md" in writer
+    assert "../brain-site/references/mermaid.md" in writer
+    assert "brain-site/SKILL.md" not in writer
+    assert "dotbrain site build" not in writer
+    assert "dotbrain site build" not in _text(SKILLS / "brain-site/references/publishing.md")
+
+
 def test_public_private_boundary_is_inward_only():
     """The Brain is never mirrored outward. Losing this leaks private design history
     into a public repo, which is not recoverable by editing the file afterwards."""
