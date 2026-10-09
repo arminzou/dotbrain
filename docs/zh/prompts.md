@@ -110,9 +110,9 @@ Work the next ready issue under the orders-pagination epic.
 
 ### HITL：并行执行 {#hitl-parallel-execution}
 
-::: info 默认 worker 数量上限
-两种工作流的并行执行，默认最多同时运行两个 worker。
-只有想调整这个上限时，才需要在提示词里指定数量。
+::: info Worker 数量上限
+两种工作流中，如果你没有指定上限，lead 会根据运行时容量、资源隔离和既有约束，公布有限的同时写入人数上限。
+它在固定范围内填满就绪名额并及时补位，同时为协调、审阅和验证预留容量。
 :::
 
 ```text

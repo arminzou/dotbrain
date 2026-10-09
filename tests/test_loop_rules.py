@@ -14,9 +14,9 @@ def test_handoff_delivery_keeps_draft_notification_and_final_gates(path):
     for rule in (
         "agent identity distinct from the human reviewer",
         "ruleset requiring a reviewed PR and dismissing stale approvals",
-        "first item integrates and passes its integrated check",
+        "first item passes integration review, combined checks, and acceptance",
         "open a draft PR at the first push",
-        "Push after each integrated item that passes its integrated check",
+        "Push after each accepted integration group; hold failed or uncovered contributions",
         "no progress comments",
         "no body updates between the first push and FINAL",
         "whole handoff ends BLOCKED",

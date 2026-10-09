@@ -41,6 +41,14 @@ Where the area is already familiar, inspect the relevant modules yourself and pr
 module sketch for the user: touched modules or systems, likely integration points, obvious
 constraints, open questions.
 
+Investigate observable questions first and research recorded history when rationale matters;
+current code alone does not establish intent. Keep evidence, inference, and unresolved gaps
+distinct. For each unknown, state the cheapest next action and blocking status or an explicit
+reasoned deferral. Reversible implementation defaults stay within scope; human preferences,
+authority, acceptance changes, consequential tradeoffs, and evidence-unsettled decisions go to
+`grill-decisions` with evidence and a recommendation. Any small targeted experiment must fit
+existing authorization and limits; no additional pilots, budgets, or outward actions are authorized.
+
 Confirm the sketch with the user before creating anything.
 
 Completion: every module the initiative touches is either inspected or listed as a known
@@ -57,6 +65,11 @@ the section set, per-section authoring hints, and the lifecycle rules that apply
 The doc is born `lifecycle: draft`; flip it to `active` in step 4, once the epic exists.
 
 Use `CONTEXT.md` vocabulary exactly for every concept it already names.
+
+Describe concrete seams with independently verifiable outcomes: the behavior or interface delivered,
+the verification boundary (what the check proves and leaves unproven), and interface prerequisites
+or shared resources needed by each piece. File layout alone is not a reason to split or serialize
+work. Keep initiative uncertainty in this design and execution state in Beads.
 
 Completion: every section you kept is filled, every section you dropped is deleted along with
 its hints, and each goal has a matching entry under `Success Criteria`.

@@ -7,8 +7,9 @@ queryable current state; headed append-only comments are its evidence history; n
 rationale and a resume summary. Only the lead writes the `dotbrain_` keys and the lead's comment
 headers, including `Claim moved`; a writing worker writes only its own claim and its `Attempt`
 comments.
-An item reviewer writes its own `Review` comments under its own Beads actor; the lead never
-transcribes its verdict or findings. Item review is recorded on the work item, never a review bead.
+The independent reviewer returns its report without tracker writes. The lead owns `Review`
+comments on affected member work items, preserving reviewer provenance and the complete
+findings as specified below. Item and integration reviews never create a batch review bead.
 The worker remains assignee until closure. The lead writes metadata under its own actor and closes
 under the worker's actor, naming itself in the close reason, because Beads lets only the assignee
 close; a fix round changes phase and history, not the claim. `Claim moved` records only replacement
@@ -88,7 +89,10 @@ they turn the backslashes in a Windows path into control characters.
 ## Review skipped: <reason>
 ## Review skipped: declined by human — <reason>
 ## Integrated @ <revision> on <target> (candidate <revision>)
+## Accepted @ <revision> on <delivery-branch> (group <group-ref>)
 ## Blocked @ <revision>
+## Held group <group-ref> @ <revision>
+## Containment @ <revision>
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
 ```
@@ -97,16 +101,66 @@ Record `Dispatched` as soon as the runtime identifies the worker, before waiting
 runtime's agent or session ID in its body: a fix round resumes that worker by ID, and a takeover
 needs to know which worker to confirm stopped.
 
-Each `Review` names the reviewer's actor and findings with severity (`blocker`, `high`, `medium`,
-`low`) and `file:line`. The revision identifies the candidate or fix diff reviewed. For an
-uncommitted candidate, include HEAD and a diff fingerprint so the verdict cannot be mistaken
-for approval of HEAD alone. The reviewer appends its own record, passing the review as inline
-text or a file as its definition says:
+Before notifying workers or dispatching repairs, the lead appends the returned structured
+review to affected member items under its own actor. The reviewer writes no tracker records.
+Preserve reviewer identity, review number, base/head references, covered items and acceptance
+coverage, per-item verdicts, complete finding wording and severity (`blocker`, `high`, `medium`,
+`low`), `file:line`, and material evidence or coverage limits. For an uncommitted candidate,
+include HEAD and a diff fingerprint so the verdict cannot be mistaken for approval of HEAD alone.
 
 ```bash
-bd comments add <item-id> <review-text> --actor <reviewer-actor> --json
+bd comments add <item-id> --file <review-file> --actor <lead-actor> --json
 ```
 
-Only unmet acceptance or a `blocker` or `high` finding in the item's diff produces `CHANGES`.
-Other findings accompany `APPROVE` and the lead files them as discovered work. `Review skipped`
+Confirm the stored comment text matches the returned review before repair dispatch. Label
+ownership and coordination notes as lead additions. A cross-item finding has one responsible
+worker: record the full finding on that worker's item, with its stable finding ID, and link its
+durable comment and finding ID from every other affected item. Route repairs to the original
+workers with these references. Preserve disputes as new records and return them to the reviewer
+or human; never silently change a verdict. Member records must recover all findings and review
+limits without relying on an epic comment or a new batch review bead.
+
+Unmet acceptance or a `blocker` or `high` regression caused by the reviewed changes produces
+`CHANGES` wherever its symptom appears, including unchanged consumers and interactions.
+Medium/low findings and unrelated existing defects accompany `APPROVE` and the lead files
+them as discovered work. Missing evidence remains a gap, not a verified safety claim. `Review skipped`
 is the lead's record of an exemption or the human's explicit decline, not a reviewer verdict.
+
+## Integration groups and recovery
+
+Use the existing member beads, comments, and artifact references; no scheduler ledger or group
+bead is needed. On every member, record a stable group reference, all included item IDs, group
+base/head (or HEAD and diff fingerprint), candidate branch/worktree and integrated revisions,
+accepted delivery branch/head, reviewer identity
+and report reference, per-member verdict and acceptance coverage, combined check commands/results
+with revision and environment, and unresolved coverage gaps. Link shared findings by durable
+comment reference and finding ID under the existing ownership rules. A member record must recover
+its acceptance boundary without relying on the lead's transcript.
+
+`Integrated` names the isolated group candidate and means provisional until required review,
+combined checks, member acceptance, and human gates pass at that exact revision. Keep the delivery
+branch at its last accepted revision. After fast-forward promotion, record `Accepted` on each member
+with the delivery branch, its before/after heads, group reference, and review/check evidence; confirm
+the delivery head equals the reviewed and checked revision before closure. Record dependent bases
+containing those accepted prerequisites. If the delivery head advances before promotion, rebase or
+rebuild the candidate from the latest accepted head and refresh review and combined checks.
+When patches or integration context affect coverage, mark prior evidence
+stale and record refreshed review/check evidence; never treat an old verdict as approval of a new
+head. Preserve each member's own checkpoint counts: charge failures to affected members with their
+checkpoint and finding references, not automatically to every group member or a new group counter.
+
+For a failed or incomplete group, append `Held group` on every member with membership, failed or
+uncovered criteria, evidence references, and waiting dependents. Keep claims, original worker IDs,
+worktrees, candidate artifacts, limits, attempts, and review history. Before unrelated work proceeds,
+append `Containment` with accepted bases, isolated candidates, affected files/resources/consumers,
+exclusive repair ownership where needed, and before/after revisions and containment checks.
+Preserve held group candidate branches/worktrees separately from the accepted delivery head.
+Independent groups can be promoted without the held changes; never reset or rewrite the delivery
+branch to recover. Preserve unrelated accepted work; missing containment evidence holds dispatch
+and integration.
+Shared-state compromise, unresolved scope/safety/acceptance decisions, and cancellation stop the
+execution. The human decides exhausted retries; a replacement never resets attempt history.
+
+For final review reuse, retain the explicit whole-branch base-to-exact-final-head report, all scoped
+items, interactions and design-conformance coverage, independent reviewer provenance, and check
+references. Link it from the final review record; a last-group-only report is insufficient.

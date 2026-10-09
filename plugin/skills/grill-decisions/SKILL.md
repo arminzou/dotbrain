@@ -17,6 +17,16 @@ This skill spends the user's attention, so it only runs with a human in the loop
 - Nothing named to resolve — there is no plan or open question yet. Run `find-unknowns` first.
 - The question is answerable from the codebase — read it instead of asking.
 
+Investigate observable questions using code, configuration, tests, and available observations before
+escalating them. For historical rationale, research recorded decisions and history; do not infer
+intent from current code. Distinguish evidence, inference, and unresolved gaps. Small targeted
+experiments must fit existing scope, permissions, and limits; this skill does not authorize
+additional pilots, budgets, or outward actions.
+
+Choose reversible implementation defaults within scope. Reserve the interview for preferences,
+authority, acceptance changes, consequential tradeoffs, and questions the evidence cannot settle.
+Bring evidence and a recommendation; explicitly defer irrelevant uncertainty with a reason.
+
 ## Process
 
 ### 1. Read the map
@@ -44,6 +54,9 @@ your recommended answer, so agreeing is cheap and disagreeing is specific.
 
 If a question can be answered by reading the codebase, read the codebase instead of asking. The
 user's attention is the scarce resource in this skill.
+
+For each unresolved branch, state the cheapest next action and whether it blocks the current
+decision. Initiative uncertainty belongs in the active design; Beads owns execution state.
 
 Four moves carry the grilling:
 
