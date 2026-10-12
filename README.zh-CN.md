@@ -16,10 +16,13 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-117967?style=flat)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-read-117967?style=flat)](https://arminzou.github.io/dotbrain/zh/)
 
-**为 Claude Code 和 Codex 提供私有的项目上下文。**
+**给 Claude Code 和 Codex 用的私有项目上下文。**
 
-让每个 Coding Agent 都能读到项目的决策、术语和任务。这些上下文有版本记录，
-但不放在代码仓库里。
+Dotbrain 把管理 Dotfiles 的思路搬到了项目上：工作笔记、计划、指令，还有你挑好的 Agent
+资源，统一放在一个私有目录里，要在哪个 checkout 干活，就接到哪个 checkout。
+
+这些上下文就是本地文件，有自己独立的 Git 历史。Dotbrain CLI 负责把这个工作区接到代码仓库上；
+插件自带的工作流技能则教 Agent 怎么用这些上下文，并和你一起把它维护下去。
 
 [文档](https://arminzou.github.io/dotbrain/zh/) ·
 [快速开始](https://arminzou.github.io/dotbrain/zh/getting-started) ·
@@ -27,25 +30,31 @@
 
 ### 为什么做这个
 
-我的项目通常先私下开发，之后才公开。代码可以公开，但那些还没想清楚的决策、路线图和
-背后的考虑，得有个单独的地方放。以前它们散落在 Obsidian、被 gitignore 的笔记和 Agent
-的记忆里，每开一个新会话，都要重新翻找上下文，把项目再解释一遍。我想让这些思考有版本
-记录，两个 Agent 都能读到，并且和手头的工作关联起来。于是有了 Dotbrain。
+Agent Harness的全局指令管的是我希望 Agent 平时怎么做事，仓库里的共享指令管的是所有人该怎么改这份代码。
+可我自己对某个项目的思考、工作笔记和计划，也得有个私密的地方放。
+
+以前这些东西散落在 Obsidian、被 gitignore 的笔记和 Agent 的记忆里，每次要找出来、
+带进新会话都很费劲；换个新 checkout，还得把常用的技能和子 Agent 重新配一遍。
+所以我做了 Dotbrain：把项目工作区收在一处，接到哪儿干活都是同一套流程。
+
+想了解来龙去脉，可以读 [Dotfiles for Your Repo](https://x.com/i/article/2109385521214390273)（英文）。
 
 ## 适合你吗？
 
-如果你经常在不同的 Agent、会话或 Git worktree 之间切换，又有值得长期保留的项目上下文，
-Dotbrain 会很合适。它给这些上下文一个单独的家：可以审阅，用 Git 管理版本，和要公开的
-代码分开。
+如果你想要一个私有的项目工作区，并且希望它能跨 Agent、跨会话、跨 worktree 一直用下去，
+Dotbrain 就适合你：攒下来的上下文、做到一半的计划、你给这个项目定的指令和挑的技能，
+都在里面。
 
-如果在 `AGENTS.md` 或 `CLAUDE.md` 里写几条常驻指令就够用了，那就保持简单。
-Dotbrain 是本地工具，不是托管的团队知识库。
+它不排斥 Agent 自带的记忆系统，也可以和其他上下文工具搭配着用。工作区归你自己；
+哪些结论该写进仓库的共享文档、哪些该整理成公开提案，都由你决定。
+
+如果在 `AGENTS.md` 或 `CLAUDE.md` 里写几条常驻指令就够用，那就不用搞这么复杂。
 
 ## 快速开始
 
-把插件装进你的 Coding Agent 即可，不需要克隆本仓库。
+把插件装进你的 Coding Agent 就行，不用克隆这个仓库。
 
-**Claude Code**：下面两行要分两次发送：
+**Claude Code**：下面两条命令要分两次发送：
 
 ```text
 /plugin marketplace add arminzou/dotbrain
@@ -59,32 +68,33 @@ codex plugin marketplace add arminzou/dotbrain
 codex plugin add dotbrain@dotbrain
 ```
 
-在 Codex 中打开 `/hooks`，信任 dotbrain 的 hook，然后新开一个 thread。
+在 Codex 里打开 `/hooks`，信任 dotbrain 的 hook，然后新开一个 thread。
 Windows 用户请先开启
 [开发人员模式](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
-再连接项目，这样 Dotbrain 不需要管理员权限就能创建目录符号链接。
+再连接项目，这样 Dotbrain 不用管理员权限也能创建目录符号链接。
 
-然后对 Agent 说：
+接着告诉 Agent：
 
 ```text
 Use wire-brain to wire this repo with Dotbrain.
 ```
 
-这个技能会按需安装与插件版本匹配的 CLI、`uv` 和 Beads，完成本机配置，再把仓库连接到
-它的私有 Brainspace。用下面的命令检查结果：
+这个技能会按需安装版本匹配的 CLI、`uv` 和 Beads，配好本机环境，再把仓库接到它的私有
+Brainspace 上。装完可以检查一下：
 
 ```bash
 dotbrain doctor
 ```
 
-在连接好的仓库里新开一个 Agent 会话，就会加载项目的 Brain 上下文。
-手动安装、备份、在第二台机器上配置以及故障排查，见
+在接好的仓库里新开一个 Agent 会话，Dotbrain 的共享约定就会自动加载，告诉 Agent
+项目上下文在哪儿、该怎么用。
+手动安装、备份、换机器配置和故障排查，见
 [快速开始](https://arminzou.github.io/dotbrain/zh/getting-started)。
 
 ### 更新
 
-插件和 CLI 要一起更新。在 Claude Code 中运行 `/plugin`，从菜单里更新 dotbrain，
-再运行 `/reload-plugins`。在 Codex 中运行：
+插件和 CLI 要一起更新。在 Claude Code 里运行 `/plugin`，从菜单中更新 dotbrain，
+再运行 `/reload-plugins`。Codex 则运行：
 
 ```bash
 codex plugin marketplace upgrade
@@ -104,54 +114,61 @@ dotbrain refresh --all
 
 ## 工作原理
 
-每个项目在私有的 dotbrain 主目录（默认 `~/dotbrain/`）下都有一个 **Brainspace**。
-里面有 **Brain**（术语、决策和设计）和 **执行存储**（用
-[Beads](https://github.com/gastownhall/beads) 跟踪的任务）。代码仓库通过被 gitignore 的
-符号链接连到这个 Brainspace，私有文件本身不进代码仓库。
+每个项目在你私有的 dotbrain 主目录（默认是 `~/dotbrain/`）下都有一个 **Brainspace**，
+里面有两样东西：**Brain**（`.brain/`，一组本地 Markdown 文件，记录项目规则、术语、
+决策和设计）和**执行存储**（`.beads/`，用 [Beads](https://github.com/gastownhall/beads)
+跟踪的任务）。checkout 通过被 gitignore 的符号链接访问它们，文件本身和历史记录都不进代码仓库。
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/how-it-works-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/how-it-works-light.svg">
-  <img src="docs/public/assets/how-it-works-light.svg" alt="Claude Code 和 Codex 在代码仓库中工作，通过被 gitignore 的链接连到独立的私有 Brainspace，其中存放 Brain 和 Beads。" width="1000">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/how-it-works-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/how-it-works-light.png">
+  <img src="docs/public/assets/how-it-works-light.png" alt="Claude Code 和 Codex 在代码仓库中工作，通过被 gitignore 的链接连到独立的私有 Brainspace，其中存放 Brain 和 Beads。" width="1000">
 </picture>
 
-会话开始时，插件的 hook 会自动加载项目上下文。技能在被调用时指导具体工作；连接项目时，
-选定的技能和子 Agent 会放进仓库里的 Agent 工作区。技能和 Claude 子 Agent 是符号链接，
-Codex 子 Agent 则是自动生成、被 gitignore 的 TOML 文件。
-`dotbrain wire` 会根据 Git 元数据，把 worktree 连到同一个 Brainspace。
+连接项目时，你选的技能和子 Agent 也会一并放进仓库里的 Agent 工作区 `.claude/` 和 `.codex/`。
+技能和 Claude 子 Agent 是符号链接，Codex 子 Agent 则是自动生成、被 gitignore 的
+TOML 文件。连接 Git worktree 时，它会接到主 checkout 已有的 Brainspace 上，
+两边共用同一份项目知识和任务记录。
 
-用 `dotbrain projects list` 查看已注册的项目。在已连接的 checkout 里，
-`dotbrain refresh` 负责维护当前 checkout，`dotbrain unwire` 断开连接，但保留共享的
-Brainspace。在其他目录下运行时，用 `--project <name>` 指定项目；`refresh --all`
-维护所有已注册项目。本机全局资源不会自动同步，需要手动运行 `skills link --scope global`
-或 `agents link --scope global`。
+会话开始时，插件的 hook 会送上共享约定 `DOTBRAIN.md`。Agent 接着读取项目的私有规则，
+再按任务需要去查上下文。怎么查、怎么把你们一起得出的结论记下来，都由工作流技能来引导。
+加载顺序见[会话上下文](https://arminzou.github.io/dotbrain/zh/session-context)。
 
-Brain 用 Git 管理版本，请备份到**私有**远程仓库。Beads 数据库不在 Git 里，
-要备份或共享任务，需要单独配置 Dolt remote 或共享服务器。
+`dotbrain projects list` 可以列出已注册的项目。在已连接的 checkout 里，
+`dotbrain refresh` 维护当前 checkout，`dotbrain unwire` 断开连接但保留共享的
+Brainspace。在别的目录下，用 `--project <name>` 指定项目；`refresh --all`
+会处理所有已注册的项目。全局资源不会顺带同步，需要显式运行 `skills link --scope global` 或
+`agents link --scope global`。
+
+Brain 用 Git 做版本管理，记得备份到**私有**远程仓库。Beads 数据库不进 Git，
+想备份或共享任务，得另外配一个 Dolt remote 或共享服务器。
 详见[架构](https://arminzou.github.io/dotbrain/zh/architecture)、
 [项目连接](https://arminzou.github.io/dotbrain/zh/wiring)和
 [Beads 后端](https://arminzou.github.io/dotbrain/zh/beads-backend)。
 
 ## 工作闭环
 
-每做完一件事，下一个会话都应该知道得更多。Dotbrain 内置的技能把工作从想法推进到实现，
+每做完一件事，都应该让下一个会话知道得更多。Dotbrain 内置的技能带着工作从想法走到实现，
 再把过程中学到的东西写回项目上下文。
 
-**从 Brain 出发 → 探索未知 → 敲定决策 → 写设计 → 处理并验证任务 → 审阅 →
-把长期有效的决策写回 Brain。**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/workflow-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/workflow-light.png">
+  <img src="docs/public/assets/workflow-light.png" alt="工作从探索未知、敲定决策推进到设计、任务、执行、审阅和结束设计。新发现反馈到当前设计，长期有效的决策写回 Brain，为下一轮工作提供上下文。" width="880">
+</picture>
 
-闭环发生在两个地方：
+闭环体现在两处：
 
-- **工作过程中**新发现会反馈到当前的设计和相关任务里。比如意外碰到一个 API 限制，
-  它就成了一个设计问题；定下处理方式后，先把决策记进设计和任务，再继续实现。
-- **审阅之后**结束设计时，记录验证证据，把有用的决策和术语留在 Brain 里。
-  下一个计划开始时，这些知识已经在那儿了。
+- **工作过程中：** 新发现会回流到当前的设计和受影响的任务里。比如中途撞上一个没料到的
+  API 限制，它就成了一个设计问题；等你拿定主意，先把决策写进设计和任务，再接着实现。
+- **审阅之后：** 结束设计时会记下验证证据，并把有用的决策和术语沉淀到 Brain 里。
+  下一项工作开始时，这些知识已经是现成的。
 
-Brain 存长期知识，设计记录当前意图，Beads 记录执行状态。每次交接都落在文档或任务记录里，
-换一个会话或 Agent 也能接着做，不用翻聊天记录拼凑上下文。
+Brain 存长期知识，设计存当前意图，Beads 存执行状态。每次交接都落在文档或任务记录里，
+换一个会话、换一个 Agent，都能接着往下做。
 
-成功标准和最终审阅由你说了算。工作跨多个会话或还有悬而未决的问题时，走完整个闭环；
-小改动只用需要的那几步就行。
+成功标准和最终审阅由你说了算。工作要跨多个会话，或者还有没想清楚的问题时，就走完整个闭环；
+小改动挑用得上的几步就行。
 
 操作示例见[工作流程](https://arminzou.github.io/dotbrain/zh/workflow)，
 完整的技能列表见[技能](https://arminzou.github.io/dotbrain/zh/skills)。
@@ -168,11 +185,11 @@ uv run dotbrain --help
 uv run pytest
 ```
 
-要以 editable 模式安装 CLI，运行 `./scripts/dev-install.sh`（Windows 上运行
-`.\scripts\dev-install.ps1`），然后运行 `dotbrain bootstrap`。
+想以 editable 模式安装 CLI，运行 `./scripts/dev-install.sh`（Windows 上是
+`.\scripts\dev-install.ps1`），再运行 `dotbrain bootstrap`。
 内置技能的源码在 [`plugin/skills/`](plugin/skills/)。
 命令和选项见 [CLI 参考](https://arminzou.github.io/dotbrain/zh/cli-reference)。
 
-提交 bug 或 PR 前，请先看[贡献指南](CONTRIBUTING.md)。
+提 bug 或 PR 之前，请先看[贡献指南](CONTRIBUTING.md)。
 
 本项目采用 [MIT 许可证](LICENSE)。

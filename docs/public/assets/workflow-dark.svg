@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 880" role="img" aria-labelledby="workflow-title workflow-desc" id="workflow-root">
+<title id="workflow-title">The Dotbrain workflow loop</title>
+<desc id="workflow-desc">Workflow skills take work from orientation through decisions, design, issues, execution, review and closure; discoveries update the active design and lasting decisions return to the Brain to inform the next initiative.</desc>
+<defs>
+      <style>
+      #workflow-root { color-scheme:dark;--paper:#111416;--ink:#f2f4f5;--muted:#b5c0c7;--rule:#39434a;--accent:#5cecd4;--tint:#132a2d }
+      #workflow-root { font-family: Geist,system-ui,sans-serif; }
+      #workflow-root .diagram-container { width:100%;overflow-x:auto }
+      #workflow-root .heading { font:600 22px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--ink) }
+      #workflow-root .name { font:600 17px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--ink) }
+      #workflow-root .skill { font:400 13px 'Geist Mono','Cascadia Mono',Consolas,monospace;fill:var(--muted) }
+      #workflow-root .number, #workflow-root .label { font:500 12px 'Geist Mono','Cascadia Mono',Consolas,monospace;fill:var(--muted) }
+      #workflow-root .label { fill:var(--accent) }
+      #workflow-root .record, #workflow-root .note, #workflow-root .legend { font:400 14px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--muted) }
+      #workflow-root .closing { font:500 16px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--ink) }
+      #workflow-root .hub-name { font:600 22px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--ink) }
+      #workflow-root .hub-detail { font:400 14px Geist,system-ui,'Segoe UI',Arial,sans-serif;fill:var(--muted) }
+      #workflow-root .diagram-container { overflow-x:visible }</style>
+<marker id="workflow-workflow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#b5c0c7"/></marker>
+<marker id="workflow-workflow-context" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#5cecd4"/></marker>
+</defs>
+<rect width="880" height="880" fill="#111416"/>
+<text x="40" y="56" class="heading">The workflow closes the loop</text>
+<text x="840" y="56" class="note" text-anchor="end">You + your coding agent</text>
+<g fill="none" stroke="#b5c0c7" stroke-width="1.5" marker-end="url(#workflow-workflow-arrow)">
+<path data-edge="orient-settle" d="M540.000 174.900A274 274 0 0 1 609.940 215.066"/>
+<path data-edge="settle-design" d="M681.197 300.000A274 274 0 0 1 713.503 446.503"/>
+<path data-edge="design-issues" d="M694.307 532.000A274 274 0 0 1 621.790 635.008"/>
+<path data-edge="issues-work" d="M460.000 703.269A274 274 0 0 1 421.496 703.374"/>
+<path data-edge="work-review" d="M246.506 624.000A274 274 0 0 1 191.469 545.362"/>
+<path data-edge="review-close" d="M166.066 436.000A274 274 0 0 1 192.068 313.356"/>
+<path data-edge="close-orient" d="M285.081 204.000A274 274 0 0 1 338.605 175.451"/>
+</g>
+<g fill="none" stroke="#5cecd4" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#workflow-workflow-context)">
+<path data-edge="close-brain" d="M291.814 312L357.450 364.263"/>
+<path data-edge="brain-orient" d="M440 368V200"/>
+</g>
+<path data-edge="work-design" d="M368 624V592Q368 584 376 584H648Q656 584 656 576V534" fill="none" stroke="#b5c0c7" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#workflow-workflow-arrow)"/>
+<g data-label-mask="true"><rect x="450" y="268" width="96" height="28" fill="#111416"/><text x="462" y="287" class="label">CONTEXT</text></g>
+<g data-label-mask="true"><rect x="452" y="548" width="128" height="28" fill="#111416"/><text x="516" y="567" class="number" text-anchor="middle">DISCOVERIES</text></g>
+<g data-node="orient"><rect x="340" y="112" width="200" height="84" rx="6" fill="#20262b" stroke="#717d84"/><text x="356" y="140" class="number">01</text><text x="384" y="140" class="name">Orient</text><text x="356" y="168" class="skill">find-unknowns</text></g>
+<g data-node="settle"><rect x="556" y="216" width="200" height="84" rx="6" fill="#20262b" stroke="#717d84"/><text x="572" y="244" class="number">02</text><text x="600" y="244" class="name">Settle decisions</text><text x="572" y="272" class="skill">grill-decisions</text></g>
+<g data-node="design"><rect x="608" y="448" width="200" height="84" rx="6" fill="#20262b" stroke="#717d84"/><text x="624" y="476" class="number">03</text><text x="652" y="476" class="name">Write the design</text><text x="624" y="504" class="skill">to-design</text></g>
+<g data-node="issues"><rect x="460" y="636" width="200" height="84" rx="6" fill="#20262b" stroke="#717d84"/><text x="476" y="664" class="number">04</text><text x="504" y="664" class="name">Split into issues</text><text x="476" y="692" class="skill">to-issues</text></g>
+<g data-node="work"><rect x="220" y="624" width="200" height="108" rx="6" fill="#20262b" stroke="#717d84"/><text x="236" y="652" class="number">05</text><text x="264" y="652" class="name">Work the issues</text><text x="236" y="680" class="skill">run-execution</text><text x="236" y="702" class="skill">or iterate-design</text></g>
+<g data-node="review"><rect x="72" y="436" width="200" height="108" rx="6" fill="#20262b" stroke="#717d84"/><text x="88" y="464" class="number">06</text><text x="116" y="464" class="name">Review</text><text x="88" y="492" class="skill">review-gate</text><text x="88" y="520" class="record">With your review</text></g>
+<g data-node="close"><rect x="124" y="204" width="200" height="108" rx="6" fill="#132a2d" stroke="#5cecd4"/><text x="140" y="232" class="number">07</text><text x="168" y="232" class="name">Close the design</text><text x="140" y="260" class="skill">close-design</text><text x="140" y="288" class="record" fill="#5cecd4">Decisions into the Brain</text></g>
+<g data-node="brain"><rect x="336" y="368" width="208" height="124" rx="8" fill="#132a2d" stroke="#5cecd4"/>
+<text x="440" y="404" class="hub-name" text-anchor="middle">Brain</text>
+<text x="440" y="434" class="hub-detail" text-anchor="middle">Decisions + vocabulary</text>
+<text x="440" y="460" class="hub-detail" text-anchor="middle">Used by the next pass</text></g>
+<text x="440" y="776" class="closing" text-anchor="middle">The next initiative starts with what this one established.</text>
+<line x1="40" y1="800" x2="840" y2="800" stroke="#39434a"/>
+<line x1="40" y1="826" x2="64" y2="826" stroke="#b5c0c7" stroke-width="1.5" marker-end="url(#workflow-workflow-arrow)"/><text x="80" y="830" class="legend">Workflow</text>
+<line x1="200" y1="826" x2="224" y2="826" stroke="#b5c0c7" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#workflow-workflow-arrow)"/><text x="240" y="830" class="legend">Design updates</text>
+<line x1="396" y1="826" x2="420" y2="826" stroke="#5cecd4" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#workflow-workflow-context)"/><text x="436" y="830" class="legend">Brain context</text>
+<text x="840" y="830" class="legend" text-anchor="end">Use the steps you need</text>
+<text x="440" y="860" class="note" text-anchor="middle">Brain: designs and lasting context · Beads: issues and progress</text>
+</svg>

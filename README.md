@@ -18,8 +18,12 @@ English | [简体中文](README.zh-CN.md)
 
 **Private project context for Claude Code and Codex.**
 
-Give each coding agent your project's decisions, vocabulary, and issues. Keep that context
-versioned and outside your code repo.
+Dotbrain brings the Dotfiles convention to your project work. Keep your working notes, plans,
+instructions, and selected agent resources in a private home, then wire them into the checkouts
+where you work.
+
+Your context stays in local files with its own Git history. The CLI connects your workspace to
+the code repo; the plugin's workflow skills guide how your agent uses and maintains it with you.
 
 [Documentation](https://arminzou.github.io/dotbrain/) ·
 [Getting started](https://arminzou.github.io/dotbrain/getting-started) ·
@@ -27,20 +31,27 @@ versioned and outside your code repo.
 
 ### Why I built it
 
-I built Dotbrain because my projects often start privately and get shared later. The code can be
-shared; the half-formed decisions, roadmap, and rationale need their own home. Mine scattered
-across Obsidian, gitignored notes, and agent memory. Every new session meant hunting for context
-and explaining the project again. I wanted that thinking versioned, available to both agents,
-and connected to the work.
+Global agent instructions describe how I want my agent to behave at user level. Shared repository instructions
+describe how anyone should work on the code. My own reasoning, working notes, and plans for a
+particular project need a private home.
+
+Mine were scattered across Obsidian, gitignored notes, and agent memory. Finding that context and
+bringing it into another session took effort. So did making my selected skills and subagents
+available in a new checkout. I built Dotbrain to keep that project workspace together and make
+connecting it to where I work repeatable.
+
+Read the story behind Dotbrain: [Dotfiles for Your Repo](https://x.com/i/article/2109385521214390273).
 
 ## Is this for you?
 
-Use Dotbrain if you work across agents, sessions, or worktrees and have project context worth
-preserving. It gives that context a home you can review and version with Git, separate from the
-code you share.
+Use Dotbrain when you need a private project workspace you want to keep developing across
+agents, sessions, or worktrees: context you've built up, plans in progress, and your own
+instructions and selected skills for the work.
+
+It works alongside your agent's memory system and other context tools. The workspace is yours;
+you decide which outcomes belong in shared repository docs or public proposals.
 
 If a few standing instructions in `AGENTS.md` or `CLAUDE.md` cover your needs, keep it simple.
-Dotbrain is a local tool, not a hosted team knowledge base.
 
 ## Get started
 
@@ -78,7 +89,8 @@ the repo to its private Brainspace. Check the result with:
 dotbrain doctor
 ```
 
-Start a fresh agent session in the wired repo to load its Brain context.
+Start a fresh agent session in the wired repo to load the Dotbrain convention. It tells the
+agent where to find your project context and how to work with it.
 See [Getting started](https://arminzou.github.io/dotbrain/getting-started) for manual installation,
 backups, a second machine, and troubleshooting.
 
@@ -106,20 +118,26 @@ Installed the CLI with pipx or pip? Upgrade with that tool instead. See
 ## How it works
 
 Each project has a **Brainspace** under your private dotbrain home, by default `~/dotbrain/`.
-It holds the **Brain** (vocabulary, decisions, and designs) and an **execution store**
-(issues tracked with [Beads](https://github.com/gastownhall/beads)). Gitignored symlinks connect
-the code repo to that Brainspace; the private files are stored outside the code repo.
+It holds the **Brain** (`.brain/`: local Markdown files for project rules, vocabulary, decisions,
+and designs) and an **execution store** (`.beads/`: issues tracked with
+[Beads](https://github.com/gastownhall/beads)). Gitignored symlinks make both available through
+the checkout while their files and history stay outside the code repo.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/how-it-works-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/how-it-works-light.svg">
-  <img src="docs/public/assets/how-it-works-light.svg" alt="Claude Code and Codex work in the code repo. Gitignored links connect it to a separate private Brainspace holding the Brain and Beads." width="1000">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/how-it-works-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/how-it-works-light.png">
+  <img src="docs/public/assets/how-it-works-light.png" alt="Claude Code and Codex work in the code repo. Gitignored links connect it to a separate private Brainspace holding the Brain and Beads." width="1000">
 </picture>
 
-The plugin's session-start hook loads project context. Its skills guide work when invoked,
-and wiring delivers selected skills and subagents into the repo's agent workspaces. Skills and
-Claude agents use symlinks; Codex agents use generated, Git-ignored TOML files.
-`dotbrain wire` connects worktrees to the same Brainspace through Git metadata.
+Wiring also delivers selected skills and subagents into the repo's agent workspaces, `.claude/`
+and `.codex/`. Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
+TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
+both use the same knowledge and tracker.
+
+At session start, the plugin hook supplies `DOTBRAIN.md`, the shared convention. The agent then
+reads the project's private rules and retrieves the context the task needs. Workflow skills
+guide how it consults that context and records what you work out together.
+See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,
 `dotbrain refresh` maintains that checkout and `dotbrain unwire` detaches it while retaining the
@@ -138,8 +156,11 @@ See [Architecture](https://arminzou.github.io/dotbrain/architecture),
 Every piece of work should leave the next session better informed. Dotbrain's bundled skills
 carry work from idea to implementation, then return what you learned to the project's context.
 
-**Start from the Brain → explore unknowns → settle decisions → write a design → work and
-verify issues → review → return lasting decisions to the Brain.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/workflow-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/workflow-light.png">
+  <img src="docs/public/assets/workflow-light.png" alt="Workflow skills guide work through decisions, design, issues, execution, review, and closure. Discoveries update the active design; lasting decisions return to the Brain for the next initiative." width="880">
+</picture>
 
 The loop closes in two places:
 
@@ -150,8 +171,8 @@ The loop closes in two places:
   vocabulary in the Brain. The next initiative starts with that knowledge already available.
 
 The Brain holds durable knowledge, the design holds current intent, and Beads holds execution
-state. Each handoff lives in a document or tracker entry, so another session or agent can pick
-up the work without reconstructing it from chat history.
+state. Each handoff lives in a document or tracker entry that another session or agent can
+consult to continue the work.
 
 You own the success criteria and the final review decision. Use the full loop when work spans
 sessions or carries open questions; small changes can use just the steps they need.
