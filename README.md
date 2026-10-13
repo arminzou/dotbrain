@@ -25,6 +25,8 @@ where you work.
 Your context stays in local files with its own Git history. The CLI connects your workspace to
 the code repo; the plugin's workflow skills guide how your agent uses and maintains it with you.
 
+https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9
+
 [Documentation](https://arminzou.github.io/dotbrain/) ·
 [Getting started](https://arminzou.github.io/dotbrain/getting-started) ·
 [The workflow](https://arminzou.github.io/dotbrain/workflow)
