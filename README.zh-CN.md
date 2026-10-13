@@ -24,7 +24,7 @@ Dotbrain 把管理 Dotfiles 的思路搬到了项目上：工作笔记、计划�
 这些上下文就是本地文件，有自己独立的 Git 历史。Dotbrain CLI 负责把这个工作区接到代码仓库上；
 插件自带的工作流技能则教 Agent 怎么用这些上下文，并和你一起把它维护下去。
 
-https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9
+[https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9](https://github.com/user-attachments/assets/021fc13a-db20-4549-8aab-b5240d289bde)
 
 [文档](https://arminzou.github.io/dotbrain/zh/) ·
 [快速开始](https://arminzou.github.io/dotbrain/zh/getting-started) ·
