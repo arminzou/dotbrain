@@ -11,6 +11,7 @@ def test_reviewer_returns_complete_read_only_report_on_both_runtimes():
     codex = tomllib.loads(Path("src/dotbrain/resources/agents/codex/reviewer.toml").read_text(encoding="utf-8"))
     assert codex["developer_instructions"].strip() == claude.split("---", 2)[2].strip()
     assert codex["model_reasoning_effort"] == "high"
+    assert codex["features"]["memories"] is False
     assert "model" not in codex
     prompt = " ".join(codex["developer_instructions"].split())
     for requirement in (

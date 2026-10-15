@@ -87,3 +87,8 @@ Your own Claude definitions are delivered as symlinks. Codex definitions are rea
 generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain agents link` reconciles the current wired checkout;
 use `--scope global` for global homes. Doctor checks file type and delivered content, while a
 successful role spawn confirms the runtime actually consumed a definition.
+
+The packaged Codex reviewer disables cross-session memory. It still receives project instructions
+and reads the relevant Brain records and assigned skills. Give it the exact change, acceptance
+criteria, and authority sections it needs. Its high reasoning effort is unchanged. This setting
+does not change memory in your lead session or other roles.

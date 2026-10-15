@@ -77,3 +77,6 @@ to the original workers. Return all findings, rather than a summary or comment I
 the lead owns tracker records and cross-item repair coordination. Explicit human
 review exemptions or declines remain the lead's records, not reviewer verdicts.
 """
+
+[features]
+memories = false
