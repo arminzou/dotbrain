@@ -80,3 +80,6 @@ Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已
 `# dotbrain-managed-agent: v1` 标记；dotbrain 可以覆盖或清理它们。`dotbrain agents link` 同步当前已连接的
 checkout；全局主目录请用 `--scope global`。doctor 会检查文件类型和分发的内容，而成功启动一个角色才能确认
 运行时确实用上了这个定义。
+
+打包的 Codex reviewer 会关闭跨会话记忆。它仍会收到项目指令，并读取相关的 Brain 记录和指定的 skill。
+分派时要给出明确的改动范围、验收标准和相关依据。它仍使用 high 推理强度；主会话和其他角色的记忆设置不受影响。

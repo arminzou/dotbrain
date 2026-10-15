@@ -117,7 +117,14 @@ send only the compact assignment and report that inherited context could not be 
 assignment must retain project rules, acceptance criteria, scope, and permission boundaries.
 Omit the spawn tool's model option unless the user explicitly requests a different model;
 the custom role file supplies effort.
+The packaged reviewer disables cross-session memory with `features.memories = false`.
+Project instructions, assigned acceptance criteria, relevant Brain records, and explicitly
+assigned skills still supply review authority; include the needed context in its assignment.
 Keep fix rounds in the same worker or reviewer session with findings and the changed diff.
+Collect native results with the runtime's blocking agent-wait tool and a long supported wait
+interval, respecting the session's wait limit. Repeated short status polls each spend another
+lead model call while the reviewer is still working. Keep lifecycle and error checks; read
+transcript content only to investigate a reported failure or evidence gap.
 
 If an assignment requires a custom agent, verify its availability by actually spawning that role
 in this CLI session. A delivered TOML file is insufficient. Count nested writing agents toward
