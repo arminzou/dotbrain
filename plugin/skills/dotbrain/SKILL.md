@@ -38,8 +38,8 @@ Brain template propagate to every brain.
 - `.claude` and `.codex` are real checkout directories. Selected skills and Claude agents are
   symlinks; Codex agents are real TOML files marked `# dotbrain-managed-agent: v1`.
   Customize private sources. Never commit local wiring or delivered copies to the code repo.
-- `dotbrain wire` attaches checkouts; Git metadata connects worktrees to the existing Brainspace
-  without changing registration or declarations.
+- `dotbrain wire` attaches a main checkout or Git worktree; Git metadata connects worktrees
+  to the main checkout's existing Brainspace without changing registration or declarations.
 - Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
@@ -73,7 +73,7 @@ Brain template propagate to every brain.
   scaffold them unasked.
 - Before explaining how the project works (build, runtime, deployment, integrations), search
   `.brain/docs/` for documented answers. These private references are not injected.
-- Target `.brain/` explicitly when searching: repo-root searches skip hidden, gitignored paths.
+- Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
 - Public-facing repo docs (README.md, repo-root AGENTS.md, RULES.md) must not expose private
