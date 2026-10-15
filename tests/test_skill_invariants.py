@@ -275,7 +275,7 @@ def test_dispatched_is_recorded_while_the_worker_runs():
     for rule in (
         "Launch each delegated writing worker in the background",
         "As soon as the runtime identifies the worker, record `## Dispatched`",
-        "with the runtime's agent or session ID in the comment body, before waiting on the worker",
+        "with the worker's runtime and its agent or session ID in the comment body, before waiting on the worker",
         "If a runtime can launch only in the foreground, record `Dispatched` before launching",
     ):
         assert rule in owner, rule
@@ -285,8 +285,11 @@ def test_dispatched_is_recorded_while_the_worker_runs():
 
 def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
     owner = _text(SKILLS / "run-execution/SKILL.md")
-    assert "Before worker preparation or dispatch, read the applicable runtime reference" in owner
-    assert "Read it again before runtime-specific fix rounds, cancellation, or recovery" in owner
+    assert "The agent team is runtime-neutral: the lead and each worker may run in different agent runtimes." in owner
+    assert "Workers run in the lead's runtime unless the human explicitly asks for another" in owner
+    assert "read the runtime reference of the lead and of each worker runtime" in owner
+    assert "Never silently change what the human set" in owner
+    assert "unqualified mechanism" not in owner
     for filename in ("claude-code.md", "codex.md"):
         assert f"references/{filename}" in owner
         text = _text(SKILLS / "run-execution/references" / filename)

@@ -93,9 +93,8 @@ A dedicated branch may run in place or in a git worktree. When the user launches
 worktree, verify before planning that `.brain` and `.beads` resolve to the main checkout's
 Brainspace when enabled. When they are absent, run `dotbrain wire` in the worktree, directly or
 through `wire-brain`, before dispatch. The CLI resolves the main checkout through Git metadata and
-preserves its registration. For delegated worker checkouts, follow `run-execution`'s applicable
-runtime reference: Claude subagent worktrees use absolute assignment references without wiring;
-the Codex CLI path attaches prepared worktrees before launch to deliver project resources.
+preserves its registration. For delegated worker checkouts, follow the worker runtime's reference
+in `run-execution`; it says whether the checkout needs wiring before launch.
 
 ## Read order
 
