@@ -288,7 +288,7 @@ def test_execution_routes_runtime_mechanisms_without_duplicating_shared_rules():
     assert "The agent team is runtime-neutral: the lead and each worker may run in different agent runtimes." in owner
     assert "Workers run in the lead's runtime unless the human explicitly asks for another" in owner
     assert "read the runtime reference of the lead and of each worker runtime" in owner
-    assert "Never silently change what the human set" in owner
+    assert "Never change what the human set" in owner
     assert "unqualified mechanism" not in owner
     for filename in ("claude-code.md", "codex.md"):
         assert f"references/{filename}" in owner

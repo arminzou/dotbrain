@@ -86,7 +86,8 @@ stdin, `--agent dotbrain:worker`, `--output-format json`, and the permission mod
 this execution; nobody answers prompts in an unattended run. Generate the worker's ID up front and
 pass it as `--session-id <uuid>`, so `Dispatched` records it before launch; the JSON result
 carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
-dotbrain:worker` from the same worktree; the worker keeps its earlier turns. Stop a worker by
+dotbrain:worker` from the same worktree, passing the authorized permission mode again, since a
+resume starts in the default mode; the worker keeps its earlier turns. Stop a worker by
 ending its process tree. Check `claude --help` when an option is rejected.
 
 Qualified on Windows with Claude Code 2.1.301, launched from a shell rather than a running Codex

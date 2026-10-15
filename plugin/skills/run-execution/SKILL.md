@@ -22,8 +22,8 @@ runtime: [Claude Code](references/claude-code.md) or [Codex](references/codex.md
 worker's again before its fix rounds, cancellation, or recovery. These references supply
 mechanisms; the shared contract below governs every runtime. Prefer native subagents when the
 runtimes match. Where no reference covers an operation, choose a mechanism by judgment and record
-it in the execution record so a fix round or takeover can repeat it. Never silently change what
-the human set — worker runtime, scope, or checks: ask, or in an autonomous run record the deviation.
+it in the execution record so a fix round or takeover can repeat it. Never change what the
+human set — worker runtime, scope, or checks — on your own: ask, or in an autonomous run stop blocked.
 
 ## Workflow and execution mode
 
