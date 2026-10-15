@@ -80,11 +80,11 @@ drives it:
   dedicated branch, a draft PR at the first push, one mention of the human for each blocked stop,
   and, at `FINAL`, a ready-for-review PR with the human's review requested. Merge, deploy,
   publish, dependency changes, and every other outward action end the loop and go to the human.
-- A review gate is human-owned at close: a clean agent verdict does not close it. Closing is the
-  human's, or `close-design`'s terminal transition. The lead may close a `code` review bead after
-  observing the human's merge of its recorded PR, citing that PR and merge commit. A PR closed
-  unmerged leaves it open. A `simplify` bead does not close on merge and waits for every finding's
-  disposition. Detailed closing rules live in `manage-work-graph/references/review-beads.md`.
+- The lead closes accepted work and reviews without routine human sign-off, before PR merge:
+  required verdict/evidence at the exact integrated revision, blocking findings resolved and other
+  findings dispositioned. Simplify closes on dispositions, stays non-blocking. Explicit gates bind.
+  Closure never merges the target branch and never automatically invokes `close-design`. Details:
+  `manage-work-graph/references/review-beads.md`.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 

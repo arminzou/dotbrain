@@ -54,12 +54,12 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "a draft PR at the first push" in doc
     assert "one mention of the human for each blocked stop" in doc
     assert "explicit `GO`" in doc
-    assert "review gate is human-owned at close" in doc
-    assert "a clean agent verdict does not close it" in doc
-    assert "observing the human's merge of its recorded PR" in doc
-    assert "citing that PR and merge commit" in doc
-    assert "A PR closed unmerged leaves it open" in doc
-    assert "A `simplify` bead does not close on merge" in doc
+    assert "closes accepted work and reviews without routine human sign-off" in doc
+    assert "before PR merge" in doc
+    assert "blocking findings resolved and other findings dispositioned" in doc
+    assert "Explicit gates bind" in doc
+    assert "never automatically invokes `close-design`" in doc
+    assert "Simplify closes on dispositions, stays non-blocking" in doc
     assert "the active design doc is the spec" in doc
     assert "Reread the spec every iteration" in doc
 

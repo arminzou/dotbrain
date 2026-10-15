@@ -64,6 +64,8 @@ unverified. A correction is a later `## Correction:` comment; never rewrite a fi
 
 The verdict is `READY | NOT-READY`, recorded with metadata `ready` or `not-ready`, ordered
 blockers, and uncovered work. It is not closeout.
-At closeout, every finding and uncovered area must be fixed, filed as its own bead, or consciously
-declined; append the disposition and verification, add the `human` label, and leave the bead open.
-A readiness gate is never closed by an agent — the human closes it, or `close-design` discharges it.
+The lead closes on `READY` and passing required evidence at the exact integrated revision, with
+blocking findings resolved and other findings dispositioned, following the shared closing rules.
+Failed, missing, or stale evidence, including required UAT, holds affected work. Filing a blocker
+does not resolve it. Record dispositions and verification before closure; no routine human
+sign-off or wait for merge is required. Explicit unresolved-decision gates remain binding.

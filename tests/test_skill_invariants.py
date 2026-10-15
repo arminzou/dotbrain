@@ -165,11 +165,11 @@ def test_iterate_design_runs_executions_through_run_execution():
     "Behavior includes code, tests, build or CI config, and instructions agents execute",
     "Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt",
     "## Review skipped: <reason>",
-    "prompt includes the diffstat, the behavior changed, and the lead's recommendation",
-    "Keep the item open until the human answers",
+    "Review every behavior change without a routine permission prompt",
+    "An explicit human review override remains binding",
     "## Review skipped: declined by human — <reason>",
     "Standing answers hold until the human changes them",
-    "The handoff workflow never asks",
+    "Otherwise required independent review cannot be skipped",
     "The lead never reviews changes it authored",
     "Item and integration reviews never get a batch review bead",
     "Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed changes",
@@ -368,23 +368,24 @@ def test_review_modes_keep_distinct_verdicts_and_metadata():
         assert not re.search(r"NO-GO|no-go|request changes|verdict=go", _text(path)), path
 
 
-def test_review_closure_requires_a_human_decision():
+def test_review_closure_requires_evidence_and_dispositions_before_merge():
     record = _text(SKILLS / "manage-work-graph/references/review-beads.md")
     for guard in (
-        "never closes it on its own judgment",
-        "the lead may close a `code` review bead after observing the human's merge of the PR recorded on that bead",
-        "Cite that PR and its merge commit in the closeout",
-        "A PR closed unmerged leaves the bead open",
-        "Approval alone is not merge evidence",
-        "A `readiness` bead has no merge-based exception",
+        "lead closes accepted reviews before PR merge, without routine human sign-off",
+        "require `APPROVE`/`READY`, respectively",
+        "exact integrated revision",
+        "Blocking findings must be resolved",
+        "Other findings require recorded dispositions",
+        "`CHANGES`, `NOT-READY`, pending verdicts",
+        "failed, missing, or stale evidence hold affected work and reviews open",
         "A `simplify` bead does not close on merge",
-        "until every finding is applied, filed as its own item, or declined",
+        "once every finding is applied, filed as its own item, or declined with a reason",
     ):
         assert guard in record
     gate = _text(SKILLS / "review-gate/SKILL.md")
-    assert "disposition does not replace the human close" in gate
+    assert "no blanket `human` label for reviews" in gate
     graph = _text(SKILLS / "manage-work-graph/SKILL.md")
-    assert "including the observed human merge exception for code review" in graph
+    assert "close accepted work without routine confirmation" in graph
 
 
 @pytest.mark.parametrize("path", [
