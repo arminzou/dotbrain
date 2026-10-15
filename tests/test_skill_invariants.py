@@ -223,12 +223,12 @@ def test_item_review_streak_survives_worker_checks():
         "finite active-writing cap", "fills and refills", "separate worktrees",
         "write no work-graph comments", "exact integrated revision",
         "approval of only the latest group is insufficient", "proves isolation",
-        "final human review record", "cheapest next action", "verification boundaries",
+        "final human PR review", "cheapest next action", "verification boundaries",
     ), ("up to two workers", "fresh whole-branch code review", "their Beads comment ID")),
     ("docs/zh/agent-team.md", (
         "有限的同时写入人数上限", "继续补位", "不同 worktree",
         "不写工作图评论", "准确的集成版本", "只批准最后一组改动不够",
-        "证明继续的工作与失败组隔离", "最终人工审阅记录", "成本最低的下一步", "验证边界",
+        "证明继续的工作与失败组隔离", "最终人工 PR 审阅", "成本最低的下一步", "验证边界",
     ), ("默认最多同时有两个 worker", "一位新 reviewer", "自己写入的 Beads 评论 ID")),
 ])
 def test_agent_team_guides_preserve_acceptance_and_coordination_boundaries(path, contracts, obsolete):
