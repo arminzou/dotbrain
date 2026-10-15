@@ -1,5 +1,5 @@
 interface:
   display_name: "Agent Retrospective"
-  short_description: "Capture incremental private project findings"
+  short_description: "Capture findings and prepare recurring public rules"
 policy:
   allow_implicit_invocation: false

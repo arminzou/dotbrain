@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Review new or changed project evidence and maintain private retrospective findings and bounded progress, including successful practices.
+description: Maintain private retrospective findings and bounded progress, prepare recurring practices as public repository rules, and reconcile accepted promotions.
 disable-model-invocation: true
 ---
 
@@ -104,16 +104,34 @@ changed records queued for a later pass rather than certifying a version not act
 
 Derive `promotion.status: eligible` when a finding has at least three distinct supported days;
 otherwise use `collecting`. Preserve any later promotion state and destination already present.
-This is the seam for a separate promotion pass: capture does not author `RULES.md`, prepare
+This is the seam for the promotion step below: capture does not author `RULES.md`, prepare
 public changes, or reconcile merges. Compact duplicated prose and already promoted entries
 while preserving IDs, evidence dates, provenance, limits, and public promotion destinations.
 
 Completion: saved findings survive a retry, completed progress covers only durable processed
 evidence, and pending work and gaps remain explicit.
 
-### 5. Report
+### 5. Prepare and reconcile public rules
+
+Read [public rule promotion](references/promotion.md) for eligible findings and unresolved
+proposals. Run this step even when discovery skipped unchanged evidence: an earlier proposal
+may now have merged. Consume the saved finding identity, `evidence_dates`, `distinct_days`,
+and `promotion` state; do not recapture evidence or add recurrence for a promotion review.
+
+Automatically prepare one standalone root `RULES.md` change after three distinct supported
+days, reusing or amending equivalent rules. Reconcile earlier proposals with bounded read-only
+merge evidence. Persist promotion history in the same private notebook under the existing
+exclusive ownership and atomic-save protocol. Promotion never advances capture cursors.
+
+Completion: each eligible finding has one prepared or reused rule, or an explicit private
+hold; pending proposals remain pending until verified target-branch acceptance, and adopted
+rules have a public destination and adoption date with private merge provenance.
+
+### 6. Report
 
 Report the completed range per source, new or updated finding IDs, supported distinct-day
 counts, skipped unchanged sources, exclusions, pending work, and gaps. State whether the pass
 completed or stopped partially. Release exclusive ownership. Keep evidence and notebook
 contents private; do not create a second diary or public evidence store.
+Include prepared public destinations, unchanged proposals, promotion holds, and reconciled
+adoptions. Distinguish a prepared local change from repository acceptance.

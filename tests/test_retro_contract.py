@@ -36,6 +36,7 @@ def test_retro_is_discovered_and_delivered_with_its_reference(dotbrain_home, tmp
         assert not result.warnings
         assert (destination / "retro/SKILL.md").read_bytes() == (ROOT / "SKILL.md").read_bytes()
         assert (destination / "retro/references/notebook.md").is_file()
+        assert (destination / "retro/references/promotion.md").is_file()
         assert (destination / "retro/agents/openai.yaml").is_file()
 
 

@@ -32,8 +32,8 @@ evidence: []               # occurrence records defined below
 evidence_dates: []         # sorted unique supported YYYY-MM-DD dates, derived from evidence
 distinct_days: 0           # derived; never increment a counter on each run
 promotion:
-  status: collecting       # collecting | eligible; later consumers may add states
-  destination: null        # reserved for later promotion; preserve when present
+  status: collecting       # collecting | eligible | pending | promoted
+  destination: null        # accepted public RULES.md section; null until verified
   adopted_at: null         # capture never asserts public adoption
 ```
 
@@ -87,6 +87,39 @@ in the finding; compute `distinct_days` as its size. Several IDs on the same day
 Recompute after alias consolidation or correction. Preserve the recorded timezone; never mix
 local machine dates with UTC. Three supported dates make `promotion.status` eligible for a
 later pass; eligibility grants no new rule authority or public adoption.
+
+## Promotion history
+
+[Public rule promotion](promotion.md) owns preparation and merge reconciliation. Capture
+continues to derive `collecting`/`eligible` and preserves `pending`/`promoted` and all history.
+Eligibility is not adoption. Pending includes a prepared local change, an open or approved
+PR, a closed unmerged PR, and reuse awaiting acceptance evidence. `destination` and `adopted_at`
+remain null until acceptance is verified. A hold records its reason without discarding state.
+
+Extend `promotion` when first preparing a proposal; preserve unknown fields on every save:
+
+- `proposal_id`: immutable notebook-local identity, reused across retries, revisions, redirects,
+  and findings sharing an equivalent rule. Store one canonical proposal; other findings point
+  to it. Lookup by repository, target branch, and semantic trigger/practice before allocating.
+- `repository`, `target_branch`, `section`: intended public destination, separate from accepted
+  `destination`. Never use a local delivery branch as the acceptance target.
+- `action`: `add`, `amend`, or `reuse`; `public_text` or `public_patch` holds the exact safe
+  proposal; `fingerprint` identifies its canonical UTF-8 bytes. Keep previous revisions in history.
+- `pr`: public URL/number when known, otherwise null. Pending does not invent delivery authority.
+- `hold`: null or the private reason and missing evidence/decision; no repeated proposal on rerun.
+- `history`: preparation/revision/disposition/acceptance records with `observed_at`, action,
+  fingerprint, and private provenance. Acceptance includes repository, target, PR, merge OID,
+  merge timestamp, inspected target OID, public section/destination, and the read-only evidence.
+  Deduplicate acceptance by repository, target, PR, merge OID, and section; unchanged observations
+  do not append a new history record. Closed unmerged disposition remains pending.
+
+Reserve and persist the proposal before editing public rules. If interrupted before or after
+the edit, compare the persisted text/fingerprint with the actual public section and resume
+that proposal. Reconciliation updates only promotion state; it never changes occurrence IDs,
+evidence dates/counts, or completed capture cursors. If later evidence retracts the threshold,
+record a hold and retain the pending/adopted history; do not erase a public rule automatically.
+Compaction preserves all deduplication keys, evidence provenance, accepted destinations/dates,
+and proposal redirects, including when several findings reuse one rule.
 
 ## Source cursors
 
