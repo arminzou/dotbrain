@@ -135,7 +135,7 @@ TOML 文件。连接 Git worktree 时，它会接到主 checkout 已有的 Brain
 会话开始时，插件的 hook 只加载共享约定 `DOTBRAIN.md`。公开的 `AGENTS.md` 会指引 Agent
 在修改或审阅代码时读取仓库根目录下、由 Git 跟踪的 `RULES.md`，没有 Brain 也能用。
 lead 或独立工作的 Agent 会按任务搜索私有复盘记录，把相关发现随任务分派给 worker 和 reviewer；
-hook 不会注入整份复盘笔记。新建 Brain 不再生成根目录的私有 Agent 入口文件。
+hook 不会注入整份复盘笔记。新建 Brain 不再生成 Brain 根目录的私有 Agent 入口文件。
 旧文件要先清点内容、确认去向，再显式迁移；wire 和 refresh 会保留用户的上下文、笔记、规则和指令。
 加载顺序见[会话上下文](https://arminzou.github.io/dotbrain/zh/session-context)。
 

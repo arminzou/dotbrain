@@ -285,8 +285,6 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert "/.brain" in paths.exclude_entries(repo)
     assert "/.claude" not in paths.exclude_entries(repo)
     assert "/.codex" not in paths.exclude_entries(repo)
-    if paths.INJECT_ADOPTER_POINTER:
-        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert not any(".beads is missing" in w for w in result.warnings)
 
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
@@ -459,10 +457,7 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
 
     brainspace = dotbrain_home / "brainspaces" / "greenfield"
     assert result.brainspace == brainspace
-    agents = repo / "AGENTS.md"
-    if paths.INJECT_ADOPTER_POINTER:
-        assert agents.is_file()
-        assert paths.ADOPTER_POINTER in agents.read_text()
+    assert not (repo / "AGENTS.md").exists()
     for name in (".brain",):
         assert (repo / name).is_symlink()
     assert (repo / ".claude").is_dir()
@@ -497,10 +492,7 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
     brainspace = dotbrain_home / "brainspaces" / "repairme"
     assert (repo / ".brain").resolve() == (brainspace / ".brain").resolve()
 
-    # pointer must not be duplicated in AGENTS.md
-    if paths.INJECT_ADOPTER_POINTER:
-        text = (repo / "AGENTS.md").read_text()
-        assert text.count(paths.ADOPTER_POINTER) == 1
+    assert (repo / "AGENTS.md").read_text() == "# Project\n"
 
 
 def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home: Path):

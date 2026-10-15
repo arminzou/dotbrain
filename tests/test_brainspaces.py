@@ -25,6 +25,7 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspaces.seed_brain(brainspace, dotbrain_home)
     brain = brainspace / ".brain"
     assert not (brain / "AGENTS.md").exists()
+    assert not (brain / "CLAUDE.md").exists()
     assert not (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
     assert b"\r\n" not in (brain / "DOTBRAIN.md").read_bytes()

@@ -12,7 +12,7 @@ modify anything.
 
 ## Read the project first
 
-Read public repository `AGENTS.md` and, when preparing changes or a review, root `RULES.md`.
+Read public repository `AGENTS.md` and, when preparing changes or a review, root `RULES.md` (when present).
 Check for a Brain by listing `.brain/` itself. When it exists, use `DOTBRAIN.md`
 for shared operations and search `CONTEXT.md`, `adr/`, `designs/`, and `docs/` for the question; read
 matching sections before searching outside. Follow relevant authority links when

@@ -89,7 +89,7 @@ decisions, rules) and the territory (the codebase and its real constraints). Tha
 project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
 design docs speak one language:
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and `AGENTS.md`.
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and `RULES.md`.
 - **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
 - **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
   Surfaced by grilling and prototypes, then written into canon.

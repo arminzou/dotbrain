@@ -28,11 +28,6 @@ LEGACY_ADOPTER_POINTER: str = (
     "read it before substantial agent work."
 )
 
-ADOPTER_POINTER: str = "When making or reviewing changes, read the repository's tracked root `RULES.md`."
-
-# Repository instructions are user-owned; routing is authored explicitly, not by wiring.
-INJECT_ADOPTER_POINTER: bool = False
-
 # Windows WinError raised when creating a directory symlink without Developer Mode or elevation.
 _WIN_PRIVILEGE_NOT_HELD = 1314
 

@@ -129,8 +129,6 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
     assert (repo / ".brain").is_symlink()
-    if paths.INJECT_ADOPTER_POINTER:
-        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
 
     workflows.unwire_project(
         dotbrain_home=dotbrain_home,
@@ -142,7 +140,7 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         assert not (repo / name).exists()
     assert (repo / ".claude").is_dir()
     assert (repo / ".codex").is_dir()
-    assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    assert (repo / "AGENTS.md").read_text() == "# Round Trip\n"
     exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
         assert entry not in exclude_lines

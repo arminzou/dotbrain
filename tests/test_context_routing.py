@@ -1,5 +1,6 @@
 """Context authority, legacy preservation, and bounded retrieval contracts."""
 from pathlib import Path
+import json
 import subprocess
 import tomllib
 
@@ -27,6 +28,74 @@ def _project(tmp_path):
 def _refresh(home):
     result = CliRunner().invoke(app, ["refresh", "--project", "example", "--home", str(home), "--json"])
     assert result.exit_code == 0, result.output
+
+
+@pytest.mark.parametrize("command", ["wire", "refresh"])
+@pytest.mark.parametrize("worktree", [False, True])
+def test_pointer_removal_is_reported_in_cli_json(tmp_path, monkeypatch, command, worktree):
+    home, brainspace, repo = _project(tmp_path)
+    brainspaces.seed_brain(brainspace, home)
+    if worktree:
+        adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
+        subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                        "commit", "--allow-empty", "-qm", "initial"], cwd=repo, check=True)
+        checkout = tmp_path / "worktree"
+        subprocess.run(["git", "worktree", "add", "-qb", "fixture", str(checkout)], cwd=repo, check=True)
+        repo = checkout
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        (repo / name).write_text(f"Keep {name}\n{paths.LEGACY_ADOPTER_POINTER}\n", encoding="utf-8")
+    if command == "refresh":
+        adopter_repos.reconcile(repo, {".brain": brainspace / ".brain"})
+    monkeypatch.chdir(repo)
+    args = [command, "--repo", str(repo), "--project", "example", "--skip-beads"] if command == "wire" else [command]
+    for attempt in range(2):
+        result = CliRunner().invoke(app, [*args, "--home", str(home), "--json"])
+        assert result.exit_code == 0, result.output
+        target = json.loads(result.output)["targets"][0]
+        if command == "wire":
+            reported = [f["message"] for f in target["findings"] if f["severity"] == "warning"]
+        else:
+            reported = target["data"]["checkout_changes"]
+        removed = [message for message in reported if "removed obsolete Dotbrain pointer" in message]
+        assert len(removed) == (2 if attempt == 0 else 0)
+        assert not target["errors"]
+        for name in ("AGENTS.md", "CLAUDE.md"):
+            assert (repo / name).read_text(encoding="utf-8") == f"Keep {name}\n"
+
+
+@pytest.mark.parametrize("kind", ["file", "internal", "external", "dangling"])
+@pytest.mark.parametrize("brain_only", [False, True])
+def test_doctor_reports_legacy_entries_without_migrating(tmp_path, kind, brain_only):
+    home, brainspace, repo = _project(tmp_path)
+    brainspaces.seed_brain(brainspace, home)
+    brain = brainspace / ".brain"
+    outside = tmp_path / "foreign.md"
+    outside.write_bytes(b"Foreign private rules\r\n")
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        entry = brain / name
+        if kind == "file":
+            entry.write_bytes(b"Legacy private rules\r\n")
+        else:
+            entry.symlink_to({"internal": brain / "CONTEXT.md", "external": outside,
+                              "dangling": tmp_path / "missing.md"}[kind])
+    if brain_only:
+        (brainspace / ".repo").write_text("(brain-only)\n", encoding="utf-8")
+    else:
+        adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
+    _refresh(home)
+    result = CliRunner().invoke(app, ["doctor", "--project", "example", "--home", str(home), "--json"])
+    target = next(t for t in json.loads(result.output)["targets"] if t.get("project") == "example")
+    findings = [f for f in target["findings"] if "legacy private entry file" in f["message"]]
+    assert len(findings) == 2
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        assert any(name in f["message"] and f["severity"] == "warning"
+                   and "migrate via curate-project-context" in f["message"] for f in findings)
+        entry = brain / name
+        if kind == "file":
+            assert entry.read_bytes() == b"Legacy private rules\r\n"
+        else:
+            assert entry.is_symlink()
+    assert outside.read_bytes() == b"Foreign private rules\r\n"
 
 
 @pytest.mark.parametrize("linked", [False, True])
@@ -89,7 +158,7 @@ def test_refresh_removes_only_complete_managed_pointer_and_preserves_symlinks(tm
 
 
 @pytest.mark.parametrize("linked", [False, True])
-def test_accounted_legacy_content_survives_explicit_removal_and_repeat_refresh(tmp_path, linked):
+def test_refresh_does_not_resurrect_entries_after_fixture_migration(tmp_path, linked):
     home, brainspace, repo = _project(tmp_path)
     brain = brainspace / ".brain"
     brainspaces.seed_brain(brainspace, home)
@@ -99,8 +168,8 @@ def test_accounted_legacy_content_survives_explicit_removal_and_repeat_refresh(t
         (brain / "CLAUDE.md").symlink_to("AGENTS.md")
     else:
         (brain / "CLAUDE.md").write_bytes(b"Fixture supporting explanation\n")
-    # Exercise the explicit curation procedure: retain source evidence, classify
-    # content, and verify destinations before removing the inventoried entries.
+    # Set up an already-migrated fixture; the contract under test is preservation
+    # and non-resurrection during maintenance, not agent-guided migration.
     snapshot = {name: (brain / name).read_bytes() for name in ("AGENTS.md", "CLAUDE.md")}
     archive = brain / "docs" / "legacy-entry-snapshot.md"
     archive.write_bytes(b"\n".join(snapshot.values()))
@@ -121,9 +190,13 @@ def test_accounted_legacy_content_survives_explicit_removal_and_repeat_refresh(t
             assert not (brain / name).is_symlink()
         assert (brain / "CONTEXT.md").read_bytes() == source
         assert all(content in archive.read_bytes() for content in snapshot.values())
+        if not linked:
+            assert (brain / "docs" / "reference.md").read_bytes() == snapshot["CLAUDE.md"]
+        assert (repo / "AGENTS.md").read_text(encoding="utf-8") == public
+        assert (repo / "RULES.md").read_text(encoding="utf-8") == "Check the relevant behavior before committing.\n"
     adopter_repos.unwire_repo(repo, dotbrain_home=home)
     assert (repo / "AGENTS.md").read_text(encoding="utf-8") == public
-    assert (repo / "RULES.md").is_file()
+    assert (repo / "RULES.md").read_text(encoding="utf-8") == "Check the relevant behavior before committing.\n"
 
 
 def test_brain_only_legacy_entries_remain_untouched(tmp_path):
@@ -178,7 +251,7 @@ def test_bundled_retrieval_consumers_retire_required_private_entry_reads():
         claude = Path(f"plugin/agents/{role}.md").read_text(encoding="utf-8")
         codex = tomllib.loads(resource_loader.resource(f"agents/codex/{role}.toml").read_text(encoding="utf-8"))["developer_instructions"]
         for consumer in (claude, codex):
-            assert "RULES.md" in consumer
+            assert "`RULES.md` (when present)" in consumer
             assert "do not read the whole notebook" in consumer
             assert "Brain's `AGENTS.md`" not in consumer
     # Migration inventories may name retired entries; runtime consumers may not.

@@ -179,10 +179,11 @@ def _check_repo_excludes(repo: Path, entries: tuple[str, ...] = paths.EXCLUDE_EN
     return [Finding("error", f"{exclude}: missing {entry}", "run dotbrain refresh") for entry in entries if entry not in present]
 
 
-def _check_agent_pointer(repo: Path) -> list[Finding]:
-    return [Finding("warn", f"{repo / name}: missing dotbrain pointer", "run dotbrain refresh")
-            for name in ("AGENTS.md", "CLAUDE.md") if (repo / name).is_file()
-            and paths.ADOPTER_POINTER not in (repo / name).read_text(encoding="utf-8")]
+def _check_legacy_entries(brainspace: Path) -> list[Finding]:
+    return [Finding("warn", f"{brainspace / '.brain' / name}: legacy private entry file",
+                    "migrate via curate-project-context; inventory content before removal")
+            for name in ("AGENTS.md", "CLAUDE.md")
+            if (brainspace / '.brain' / name).exists() or (brainspace / '.brain' / name).is_symlink()]
 
 
 def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[Finding]:
@@ -247,6 +248,7 @@ def _check_beads_state(brainspace: Path, name: str, dotbrain_home: Path, *, run:
 
 def _check_project(target: projects.ProjectTarget, root: Path, run: Runner) -> list[Finding]:
     findings = []
+    findings.extend(_check_legacy_entries(target.brainspace))
     beads = config.load_project_config(root, target.project)
     workspaces = assets.project_workspaces(root, target, "all")
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
@@ -275,8 +277,6 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner) -> l
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"Git exclusions unavailable: {exc}", "check Git metadata"))
-        if paths.INJECT_ADOPTER_POINTER:
-            findings.extend(_check_agent_pointer(repo))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings
