@@ -82,8 +82,13 @@ The sections above assume a Claude Code lead using the `Agent` tool. A lead in a
 launches Claude Code workers as separate `claude -p` sessions instead. Prepare a worktree as the
 lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so the plugin and
 project resources resolve. Launch in the background from that worktree with the assignment on
-stdin, `--output-format json`, and the permission mode authorized for this execution; nobody
-answers prompts in an unattended run. Point the assignment to the packaged worker role. Record the
-`session_id` from the output as the worker's ID, resume fix rounds with `claude -p --resume
-<session-id>` from the same worktree, and stop a worker by ending its process tree. Check
-`claude --help` when an option is rejected. Not yet qualified on any lead runtime.
+stdin, `--agent dotbrain:worker`, `--output-format json`, and the permission mode authorized for
+this execution; nobody answers prompts in an unattended run. Generate the worker's ID up front and
+pass it as `--session-id <uuid>`, so `Dispatched` records it before launch; the JSON result
+carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
+dotbrain:worker` from the same worktree; the worker keeps its earlier turns. Stop a worker by
+ending its process tree. Check `claude --help` when an option is rejected.
+
+Qualified on Windows with Claude Code 2.1.301, launched from a shell rather than a running Codex
+lead, for dispatch, commit in a plain Git worktree, and a resumed fix round. Not qualified:
+cancellation, and a worktree wired by `dotbrain wire`.
