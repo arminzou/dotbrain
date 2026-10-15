@@ -392,7 +392,7 @@ def append_pointer_to_file(file: Path, pointer: str) -> str | None:
     if not target.is_file():
         return f"{target} is not a regular file; leaving it unchanged"
     text = target.read_text(encoding="utf-8")
-    if "@.brain/CLAUDE.md" in text:
+    if pointer in text:
         return None
     if text and not text.endswith("\n"):
         text += "\n"
@@ -433,6 +433,36 @@ def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTE
 # --------------------------------------------------------------------------- attach / verify
 
 
+def remove_legacy_agent_pointer(repo: Path) -> list[str]:
+    """Remove only complete obsolete Dotbrain pointer blocks from local real files.
+
+    Symlinks remain untouched, including links to external instruction files. Match
+    complete lines so quoted examples and unrelated instructions survive maintenance.
+    """
+    changed = []
+    pointer = paths.LEGACY_ADOPTER_POINTER.encode("utf-8")
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        file = Path(repo) / name
+        if file.is_symlink() or not file.is_file():
+            continue
+        original = file.read_bytes()
+        lines = original.splitlines(keepends=True)
+        cleaned = []
+        index = 0
+        expected = pointer.splitlines()
+        while index < len(lines):
+            if [line.rstrip(b"\r\n") for line in lines[index:index + len(expected)]] == expected:
+                index += len(expected)
+            else:
+                cleaned.append(lines[index])
+                index += 1
+        content = b"".join(cleaned)
+        if content != original:
+            file.write_bytes(content)
+            changed.append(name)
+    return changed
+
+
 def wire_repo(
     repo: Path,
     brainspace: Path,
@@ -465,6 +495,7 @@ def wire_repo(
         tracked = warn_if_tracked_external_symlink(repo, name, run)
         if tracked:
             warnings.append(tracked)
+    remove_legacy_agent_pointer(repo)
     return warnings
 
 
@@ -569,15 +600,7 @@ def unwire_repo(
             result.logs.append(f"{verb} dotbrain ignore rules from .git/info/exclude")
 
 
-    for fname in ("AGENTS.md", "CLAUDE.md"):
-        f = repo / fname
-        if not f.exists() or f.is_symlink():
-            continue
-        text = f.read_text(encoding="utf-8")
-        pointer_lines = set(paths.ADOPTER_POINTER.strip().splitlines())
-        if any(pl in text for pl in pointer_lines):
-            cleaned = "\n".join(l for l in text.splitlines() if l.strip() not in pointer_lines).strip()
-            f.write_text(cleaned + "\n" if cleaned else "", encoding="utf-8", newline="\n")
-            result.logs.append(f"{verb} agent-context pointer from {fname}")
+    for fname in remove_legacy_agent_pointer(repo):
+        result.logs.append(f"{verb} obsolete agent-context pointer from {fname}")
 
     return result

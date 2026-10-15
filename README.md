@@ -136,9 +136,12 @@ and `.codex/`. Skills and Claude agents use symlinks; Codex agents use generated
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
 
-At session start, the plugin hook supplies `DOTBRAIN.md`, the shared convention. The agent then
-reads the project's private rules and retrieves the context the task needs. Workflow skills
-guide how it consults that context and records what you work out together.
+At session start, the plugin hook supplies only `DOTBRAIN.md`, the shared convention.
+Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
+without a Brain. The lead or sole agent searches private retrospective findings for the task
+and passes relevant findings through assignments; the notebook is never injected.
+Fresh scaffolds omit private root agent entry files. Existing entries require explicit content
+migration; wiring and refresh preserve user-owned context, notebooks, rules, and instructions.
 See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,

@@ -52,7 +52,7 @@ def _check_dotbrain_config(root: Path) -> Finding:
 
 
 def _check_templates(root: Path) -> Finding:
-    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/AGENTS.md").is_file()
+    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/DOTBRAIN.md").is_file()
             else Finding("error", "package templates/brain missing", "reinstall dotbrain"))
 
 
@@ -182,7 +182,7 @@ def _check_repo_excludes(repo: Path, entries: tuple[str, ...] = paths.EXCLUDE_EN
 def _check_agent_pointer(repo: Path) -> list[Finding]:
     return [Finding("warn", f"{repo / name}: missing dotbrain pointer", "run dotbrain refresh")
             for name in ("AGENTS.md", "CLAUDE.md") if (repo / name).is_file()
-            and ".brain/AGENTS.md" not in (repo / name).read_text(encoding="utf-8")]
+            and paths.ADOPTER_POINTER not in (repo / name).read_text(encoding="utf-8")]
 
 
 def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[Finding]:

@@ -64,7 +64,7 @@ treeView-beta
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
-    AGENTS.md ## this project's agent conventions
+    RETRO.md ## optional private retrospective findings
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
@@ -76,11 +76,24 @@ treeView-beta
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |
 | `adr/` | 架构决策记录（ADR），每个决策一条 | 做出一个难以撤回、有真实取舍的选择时 |
 | `designs/` | 设计文档，每项工作一个文件 | 一项工作被规划、实现或结束时 |
-| `AGENTS.md` | 本项目的 Agent 约定 | 工作规则变化时 |
+| `RETRO.md` | 可选的私有复盘发现和证据 | 复盘记录新发现时 |
 | `DOTBRAIN.md` | 共享约定，由 dotbrain 维护 | `dotbrain refresh` 更新它时 |
 | `project.yaml` | 运行时、任务跟踪、技能和子 Agent 的选择 | 你改变项目使用的东西时 |
 | `docs/` | 派生的操作手册和参考资料 | 随时；从不作为权威依据 |
 | `learning/` | 可选的个人学习工作区 | 你用 `teach-me` 学习项目时 |
+
+公开的仓库 `AGENTS.md` 会指引 Agent 在修改或审阅代码时读取根目录下、由 Git 跟踪的
+`RULES.md`；没有 Brain 也能照常使用。共享约定 `DOTBRAIN.md` 负责私有上下文的检索：
+lead 或独立工作的 Agent 在实现或审阅准备时搜索复盘笔记，把相关发现随任务分派传递。
+worker 和 reviewer 复用这些发现，不必通读笔记；笔记缺失不会阻塞工作，也不会触发创建。
+会话开始时只注入共享约定，不会注入复盘笔记。
+
+新建 Brain 不再生成根目录的两个私有 Agent 入口文件。wire 和 refresh 会保留旧入口、
+复盘笔记、仓库规则和指令。显式迁移由 `curate-project-context` 引导：清点真实文件及符号链接
+目标的内容、保留私有证据，并在删除入口前核实内容去向。私有政策的去向未定时，停止删除相关入口。
+维护操作只从真实的仓库指令文件中移除 Dotbrain 管理的过时指针，保留符号链接和无关指令；
+refresh 不会重建已退役的入口文件。已有的 Brain-only 数据不在这次迁移范围内。
+
 
 ADR 记录的是难以撤回、没有上下文会让人意外、并且经过真实取舍的决策。**active** 的设计是这项工作的
 权威依据；一旦变成 **shipped**、**abandoned** 或 **superseded**，它就冻结为一份记录，需要长期保留的内容

@@ -12,7 +12,8 @@ def test_contract_constants_stay_in_lockstep():
     assert paths.EXCLUDE_ENTRIES == ("/.brain", "/.beads")
     # Every Brainspace link has a matching anchored exclude entry, in order.
     assert tuple(f"/{link}" for link in paths.BRAINSPACE_LINKS) == paths.EXCLUDE_ENTRIES
-    assert paths.ADOPTER_POINTER.startswith("@.brain/CLAUDE.md")
+    assert "`RULES.md`" in paths.ADOPTER_POINTER
+    assert ".brain/" not in paths.ADOPTER_POINTER
 
 
 def test_brainspace_and_brainspace_link_targets(dotbrain_home: Path):

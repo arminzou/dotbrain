@@ -365,7 +365,7 @@ def test_ensure_agent_context_pointer_dedupes_symlinked_claude(tmp_path: Path):
     adopter_repos.ensure_agent_context_pointer(repo)
     adopter_repos.ensure_agent_context_pointer(repo)  # idempotent
     text = (repo / "AGENTS.md").read_text()
-    assert text.count(".brain/AGENTS.md") == 1  # CLAUDE->AGENTS resolves to one file, appended once
+    assert text.count(paths.ADOPTER_POINTER) == 1  # CLAUDE->AGENTS resolves to one file, appended once
 
 
 # --------------------------------------------------------------------------- attach

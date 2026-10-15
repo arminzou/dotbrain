@@ -6,12 +6,18 @@ Dotbrain gives agent-consumed writing three visibility surfaces. The writing pri
 | Surface | Typical documents | Constraint |
 |---|---|---|
 | Public project repository | `AGENTS.md`, `CLAUDE.md`, README, architecture, contributor and referenced project docs | Must remain useful without access to the private Brain and contain no private Brain material |
-| Private project Brain | `.brain/AGENTS.md`, `CONTEXT.md`, ADRs, designs, and `.brain/docs/` | Holds private vocabulary, decisions, operating rules, and design history; use its established language exactly |
+| Private project Brain | `DOTBRAIN.md`, `CONTEXT.md`, ADRs, designs, `RETRO.md`, and `.brain/docs/` | Shared operations, private vocabulary, decisions, findings, and design history; use established language exactly |
 | User data root | Skills under `$DOTBRAIN_HOME/skills/` and their references | Follow the nearest authoring policy; linking and invocation remain explicit operator choices |
 
 Public and private documents may point across the boundary only through the public-safe convention
 defined by the project's context workflow. Keep the private rationale in the Brain and express any
 publicly necessary reasoning without leaking private paths, identifiers, or operational state.
+
+Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md` and task-specific
+references. Shared `DOTBRAIN.md` owns private retrieval; the lead or sole agent searches the
+retrospective for relevant findings and passes them through assignments. Root private Brain entry
+files are retired. Their removal requires the explicit content inventory and destination checks
+in `curate-project-context`; ordinary wiring and refresh preserve legacy content.
 
 Use dotbrain's specialized workflows when the task changes structure or lifecycle:
 

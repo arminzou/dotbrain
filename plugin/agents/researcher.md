@@ -12,8 +12,9 @@ modify anything.
 
 ## Read the project first
 
-Check for a Brain by listing `.brain/` itself. When it exists, read `AGENTS.md`
-and search `CONTEXT.md`, `adr/`, `designs/`, and `docs/` for the question; read
+Read public repository `AGENTS.md` and, when preparing changes or a review, root `RULES.md`.
+Check for a Brain by listing `.brain/` itself. When it exists, use `DOTBRAIN.md`
+for shared operations and search `CONTEXT.md`, `adr/`, `designs/`, and `docs/` for the question; read
 matching sections before searching outside. Follow relevant authority links when
 needed to settle the question. Search the codebase for the code the question
 touches. Use the Brain's vocabulary in your answer. If there is no Brain, say so
@@ -22,6 +23,8 @@ and continue with the codebase and outside sources.
 Search the Brain by passing `.brain/` as the path. A search from the repo root
 skips it, because it is hidden and gitignored, so an empty result there does
 not mean there is no Brain.
+
+Reuse task-relevant retrospective findings supplied by the lead; do not read the whole notebook.
 
 ## Research outside the repo
 

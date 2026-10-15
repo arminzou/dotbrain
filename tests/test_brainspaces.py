@@ -24,8 +24,8 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspace.mkdir()
     brainspaces.seed_brain(brainspace, dotbrain_home)
     brain = brainspace / ".brain"
-    assert (brain / "AGENTS.md").is_file()
-    assert (brain / "CLAUDE.md").is_symlink()
+    assert not (brain / "AGENTS.md").exists()
+    assert not (brain / "CLAUDE.md").is_symlink()
     assert (brain / "DOTBRAIN.md").is_file()
     assert b"\r\n" not in (brain / "DOTBRAIN.md").read_bytes()
     for sub in ("adr", "designs", "docs"):
@@ -56,7 +56,7 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: P
     brainspace.mkdir()
     shutil.rmtree(dotbrain_home / "templates")
     brainspaces.seed_brain(brainspace, dotbrain_home)
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
 
 
 def test_seed_brain_does_not_rewrite_unchanged_owned_files(

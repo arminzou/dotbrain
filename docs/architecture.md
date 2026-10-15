@@ -68,7 +68,7 @@ treeView-beta
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
-    AGENTS.md ## this project's agent conventions
+    RETRO.md ## optional private retrospective findings
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
@@ -80,7 +80,7 @@ treeView-beta
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
-| `AGENTS.md` | This project's agent conventions | Working rules change |
+| `RETRO.md` | Optional private retrospective findings and evidence | A retrospective pass records findings |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
@@ -92,6 +92,21 @@ real trade-off. An **active** design is the living authority for its initiative;
 moves to `adr/` and `CONTEXT.md`. [The workflow](workflow.md) walks through that lifecycle.
 
 Brain writes are commits in the dotbrain home, so every change can be reviewed and reverted.
+
+Public repository `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`.
+These instructions remain usable without a Brain. Shared `DOTBRAIN.md` owns private retrieval:
+the lead or sole agent searches relevant retrospective findings during implementation or review
+preparation and passes them through existing assignments. Workers and reviewers reuse supplied
+findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
+only shared conventions, never the notebook.
+
+Fresh scaffolds omit both root private agent entry files. Generic wiring and refresh preserve
+legacy entries, notebooks, rules, and repository instructions. Explicit migration through
+`curate-project-context` inventories real files and symlink targets, retains private evidence,
+and verifies content destinations before removing entries. Unresolved private policy blocks
+destructive migration of that entry. Obsolete managed pointer blocks are removed only from
+real repository instruction files; symlinks and unrelated instructions survive. Refresh never
+resurrects retired entries. Existing Brain-only data is outside this migration.
 
 ## Execution Lives in the Tracker
 

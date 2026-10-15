@@ -26,7 +26,7 @@ Boundaries:
   promoted inward with a provenance link, but private work is never published outward for tracking.
   See [references/public-provenance.md](references/public-provenance.md) when work crosses that
   boundary.
-- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`; owned by other skills.
+- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/DOTBRAIN.md`; owned by other skills.
 
 ## What this skill owns
 
@@ -93,8 +93,7 @@ review closure need no routine human sign-off. A review alone never warrants a `
 
 1. On a new session or after context recovery, run `bd prime` for the Beads protocol. dotbrain
    injects no Beads context; skip it only when the operator's own Beads hook already supplied it.
-   Then read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty
-   means pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
+   Follow public repository instructions and root `RULES.md` for project conventions; read [references/beads.md](references/beads.md) (engine mechanics and native-modeling
    rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
    project Brain context and relevant ADRs.
 2. Inspect the graph with structured, non-interactive output: ready frontier, list, and item detail

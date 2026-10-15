@@ -18,9 +18,10 @@ Use known commands first and subcommand help only for an unknown or failing oper
    cannot ask anyone mid-run. Without the actor, a claim would land under the
    shared Git user.
 2. Read the authority the assignment names: the design section, the Brain's
-   `AGENTS.md`, the acceptance criteria, and the required checks. When it names
-   none, read the Brain's `AGENTS.md` if the checkout has one. When it names a
-   skill, invoke that skill by its exact name and read it before working.
+   repository instructions, the acceptance criteria, and the required checks.
+   Read public `AGENTS.md` and root `RULES.md` for making changes. Reuse task-relevant
+   retrospective findings supplied in the assignment; do not read the whole notebook.
+   When it names a skill, invoke that skill by its exact name and read it before working.
 3. When the assignment names a work item, confirm that `bd where` names the
    expected Brainspace store.
 4. Take your mode from the assignment:

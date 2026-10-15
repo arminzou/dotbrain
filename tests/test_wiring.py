@@ -271,7 +271,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
 
     brainspace = dotbrain_home / "brainspaces" / "adopter"
     assert result.brainspace == brainspace
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
     for name in (".brain",):
         assert (repo / name).is_symlink()
@@ -292,9 +292,9 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
     assert "## dotbrain convention" in injected
     # The project's own rules are read on instruction, never injected.
-    assert "Read `.brain/AGENTS.md` before substantial work" in injected
+    assert "the lead or sole agent searches `.brain/RETRO.md`" in injected
     assert "Private agent context for this project" not in injected
-    assert (repo / ".brain" / "AGENTS.md").is_file()
+    assert not (repo / ".brain" / "AGENTS.md").exists()
 
 
 def test_wire_project_materializes_workspaces_without_touching_tracked_files(
@@ -382,7 +382,7 @@ def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
     brainspace = dotbrain_home / "brainspaces" / "brainonly"
     assert result.repo is None
     assert (brainspace / ".repo").read_text() == "(brain-only)\n"
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
 
 
 def test_wire_project_leaves_archived_directory_user_owned(dotbrain_home: Path, fake_home: Path, tmp_path: Path):

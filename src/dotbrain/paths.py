@@ -22,15 +22,15 @@ DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 
 # Breadcrumb appended to an adopter repo's real AGENTS.md / CLAUDE.md.
-ADOPTER_POINTER: str = (
+LEGACY_ADOPTER_POINTER: str = (
     "@.brain/CLAUDE.md\n"
     "Dotbrain: private project context lives at `.brain/AGENTS.md`; "
     "read it before substantial agent work."
 )
 
-# Disabled for now: brain context (DOTBRAIN.md + .brain/AGENTS.md) is injected at
-# session start via the SessionStart hook, so the adopter pointer is
-# redundant. Flip to True to re-enable wire/doctor pointer management.
+ADOPTER_POINTER: str = "When making or reviewing changes, read the repository's tracked root `RULES.md`."
+
+# Repository instructions are user-owned; routing is authored explicitly, not by wiring.
 INJECT_ADOPTER_POINTER: bool = False
 
 # Windows WinError raised when creating a directory symlink without Developer Mode or elevation.

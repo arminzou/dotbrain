@@ -6,30 +6,28 @@ Brain template propagate to every brain.
 
 ## Wiring
 
-- This Brain lives in the private dotbrain home at
-  `~/dotbrain/brainspaces/<name>/.brain`, not in the code repo.
-- Repo-root `.brain` and `.beads` are gitignored symlinks into that Brainspace. `.claude` and
-  `.codex` are real project directories containing gitignored selected resources. Skills and
-  Claude agents are symlinks; Codex agents are generated real TOML files marked
-  `# dotbrain-managed-agent: v1`. Customize their private source; delivered copies are disposable.
-  These resources are local machine wiring: never commit them to the code repo.
-- Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
-- Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
-  per worktree.
-- Attach a main checkout or Git worktree with `dotbrain wire`; Git metadata connects a worktree
-  to its main checkout's existing Brainspace without changing registration or declarations.
+- The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
+  `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
+  Commit Brain changes in `~/dotbrain`, not the code repo.
+- `.claude` and `.codex` are real checkout directories. Selected skills and Claude agents are
+  symlinks; Codex agents are real TOML files marked `# dotbrain-managed-agent: v1`.
+  Customize private sources. Never commit local wiring or delivered copies to the code repo.
+- `dotbrain wire` attaches checkouts; Git metadata connects worktrees to the existing Brainspace
+  without changing registration or declarations.
 - Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
-- `dotbrain unwire` detaches the selected checkout while retaining the Brainspace, shared tracker,
-  other worktrees, and user-owned workspace content. Retire Brainspaces through filesystem actions.
-- Never hand-create links under `.claude` or `.codex`. Their targets are relative paths the CLI
-  computes from the checkout's real location; a hand-counted `../` depth dangles without error.
+- `dotbrain unwire` detaches one checkout, retaining private data, other checkouts, and user files.
+  Retire Brainspaces through filesystem actions.
+- Let the CLI compute relative links under `.claude` and `.codex`; hand-counted paths can dangle.
 
 ## Rules
 
-- Read `.brain/AGENTS.md` before substantial work. It holds this project's own rules and is
-  not injected at session start. If it is missing, note the gap and continue.
+- Public `AGENTS.md` routes making/reviewing changes to tracked root `RULES.md`, usable without a Brain.
+- During implementation or review preparation, the lead or sole agent searches `.brain/RETRO.md`
+  for task-relevant findings and passes applicable findings through existing assignments.
+  Workers and reviewers reuse supplied findings; they need not read the whole notebook.
+  Reuse findings while they remain in context. A missing notebook blocks nothing; do not scaffold it.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
@@ -47,17 +45,13 @@ Brain template propagate to every brain.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
 - If `CONTEXT.md` or `adr/` are missing or empty, proceed silently — note the gap, don't
   scaffold them unasked.
-- `.brain/docs/` holds project-scoped knowledge (runbooks, references, derived notes) that
-  is not auto-injected into context. Before answering how this project builds, runs, deploys,
-  integrates, or otherwise works, check and search `.brain/docs/` first — do not infer from
-  the public repo or generic conventions when the Brain has a documented answer.
-- Search the Brain by targeting `.brain/`: it is hidden and gitignored, so a search from
-  the repo root skips it.
+- Before explaining how the project works (build, runtime, deployment, integrations), search
+  `.brain/docs/` for documented answers. These private references are not injected.
+- Target `.brain/` explicitly when searching: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
-- Public-facing repo docs (README.md, repo-root AGENTS.md) must not expose private Brain
-  paths or content. The only `.brain` reference allowed in the repo root is the one-line
-  agent pointer to `.brain/AGENTS.md`.
+- Public-facing repo docs (README.md, repo-root AGENTS.md, RULES.md) must not expose private
+  Brain paths or content. Derive independently understandable public guidance.
 - Never reference private Brain context from code, tests, comments, commit messages, or
   PR text: no ADR numbers, Brain paths, or decision-record identifiers in anything the
   public repo carries. State the rationale in plain terms instead; the ADR linkage stays
@@ -112,6 +106,9 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
 
 ## Brain structure
 
+- `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
+- `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
+  established repository rules remain authoritative in public `RULES.md`
 - `CONTEXT.md` — domain vocabulary for this project
 - `project.yaml` — per-project skill selection and engine/tracker config
 - `adr/` — Architecture Decision Records, one file per decision
@@ -138,4 +135,4 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   in the Brain as a page, and `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
-`project.yaml` (`skills:`); project tracker conventions live in `AGENTS.md` under Project.
+`project.yaml` (`skills:`). Public repository instructions route changes and reviews to `RULES.md`.

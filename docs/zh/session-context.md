@@ -13,8 +13,8 @@ sequenceDiagram
   participant B as .brain/
   A->>D: Session starts
   D-->>A: dotbrain convention (wired repos only)
-  A->>B: Read AGENTS.md, before substantial work
-  B-->>A: The project's own rules
+  A->>B: Lead searches task-relevant retrospective findings
+  B-->>A: Relevant findings for existing assignments
 ```
 
 插件注册了一个 `SessionStart` hook，它运行 `dotbrain hook session-start`。这个 hook 在启动、恢复会话、
@@ -30,7 +30,8 @@ sequenceDiagram
 | 文件 | 加载方式 |
 | --- | --- |
 | `.brain/DOTBRAIN.md` | 由 hook 注入 |
-| `.brain/AGENTS.md` | 由 Agent 读取，约定会告诉它这么做 |
+| 公开的 `AGENTS.md` 和根目录 `RULES.md` | 仓库入口指引修改或审阅代码的 Agent 读取 Git 跟踪的规则，没有 Brain 也能用 |
+| `.brain/RETRO.md` | lead 或独立工作的 Agent 在实现或审阅准备时搜索相关发现，随任务分派传递 |
 | `.brain/CONTEXT.md`、`adr/`、`designs/` | 工作需要时由 Agent 读取 |
 | `.brain/docs/` | Agent 在回答项目如何运作之前先搜索这里 |
 | Beads 工作流入门 | dotbrain 不注入；Agent 需要时运行 `bd prime` |
@@ -41,7 +42,7 @@ dotbrain 不会安装它。
 ::: info 为什么不全部注入？
 dotbrain 用 10,000 字节的预算测试会话启动时注入的内容。这个预算来自对 Claude Code 实际行为的测量：
 9,961 字节到达了模型，而 10,010 字节则被写到了一个文件里。它不是在所有运行时上都验证过的上限。
-`DOTBRAIN.md` 的大小是有上限的，而项目的 `AGENTS.md` 会随项目增长。只注入约定，就能让内容保持在预算以内。
+`DOTBRAIN.md` 的大小是有上限的，而仓库规则和复盘笔记会随项目增长。只注入约定，就能让内容保持在预算以内。
 :::
 
 ## 失败时放行 {#failing-open}
@@ -63,7 +64,8 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
 Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
-比如 `dotbrain-worker`。它们在行动前都会先读 Brain：
+比如 `dotbrain-worker`。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
+不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
 
 | 子 Agent | 做什么 |
 | --- | --- |

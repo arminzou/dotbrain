@@ -7,10 +7,9 @@ resolver picked the stub the script emitted nothing. Because the hook is fail-op
 that surfaced as a session with no Brain context and no error at all.
 
 Only ``DOTBRAIN.md`` is injected. dotbrain owns that file, so its size is bounded and
-guarded by a test. The project's own ``.brain/AGENTS.md`` is deliberately left out: it
-grows with the project and would eventually cross the payload limit, at which point the
-runtime spills stdout to a file and the model receives none of it — including the
-convention. ``DOTBRAIN.md`` carries a rule telling the agent to read it instead.
+guarded by a test. Repository rules and the private retrospective notebook are retrieved
+for the task, never injected. The shared convention assigns private retrieval to the
+lead or sole agent, which passes relevant findings through existing assignments.
 
 Output is assembled as bytes and written to ``stdout.buffer`` so the payload is exactly
 what ``cat`` produced: no newline translation on Windows, no re-encoding of Brain files.
