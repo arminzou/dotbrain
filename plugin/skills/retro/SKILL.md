@@ -119,7 +119,9 @@ may now have merged. Consume the saved finding identity, `evidence_dates`, `dist
 and `promotion` state; do not recapture evidence or add recurrence for a promotion review.
 
 Automatically prepare one standalone root `RULES.md` change after three distinct supported
-days, reusing or amending equivalent rules. Reconcile earlier proposals with bounded read-only
+days, reusing or amending equivalent rules. Apply the edit only in a clean checkout or worktree
+based on the recorded target branch; otherwise persist the patch privately. Never edit rules
+on an unrelated feature branch. Reconcile earlier proposals with bounded read-only
 merge evidence. Persist promotion history in the same private notebook under the existing
 exclusive ownership and atomic-save protocol. Promotion never advances capture cursors.
 

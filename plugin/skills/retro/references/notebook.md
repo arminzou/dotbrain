@@ -106,12 +106,20 @@ Extend `promotion` when first preparing a proposal; preserve unknown fields on e
 - `action`: `add`, `amend`, or `reuse`; `public_text` or `public_patch` holds the exact safe
   proposal; `fingerprint` identifies its canonical UTF-8 bytes. Keep previous revisions in history.
 - `pr`: public URL/number when known, otherwise null. Pending does not invent delivery authority.
-- `hold`: null or the private reason and missing evidence/decision; no repeated proposal on rerun.
+- `hold`: null or the private reason and missing evidence/decision, including rejection/closure.
+  Recheck fixable conditions once per later pass within the promotion bounds; record resolution
+  and clear the hold before retrying the same proposal. Policy conflicts require the recorded
+  human decision. Rejected/closed-unmerged proposals stay pending without repeated preparation;
+  new explicit human direction is needed to retry preparation. A later merge promotes only when
+  adoption checks pass and the accepted text resolves the hold; otherwise retain pending/hold.
 - `history`: preparation/revision/disposition/acceptance records with `observed_at`, action,
   fingerprint, and private provenance. Acceptance includes repository, target, PR, merge OID,
   merge timestamp, inspected target OID, public section/destination, and the read-only evidence.
   Deduplicate acceptance by repository, target, PR, merge OID, and section; unchanged observations
   do not append a new history record. Closed unmerged disposition remains pending.
+  Reuse acceptance instead records the verified target OID, that commit's date, public section,
+  and action `reuse`, keyed by repository, target OID, and section; no prior PR is required.
+  Persist a PR found by the bounded identification step in `pr` before add/amend reconciliation.
 
 Reserve and persist the proposal before editing public rules. If interrupted before or after
 the edit, compare the persisted text/fingerprint with the actual public section and resume

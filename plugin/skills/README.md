@@ -20,6 +20,8 @@ active design records current intent, and Beads tracks private execution.
   a human-owned review decision.
 - **Retrospective:** [`retro`](retro/SKILL.md) reviews changed evidence in a separate manual or
   externally invoked pass, retaining private findings, successful practices, and source progress.
+  It may prepare a public `RULES.md` change and reads PR/merge state read-only to reconcile
+  acceptance, without granting delivery authority.
 - **Close out:** [`close-design`](close-design/SKILL.md) records what was verified, promotes lasting
   knowledge, and freezes the design as shipped, abandoned, or superseded.
 
