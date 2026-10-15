@@ -18,6 +18,8 @@ active design records current intent, and Beads tracks private execution.
   With an explicit handoff, [`iterate-design`](iterate-design/SKILL.md) can run a bounded loop.
 - **Review:** [`review-gate`](review-gate/SKILL.md) records findings and verification evidence for
   a human-owned review decision.
+- **Retrospective:** [`retro`](retro/SKILL.md) reviews changed evidence in a separate manual or
+  externally invoked pass, retaining private findings, successful practices, and source progress.
 - **Close out:** [`close-design`](close-design/SKILL.md) records what was verified, promotes lasting
   knowledge, and freezes the design as shipped, abandoned, or superseded.
 

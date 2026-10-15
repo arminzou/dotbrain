@@ -80,6 +80,9 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 ## Triage And Review
 
+- **`retro`** — explicitly review new or changed evidence, retaining private retrospective
+  findings, successful practices, and bounded progress. Invoke manually or through an external
+  agent-host job; scheduling belongs to the host.
 - **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
   outcome on the issue; a code review closes once you merge its pull request, and other reviews
   close with you

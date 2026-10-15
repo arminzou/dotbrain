@@ -68,6 +68,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 
 ## 分诊与审阅 {#triage-and-review}
 
+- **`retro`**：手动调用或由外部任务调用 Agent，检查新增或变化的证据，在私有 Brain 中记录发现、成功做法和
+  已处理的范围。定时调度由 Agent 宿主负责。
 - **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；代码审阅在你合并
   对应 PR 后关闭，其他审阅由你来关闭
 - **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文

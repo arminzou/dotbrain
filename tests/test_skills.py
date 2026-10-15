@@ -29,6 +29,7 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
         "brain/grill-decisions",
         "brain/iterate-design",
         "brain/manage-work-graph",
+        "brain/retro",
         "brain/review-architecture",
         "brain/review-gate",
         "brain/run-execution",
