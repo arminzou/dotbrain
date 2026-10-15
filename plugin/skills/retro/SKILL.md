@@ -7,7 +7,9 @@ disable-model-invocation: true
 # Agent retrospective
 
 Run as a separate, bounded pass, manually or from an external nightly job invoking the
-agent host. In Claude Code invoke `/dotbrain:retro`; in Codex invoke `$retro`. The host
+agent host. In Claude Code invoke `/dotbrain:retro`. In Codex select this skill from the
+skill picker and use its exposed name: generic skills use `$skill-name`, but plugin-delivered
+names may be qualified. `$retro` is not confirmed for plugin delivery. The host
 owns scheduling and serialization. This skill supplies no scheduler or CLI loop runner.
 
 Maintain `RETRO.md` in the project's private Brain, resolved through its existing wiring.
@@ -27,8 +29,11 @@ Findings never override established rules, decisions, or human-owned acceptance 
 ### 1. Reserve the notebook and bound the pass
 
 Acquire exclusive ownership of the resolved notebook before reading state for an update.
-Use the host's per-notebook single-writer lease or an exclusive filesystem lock adjacent
-to the private notebook, held through the final write. Record owner and acquisition time;
+Use the host's per-notebook single-writer lease or an exclusive `RETRO.md.lock` adjacent
+to the private notebook, held through the final write. Use adjacent `RETRO.md.tmp.<owner>.<nonce>`
+files for atomic saves on the same filesystem. Before writing either, exclude `RETRO.md.lock`
+and `RETRO.md.tmp.*` in the private Brain repository's local Git exclude file; never stage
+these coordination files as versioned Brain content. Record owner and acquisition time;
 release on exit. After a crash, recover a stale lock only after verifying its owner has
 stopped. A PID alone can be reused; check its creation time too. If exclusivity cannot be
 established, stop. Delegates may read evidence; only this writer edits the notebook.

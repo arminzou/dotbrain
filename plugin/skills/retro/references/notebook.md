@@ -62,7 +62,8 @@ version. A **source version** is an OID, opaque `bd show` revision string, or de
 content fingerprint. Keep issue `updated_at` separately. Changing a version makes a record
 eligible for review, not a new occurrence. Use stable canonical serialization (sorted JSON
 object keys, stable list order) and SHA-256 for fingerprints; omit transport-only fields.
-Comment fingerprints include comment ID, author, body, created time and any updated time.
+For Beads 1.3.1, fingerprint the returned comment fields `id`, `issue_id`, `author`, `text`,
+and `created_at`. Detect edits by hashing `text`; there is no required `updated_at` field.
 An aggregate comments fingerprint sorts comments by stable ID and includes every record
 fingerprint, so additions, edits, and deletions are visible.
 
@@ -74,9 +75,11 @@ Record unresolved overlap as uncounted corroboration rather than inventing anoth
 Rewritten commits describing the same event retain its occurrence ID and gain OID aliases.
 
 Use the original event's date, not the dates of copied reports, edits, processing, or retries.
-For a commit-origin event use its committer timestamp unless stronger dated evidence locates
-the actual event. A review/comment creation time dates an original observation, not a quoted
-event. Issue `updated_at` and document modification time are discovery cursors, not proof of
+For a commit-origin event use its author timestamp with offset unless stronger dated evidence
+locates the actual event. A rewritten OID alias retains the earliest established event date;
+a later author or committer timestamp alone cannot add or move a supported day. Only an
+evidence-backed correction can replace that date. A review/comment creation time dates an
+original observation, not a quoted event. Issue `updated_at` and document modification time are discovery cursors, not proof of
 recurrence. A body edit corrects an existing occurrence; it does not append today's date.
 If the source corrects an event timestamp, replace the old date and recompute derived dates.
 Undated or ambiguous evidence remains useful but uncounted. Contradictory evidence updates
@@ -162,17 +165,30 @@ Read and retain the returned revision token as a string; never order or incremen
 All pages must be read; a server-side limit or truncation is a gap, not completion.
 
 Do not assume a comment edit changes issue `updated_at`, issue revision, or comment count.
-For correctness, enumerate issue IDs with `bd list --all --limit 0 --brief --json`, then
-fetch `bd comments <id> --json` for every scoped issue, including old and closed issues,
-and compare aggregate and individual fingerprints. This is a metadata visibility sweep;
-only changed comment records receive substantive review. It also discovers newly visible
-issues. On the initial pass seed fingerprints for older comments but review only evidence
-within the declared range; record the older exclusion. On later passes an edited old comment
+For correctness, enumerate every issue with `bd list --all --limit 0 --json`, including old
+and closed issues. Compare each listed `updated_at` with its stored value: queue `bd show`
+for every differing timestamp or absent stored issue, even when outside the overlap query.
+This full sweep catches delayed visibility and writer clock skew beyond the one-second overlap;
+the timestamp query is an optimization, never the sole issue-change detector.
+
+Fetch `bd comments <id> --json` and compare aggregate and individual fingerprints for every
+scoped issue, except when listed `comment_count` is 0 and the stored comment set is empty.
+Only that combination permits skipping the comments query; missing/unknown counts and a
+nonempty stored set require fetching, including to detect deletion of the last comment.
+This is a metadata visibility sweep; only changed records receive substantive review.
+
+On the initial pass persist an items-map entry for every enumerated pre-range issue, with
+its `updated_at`, revision, aggregate and per-comment fingerprints, and disposition
+`excluded: before the first range`. Seed an empty comment set when the zero-count shortcut
+applies. These entries record exclusion, not substantive review. An unchanged second pass
+compares against this baseline and skips old history instead of treating it as newly visible.
+Review only evidence within the declared range. On later passes an edited old comment
 is eligible even if its creation date predates that range. Removed records retain prior
 provenance and become evidence-limit updates, never extra occurrences.
 
-This fallback costs one comments query per scoped issue because parent-update visibility is
-not guaranteed. A smaller scope must be explicit in progress and the report; never silently
+This fallback needs a comments query per scoped issue unless the zero-count shortcut applies;
+checkpoint validation may require additional reads because parent-update visibility is not
+guaranteed. A smaller scope must be explicit in progress and the report; never silently
 omit old issues. If the sweep cannot finish within the pass budget, retain pending IDs and
 resume without advancing completed Beads progress. A failed comments query is not an empty list.
 
@@ -180,7 +196,7 @@ Bracket issue/comment reads with `bd show` and compare revisions/updated times; 
 fingerprints again before checkpointing, independently of issue revision. If a source changes
 during the read, retain its unprocessed version in pending and retry next pass. Records with
 `updated_at > T` stay pending for the next range; don't certify them through `T`. The overlapping
-next query and independent comment sweep protect same-timestamp changes. Metadata-only changes
+next query and independent full issue/comment sweep protect same-timestamp changes. Metadata-only changes
 may produce no finding but still need a processed disposition. Advance `through` to `T` only
 after every in-range candidate and the entire comment sweep have durable dispositions.
 

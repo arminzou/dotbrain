@@ -24,8 +24,9 @@ def test_retro_is_explicitly_invocable_in_both_runtimes():
     metadata = yaml.safe_load((ROOT / "agents/openai.yaml").read_text(encoding="utf-8"))
     assert metadata["policy"]["allow_implicit_invocation"] is False
     assert metadata["interface"]["display_name"]
-    for invocation in ("/dotbrain:retro", "$retro", "external nightly job"):
+    for invocation in ("/dotbrain:retro", "skill picker", "external nightly job"):
         assert invocation in skill
+    assert "`$retro` is not confirmed for plugin delivery" in skill
 
 
 def test_retro_is_discovered_and_delivered_with_its_reference(dotbrain_home, tmp_path):
@@ -53,6 +54,8 @@ def test_retro_is_discovered_and_delivered_with_its_reference(dotbrain_home, tmp
         # Every entry path shares one notebook writer across worktrees and hosts.
         ("Acquire exclusive ownership", "external jobs share the same notebook",
          "check its creation time", "only this writer edits the notebook"),
+        ("`RETRO.md.lock`", "`RETRO.md.tmp.<owner>.<nonce>`", "same filesystem",
+         "local Git exclude file", "never stage these coordination files"),
         # The first save cannot discard evidence still awaiting a durable checkpoint.
         ("Persist findings before advancing progress", "old completed cursors and pending range",
          "Only then mark processed versions complete", "second atomic save",
@@ -74,6 +77,23 @@ def test_capture_contract(contracts):
 @pytest.mark.parametrize(
     "contracts",
     [
+        # Delayed writes and skewed clocks must be found outside the timestamp overlap.
+        ("bd list --all --limit 0 --json", "Compare each listed `updated_at`",
+         "every differing timestamp or absent stored issue", "outside the overlap query",
+         "delayed visibility and writer clock skew", "never the sole issue-change detector"),
+        # Excluded history needs a durable baseline, or an unchanged rerun reviews it.
+        ("items-map entry for every enumerated pre-range issue", "`updated_at`, revision",
+         "aggregate and per-comment fingerprints", "excluded: before the first range",
+         "exclusion, not substantive review", "unchanged second pass",
+         "skips old history instead of treating it as newly visible"),
+        # Rebased aliases cannot manufacture a second recurrence day.
+        ("author timestamp with offset", "earliest established event date",
+         "later author or committer timestamp alone cannot add or move a supported day",
+         "evidence-backed correction"),
+        # Hash the actual comment schema; empty counts alone cannot hide deletions.
+        ("`id`, `issue_id`, `author`, `text`, and `created_at`", "hashing `text`",
+         "no required `updated_at`", "`comment_count` is 0 and the stored comment set is empty",
+         "missing/unknown counts", "deletion of the last comment"),
         # Issue creation age and parent timestamps must not conceal changed comments.
         ("bd list --all --limit 0 --updated-after", "per-item `updated_at`",
          "bd show <id> --json", "revision token as a string",
@@ -121,3 +141,21 @@ def test_empty_notebook_examples_are_parseable_without_live_project_evidence():
     assert finding["evidence"] == finding["evidence_dates"] == []
     assert finding["distinct_days"] == 0
     assert finding["promotion"] == {"status": "collecting", "destination": None, "adopted_at": None}
+
+
+@pytest.mark.parametrize("path", ["docs/prompts.md", "docs/zh/prompts.md"])
+def test_prompt_guides_list_retro_as_explicit_only(path):
+    introduction = Path(path).read_text(encoding="utf-8").split("## ", 1)[0]
+    assert "`retro`" in introduction
+    assert "never start on their own" in introduction or "从不会自动启动" in introduction
+
+
+def test_chinese_retro_description_requires_preparation_and_verified_acceptance():
+    description = Path("docs/zh/skills.md").read_text(encoding="utf-8").split(
+        "**`retro`**", 1
+    )[1].split("\n- ", 1)[0]
+    assert "三个不同证据日期" in description
+    assert "自动准备" in description
+    assert "合入目标分支" in description
+    assert "可手动调用，也可由外部定时任务调用" in description
+    assert "Agent 的发现" in description
