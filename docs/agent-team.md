@@ -218,11 +218,11 @@ delivery. The final integration review can supply it only with explicit coverage
 branch diff, all scoped items, interactions, and the active design at the exact final revision.
 Approval of only the latest group is insufficient. The reviewer must have authored none of the
 reviewed changes, but need not be fresh. Otherwise arrange a whole-branch review. Mechanical
-checks, the final human review record, and your merge gate remain.
+checks, the final human PR review, and your merge gate remain.
 A single-item branch reuses its item review only if it covers the whole final diff; otherwise it
 also needs a whole-branch review.
 A handoff also gets a non-blocking simplification pass when an independent reviewer is available;
-you decide what to do with its suggestions.
+the lead records finding dispositions within approved scope and returns new consequential decisions to you.
 
 ## When Something Stops
 

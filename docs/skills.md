@@ -65,7 +65,8 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   durable results into `CONTEXT.md` and `adr/`.
 - **`find-unknowns`** — surface blind spots and tacit assumptions in unfamiliar territory before
   committing to a design.
-- **`close-design`** — drive a design doc to a terminal state: record evidence, promote residue to
+- **`close-design`** — manually drive a design doc to a terminal state: check actual PR merge
+  evidence for shipment, record evidence, promote residue to
   `adr/` and `CONTEXT.md`, close the epic.
 
 ## Execution
@@ -85,8 +86,8 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   agent-host job; scheduling belongs to the host. It may prepare a public `RULES.md` change
   and reads PR/merge state read-only to reconcile acceptance; invocation grants no delivery authority.
 - **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
-  outcome on the issue; a code review closes once you merge its pull request, and other reviews
-  close with you
+  outcome on the issue; the lead closes accepted reviews before PR merge after required exact-revision
+  evidence and finding dispositions. Human PR approval, merge and release remain separate
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution

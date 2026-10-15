@@ -139,7 +139,9 @@ execution is unavailable, the agent reports that and falls back to sequential ex
 
 **When:** the design is active, the work has a mechanical check, and you want the agent to carry
 on without you. It proposes a contract (scope, branch, checks, worker count, pull request
-delivery) and starts only after you reply `GO`. Merging stays with you. **Skill:**
+delivery, acceptance/UAT, reviews, provider/auth and finite limits) if approval is missing.
+It validates and reuses a complete applicable approved contract without repeat `GO`.
+PR approval, merge and release stay with you. **Skill:**
 `iterate-design`, explicit only. See [The workflow](workflow.md#_5-work-the-issues).
 
 ### Handoff: parallel execution

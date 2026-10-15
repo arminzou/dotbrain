@@ -56,7 +56,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   `--spec-id design:<slug>` 把每个 bead 关联回设计。
 - **`grill-decisions`**：对照项目的术语和决策对计划做压力测试，再把长期有效的结论写进 `CONTEXT.md` 和 `adr/`。
 - **`find-unknowns`**：在确定设计之前，找出陌生领域里的盲点和隐含假设。
-- **`close-design`**：把设计文档推进到终态：记录证据，把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
+- **`close-design`**：手动把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
+  把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
 
 ## 执行 {#execution}
 
@@ -72,8 +73,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   可手动调用，也可由外部定时任务调用。同一做法在三个不同证据日期得到支持后，它会自动准备公开的 `RULES.md` 改动，并以只读方式
   检查 PR 和合并状态；只有确认改动已合入目标分支，才会记录规则已被接受。
   调用本身不授予推送、创建 PR 或合并的权限；定时调度由 Agent 宿主负责
-- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；代码审阅在你合并
-  对应 PR 后关闭，其他审阅由你来关闭
+- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；必要证据覆盖准确版本、
+  各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
 - **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
 - **`triage-public`**：对公开任务跟踪里的条目分类，把准备好的工作提升到私有执行中
 - **`review-architecture`**：审查代码库，寻找可以加深架构的机会

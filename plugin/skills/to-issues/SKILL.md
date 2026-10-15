@@ -64,7 +64,7 @@ For each work item, show:
 - `Verification boundary` (checks, what they prove, and what remains for integration)
 - `Interface/resource prerequisites` (dependencies and shared resource constraints)
 
-Mark a work item human-gated only when it needs an unresolved person's decision. A settled,
+Mark a work item human-gated only when it needs an unresolved human decision. A settled,
 entirely autonomous implementation graph is a valid result. Keep acceptance
 criteria outcome-focused and verifiable, stating what is true when the work item is done rather than how
 it was implemented.

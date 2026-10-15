@@ -110,3 +110,34 @@ def test_design_records_approval_separately_from_authoring_and_execution_request
     assert "An execution request alone does not approve a proposed contract" in doc
     assert "## Execution Contract" in template
     assert "Record human approval or explicitly mark authority unapproved" in template
+
+
+@pytest.mark.parametrize("path", ITERATION)
+def test_accepted_reviews_do_not_gain_routine_human_gates(path):
+    doc = text(path).lower()
+    for rule in ("resolved blocking findings", "recorded dispositions", "no automatic",
+                 "wait for pr approval/merge"):
+        assert rule in doc
+    for obsolete in ("add its human label", "add human, and leave", "open human-labeled review bead"):
+        assert obsolete not in doc
+
+
+def test_manual_closeout_is_not_exclusive_review_closure():
+    doc = text("plugin/skills/close-design/SKILL.md")
+    assert "Implementation and review records may already have closed" in doc
+    assert "before PR approval or merge" in doc
+    assert "required verdict and evidence, resolved blocking findings, and recorded dispositions" in doc
+    assert "the one close an agent may perform" not in doc
+
+
+@pytest.mark.parametrize("path, required, obsolete", [
+    ("docs/workflow.md", "lead closes accepted work and reviews before PR merge", "every other review waits for you"),
+    ("docs/zh/workflow.md", "lead 可以在 PR 合并前关闭已验收的工作和审阅", "其他审阅都等你来关"),
+    ("docs/skills.md", "lead closes accepted reviews before PR merge", "a code review closes once you merge"),
+    ("docs/zh/skills.md", "lead 可在 PR 合并前关闭已通过的审阅", "其他审阅由你来关闭"),
+])
+def test_delivery_docs_keep_agent_closure_and_human_pr_boundary(path, required, obsolete):
+    doc = text(path)
+    assert required in doc
+    assert obsolete not in doc
+    assert "PR" in doc and ("release" in doc or "发布" in doc)

@@ -129,7 +129,8 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 ```
 
 **什么时候用：** 设计处于 active 状态，工作有机械化的检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
-（范围、分支、检查项、worker 数量、PR 交付方式），等你回复 `GO` 才开始。合并始终由你来做。**技能：**
+（范围、分支、检查项、worker 数量、PR 交付方式、验收/UAT、审阅、provider/auth 和执行上限）。
+完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**技能：**
 `iterate-design`，只能显式调用。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### Handoff：并行执行 {#handoff-parallel-execution}
