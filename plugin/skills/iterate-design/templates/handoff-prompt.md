@@ -6,9 +6,11 @@ Active design doc:
 Linked bead:
 <id or none>
 
-Preflight contract (confirmed by explicit `GO`):
+Preflight contract (record the human's approval; reuse without repeat `GO` while applicable):
 - Scope: <one work bead | every implementation bead under this design/epic>
 - Dedicated branch and base: <branch / base>
+- Limits: <finite whole-loop budget/turn limit, retry caps, consumed and remaining allowance>
+- Acceptance/UAT: <agreed criteria, journeys, environment and required evidence>
 - Writing-worker cap: <announced finite cap; human-specified or lead-selected from actual runtime
   capacity and isolation, reserving lead/review/verification capacity; separate from total scope>
 - Human-gated items in scope: <none | ids; with any, the handoff can only end BLOCKED>
@@ -29,10 +31,18 @@ Before entering the loop, and after context recovery:
   `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim a ready work bead
   yourself only when you will work it as a team of one; otherwise `run-execution` claims it under
   each worker's own actor. Never claim an epic merely because it is linked.
-- Do not start unless the preflight contract is complete and the human has said `GO`.
+- Validate complete approved authority still applies: scope, branch/base, criteria, checks/UAT,
+  review expectations, provider/auth and PR authority, finite limits, and narrower operator overrides.
+  Reuse a complete applicable contract without repeat GO. An execution request does not silently
+  authorize an unapproved contract. Ask only for missing or changed authority with evidence and
+  a recommendation; stop affected work until resolved.
   Confirm provider/auth, agent identity distinct from the human reviewer, and the base-branch
   ruleset requiring a reviewed PR and dismissing stale approvals. Use that agent identity for
   every host action; never fall back to the human's credentials.
+- Check actual credentials and provider permissions at execution entry without exposing secrets
+  or inferring authorization from availability. On resume retain original workers, claims,
+  worktrees, budgets, per-item attempts, review history and hard stops. Resume never resets an
+  exhausted limit or grants new authority.
 
 Handoff delivery:
 - After the first item passes integration review, combined checks, and acceptance, push the dedicated branch and
@@ -56,7 +66,8 @@ Complete the next bounded execution that advances this design.
 
 Stopping condition:
 Stop successfully only when every scoped item is closed and none is blocked, the scoped work
-satisfies the design doc's Success Criteria, relevant checks pass, design-relevant discoveries
+satisfies the design doc's Success Criteria and agreed acceptance/UAT, relevant checks including
+the full suite pass at the exact integrated revision, design-relevant discoveries
 are reflected into the active design doc, final review has no blocking findings (required code
 review APPROVE, named readiness review READY), and the agreed ready-for-review PR exists with
 the human's review requested. Simplify findings or an unavailable simplify reviewer never block FINAL.
@@ -64,7 +75,7 @@ the human's review requested. Simplify findings or an unavailable simplify revie
 Stop scopes:
 - The whole handoff ends BLOCKED for wrong or unmeetable criteria; unresolvable scope, safety,
   or design ambiguity; two cycles without a code change, new verification evidence, or resolved
-  scope; an action outside GO; a missing required capability or a PR that cannot be opened;
+  scope; an action outside the approved contract; a missing required capability or a PR that cannot be opened;
   a failure that compromises shared state; or cancellation.
 - An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
   CHANGES, or a human gate. Hold failed or incomplete integration groups and their dependents.
@@ -102,6 +113,7 @@ Loop protocol (every iteration, not just the first):
    Human Decisions Needed in the active design doc.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or BLOCKED, update the bead notes with what is done, next, and any open question.
+   REFLECT does not invoke retro or add another reflection report.
 8. After the integrated in-loop gate passes, apply `review-gate`'s final whole-branch code review
    rules. Reuse the final integration review only with explicit coverage of the agreed branch base
    to exact final head, all scoped items, interactions, and design conformance. The reviewer
@@ -119,9 +131,13 @@ Loop protocol (every iteration, not just the first):
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
 10. Before calling FINAL: complete Handoff delivery above, marking the existing draft ready
     and requesting the human's review. Record its URL and verification on the design-level code
-    review bead, add `human`, and leave that bead open; for a single-item branch, record them on
-    its work item instead. Never merge,
-    deploy, publish, change dependencies, or alter human-owned criteria.
+    review bead; for a single-item branch, record them on its work item instead. Close code/readiness
+    reviews under the review rules after passing verdict/evidence, resolved blocking findings and
+    recorded dispositions for other findings; no automatic human label or wait for PR approval/merge.
+    Simplify remains non-blocking and closes after all finding dispositions.
+    Human PR approval, target-branch merge, release, deploy and publish remain separate.
+    Never automatically invoke close-design: the design and epic remain active until the human
+    manually invokes terminal closeout. Do not poll for merge or add retrospective checkpoints.
 
 Progress log:
 - Current checkpoint
@@ -138,10 +154,11 @@ Rules:
 - Keep design learning in the active design doc.
 - Do not call FINAL without `verifier` evidence from the in-loop gate.
 - Never edit Success Criteria or bead acceptance criteria; if they are wrong or
-  unmeetable, report BLOCKED instead.
+  unmeetable, stop affected work with evidence and a recommendation for grill-decisions.
+  New scope or authority decisions follow the same rule; never weaken criteria to fit the build.
 - Never retry an item past 3 consecutive failed checks on the same checkpoint; hold its group
   and dependents, and continue only proven independent work under the containment rules.
   A failure compromising shared state ends the whole handoff.
 - Stop BLOCKED after two cycles with no code change, verification evidence, or resolved scope.
-- `GO` authorizes only the agreed Handoff delivery sequence; human review, merge,
+- The approved contract authorizes only the agreed Handoff delivery sequence; human PR approval, merge,
   and every other outward action stay human-owned.

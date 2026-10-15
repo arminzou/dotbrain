@@ -64,8 +64,8 @@ For each work item, show:
 - `Verification boundary` (checks, what they prove, and what remains for integration)
 - `Interface/resource prerequisites` (dependencies and shared resource constraints)
 
-Mark a work item human-gated when it needs a person's decision, and be honest about which do: a set
-where everything is autonomous is usually a set that has not been read carefully. Keep acceptance
+Mark a work item human-gated only when it needs an unresolved person's decision. A settled,
+entirely autonomous implementation graph is a valid result. Keep acceptance
 criteria outcome-focused and verifiable, stating what is true when the work item is done rather than how
 it was implemented.
 
@@ -77,15 +77,19 @@ Keep evidence, inference, and unresolved gaps distinct. The active design owns i
 uncertainty; beads own execution state. Small targeted experiments stay within existing
 authorization and limits and do not authorize additional pilots, budgets, or outward actions.
 
-Ask the user to review the work item set and dependency shape before creating anything:
+Before unattended work, investigate prerequisites and surface foreseeable human decisions with
+evidence and recommendations. Resolve consequential decisions through `grill-decisions` and update
+the design as needed. Unresolved decisions explicitly block affected work; do not hide them as
+implementation assumptions or defer approval into routine execution tasks. Independent authorized
+work may proceed only with proven containment. An absent execution contract blocks execution,
+not settled decomposition, and need not become an artificial human task in the graph.
 
-- Does granularity feel right?
-- Are dependency relationships correct?
-- Should any work items be merged or split?
-- Are the human-gated markings correct?
+After settled scope, create the task set without a second routine sign-off. In-scope task shaping
+and dependencies are agent-owned; new scope, authority, or criteria decisions stop affected work
+with evidence and a recommendation. Never weaken human-owned acceptance to fit the build.
 
 Completion: every goal in the design doc is covered by at least one work item, every work item names the
-goals it covers, and the user has signed off on the set.
+goals it covers, prerequisites are investigated, and unresolved consequential decisions are explicit blockers.
 
 ### 3. Create the epic if needed
 
@@ -131,13 +135,14 @@ Keep every work item in the private work graph. A configured public tracker is a
 contributor-collaboration surface, not a second work graph; decomposition never creates public
 tracking issues.
 
-Completion: every reviewed work item exists as a bead carrying `--spec-id design:<slug>`, `bd ready`
+Completion: every settled work item exists as a bead carrying `--spec-id design:<slug>`, `bd ready`
 lists exactly the unblocked ones, and every human-gated work item carries the `human` label.
 
 ### 5. Hand off
 
 Summarize what was created: the epic ID, the number of task beads, and any items labeled `human`.
-Recommend reviewing the human-gated items before marking them ready.
+Report any unresolved decision with evidence and a recommendation. Recommend `iterate-design`
+only within a complete approved execution contract; decomposition grants no execution authority.
 
 ## Hard guardrail
 

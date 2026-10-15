@@ -172,14 +172,19 @@ The loop closes in two places:
 - **During the work:** discoveries feed back into the active design and affected issues. An
   unexpected API constraint becomes a design question; once you settle it, the design and issues
   capture the decision before implementation continues.
-- **After review:** closing the design records the evidence and preserves useful decisions and
+- **After human merge and manual closeout:** closing the design records the evidence and preserves useful decisions and
   vocabulary in the Brain. The next initiative starts with that knowledge already available.
 
 The Brain holds durable knowledge, the design holds current intent, and Beads holds execution
 state. Each handoff lives in a document or tracker entry that another session or agent can
 consult to continue the work.
 
-You own the success criteria and the final review decision. Use the full loop when work spans
+You own success criteria, PR approval, merge, and release. Settle foreseeable decisions and the
+execution contract upfront; agents reuse complete applicable approval without another routine
+sign-off and work through checks, acceptance/UAT, and required reviews to a ready PR requesting
+your review. New scope, authority, or criteria decisions stop affected work with evidence and a
+recommendation. Limits survive resume. The design stays active until you invoke closeout;
+a PR closed without merge does not establish shipment. Use the full loop when work spans
 sessions or carries open questions; small changes can use just the steps they need.
 
 See [The workflow](https://arminzou.github.io/dotbrain/workflow) for a walkthrough and

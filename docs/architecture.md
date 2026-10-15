@@ -91,6 +91,22 @@ real trade-off. An **active** design is the living authority for its initiative;
 **shipped**, **abandoned**, or **superseded** it freezes as a record, and what should outlive it
 moves to `adr/` and `CONTEXT.md`. [The workflow](workflow.md) walks through that lifecycle.
 
+Design authoring settles scope, acceptance/UAT and execution authority with the human.
+Decomposition investigates prerequisites and foreseeable decisions before unattended work; a
+settled graph may be entirely autonomous and needs no second routine task-set approval.
+Iteration validates and reuses the complete approved contract without repeat approval, retaining
+narrower instructions and remaining limits on resume. Missing or changed scope, authority or
+criteria decisions stop affected work with evidence and a recommendation; credentials being
+available never grants permission. Agents check provider permissions at execution entry without
+exposing secrets.
+
+Agent delivery completes with agreed work, required reviews and acceptance/UAT complete at the
+integrated revision, and a ready PR requesting human review. PR approval, target-branch merge and
+release stay human. The design and epic remain active until manually invoked `close-design`
+checks actual merge evidence for shipment; a closed-unmerged PR never proves shipment.
+REFLECT keeps design discoveries in the design and execution facts in Beads. It adds no
+retrospective checkpoint, second reflection report or merge polling.
+
 Brain writes are commits in the dotbrain home, so every change can be reviewed and reverted.
 
 Public repository `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`.

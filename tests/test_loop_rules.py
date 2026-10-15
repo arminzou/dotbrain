@@ -53,7 +53,9 @@ def test_seeded_brain_carries_loop_invariants(dotbrain_home: Path, tmp_path: Pat
     assert "ready-for-review PR" in doc
     assert "a draft PR at the first push" in doc
     assert "one mention of the human for each blocked stop" in doc
-    assert "explicit `GO`" in doc
+    assert "without repeat `GO`" in doc
+    assert "execution requests grant no missing authority" in doc
+    assert "remaining limits on resume" in doc
     assert "closes accepted work and reviews without routine human sign-off" in doc
     assert "before PR merge" in doc
     assert "blocking findings resolved and other findings dispositioned" in doc

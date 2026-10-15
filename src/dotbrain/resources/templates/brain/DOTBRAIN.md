@@ -37,8 +37,9 @@ Brain template propagate to every brain.
 - Both the HITL and handoff workflows run on a dedicated branch and land through a review
   surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
   into that branch, never into `main`. In the HITL workflow, propose the branch at the first
-  bounded execution; it may span several bounded executions. Ask before pushing or opening a PR.
-  Merge stays human-owned. Local HITL landing requires explicit human instruction, recorded
+  bounded execution; it may span several bounded executions. Reuse approval before pushing or opening a PR;
+  ask only for missing authority. Merge stays human-owned; PR approval and release too.
+  Local HITL landing requires explicit human instruction, recorded
   by the lead; it is never the default.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
   Do not drift to synonyms.
@@ -62,18 +63,17 @@ Brain template propagate to every brain.
 These invariants bind any iterative or autonomous execution, whatever skill or loop primitive
 drives it:
 
-- Verification, success, and acceptance criteria are human-owned. They can change, but only through
-  the human: surface the proposed wording and the reason, get approval, then record what changed.
-  Where no human is present to approve — an autonomous loop — that is a stop condition, not a
-  licence to decide. What is ruled out in every workflow is an agent weakening or rewriting them on
-  its own to match what the build does.
+- Verification, success, and acceptance criteria are human-owned; never weaken them to fit the build.
+  New scope/authority/criteria decisions stop affected work with evidence and a recommendation.
+  Get human approval; record changes. Contain independent work.
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
-- An explicit automation-handoff contract — scope, branch/base, verification plan, review mode,
-  available provider/auth, PR authorization, and an explicit `GO` — authorizes only pushing its
-  dedicated branch, a draft PR at the first push, one mention of the human for each blocked stop,
-  and, at `FINAL`, a ready-for-review PR with the human's review requested. Merge, deploy,
-  publish, dependency changes, and every other outward action end the loop and go to the human.
+- Reuse complete approval without repeat `GO`; execution requests grant no missing authority.
+  `iterate-design` validates scope, branch/base, checks/UAT, reviews, provider/auth, PR authorization
+  and finite limits; preserve overrides and remaining limits on resume. Check credentials privately;
+  availability grants no authority. Delivery: a draft PR at the first push, one mention of the human
+  for each blocked stop. `FINAL`: agreed work, reviews, acceptance/UAT complete; ready-for-review PR
+  requests human review. Unauthorized actions end the loop and go to the human.
 - The lead closes accepted work and reviews without routine human sign-off, before PR merge:
   required verdict/evidence at the exact integrated revision, blocking findings resolved and other
   findings dispositioned. Simplify closes on dispositions, stays non-blocking. Explicit gates bind.
@@ -120,7 +120,8 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   bead epics by `to-issues`.
   Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
   freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
-  (vocabulary). Driving a design to a terminal state is `close-design`'s job.
+  (vocabulary). Manual `close-design` checks actual PR merge evidence for shipment; until then
+  design/epic stay active. Closed-unmerged is never shipped.
   Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
   `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc
   invented fields drift the vocabulary apart; say anything else in prose

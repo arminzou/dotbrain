@@ -38,7 +38,12 @@ Before starting the loop, confirm all five hold. If any is missing, stay in ordi
 
 ## Preflight contract
 
-Before changing code, present this contract and wait for the human's explicit `GO`:
+Before changing code, locate the human-approved contract in the design or linked handoff record.
+Reuse a complete applicable contract without repeat `GO`. Validate scope, branch/base, criteria,
+checks/UAT, review expectations, provider/auth and PR authority, and finite limits against the
+current environment and instructions. Preserve narrower operator overrides. Ask only for missing
+or changed authority, with evidence and a recommendation; stop affected work until resolved.
+An execution request does not silently authorize an unapproved contract.
 
 - **Scope:** one named work bead, or every implementation bead under the named design/epic in
   dependency order. An epic is never claimed merely because it anchors the scope.
@@ -50,18 +55,28 @@ Before changing code, present this contract and wait for the human's explicit `G
 - **Workers:** an announced finite writing-worker cap for each bounded execution, human-specified
   or selected from actual runtime capacity and isolation by the lead, reserving lead/review/check
   capacity as `run-execution` requires; total authorized scope stays separate.
+- **Limits:** finite whole-loop budget or turn limit, retry caps, consumed attempts and remaining
+  allowance. On resume, retain original workers, claims, worktrees, budgets, per-item attempts,
+  review history and hard stops. Resume never resets an exhausted limit or grants new authority.
+- **Acceptance/UAT:** agreed user journeys, environment, required evidence and criteria. Record
+  revision, environment, what actually ran, outcomes and gaps. Missing evidence is not a pass.
 - **Human gates:** every human-gated item in the proposed scope. A handoff that includes one can
-  only end `BLOCKED`, so the human sees that before `GO`.
+  only end `BLOCKED`, so the human sees that before approval. A settled all-autonomous graph is valid.
 - **Delivery:** authorize the Handoff delivery sequence below. Confirm the provider and auth, a
   base-branch ruleset requiring a reviewed PR and dismissing stale approvals, and an agent
   identity distinct from the human reviewer; mentions and review requests come from that agent
   identity.
 
-`GO` authorizes implementation, the agreed verification, pushing the dedicated branch, opening a
+The approved contract authorizes implementation, commits, worktree integration onto the delivery
+branch, review/repair, work-record closure under the review rules, agreed acceptance/UAT, pushing
+the dedicated branch, opening a
 draft PR at the first push, one mention of the human for each blocked stop, and marking the PR
-ready with the human's review requested at `FINAL`. It does not authorize merge, deploy, publish,
+ready with the human's review requested at `FINAL`. It does not authorize PR approval,
+target-branch merge, release, deploy, publish,
 dependency changes, or changing scope, acceptance, or success criteria. Missing provider/auth,
-agent identity, required ruleset, or an unconfirmed contract is a stop before the loop starts.
+agent identity, required ruleset, or an unapproved contract is a stop before the loop starts.
+At execution entry, check actual provider credentials and permissions without exposing secrets;
+availability never implies authorization. Never fall back to the human's credentials.
 
 ## Handoff delivery
 
@@ -150,6 +165,7 @@ Use this protocol throughout the handoff:
    - A human decision is needed.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or `BLOCKED`, update the bead notes with what is done, next, and any open question.
+   REFLECT does not invoke `retro` or add another reflection report.
 5. REVIEW: After the integrated in-loop gate passes, apply `review-gate`'s final whole-branch
    `code` review rules. Reuse the final integration review only with explicit coverage of the
    agreed branch base to exact final head, all scoped items, interactions, and design conformance.
@@ -166,17 +182,20 @@ Use this protocol throughout the handoff:
    details, or a one-line skip note. Review supplements the verifier, never replaces it.
 6. DECIDE:
    - Print `FINAL` only when every scoped item is closed and none is blocked, the scoped work
-     satisfies acceptance, the in-loop gate and final review have evidence, required code review
+     satisfies agreed acceptance/UAT, the in-loop gate, full suite and final review have evidence
+     at the exact integrated revision, required code review
      is `APPROVE`, any named readiness review is `READY`, and the agreed ready-for-review PR exists
      with the human's review requested. A skipped or findings-bearing simplify pass does not
      prevent `FINAL`.
-     Record the PR URL and verification on the design-level code review bead, add its `human`
-     label, and leave it open for the human gate. A single-item branch has no such bead: record
-     them on its work item instead.
+     Record the PR URL and verification on the design-level code review bead. Close required
+     code/readiness reviews under the review rules after passing verdict/evidence, resolved blocking
+     findings and recorded dispositions for other findings; no automatic `human` label or wait for
+     PR approval/merge. Simplify remains non-blocking and closes after all finding dispositions.
+     A single-item branch has no such bead: record them on its work item instead.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
      landing path was fixed at handoff — it stays on the branch even if a mid-loop
      return to the human is needed along the way.
-   - Among outward actions, the explicit preflight `GO` authorizes only the Handoff delivery
+   - Among outward actions, the approved contract authorizes only the Handoff delivery
      sequence above. Merge and every other outward action remain human-owned.
    - Apply the two stop scopes in Stop scopes below: item-level retry exhaustion or a human gate
      blocks that item and its dependents, not independent work. Print `BLOCKED` immediately for a
@@ -190,7 +209,9 @@ Hard guards:
 
 - The verifier is not yours to change. Never edit `Success Criteria` in the design
   doc or acceptance criteria on the linked bead from inside the loop. If the criteria are wrong,
-  ambiguous, or unmeetable, that is a human decision: print `BLOCKED` and say why.
+  ambiguous, or unmeetable, that is a human decision: stop affected work with evidence and a
+  recommendation for `grill-decisions`. Never weaken criteria to fit the build. New scope or
+  authority decisions follow the same rule; independent work requires proven containment.
 - The retry cap is a stop condition, not a suggestion. A loop that only stops on success runs until
   it breaks or drains the budget.
 - The no-progress cap is also a stop condition. A repeated plan or inconclusive check is a question
@@ -200,7 +221,7 @@ Hard guards:
 
 The whole handoff ends at `FINAL`, or `BLOCKED` for wrong or unmeetable criteria; unresolvable
 scope, safety, or design ambiguity; two cycles without a code change, new verification evidence,
-or resolved scope; an action outside `GO`; a missing required capability or a PR that cannot be
+or resolved scope; an action outside the approved contract; a missing required capability or a PR that cannot be
 opened; a failure that compromises shared state; or cancellation.
 
 An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
@@ -245,5 +266,8 @@ Finish with the scoped work complete or clearly blocked, verification evidence o
 verification gap, design-relevant learning reflected into the active design doc, and bead state
 updated only for execution facts when a bead is linked. An open linked bead records what is done,
 next, and any open question before handoff. A successful automation handoff ends with the agreed
-ready-for-review PR, the human's review requested, and an open `human`-labeled review bead; the
+ready-for-review PR and the human's review requested; the
 PR body carries the audience-safe `Verification` section described in `manage-work-graph`.
+PR approval, target-branch merge, and release remain human. Never automatically invoke
+`close-design`: the design and epic remain active until the human manually invokes terminal
+closeout. Do not poll for merge or add retrospective checkpoints or another reflection report.

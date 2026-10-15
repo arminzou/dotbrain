@@ -76,7 +76,7 @@ def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
     convention = _text(CONVENTION)
     loop = _text(SKILLS / "iterate-design/SKILL.md")
 
-    assert "explicit `GO`" in convention
+    assert "without repeat `GO`" in convention
     assert "PR authorization" in convention
     assert "ready-for-review PR" in convention
     assert "a draft PR at the first push" in convention
@@ -84,7 +84,7 @@ def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
     assert "authorizes only the agreed push of its dedicated branch, a ready-for-review PR" not in convention
     assert "Preflight contract" in loop
     assert "ready-for-review PR" in loop
-    assert "does not authorize merge, deploy, publish, dependency changes" in loop
+    assert "does not authorize PR approval, target-branch merge, release, deploy, publish, dependency changes" in loop
 
 
 def test_adr_offer_test_is_single_sourced():
@@ -443,7 +443,7 @@ WHOLE_HANDOFF_STOPS = (
     "wrong or unmeetable criteria",
     "unresolvable scope, safety, or design ambiguity",
     "two cycles without a code change, new verification evidence, or resolved scope",
-    "an action outside GO",
+    "an action outside the approved contract",
     "a missing required capability or a PR that cannot be opened",
     "a failure that compromises shared state",
     "cancellation",

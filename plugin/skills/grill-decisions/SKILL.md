@@ -82,6 +82,11 @@ Report what the session produced: branches resolved, branches deferred and why, 
 sharpened in `CONTEXT.md`, and ADRs written. Recommend `to-design` when the resolved shape is a
 multi-step initiative.
 
+Pass settled scope, acceptance/UAT, and execution/PR authority to `to-design` for the approved
+contract. Distinguish approved decisions from missing authority; implementation requests and
+available credentials do not silently approve a contract. Later new scope, authority, or criteria
+decisions return here with evidence and a recommendation; settled decisions need no repeat approval.
+
 ## Inline canon updates
 
 Canon is written during the walk, not batched at the end. A term resolved in question three is

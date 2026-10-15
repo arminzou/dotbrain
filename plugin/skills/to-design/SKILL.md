@@ -62,7 +62,7 @@ Design docs use the same sequential naming as ADRs: scan `.brain/designs/` for t
 Copy `templates/design.md` to `.brain/designs/<NNNN>-<slug>.md` and fill it in. The template carries
 the section set, per-section authoring hints, and the lifecycle rules that apply after authoring.
 
-The doc is born `lifecycle: draft`; flip it to `active` in step 4, once the epic exists.
+The doc is born `lifecycle: draft`; flip it to `active` in step 5, once the epic exists.
 
 Use `CONTEXT.md` vocabulary exactly for every concept it already names.
 
@@ -74,7 +74,25 @@ work. Keep initiative uncertainty in this design and execution state in Beads.
 Completion: every section you kept is filled, every section you dropped is deleted along with
 its hints, and each goal has a matching entry under `Success Criteria`.
 
-### 4. Create the epic bead
+### 4. Settle scope and execution authority
+
+Agree scope, success criteria, acceptance and UAT with the human before unattended work. Name
+the UAT journeys, environment, required evidence, and gaps; agents may run agreed UAT. Missing
+evidence is a gap, never an assumed pass or an automatic demand for human testing.
+
+Record the approved execution contract in the design or linked handoff record: scope, delivery
+branch/base, required checks and UAT, review expectations, provider/auth and agent identity,
+PR authority, finite worker cap and whole-loop/retry limits. Record the human's approval and any
+narrower overrides. Availability of credentials or tools does not establish authorization.
+If execution authority is not yet requested, mark it unapproved; authoring and decomposition may
+finish, but execution waits. An execution request alone does not approve a proposed contract.
+Resolve foreseeable consequential decisions through `grill-decisions` with evidence and a
+recommendation. New scope, authority, or criteria decisions stop affected work, preserving criteria.
+
+Completion: design scope and acceptance are agreed; execution authority is either recorded as
+approved or explicitly missing. A complete applicable contract is reusable without repeat `GO`.
+
+### 5. Create the epic bead
 
 Create the tracking epic and link it back to the design doc:
 
@@ -91,7 +109,7 @@ Set the doc's frontmatter to `lifecycle: active`.
 Completion: the epic exists, its `--spec-id` matches the doc slug, and the doc reads
 `lifecycle: active`.
 
-### 5. Hand off
+### 6. Hand off
 
 Summarize what was created: the design doc path and the epic bead ID. Recommend `to-issues` as the
 next step.
