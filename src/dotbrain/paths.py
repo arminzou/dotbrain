@@ -22,11 +22,15 @@ DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 
 # Breadcrumb appended to an adopter repo's real AGENTS.md / CLAUDE.md.
-LEGACY_ADOPTER_POINTER: str = (
+ADOPTER_POINTER: str = (
     "@.brain/CLAUDE.md\n"
     "Dotbrain: private project context lives at `.brain/AGENTS.md`; "
     "read it before substantial agent work."
 )
+
+# The session-start hook injects DOTBRAIN.md, which directs private AGENTS.md
+# retrieval. Pointer insertion and doctor checks stay disabled by default.
+INJECT_ADOPTER_POINTER: bool = False
 
 # Windows WinError raised when creating a directory symlink without Developer Mode or elevation.
 _WIN_PRIVILEGE_NOT_HELD = 1314

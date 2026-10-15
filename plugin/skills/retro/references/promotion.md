@@ -10,6 +10,10 @@ report the capture gap; do not invent dates or silently repair capture here.
 
 For each eligible finding with at least three supported days:
 
+Promote only repository requirements. Personal preferences and private project rules stay in
+`.brain/AGENTS.md`; recurring evidence alone does not make them public. Record that disposition
+privately and skip the public proposal for such findings.
+
 1. Identify the public repository and intended target branch explicitly from the existing
    delivery context. A delivery/integration branch is not the acceptance target. If the checkout
    or target cannot be identified, retain eligibility and record a hold. This procedure provides

@@ -271,7 +271,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
 
     brainspace = dotbrain_home / "brainspaces" / "adopter"
     assert result.brainspace == brainspace
-    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
+    assert (brainspace / ".brain" / "AGENTS.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
     for name in (".brain",):
         assert (repo / name).is_symlink()
@@ -285,14 +285,16 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert "/.brain" in paths.exclude_entries(repo)
     assert "/.claude" not in paths.exclude_entries(repo)
     assert "/.codex" not in paths.exclude_entries(repo)
+    if paths.INJECT_ADOPTER_POINTER:
+        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
     assert not any(".beads is missing" in w for w in result.warnings)
 
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
     assert "## dotbrain convention" in injected
     # The project's own rules are read on instruction, never injected.
-    assert "the lead or sole agent searches `.brain/RETRO.md`" in injected
+    assert "Read `.brain/AGENTS.md` before substantial work" in injected
     assert "Private agent context for this project" not in injected
-    assert not (repo / ".brain" / "AGENTS.md").exists()
+    assert (repo / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_project_materializes_workspaces_without_touching_tracked_files(
@@ -380,7 +382,7 @@ def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
     brainspace = dotbrain_home / "brainspaces" / "brainonly"
     assert result.repo is None
     assert (brainspace / ".repo").read_text() == "(brain-only)\n"
-    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
+    assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_project_leaves_archived_directory_user_owned(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
@@ -457,7 +459,10 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
 
     brainspace = dotbrain_home / "brainspaces" / "greenfield"
     assert result.brainspace == brainspace
-    assert not (repo / "AGENTS.md").exists()
+    agents = repo / "AGENTS.md"
+    if paths.INJECT_ADOPTER_POINTER:
+        assert agents.is_file()
+        assert paths.ADOPTER_POINTER in agents.read_text()
     for name in (".brain",):
         assert (repo / name).is_symlink()
     assert (repo / ".claude").is_dir()
@@ -492,7 +497,10 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
     brainspace = dotbrain_home / "brainspaces" / "repairme"
     assert (repo / ".brain").resolve() == (brainspace / ".brain").resolve()
 
-    assert (repo / "AGENTS.md").read_text() == "# Project\n"
+    # pointer must not be duplicated in AGENTS.md
+    if paths.INJECT_ADOPTER_POINTER:
+        text = (repo / "AGENTS.md").read_text()
+        assert text.count(paths.ADOPTER_POINTER) == 1
 
 
 def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home: Path):

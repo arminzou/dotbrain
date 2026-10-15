@@ -13,6 +13,8 @@ sequenceDiagram
   participant B as .brain/
   A->>D: Session starts
   D-->>A: dotbrain convention (wired repos only)
+  A->>B: Read AGENTS.md before substantial work
+  B-->>A: Private project rules and preferences
   A->>B: Lead searches task-relevant retrospective findings
   B-->>A: Relevant findings for existing assignments
 ```
@@ -30,6 +32,7 @@ sequenceDiagram
 | 文件 | 加载方式 |
 | --- | --- |
 | `.brain/DOTBRAIN.md` | 由 hook 注入 |
+| `.brain/AGENTS.md` | 实质工作前读取私有规则和个人偏好，不注入 |
 | 公开的 `AGENTS.md` 和根目录 `RULES.md` | 仓库入口指引修改或审阅代码的 Agent 读取 Git 跟踪的规则，没有 Brain 也能用 |
 | `.brain/RETRO.md` | lead 或独立工作的 Agent 在实现或审阅准备时搜索相关发现，随任务分派传递 |
 | `.brain/CONTEXT.md`、`adr/`、`designs/` | 工作需要时由 Agent 读取 |

@@ -253,6 +253,8 @@ def wire_project(
             and not (brainspace / ".beads").exists()):
         # a worktree attachment never syncs the shared tracker; refresh syncs it and attaches .beads
         result.warnings.append("shared tracker is not synced; run `dotbrain refresh` to sync it and attach .beads")
+    if paths.INJECT_ADOPTER_POINTER:
+        result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
     expected_links = (".brain",)
     if config.load_project_config(dotbrain_home, project).mode != "none" and (brainspace / ".beads").exists():
         expected_links += (".beads",)
@@ -359,7 +361,6 @@ def refresh_projects(
                 before = {name: (repo / name).is_symlink() for name in paths.BRAINSPACE_LINKS}
                 mode = config.load_project_config(dotbrain_home, selected.project).mode
                 errors = adopter_repos.wire_repo(repo, selected.brainspace, dotbrain_home, run,
-                            checkout_changes=target.data['checkout_changes'],
                             skip_beads_link=mode == 'none' or not (selected.brainspace / '.beads').exists())
                 target.errors += errors
                 target.data['checkout_changes'] += [f'attached {name}' for name, existed in before.items()
@@ -376,7 +377,6 @@ def refresh_projects(
                 mode = config.load_project_config(dotbrain_home, selected.project).mode
                 missing = not (repo / '.beads').is_symlink()
                 target.errors += adopter_repos.wire_repo(repo, selected.brainspace, dotbrain_home, run,
-                                                        checkout_changes=target.data['checkout_changes'],
                                                         skip_beads_link=mode == 'none')
                 if missing and (repo / '.beads').is_symlink():
                     target.data['checkout_changes'].append('attached .beads')

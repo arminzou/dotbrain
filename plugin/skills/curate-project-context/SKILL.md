@@ -39,6 +39,7 @@ Classify each piece of project knowledge by its durable authority:
 |---|---|
 | Task-specific retrieval and essential constraints | Public `AGENTS.md` |
 | Established repository rules for making or reviewing changes | Tracked root `RULES.md`, routed from public `AGENTS.md` |
+| Small private project rules and personal preferences | `.brain/AGENTS.md` |
 | Shared Brain operations and private retrieval | `.brain/DOTBRAIN.md` |
 | Private retrospective findings and evidence | `.brain/RETRO.md`, maintained by `retro` |
 | Domain vocabulary | `.brain/CONTEXT.md` |
@@ -47,9 +48,9 @@ Classify each piece of project knowledge by its durable authority:
 | Execution status and work notes | Beads |
 | Supporting explanation | A public or private referenced document chosen by sensitivity |
 
-Public and separately scoped `AGENTS.md` files retain their roles; each sibling `CLAUDE.md`
-is a relative symlink to `AGENTS.md`. The two root private Brain entry files are retired,
-not an optional instruction layer. Public context remains useful without a Brain.
+Public, private, and separately scoped `AGENTS.md` files retain their roles; each sibling
+`CLAUDE.md` is a relative symlink to `AGENTS.md`. Keep private rules small and distinct from
+repository requirements and shared operations. Public context remains useful without a Brain.
 Public rationale stands on its own; private paths, record identifiers, and tracker state stay private.
 
 ## Check
@@ -57,7 +58,7 @@ Public rationale stands on its own; private paths, record identifiers, and track
 ### 1. Inventory the context surface
 
 Read the nearest project instructions, then enumerate relevant public and private `AGENTS.md` and
-`CLAUDE.md` files, treating root private entry files only as legacy migration residue.
+`CLAUDE.md` files, including the private Brain's project rules.
 If the project is wired, inspect `.brain/DOTBRAIN.md`,
 `.brain/CONTEXT.md`, `.brain/project.yaml`, ADR and design indexes or frontmatter, and documents
 reached by context pointers. Load full ADRs, designs, or supporting docs only when a finding requires
@@ -72,8 +73,8 @@ visibility, authority, and mechanical state.
 ### 2. Test topology and boundaries
 
 Check that pointers resolve and required material is reachable under the condition that needs it.
-For public and separately scoped entry files, check that `CLAUDE.md` symlinks resolve to the
-canonical sibling `AGENTS.md`; impose no canonical relationship on retired root private entries.
+Check that public, private, and separately scoped `CLAUDE.md` symlinks resolve to the
+canonical sibling `AGENTS.md`.
 Verify that public context still
 works without a Brain, routes making and reviewing changes to root `RULES.md`, and contains
 no private Brain material.
@@ -125,25 +126,6 @@ check against every changed surface and report any findings routed to other skil
 Completion: all authorized repairs are verified, unapproved findings remain untouched, and each
 piece of moved knowledge has one reachable authority.
 
-## Explicit legacy entry migration
-
-Run only for a selected repository-backed project under an explicit migration request.
-Generic `wire` and `refresh` preserve user-owned entry files, notebooks, repository rules,
-and instructions. Brain-only projects and unavailable checkouts remain outside this migration.
-
-1. Inventory both root private entry files (`.brain/AGENTS.md` and `.brain/CLAUDE.md`),
-   including regular-file content, symlink targets, and any distinct content behind each link.
-   Retain a private snapshot and a source-to-destination inventory before moving anything.
-   Completion: every useful passage and every link has a recorded disposition.
-2. Relocate vocabulary to `CONTEXT.md`, decisions to ADRs, and supporting material to existing
-   appropriate references. Derive public rules into tracked root `RULES.md` with standalone
-   rationale; route making/reviewing changes there from public `AGENTS.md`. Shared operations
-   belong in the packaged convention. Preserve sensitive evidence privately. Established rules
-   do not become retrospective findings without evidence. Do not create a catch-all private
-   policy file. An unresolved private policy destination stops deletion of that entry.
-   Completion: compare the retained source with every destination; all useful content is reachable.
-3. Remove only the inventoried legacy entries after their destinations are verified. Unlink a
-   symlink itself; never delete or rewrite its target. Preserve unrelated instructions, scoped
-   entry files, notebooks, and foreign links. Remove obsolete Dotbrain-owned pointer blocks only.
-   Completion: repeated refresh leaves retired files absent, preserved material unchanged, and
-   public routing usable without a Brain. Report retained snapshots, destinations, and any gaps.
+Keep personal preferences private even when they recur. Derive a public rule only when it is a
+repository requirement that should apply to every contributor; recurrence alone does not make
+a private preference public. Wiring and refresh preserve user-owned rules and notebooks.

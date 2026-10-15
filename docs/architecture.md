@@ -116,13 +116,10 @@ preparation and passes them through existing assignments. Workers and reviewers 
 findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
 only shared conventions, never the notebook.
 
-Fresh scaffolds omit both root private agent entry files. Generic wiring and refresh preserve
-legacy entries, notebooks, rules, and repository instructions. Explicit migration through
-`curate-project-context` inventories real files and symlink targets, retains private evidence,
-and verifies content destinations before removing entries. Unresolved private policy blocks
-destructive migration of that entry. Obsolete managed pointer blocks are removed only from
-real repository instruction files; symlinks and unrelated instructions survive. Refresh never
-resurrects retired entries. Existing Brain-only data is outside this migration.
+Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
+rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
+never injected. Wiring and refresh preserve user-owned context and existing pointers.
+Public `RULES.md` holds repository requirements; private preferences stay private.
 
 ## Execution Lives in the Tracker
 

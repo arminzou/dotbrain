@@ -1,4 +1,4 @@
-"""Context authority, legacy preservation, and bounded retrieval contracts."""
+"""Context authority, private rule preservation, and bounded retrieval contracts."""
 from pathlib import Path
 import json
 import subprocess
@@ -32,7 +32,7 @@ def _refresh(home):
 
 @pytest.mark.parametrize("command", ["wire", "refresh"])
 @pytest.mark.parametrize("worktree", [False, True])
-def test_pointer_removal_is_reported_in_cli_json(tmp_path, monkeypatch, command, worktree):
+def test_existing_pointer_survives_wire_and_refresh(tmp_path, monkeypatch, command, worktree):
     home, brainspace, repo = _project(tmp_path)
     brainspaces.seed_brain(brainspace, home)
     if worktree:
@@ -43,7 +43,7 @@ def test_pointer_removal_is_reported_in_cli_json(tmp_path, monkeypatch, command,
         subprocess.run(["git", "worktree", "add", "-qb", "fixture", str(checkout)], cwd=repo, check=True)
         repo = checkout
     for name in ("AGENTS.md", "CLAUDE.md"):
-        (repo / name).write_text(f"Keep {name}\n{paths.LEGACY_ADOPTER_POINTER}\n", encoding="utf-8")
+        (repo / name).write_text(f"Keep {name}\n{paths.ADOPTER_POINTER}\n", encoding="utf-8")
     if command == "refresh":
         adopter_repos.reconcile(repo, {".brain": brainspace / ".brain"})
     monkeypatch.chdir(repo)
@@ -57,49 +57,14 @@ def test_pointer_removal_is_reported_in_cli_json(tmp_path, monkeypatch, command,
         else:
             reported = target["data"]["checkout_changes"]
         removed = [message for message in reported if "removed obsolete Dotbrain pointer" in message]
-        assert len(removed) == (2 if attempt == 0 else 0)
+        assert not removed
         assert not target["errors"]
         for name in ("AGENTS.md", "CLAUDE.md"):
-            assert (repo / name).read_text(encoding="utf-8") == f"Keep {name}\n"
-
-
-@pytest.mark.parametrize("kind", ["file", "internal", "external", "dangling"])
-@pytest.mark.parametrize("brain_only", [False, True])
-def test_doctor_reports_legacy_entries_without_migrating(tmp_path, kind, brain_only):
-    home, brainspace, repo = _project(tmp_path)
-    brainspaces.seed_brain(brainspace, home)
-    brain = brainspace / ".brain"
-    outside = tmp_path / "foreign.md"
-    outside.write_bytes(b"Foreign private rules\r\n")
-    for name in ("AGENTS.md", "CLAUDE.md"):
-        entry = brain / name
-        if kind == "file":
-            entry.write_bytes(b"Legacy private rules\r\n")
-        else:
-            entry.symlink_to({"internal": brain / "CONTEXT.md", "external": outside,
-                              "dangling": tmp_path / "missing.md"}[kind])
-    if brain_only:
-        (brainspace / ".repo").write_text("(brain-only)\n", encoding="utf-8")
-    else:
-        adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
-    _refresh(home)
-    result = CliRunner().invoke(app, ["doctor", "--project", "example", "--home", str(home), "--json"])
-    target = next(t for t in json.loads(result.output)["targets"] if t.get("project") == "example")
-    findings = [f for f in target["findings"] if "legacy private entry file" in f["message"]]
-    assert len(findings) == 2
-    for name in ("AGENTS.md", "CLAUDE.md"):
-        assert any(name in f["message"] and f["severity"] == "warning"
-                   and "migrate via curate-project-context" in f["message"] for f in findings)
-        entry = brain / name
-        if kind == "file":
-            assert entry.read_bytes() == b"Legacy private rules\r\n"
-        else:
-            assert entry.is_symlink()
-    assert outside.read_bytes() == b"Foreign private rules\r\n"
+            assert (repo / name).read_text(encoding="utf-8") == f"Keep {name}\n{paths.ADOPTER_POINTER}\n"
 
 
 @pytest.mark.parametrize("linked", [False, True])
-def test_wire_refresh_unwire_preserve_legacy_content_and_user_context(tmp_path, linked):
+def test_wire_refresh_unwire_preserve_private_content_and_user_context(tmp_path, linked):
     home, brainspace, repo = _project(tmp_path)
     brain = brainspace / ".brain"
     outside = tmp_path / "foreign-instructions.md"
@@ -135,10 +100,10 @@ def test_wire_refresh_unwire_preserve_legacy_content_and_user_context(tmp_path, 
 
 
 @pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
-def test_refresh_removes_only_complete_managed_pointer_and_preserves_symlinks(tmp_path, newline):
+def test_refresh_preserves_context_pointers_and_symlinks(tmp_path, newline):
     home, brainspace, repo = _project(tmp_path)
     brainspaces.seed_brain(brainspace, home)
-    pointer = paths.LEGACY_ADOPTER_POINTER.encode().replace(b"\n", newline)
+    pointer = paths.ADOPTER_POINTER.encode().replace(b"\n", newline)
     before = b"  Keep whitespace  " + newline
     after = newline + b"Unrelated instructions" + newline
     (repo / "AGENTS.md").write_bytes(before + pointer + newline + after)
@@ -147,7 +112,7 @@ def test_refresh_removes_only_complete_managed_pointer_and_preserves_symlinks(tm
     (repo / "CLAUDE.md").symlink_to(foreign)
     for _ in range(2):
         _refresh(home)
-        assert (repo / "AGENTS.md").read_bytes() == before + after
+        assert (repo / "AGENTS.md").read_bytes() == before + pointer + newline + after
         assert (repo / "CLAUDE.md").is_symlink()
         assert foreign.read_bytes() == pointer + newline
     # A partial or quoted block cannot be attributed to Dotbrain.
@@ -157,49 +122,7 @@ def test_refresh_removes_only_complete_managed_pointer_and_preserves_symlinks(tm
     assert (repo / "AGENTS.md").read_bytes() == unmanaged
 
 
-@pytest.mark.parametrize("linked", [False, True])
-def test_refresh_does_not_resurrect_entries_after_fixture_migration(tmp_path, linked):
-    home, brainspace, repo = _project(tmp_path)
-    brain = brainspace / ".brain"
-    brainspaces.seed_brain(brainspace, home)
-    source = b"Fixture domain term: widget\n"
-    (brain / "AGENTS.md").write_bytes(source)
-    if linked:
-        (brain / "CLAUDE.md").symlink_to("AGENTS.md")
-    else:
-        (brain / "CLAUDE.md").write_bytes(b"Fixture supporting explanation\n")
-    # Set up an already-migrated fixture; the contract under test is preservation
-    # and non-resurrection during maintenance, not agent-guided migration.
-    snapshot = {name: (brain / name).read_bytes() for name in ("AGENTS.md", "CLAUDE.md")}
-    archive = brain / "docs" / "legacy-entry-snapshot.md"
-    archive.write_bytes(b"\n".join(snapshot.values()))
-    (brain / "CONTEXT.md").write_bytes(source)
-    if not linked:
-        (brain / "docs" / "reference.md").write_bytes(snapshot["CLAUDE.md"])
-    assert all(content in archive.read_bytes() for content in snapshot.values())
-    assert (brain / "CONTEXT.md").read_bytes() == snapshot["AGENTS.md"]
-    (brain / "CLAUDE.md").unlink()
-    (brain / "AGENTS.md").unlink()
-    public = "When making or reviewing changes, read root `RULES.md`.\n"
-    (repo / "AGENTS.md").write_text(public, encoding="utf-8")
-    (repo / "RULES.md").write_text("Check the relevant behavior before committing.\n", encoding="utf-8")
-    for _ in range(2):
-        _refresh(home)
-        for name in ("AGENTS.md", "CLAUDE.md", "RETRO.md"):
-            assert not (brain / name).exists()
-            assert not (brain / name).is_symlink()
-        assert (brain / "CONTEXT.md").read_bytes() == source
-        assert all(content in archive.read_bytes() for content in snapshot.values())
-        if not linked:
-            assert (brain / "docs" / "reference.md").read_bytes() == snapshot["CLAUDE.md"]
-        assert (repo / "AGENTS.md").read_text(encoding="utf-8") == public
-        assert (repo / "RULES.md").read_text(encoding="utf-8") == "Check the relevant behavior before committing.\n"
-    adopter_repos.unwire_repo(repo, dotbrain_home=home)
-    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == public
-    assert (repo / "RULES.md").read_text(encoding="utf-8") == "Check the relevant behavior before committing.\n"
-
-
-def test_brain_only_legacy_entries_remain_untouched(tmp_path):
+def test_brain_only_private_entries_remain_untouched(tmp_path):
     home, brainspace, _ = _project(tmp_path)
     (brainspace / ".repo").write_text("(brain-only)\n", encoding="utf-8")
     brain = brainspace / ".brain"
@@ -211,53 +134,44 @@ def test_brain_only_legacy_entries_remain_untouched(tmp_path):
         assert (brain / "CLAUDE.md").is_symlink()
 
 
-@pytest.mark.parametrize("dangling", [False, True])
-def test_seed_and_refresh_never_follow_retired_entry_symlinks(tmp_path, dangling):
-    home, brainspace, _ = _project(tmp_path)
-    brain = brainspace / ".brain"
-    foreign = tmp_path / "external-context.md"
-    if not dangling:
-        foreign.write_bytes(b"External private context\r\n")
-    for name in ("AGENTS.md", "CLAUDE.md"):
-        (brain / name).symlink_to(foreign)
-    brainspaces.seed_brain(brainspace, home)
-    _refresh(home)
-    for name in ("AGENTS.md", "CLAUDE.md"):
-        assert (brain / name).is_symlink()
-        assert (brain / name).resolve() == foreign.resolve()
-    if dangling:
-        assert not foreign.exists()
-    else:
-        assert foreign.read_bytes() == b"External private context\r\n"
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
+def test_unwire_removes_only_complete_pointer_without_rewriting_user_bytes(tmp_path, newline):
+    home, brainspace, repo = _project(tmp_path)
+    adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
+    pointer = paths.ADOPTER_POINTER.encode().replace(b"\n", newline)
+    before = b"  User whitespace  " + newline
+    after = newline + b"> " + pointer + newline
+    (repo / "AGENTS.md").write_bytes(before + pointer + newline + after)
+    adopter_repos.unwire_repo(repo, dotbrain_home=home)
+    assert (repo / "AGENTS.md").read_bytes() == before + after
 
 
-def test_doctor_does_not_require_private_entries(tmp_path):
+def test_doctor_does_not_warn_that_private_entries_are_legacy(tmp_path):
     home, brainspace, repo = _project(tmp_path)
     brainspaces.seed_brain(brainspace, home)
     adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
     report = doctor.run_doctor(home, project="example", home=tmp_path / "user")
     findings = report.machine + report.projects["example"]
     assert not [f.message for f in findings if f.status == "error"]
-    assert not [f.message for f in findings if "AGENTS.md" in f.message or "CLAUDE.md" in f.message]
+    assert not [f.message for f in findings if "legacy private entry" in f.message]
 
 
-def test_bundled_retrieval_consumers_retire_required_private_entry_reads():
+def test_bundled_consumers_keep_private_rules_and_selective_retro_retrieval():
     convention = resource_loader.resource("templates/brain/DOTBRAIN.md").read_text(encoding="utf-8")
+    assert "Read `.brain/AGENTS.md` before substantial work" in convention
     assert "the lead or sole agent searches `.brain/RETRO.md`" in convention
     assert "Workers and reviewers reuse supplied findings" in convention
     assert "missing notebook blocks nothing" in convention
-    assert not resource_loader.resource("templates/brain/AGENTS.md").is_file()
+    template = resource_loader.resource("templates/brain/AGENTS.md").read_text(encoding="utf-8")
+    assert "personal preferences" in template
+    assert "public root `RULES.md`" in template
     for role in ("worker", "researcher"):
         claude = Path(f"plugin/agents/{role}.md").read_text(encoding="utf-8")
         codex = tomllib.loads(resource_loader.resource(f"agents/codex/{role}.toml").read_text(encoding="utf-8"))["developer_instructions"]
         for consumer in (claude, codex):
             assert "`RULES.md` (when present)" in consumer
+            assert "`AGENTS.md`" in consumer
+            assert "private rules/preferences" in consumer
             assert "do not read the whole notebook" in consumer
-            assert "Brain's `AGENTS.md`" not in consumer
-    # Migration inventories may name retired entries; runtime consumers may not.
-    for path in Path("plugin/skills").rglob("*.md"):
-        if path.parent.name == "curate-project-context":
-            continue
-        text = path.read_text(encoding="utf-8")
-        assert ".brain/AGENTS.md" not in text, path
-        assert ".brain/CLAUDE.md" not in text, path
+    promotion = Path("plugin/skills/retro/references/promotion.md").read_text(encoding="utf-8")
+    assert "Personal preferences and private project rules stay in" in promotion

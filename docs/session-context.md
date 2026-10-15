@@ -13,6 +13,8 @@ sequenceDiagram
   participant B as .brain/
   A->>D: Session starts
   D-->>A: dotbrain convention (wired repos only)
+  A->>B: Read AGENTS.md before substantial work
+  B-->>A: Private project rules and preferences
   A->>B: Lead searches task-relevant retrospective findings
   B-->>A: Relevant findings for existing assignments
 ```
@@ -31,6 +33,7 @@ The project's own files are not injected:
 | File | Loaded how |
 | --- | --- |
 | `.brain/DOTBRAIN.md` | Injected by the hook |
+| `.brain/AGENTS.md` | Read before substantial work for private rules and preferences; never injected |
 | Public `AGENTS.md` and root `RULES.md` | Repository entry point routes making/reviewing changes to tracked rules, usable without a Brain |
 | `.brain/RETRO.md` | Lead or sole agent searches relevant findings during implementation or review preparation; passes them through assignments |
 | `.brain/CONTEXT.md`, `adr/`, `designs/` | Read by the agent when the work needs them |

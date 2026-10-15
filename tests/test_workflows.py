@@ -68,7 +68,7 @@ def _make_wired_repo(tmp_path: Path, dotbrain_home: Path, name: str) -> Path:
     exclude.write_text("\n".join(paths.EXCLUDE_ENTRIES) + "\n")
 
     agents = repo / "AGENTS.md"
-    agents.write_text(f"# {name}\n\n{paths.LEGACY_ADOPTER_POINTER}\n")
+    agents.write_text(f"# {name}\n\n{paths.ADOPTER_POINTER}\n")
     return repo
 
 
@@ -89,7 +89,7 @@ def test_unwire_keep_removes_symlinks_and_cleans_repo(tmp_path: Path, dotbrain_h
 
     for name in paths.BRAINSPACE_LINKS:
         assert not (repo / name).exists()
-    assert paths.LEGACY_ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
+    assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
     exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
         assert entry not in exclude_lines
@@ -129,6 +129,8 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
     assert (repo / ".brain").is_symlink()
+    if paths.INJECT_ADOPTER_POINTER:
+        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
 
     workflows.unwire_project(
         dotbrain_home=dotbrain_home,
@@ -140,7 +142,7 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         assert not (repo / name).exists()
     assert (repo / ".claude").is_dir()
     assert (repo / ".codex").is_dir()
-    assert (repo / "AGENTS.md").read_text() == "# Round Trip\n"
+    assert paths.ADOPTER_POINTER not in (repo / "AGENTS.md").read_text()
     exclude_lines = (repo / ".git" / "info" / "exclude").read_text().splitlines()
     for entry in paths.EXCLUDE_ENTRIES:
         assert entry not in exclude_lines

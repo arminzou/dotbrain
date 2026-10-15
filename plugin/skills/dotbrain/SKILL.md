@@ -35,25 +35,25 @@ Brain template propagate to every brain.
 - The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
   `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
   Commit Brain changes in `~/dotbrain`, not the code repo.
-- `.claude` and `.codex` are real checkout directories. Selected skills and Claude agents are
-  symlinks; Codex agents are real TOML files marked `# dotbrain-managed-agent: v1`.
-  Customize private sources. Never commit local wiring or delivered copies to the code repo.
+- `.claude` and `.codex` are real checkout directories: skills/Claude agents are symlinks;
+  Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
+  commit local wiring or delivered copies.
 - `dotbrain wire` attaches a main checkout or Git worktree; Git metadata connects worktrees
   to the main checkout's existing Brainspace without changing registration or declarations.
 - Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
-- `dotbrain unwire` detaches one checkout, retaining private data, other checkouts, and user files.
-  Retire Brainspaces through filesystem actions.
+- `dotbrain unwire` detaches one checkout, retaining data and other checkouts; retire Brainspaces via filesystem actions.
 - Let the CLI compute relative links under `.claude` and `.codex`; hand-counted paths can dangle.
 
 ## Rules
 
-- Public `AGENTS.md` routes making/reviewing changes to tracked root `RULES.md`, usable without a Brain.
+- Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
+- Public `AGENTS.md` routes changes/reviews to root `RULES.md`, usable without a Brain.
 - During implementation or review preparation, the lead or sole agent searches `.brain/RETRO.md`
   for task-relevant findings and passes applicable findings through existing assignments.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
-  Reuse findings while they remain in context. A missing notebook blocks nothing; do not scaffold it.
+  Reuse findings in context. A missing notebook blocks nothing; do not scaffold it.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
@@ -77,8 +77,8 @@ Brain template propagate to every brain.
 - Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
-- Public-facing repo docs (README.md, repo-root AGENTS.md, RULES.md) must not expose private
-  Brain paths or content. Derive independently understandable public guidance.
+- Public repo docs must not expose private content; derive standalone guidance. The standard
+  `.brain/AGENTS.md` agent pointer is allowed.
 - Never reference private Brain context from code, tests, comments, commit messages, or
   PR text: no ADR numbers, Brain paths, or decision-record identifiers in anything the
   public repo carries. State the rationale in plain terms instead; the ADR linkage stays
@@ -115,7 +115,7 @@ decisions, rules) and the territory (the codebase and its real constraints). Tha
 project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
 design docs speak one language:
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and `RULES.md`.
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, public `RULES.md`, and private `AGENTS.md`.
 - **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
 - **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
   Surfaced by grilling and prototypes, then written into canon.
@@ -132,6 +132,7 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
 
 ## Brain structure
 
+- `AGENTS.md` — small private rules/preferences; `CLAUDE.md` is its relative symlink
 - `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
 - `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
   established repository rules remain authoritative in public `RULES.md`
@@ -157,9 +158,8 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
   asks to park a concept for later learning, file it per `manage-work-graph`'s learning-beads
   reference
-- `site/` — the Brain site's settings (`site.yaml`, whose nav is the sidebar), its home page
-  `index.md`, dotbrain's manual `configure.md`, and optional theme extensions. Optional; `dotbrain site` renders every Markdown file
-  in the Brain as a page, and `brain-site` maintains it
+- `site/` — optional site settings (`site.yaml` nav), home (`index.md`), `configure.md`, and
+  theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
 `project.yaml` (`skills:`). Public repository instructions route changes and reviews to `RULES.md`.

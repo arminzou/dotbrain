@@ -380,17 +380,14 @@ def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _defau
     return None
 
 
-# --------------------------------------------------------------------------- attach / verify
-
-
-def remove_legacy_agent_pointer(repo: Path) -> list[str]:
-    """Remove only complete obsolete Dotbrain pointer blocks from local real files.
+def remove_agent_context_pointer(repo: Path) -> list[str]:
+    """Remove only complete Dotbrain pointer blocks from local real files.
 
     Symlinks remain untouched, including links to external instruction files. Match
     complete lines so quoted examples and unrelated instructions survive maintenance.
     """
     changed = []
-    pointer = paths.LEGACY_ADOPTER_POINTER.encode("utf-8")
+    pointer = paths.ADOPTER_POINTER.encode("utf-8")
     for name in ("AGENTS.md", "CLAUDE.md"):
         file = Path(repo) / name
         if file.is_symlink() or not file.is_file():
@@ -413,6 +410,60 @@ def remove_legacy_agent_pointer(repo: Path) -> list[str]:
     return changed
 
 
+
+def append_pointer_to_file(file: Path, pointer: str) -> str | None:
+    file = Path(file)
+    if file.is_symlink():
+        try:
+            target = file.resolve(strict=True)
+        except OSError:
+            return f"{file} is a broken symlink; leaving it unchanged"
+    else:
+        target = file
+    if not target.is_file():
+        return f"{target} is not a regular file; leaving it unchanged"
+    text = target.read_text(encoding="utf-8")
+    if "@.brain/CLAUDE.md" in text:
+        return None
+    if text and not text.endswith("\n"):
+        text += "\n"
+    target.write_text(f"{text}\n{pointer}\n", encoding="utf-8", newline="\n")
+    return None
+
+
+def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTER) -> list[str]:
+    repo = Path(repo)
+    agents = repo / "AGENTS.md"
+    claude = repo / "CLAUDE.md"
+    if not agents.exists() and not claude.exists():
+        agents.write_text(f"{pointer}\n", encoding="utf-8", newline="\n")
+        return []
+
+    warnings: list[str] = []
+    seen: set[Path] = set()
+    for file in (agents, claude):
+        if not file.exists():
+            continue
+        if file.is_symlink():
+            try:
+                target = file.resolve(strict=True)
+            except OSError:
+                warnings.append(f"{file} is a broken symlink; leaving it unchanged")
+                continue
+        else:
+            target = file
+        if target in seen:
+            continue
+        seen.add(target)
+        warning = append_pointer_to_file(file, pointer)
+        if warning:
+            warnings.append(warning)
+    return warnings
+
+
+# --------------------------------------------------------------------------- attach / verify
+
+
 def wire_repo(
     repo: Path,
     brainspace: Path,
@@ -421,13 +472,8 @@ def wire_repo(
     *,
     skip_beads_link: bool = False,
     workspace_links: Sequence[str] = (),
-    checkout_changes: list[str] | None = None,
 ) -> list[str]:
-    """Link active Brainspace symlinks and add local excludes.
-
-    Report obsolete pointer removal as checkout changes when a collector is
-    supplied, otherwise as warnings alongside wiring diagnostics.
-    """
+    """Link active Brainspace symlinks into ``repo`` and add local excludes."""
     repo = Path(repo)
     ensure_wiring_matches(repo, dotbrain_home, Path(brainspace).name)
     expected_brainspace = paths.brainspace(dotbrain_home, Path(brainspace).name)
@@ -450,12 +496,6 @@ def wire_repo(
         tracked = warn_if_tracked_external_symlink(repo, name, run)
         if tracked:
             warnings.append(tracked)
-    for name in remove_legacy_agent_pointer(repo):
-        change = f"removed obsolete Dotbrain pointer from {name}"
-        if checkout_changes is None:
-            warnings.append(f"{repo}: {change}")
-        else:
-            checkout_changes.append(change)
     return warnings
 
 
@@ -560,7 +600,7 @@ def unwire_repo(
             result.logs.append(f"{verb} dotbrain ignore rules from .git/info/exclude")
 
 
-    for fname in remove_legacy_agent_pointer(repo):
-        result.logs.append(f"{verb} obsolete agent-context pointer from {fname}")
+    for fname in remove_agent_context_pointer(repo):
+        result.logs.append(f"{verb} agent-context pointer from {fname}")
 
     return result

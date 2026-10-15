@@ -7,7 +7,7 @@ resolver picked the stub the script emitted nothing. Because the hook is fail-op
 that surfaced as a session with no Brain context and no error at all.
 
 Only ``DOTBRAIN.md`` is injected. dotbrain owns that file, so its size is bounded and
-guarded by a test. Repository rules and the private retrospective notebook are retrieved
+guarded by a test. Private AGENTS.md, repository rules and the retrospective are retrieved
 for the task, never injected. The shared convention assigns private retrieval to the
 lead or sole agent, which passes relevant findings through existing assignments.
 

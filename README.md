@@ -140,8 +140,10 @@ At session start, the plugin hook supplies only `DOTBRAIN.md`, the shared conven
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
 without a Brain. The lead or sole agent searches private retrospective findings for the task
 and passes relevant findings through assignments; the notebook is never injected.
-Fresh scaffolds omit private root agent entry files. Existing entries require explicit content
-migration; wiring and refresh preserve user-owned context, notebooks, rules, and instructions.
+Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
+rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
+never injected. Wiring and refresh preserve user-owned context and existing pointers.
+Public `RULES.md` holds repository requirements; private preferences stay private.
 See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,

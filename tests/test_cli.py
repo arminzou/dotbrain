@@ -146,7 +146,7 @@ def test_wire_brain_only_creates_brainspace(
     assert result.exit_code == 0, result.output
     brainspace = dotbrain_home / "brainspaces" / "demo"
     assert (brainspace / ".repo").read_text() == "(brain-only)\n"
-    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
+    assert (brainspace / ".brain" / "AGENTS.md").is_file()
 
 
 def test_wire_no_repo_requires_project(
@@ -276,14 +276,14 @@ def test_unwire_removes_symlinks_and_cleans_repo(
     exclude.write_text("\n".join(paths.EXCLUDE_ENTRIES) + "\n")
 
     agents = repo / "AGENTS.md"
-    agents.write_text(f"# Context\n\n{paths.LEGACY_ADOPTER_POINTER}\n")
+    agents.write_text(f"# Context\n\n{paths.ADOPTER_POINTER}\n")
 
     result = runner.invoke(app, ["unwire", "--repo", str(repo)])
 
     assert result.exit_code == 0, result.output
     for link in paths.BRAINSPACE_LINKS:
         assert not (repo / link).exists()
-    assert paths.LEGACY_ADOPTER_POINTER not in agents.read_text()
+    assert paths.ADOPTER_POINTER not in agents.read_text()
     for entry in paths.EXCLUDE_ENTRIES:
         assert entry not in exclude.read_text()
 
