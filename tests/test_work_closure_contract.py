@@ -22,6 +22,7 @@ def test_clean_verdict_closes_only_with_current_evidence_and_resolved_blockers(m
         "Other findings require recorded dispositions",
         "Confirm the current integrated head matches before native `bd close`",
         "After a changed integrated head, refresh review and checks before closure",
+        "After a closed `APPROVE`/`READY` review, a later head change (repair, PR feedback, or rebase) requires a new review record or reopening before that review counts as current evidence",
         "Preserve the assignee: close under its actor, naming the lead in the reason",
     ):
         assert rule in record

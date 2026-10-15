@@ -170,10 +170,12 @@ build or CI config, and instructions agents execute: skills, prompts, and agent 
 Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt;
 the lead records `## Review skipped: <reason>` on the work item.
 
-Review every behavior change without a routine permission prompt. An explicit human review
-override remains binding; record a decline as
+In the HITL workflow only, the lead may ask whether a small behavior change needs review. The
+prompt includes the diffstat, the behavior changed, and the lead's recommendation. Keep the item
+open until the human answers. Record a decline as
 `## Review skipped: declined by human — <reason>`. Standing answers hold until the human changes
-them. Otherwise required independent review cannot be skipped.
+them. The handoff workflow never asks; it reviews every behavior change. An explicit human review
+override remains binding.
 
 Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
 it authored. Fix the boundary at the group base and exact integrated head, included items,

@@ -144,6 +144,8 @@ and return scope, authority, or acceptance changes to `grill-decisions`.
   declining a blocker does not resolve it. Other findings require recorded dispositions.
   `CHANGES`, `NOT-READY`, pending verdicts, or failed, missing, or stale evidence hold affected
   work and reviews open. After a changed integrated head, refresh review and checks before closure.
+  After a closed `APPROVE`/`READY` review, a later head change (repair, PR feedback, or rebase)
+  requires a new review record or reopening before that review counts as current evidence.
 - **Simplify** — close once every finding is applied, filed as its own item, or declined with a
   reason within approved scope. Record follow-up IDs and reasons. A clean pass has zero findings
   to disposition. Simplify remains non-blocking for PR readiness; an open simplify bead never
