@@ -13,11 +13,17 @@ closure rules stay with [`manage-work-graph`](../manage-work-graph/SKILL.md).
 A plain action request ("do X", "work the ready items under this epic") starts this skill.
 Calling it does not require spawning another agent.
 
-Before worker preparation or dispatch, read the applicable runtime reference:
-[Claude Code](references/claude-code.md) or [Codex](references/codex.md). Read it again before
-runtime-specific fix rounds, cancellation, or recovery. These references supply the runtime
-mechanisms; the shared contract below still governs both paths. Stop if the runtime cannot
-perform a required operation rather than substitute an unqualified mechanism silently.
+The agent team is runtime-neutral: the lead and each worker may run in different agent runtimes.
+Workers run in the lead's runtime unless the human explicitly asks for another, in the request or
+in a project rule they wrote; the lead may suggest one but never switches on its own.
+
+Before worker preparation or dispatch, read the runtime reference of the lead and of each worker
+runtime: [Claude Code](references/claude-code.md) or [Codex](references/codex.md). Read the
+worker's again before its fix rounds, cancellation, or recovery. These references supply
+mechanisms; the shared contract below governs every runtime. Prefer native subagents when the
+runtimes match. Where no reference covers an operation, choose a mechanism by judgment and record
+it in the execution record so a fix round or takeover can repeat it. Never silently change what
+the human set — worker runtime, scope, or checks: ask, or in an autonomous run record the deviation.
 
 ## Workflow and execution mode
 
@@ -183,7 +189,7 @@ changes, including symptoms in unchanged consumers or interactions. Return `APPR
 `medium` or `low` findings and unrelated existing defects; the lead files those as discovered
 work for a later bounded execution. Missing coverage is a gap, never acceptance.
 
-On `CHANGES`, resume the same writing worker to fix its candidate using the applicable runtime
+On `CHANGES`, resume the same writing worker to fix its candidate using the worker runtime's
 reference. The lead sets `dotbrain_phase` to `working` and
 appends `## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)`.
 The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
@@ -249,7 +255,7 @@ A failed readiness step stops the worker and reaches the lead. Launch alone does
 
 Launch each delegated writing worker in the background, so the launch returns before the worker
 finishes. As soon as the runtime identifies the worker, record `## Dispatched` with its checkout,
-branch, and base, with the runtime's agent or session ID in the comment body, before waiting on the
+branch, and base, with the worker's runtime and its agent or session ID in the comment body, before waiting on the
 worker. A record written after the worker returns leaves no trace of a running worker if the lead
 stops, and a fix round or takeover needs that ID. If a runtime can launch only in the foreground,
 record `Dispatched` before launching, naming the branch and base, and add the checkout to the

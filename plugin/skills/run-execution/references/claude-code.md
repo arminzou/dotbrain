@@ -75,3 +75,15 @@ guard remains tied to its new checkout. A replacement must use a runtime path th
 operate in the retained checkout. A fresh `claude -p --worktree <name>` session can reopen a
 Claude-named worktree; other checkout types require separate capability evidence. Preserve the
 shared recovery contract and report unsupported paths.
+
+## Claude Code workers for another runtime's lead
+
+The sections above assume a Claude Code lead using the `Agent` tool. A lead in another runtime
+launches Claude Code workers as separate `claude -p` sessions instead. Prepare a worktree as the
+lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so the plugin and
+project resources resolve. Launch in the background from that worktree with the assignment on
+stdin, `--output-format json`, and the permission mode authorized for this execution; nobody
+answers prompts in an unattended run. Point the assignment to the packaged worker role. Record the
+`session_id` from the output as the worker's ID, resume fix rounds with `claude -p --resume
+<session-id>` from the same worktree, and stop a worker by ending its process tree. Check
+`claude --help` when an option is rejected. Not yet qualified on any lead runtime.

@@ -98,8 +98,9 @@ they turn the backslashes in a Windows path into control characters.
 ```
 
 Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it, and put the
-runtime's agent or session ID in its body: a fix round resumes that worker by ID, and a takeover
-needs to know which worker to confirm stopped.
+worker's runtime and its agent or session ID in its body, plus any launch mechanism no runtime
+reference documents: a fix round resumes that worker by ID, and a takeover needs to know which
+worker to confirm stopped.
 
 Before notifying workers or dispatching repairs, the lead appends the returned structured
 review to affected member items under its own actor. The reviewer writes no tracker records.

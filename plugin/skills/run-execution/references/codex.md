@@ -3,7 +3,9 @@
 Use this reference with the shared contract in [Run Execution](../SKILL.md), before worker
 preparation or dispatch and before fix rounds, cancellation, or recovery. The path below uses
 separate `codex exec` CLI sessions. Native subagent conversations do not establish separate
-writing worktrees; do not treat an assigned shell directory as worktree isolation.
+writing worktrees; do not treat an assigned shell directory as worktree isolation. A lead in any
+runtime can use the Prepare through Stop and recover sections to run Codex workers; Explorer role
+and Nested agents apply only to a Codex lead.
 
 Before launch, inspect actual CLI and native-agent capacity and apply the shared dispatch cap,
 reserving capacity for the lead and required review and verification. Count direct CLI writers
