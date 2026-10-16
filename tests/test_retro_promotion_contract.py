@@ -17,7 +17,7 @@ def text(name):
     ("Missing settings mean disabled", "destinations", "auto-deliver: false", "No public edits"),
     ("proposal and destination", "Select the best fit", "do not expand the allowlist"),
     ("Compare accepted rules and open target-branch PRs", "Several findings can share one proposal", "Keep provenance only"),
-    ("before repeating an action", "retry never adds another rule", "pending", "recorded branch"),
+    ("before repeating an action", "retry never adds another rule", "pending", "recorded head repository and branch"),
     ("read-only", "even when capture found nothing new", "one bounded", "no all-history scan"),
     ("actual merged PR", "matching repository/base", "merge commit and time", "rule is not adoption"),
     ("Approval, unmerged closure", "never establish acceptance", "actual merge date", "unchanged lookup"),
