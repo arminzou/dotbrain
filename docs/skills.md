@@ -81,10 +81,23 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 ## Triage And Review
 
-- **`retro`** — explicitly review new or changed evidence, retaining private retrospective
+- **`run-retro`** — explicitly review new or changed evidence, retaining private retrospective
   findings, successful practices, and bounded progress. Invoke manually or through an external
-  agent-host job; scheduling belongs to the host. It may prepare a public `RULES.md` change
-  and reads PR/merge state read-only to reconcile acceptance; invocation grants no delivery authority.
+  agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:
+  it discovers repository rules, standards, or contributor guidance and suggests a destination
+  and rule for your decision. Set `retro.promotion.auto-deliver: true` and an existing
+  repo-relative `destinations` array in private project configuration to authorize unattended
+  commit/push/PR delivery. Otherwise authorize individual proposals. It reads PR/merge state
+  read-only to reconcile acceptance; approval and merge remain human-owned.
+  Findings use plain Markdown entries in private `RETRO.md`, with a short review-progress
+  header and no duplicated YAML ledger. Evidence review is scoped, not an exhaustive audit
+  of every historical record edit. An adopted `RULES.md` uses `Rule` / `What to check` tables; other guides retain
+  their conventions. Rule proposals have run-retro's own
+  PR process and body, independent of the `pr` skill used for ordinary changes.
+  First use reads existing root guidance and referenced standards, records current HEAD as
+  a baseline, and stops without reviewing history. Later runs review forward within explicitly
+  selected contribution branches/PRs or a maintainer-selected integration branch, reusing shared
+  progress and current applicable guidance. Missing scope is reported instead of assumed.
 - **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
   outcome on the issue; the lead closes accepted reviews before PR merge after required exact-revision
   evidence and finding dispositions. Human PR approval, merge and release remain separate

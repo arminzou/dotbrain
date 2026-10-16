@@ -9,7 +9,7 @@ can send as they are, or adapt, for the common jobs. Each one says when to use i
 triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
-Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, and `retro`
+Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, and `run-retro`
 never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
 Code.
 

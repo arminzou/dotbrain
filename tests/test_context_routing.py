@@ -173,5 +173,5 @@ def test_bundled_consumers_keep_private_rules_and_selective_retro_retrieval():
             assert "`AGENTS.md`" in consumer
             assert "private rules/preferences" in consumer
             assert "do not read the whole notebook" in consumer
-    promotion = Path("plugin/skills/retro/references/promotion.md").read_text(encoding="utf-8")
-    assert "Personal preferences and private project rules stay in" in promotion
+    promotion = Path("plugin/skills/run-retro/references/promotion.md").read_text(encoding="utf-8")
+    assert "Personal preferences stay in `.brain/AGENTS.md`" in promotion

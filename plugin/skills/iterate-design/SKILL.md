@@ -165,7 +165,7 @@ Use this protocol throughout the handoff:
    - A human decision is needed.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or `BLOCKED`, update the bead notes with what is done, next, and any open question.
-   REFLECT does not invoke `retro` or add another reflection report.
+   REFLECT does not invoke `run-retro` or add another reflection report.
 5. REVIEW: After the integrated in-loop gate passes, apply `review-gate`'s final whole-branch
    `code` review rules. Reuse the final integration review only with explicit coverage of the
    agreed branch base to exact final head, all scoped items, interactions, and design conformance.

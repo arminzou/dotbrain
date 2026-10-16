@@ -41,7 +41,7 @@ Classify each piece of project knowledge by its durable authority:
 | Established repository rules for making or reviewing changes | Tracked root `RULES.md`, routed from public `AGENTS.md` |
 | Small private project rules and personal preferences | `.brain/AGENTS.md` |
 | Shared Brain operations and private retrieval | `.brain/DOTBRAIN.md` |
-| Private retrospective findings and evidence | `.brain/RETRO.md`, maintained by `retro` |
+| Private retrospective findings and evidence | `.brain/RETRO.md`, maintained by `run-retro` |
 | Domain vocabulary | `.brain/CONTEXT.md` |
 | Durable decisions and rationale | `.brain/adr/` |
 | Initiative-specific working design | `.brain/designs/` |

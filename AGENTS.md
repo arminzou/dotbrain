@@ -1,5 +1,7 @@
 # AGENTS.md
 
+Before making or reviewing changes, read [RULES.md](RULES.md).
+
 `dotbrain` — one tool that wires **project Brainspaces** and **skills** into whatever coding
 agent you use (Claude Code, Codex). Engineering-centered.
 

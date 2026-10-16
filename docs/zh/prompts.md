@@ -10,7 +10,7 @@ pageClass: prompt-examples
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
 不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
-`iterate-design`、`review-architecture` 和 `retro` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
+`iterate-design`、`review-architecture` 和 `run-retro` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
 `/dotbrain:iterate-design`。
 
 ## 配置 {#set-up}

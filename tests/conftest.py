@@ -91,7 +91,7 @@ def dotbrain_home(tmp_path: Path) -> Path:
         "brain/review-gate",
         "brain/teach-me",
         "brain/find-unknowns",
-        "brain/retro",
+        "brain/run-retro",
         "brain/to-design",
         "brain/brain-site",
         "brain/close-design",
