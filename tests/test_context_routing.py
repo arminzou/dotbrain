@@ -56,8 +56,7 @@ def test_existing_pointer_survives_wire_and_refresh(tmp_path, monkeypatch, comma
             reported = [f["message"] for f in target["findings"] if f["severity"] == "warning"]
         else:
             reported = target["data"]["checkout_changes"]
-        removed = [message for message in reported if "removed obsolete Dotbrain pointer" in message]
-        assert not removed
+        assert not [message for message in reported if "AGENTS.md" in message or "CLAUDE.md" in message]
         assert not target["errors"]
         for name in ("AGENTS.md", "CLAUDE.md"):
             assert (repo / name).read_text(encoding="utf-8") == f"Keep {name}\n{paths.ADOPTER_POINTER}\n"
@@ -142,8 +141,19 @@ def test_unwire_removes_only_complete_pointer_without_rewriting_user_bytes(tmp_p
     before = b"  User whitespace  " + newline
     after = newline + b"> " + pointer + newline
     (repo / "AGENTS.md").write_bytes(before + pointer + newline + after)
-    adopter_repos.unwire_repo(repo, dotbrain_home=home)
+    result = adopter_repos.unwire_repo(repo, dotbrain_home=home)
     assert (repo / "AGENTS.md").read_bytes() == before + after
+    assert not result.warnings
+
+
+def test_unwire_warns_about_a_partial_pointer_it_leaves(tmp_path):
+    home, brainspace, repo = _project(tmp_path)
+    adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
+    edited = paths.ADOPTER_POINTER.splitlines()[0] + "\nMy own note about the Brain\n"
+    (repo / "AGENTS.md").write_text(edited, encoding="utf-8")
+    result = adopter_repos.unwire_repo(repo, dotbrain_home=home)
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == edited
+    assert [w for w in result.warnings if "AGENTS.md" in w and "@.brain/CLAUDE.md" in w]
 
 
 def test_doctor_does_not_warn_that_private_entries_are_legacy(tmp_path):
@@ -153,7 +163,7 @@ def test_doctor_does_not_warn_that_private_entries_are_legacy(tmp_path):
     report = doctor.run_doctor(home, project="example", home=tmp_path / "user")
     findings = report.machine + report.projects["example"]
     assert not [f.message for f in findings if f.status == "error"]
-    assert not [f.message for f in findings if "legacy private entry" in f.message]
+    assert not [f.message for f in findings if f.status == "warning" and "AGENTS.md" in f.message]
 
 
 def test_bundled_consumers_keep_private_rules_and_selective_retro_retrieval():

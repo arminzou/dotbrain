@@ -602,5 +602,13 @@ def unwire_repo(
 
     for fname in remove_agent_context_pointer(repo):
         result.logs.append(f"{verb} agent-context pointer from {fname}")
+    import_line = paths.ADOPTER_POINTER.splitlines()[0]
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        file = Path(repo) / name
+        if file.is_symlink() or not file.is_file():
+            continue
+        if import_line in (l.strip() for l in file.read_text(encoding="utf-8", errors="replace").splitlines()):
+            result.warnings.append(f"{file} still imports {import_line}, which no longer resolves; "
+                                   "remove that line if Dotbrain added it")
 
     return result
