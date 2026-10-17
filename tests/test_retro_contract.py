@@ -94,3 +94,14 @@ def test_chinese_retro_description_requires_preparation_and_verified_acceptance(
     assert "合入目标分支" in description
     assert "可手动调用，也可由外部定时任务调用" in description
     assert "Agent 的发现" in description
+
+
+def test_only_repository_scope_offers_to_create_rules_file():
+    assert "contributor scope never creates a public file" in _text("SKILL.md")
+    retro = _text("references/retro.md")
+    for contract in ("Repository scope only", "a contributing guide alone does not count",
+                     "a contributor-scope run never creates a public file",
+                     "without changing `auto-deliver`", "`Rules file: declined` (never offered again)",
+                     "asks again on the next interactive run"):
+        assert contract in retro
+    assert "contributor scope delivers only to files that already exist upstream" in _text("references/promotion.md")

@@ -23,8 +23,9 @@ Use these areas as discovery prompts, not a template to fill:
 | Commits and PRs | Message conventions, coherent scope, rationale and verification evidence. |
 
 Create no category or rule merely to complete this list. During initialization, discover
-existing guidance and record its links; do not manufacture a comprehensive `RULES.md` or
-copy standards into retrospective findings. Existing adopted requirements need no recurrence
+existing guidance and record its links; do not copy standards into retrospective findings.
+A new `RULES.md` comes only from the repository-scope [rules file offer](retro.md) and holds
+only requirements existing guidance already states, never an invented comprehensive set. Existing adopted requirements need no recurrence
 threshold. During later retrospectives, propose a specific addition or amendment only from
 supported findings under [promotion](promotion.md); three dates justify a proposal, not adoption.
 
@@ -33,8 +34,9 @@ supported findings under [promotion](promotion.md); three dates justify a propos
 README describes the project and onboarding; AGENTS routes agents to relevant guidance;
 public rules state what changes must satisfy. Specialist guides and configuration can remain
 authoritative for detailed procedures or mechanically enforced conventions. Amend or link
-those sources instead of duplicating them. A suitable existing contributing guide takes
-precedence over introducing a new file; delivery requires the agreed destination and authority.
+those sources instead of duplicating them. Outside the repository-scope rules file offer,
+a suitable existing contributing guide takes precedence over introducing a new file;
+delivery requires the agreed destination and authority.
 
 Use the repository's agreed public destination for repository requirements. Preserve an
 existing standards or contributor guide's format; do not impose a new filename or table

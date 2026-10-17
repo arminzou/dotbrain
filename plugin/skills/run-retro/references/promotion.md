@@ -34,7 +34,9 @@ ownership or no suitable file leaves a private suggestion; do not expand the all
   only for this repository and those files. Missing or unsuitable files block delivery, not capture.
 
 Creating a new file requires explicit human agreement to that file; a configured path alone
-does not authorize creation. An existing `RULES.md` does not itself enable delivery. Disabling
+does not authorize creation. Only a repository-scope run may create a file, and only root
+`RULES.md` through [the rules file offer](retro.md); contributor scope delivers only to files
+that already exist upstream. An existing `RULES.md` does not itself enable delivery. Disabling
 auto-delivery stops public mutations, including PR updates, unless specifically authorized.
 Read-only reconciliation continues in either mode. Approval, merge, and release stay human-owned.
 

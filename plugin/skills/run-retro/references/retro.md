@@ -58,6 +58,7 @@ was reviewed. Exclude earlier commits, pre-existing contribution work, and uncom
 unless explicitly selected for a historical pass. An empty repository has no commit baseline;
 its first later commits are eligible within the selected scope. Save and report initialization;
 do not automatically capture historical findings, create public rules, or enable delivery.
+The repository-scope rules file offer below is the only public change initialization proposes.
 
 Preserve an existing retrospective and its progress. A new worktree, machine, checkout, or
 branch does not trigger reinitialization. If repository identity or ancestry does not match,
@@ -78,6 +79,19 @@ Do not choose between these scopes silently. If none is established, initializat
 A nightly job reports the gap without waiting interactively. New source branches/PRs require
 an explicit starting boundary or requested range; do not apply another branch's boundary to them.
 For several selected sources, record each boundary as ordinary header bullets, not a new ledger.
+
+## Rules file offer
+
+Repository scope only. If the repository has no rules or standards file (a contributing guide
+alone does not count), offer once to create root `RULES.md`; a contributor-scope run never creates a
+public file and keeps suggestions private until a suitable upstream file exists. On the user's
+explicit yes, seed `RULES.md` only with requirements existing guidance already states, in
+[the rule format](rules.md); link it from public `AGENTS.md`; and deliver it through
+[run-retro's PR process](pr.md) from a clean target-based checkout. Add `RULES.md` to
+`retro.promotion.destinations` without changing `auto-deliver`. Record the outcome in the header:
+`Rules file: <PR URL>`, `Rules file: declined` (never offered again), or `Rules file: offered`
+when no answer came, such as a nightly run, which asks again on the next interactive run.
+Findings capture normally whatever the answer.
 
 ## Review progress
 

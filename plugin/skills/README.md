@@ -20,7 +20,9 @@ active design records current intent, and Beads tracks private execution.
   a human-owned review decision.
 - **Retrospective:** [`run-retro`](run-retro/SKILL.md) reviews changed evidence in a separate manual or
   externally invoked pass, retaining private findings, successful practices, and source progress.
-  It may prepare a public `RULES.md` change and reads PR/merge state read-only to reconcile
+  First use in repository scope offers to create `RULES.md` when no rules or standards file
+  exists; contributor scope never creates one. It may prepare a public `RULES.md` change and
+  reads PR/merge state read-only to reconcile
   acceptance. By default it suggests an existing public destination for the user's decision.
   Public delivery needs proposal-specific authorization or enabled project auto-delivery with
   a configured destination; run-retro owns its PR process. Approval and merge remain human-owned.
