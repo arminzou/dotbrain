@@ -65,7 +65,8 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   durable results into `CONTEXT.md` and `adr/`.
 - **`find-unknowns`** — surface blind spots and tacit assumptions in unfamiliar territory before
   committing to a design.
-- **`close-design`** — drive a design doc to a terminal state: record evidence, promote residue to
+- **`close-design`** — manually drive a design doc to a terminal state: check actual PR merge
+  evidence for shipment, record evidence, promote residue to
   `adr/` and `CONTEXT.md`, close the epic.
 
 ## Execution
@@ -80,9 +81,29 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 
 ## Triage And Review
 
+- **`run-retro`** — explicitly review new or changed evidence, retaining private retrospective
+  findings, successful practices, and bounded progress. Invoke manually or through an external
+  agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:
+  it discovers repository rules, standards, or contributor guidance and suggests a destination
+  and rule for your decision. Set `retro.promotion.auto-deliver: true` and an existing
+  repo-relative `destinations` array in private project configuration to authorize unattended
+  commit/push/PR delivery. Otherwise authorize individual proposals. It reads PR/merge state
+  read-only to reconcile acceptance; approval and merge remain human-owned.
+  Findings use plain Markdown entries in private `RETRO.md`, with a short review-progress
+  header and no duplicated YAML ledger. Evidence review is scoped, not an exhaustive audit
+  of every historical record edit. An adopted `RULES.md` uses `Rule` / `What to check` tables; other guides retain
+  their conventions. Rule proposals have run-retro's own
+  PR process and body, independent of the `pr` skill used for ordinary changes.
+  First use reads existing root guidance and referenced standards, records current HEAD as
+  a baseline, and stops without reviewing history. In repository scope with no rules or
+  standards file, it offers once, on the first pass until answered, to create `RULES.md` from requirements existing guidance
+  already states and delivers it as a PR; contributor scope never creates a file in the repo.
+  Later runs review forward within explicitly
+  selected contribution branches/PRs or a maintainer-selected integration branch, reusing shared
+  progress and current applicable guidance. Missing scope is reported instead of assumed.
 - **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
-  outcome on the issue; a code review closes once you merge its pull request, and other reviews
-  close with you
+  outcome on the issue; the lead closes accepted reviews before PR merge after required exact-revision
+  evidence and finding dispositions. Human PR approval, merge and release remain separate
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution

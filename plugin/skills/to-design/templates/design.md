@@ -14,11 +14,13 @@ Frontmatter vocabulary: `lifecycle:` (required), `started:` and `ended:` (dates)
 design this one builds on), `residue:` (ADR ids this doc produced, e.g. `[ADR-NNNN]`). Do not
 invent per-doc fields.
 
-Lifecycle: born `draft`. Flip to `active` when the epic exists and execution can start — from then
+Lifecycle: born `draft`. Flip to `active` when the epic exists; execution still requires its
+approved contract. From then
 on this doc is the living design authority, and criteria changes are human decisions recorded under
 `Deviations` or `Human Decisions Needed`.
 
-Reaching a terminal state is `close-design`'s job: it records the verification evidence actually
+Reaching a terminal state requires manual invocation of `close-design` after human merge for
+shipped work. A ready PR leaves the design and epic active. It records the verification evidence actually
 achieved under `Verification Evidence`, so a later reader can check the gate still catches the
 failure it was written for (gates rot), then promotes durable residue — decisions to
 `adr/`, vocabulary to `CONTEXT.md` — because this doc freezes as a point-in-time record.
@@ -99,6 +101,16 @@ additional pilots, budgets, or outward actions. Execution state remains in Beads
 ## Implementation Notes
 
 <!-- Constraints and sequencing that shape how work items get built, without being the work items. -->
+
+## Execution Contract
+
+<!-- Record human approval or explicitly mark authority unapproved. Include scope, delivery
+branch/base, required checks and UAT journeys/environment/evidence, review expectations,
+provider/auth and agent identity, PR authority, finite worker cap and whole-loop/retry limits.
+Retain narrower overrides and remaining limits on resume. Complete applicable approval is reused
+without repeat GO; an execution request alone does not approve a proposed contract.
+Human PR approval, target-branch merge, release, and manual design closeout remain separate.
+Never record credential values. -->
 
 ## Deviations
 

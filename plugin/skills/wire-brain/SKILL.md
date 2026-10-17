@@ -117,8 +117,10 @@ the marker `# dotbrain-managed-agent: v1`; customize their source in the private
 overwrites or prunes marked copies and preserves unmarked files and foreign links.
 
 The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public
-repo context may contain the standard pointer to `.brain/AGENTS.md`; private Brain paths, ADRs,
-beads details, and tracker operations stay out of public repo files.
+repo context routes making or reviewing changes to tracked root `RULES.md`. Private Brain paths,
+records, and tracker operations stay out of public repo files. Private project rules live in
+`.brain/AGENTS.md`, with `CLAUDE.md` as its alias. Wiring preserves existing context pointers
+and user instructions; it never authors repository rules.
 
 ## Wiring one repo
 
@@ -142,7 +144,7 @@ dotbrain doctor
 git -C /path/to/repo status --short
 ```
 
-Expected public repo changes are limited to the agent context pointer when it is newly inserted.
+Public instructions remain user-owned; wiring preserves their existing context pointers.
 Symlinks whose targets are outside the repo must remain untracked.
 
 ## Detachment
@@ -168,4 +170,6 @@ Before declaring wiring fixed:
 - Git's exclusion file contains the dotbrain-managed entries (`git rev-parse --git-path info/exclude`).
 - `git -C <repo> status --short` shows no unexpected tracked changes.
 - If beads are enabled, `bd -C <repo> ready` works or reports a valid empty tracker.
-- Public repo files contain no private Brain content beyond the `.brain/AGENTS.md` pointer.
+- Public instructions route changes/review to root `RULES.md` and remain useful without a Brain.
+- Private `AGENTS.md` and its `CLAUDE.md` alias remain available for project preferences.
+- Refresh preserves user-owned notebooks, rules, and instructions.

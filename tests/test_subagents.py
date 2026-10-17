@@ -281,7 +281,7 @@ def test_claude_agents_reach_a_shell_on_every_platform_and_never_nest():
     for rule in (
         "from a lead or directly from a user",
         "if it does not name what to change, or names a work item without your beads actor, return without editing",
-        "when it names none, read the brain's agents.md",
+        "read public agents.md and root rules.md (when present) for making changes",
         "when none are assigned, run the smallest relevant checks",
         "the repository's written commit rules, else the style of its recent history",
         "if that branch is the default branch, stop and report",

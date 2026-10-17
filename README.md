@@ -136,9 +136,14 @@ and `.codex/`. Skills and Claude agents use symlinks; Codex agents use generated
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
 
-At session start, the plugin hook supplies `DOTBRAIN.md`, the shared convention. The agent then
-reads the project's private rules and retrieves the context the task needs. Workflow skills
-guide how it consults that context and records what you work out together.
+At session start, the plugin hook supplies only `DOTBRAIN.md`, the shared convention.
+Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
+without a Brain. The lead or sole agent searches private retrospective findings for the task
+and passes relevant findings through assignments; the notebook is never injected.
+Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
+rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
+never injected. Wiring and refresh preserve user-owned context and existing pointers.
+Public `RULES.md` holds repository requirements; private preferences stay private.
 See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,
@@ -169,14 +174,19 @@ The loop closes in two places:
 - **During the work:** discoveries feed back into the active design and affected issues. An
   unexpected API constraint becomes a design question; once you settle it, the design and issues
   capture the decision before implementation continues.
-- **After review:** closing the design records the evidence and preserves useful decisions and
+- **After human merge and manual closeout:** closing the design records the evidence and preserves useful decisions and
   vocabulary in the Brain. The next initiative starts with that knowledge already available.
 
 The Brain holds durable knowledge, the design holds current intent, and Beads holds execution
 state. Each handoff lives in a document or tracker entry that another session or agent can
 consult to continue the work.
 
-You own the success criteria and the final review decision. Use the full loop when work spans
+You own success criteria, PR approval, merge, and release. Settle foreseeable decisions and the
+execution contract upfront; agents reuse complete applicable approval without another routine
+sign-off and work through checks, acceptance/UAT, and required reviews to a ready PR requesting
+your review. New scope, authority, or criteria decisions stop affected work with evidence and a
+recommendation. Limits survive resume. The design stays active until you invoke closeout;
+a PR closed without merge does not establish shipment. Use the full loop when work spans
 sessions or carries open questions; small changes can use just the steps they need.
 
 See [The workflow](https://arminzou.github.io/dotbrain/workflow) for a walkthrough and

@@ -37,26 +37,29 @@ Classify each piece of project knowledge by its durable authority:
 
 | Information | Authority |
 |---|---|
-| Public project purpose, commands, conventions, and hazards | Public `AGENTS.md` or a public document it points to |
-| Private operating rules and tracker conventions | `.brain/AGENTS.md` |
+| Task-specific retrieval and essential constraints | Public `AGENTS.md` |
+| Established repository rules for making or reviewing changes | Tracked root `RULES.md`, routed from public `AGENTS.md` |
+| Small private project rules and personal preferences | `.brain/AGENTS.md` |
+| Shared Brain operations and private retrieval | `.brain/DOTBRAIN.md` |
+| Private retrospective findings and evidence | `.brain/RETRO.md`, maintained by `run-retro` |
 | Domain vocabulary | `.brain/CONTEXT.md` |
 | Durable decisions and rationale | `.brain/adr/` |
 | Initiative-specific working design | `.brain/designs/` |
 | Execution status and work notes | Beads |
 | Supporting explanation | A public or private referenced document chosen by sensitivity |
 
-The repo-root and private `AGENTS.md` files are canonical at their level. Each sibling `CLAUDE.md`
-is a relative symlink to `AGENTS.md`. Public context may point to `.brain/AGENTS.md`, but must remain
-useful when the Brain is absent and must not expose private Brain content. Public rationale stands
-on its own; other Brain paths, ADR numbers, private-record identifiers, and tracker state stay in
-the Brain.
+Public, private, and separately scoped `AGENTS.md` files retain their roles; each sibling
+`CLAUDE.md` is a relative symlink to `AGENTS.md`. Keep private rules small and distinct from
+repository requirements and shared operations. Public context remains useful without a Brain.
+Public rationale stands on its own; private paths, record identifiers, and tracker state stay private.
 
 ## Check
 
 ### 1. Inventory the context surface
 
 Read the nearest project instructions, then enumerate relevant public and private `AGENTS.md` and
-`CLAUDE.md` files. If the project is wired, also inspect `.brain/DOTBRAIN.md`, `.brain/AGENTS.md`,
+`CLAUDE.md` files, including the private Brain's project rules.
+If the project is wired, inspect `.brain/DOTBRAIN.md`,
 `.brain/CONTEXT.md`, `.brain/project.yaml`, ADR and design indexes or frontmatter, and documents
 reached by context pointers. Load full ADRs, designs, or supporting docs only when a finding requires
 their content.
@@ -69,10 +72,12 @@ visibility, authority, and mechanical state.
 
 ### 2. Test topology and boundaries
 
-Check that pointers resolve, required material is reachable under the condition that needs it, and
-`CLAUDE.md` symlinks resolve to the canonical sibling `AGENTS.md`. Verify that public context still
-works without `.brain/` and contains no private Brain material beyond the permitted optional
-pointer.
+Check that pointers resolve and required material is reachable under the condition that needs it.
+Check that public, private, and separately scoped `CLAUDE.md` symlinks resolve to the
+canonical sibling `AGENTS.md`.
+Verify that public context still
+works without a Brain, routes making and reviewing changes to root `RULES.md`, and contains
+no private Brain material.
 
 Completion: every broken link, weak pointer, invalid canonical relationship, and public/private
 boundary violation is identified with its exact path and evidence.
@@ -120,3 +125,7 @@ check against every changed surface and report any findings routed to other skil
 
 Completion: all authorized repairs are verified, unapproved findings remain untouched, and each
 piece of moved knowledge has one reachable authority.
+
+Keep personal preferences private even when they recur. Derive a public rule only when it is a
+repository requirement that should apply to every contributor; recurrence alone does not make
+a private preference public. Wiring and refresh preserve user-owned rules and notebooks.

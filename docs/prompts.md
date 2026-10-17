@@ -9,8 +9,8 @@ can send as they are, or adapt, for the common jobs. Each one says when to use i
 triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
-Naming the skill makes the choice certain. Two skills, `iterate-design` and `review-architecture`,
-never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
+Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, `run-retro`,
+and `close-design` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
 Code.
 
 ## Set Up
@@ -139,7 +139,9 @@ execution is unavailable, the agent reports that and falls back to sequential ex
 
 **When:** the design is active, the work has a mechanical check, and you want the agent to carry
 on without you. It proposes a contract (scope, branch, checks, worker count, pull request
-delivery) and starts only after you reply `GO`. Merging stays with you. **Skill:**
+delivery, acceptance/UAT, reviews, provider/auth and finite limits) if approval is missing.
+It validates and reuses a complete applicable approved contract without repeat `GO`.
+PR approval, merge and release stay with you. **Skill:**
 `iterate-design`, explicit only. See [The workflow](workflow.md#_5-work-the-issues).
 
 ### Handoff: parallel execution
@@ -232,11 +234,11 @@ are `code` (correctness), `simplify`, and `readiness` (is a subsystem sound enou
 ### Close a design
 
 ```text
-The orders-pagination work is merged. Close the design: record the evidence and promote what should outlive it to ADRs and CONTEXT.md.
+/dotbrain:close-design The orders-pagination work is merged. Close the design: record the evidence and promote what should outlive it to ADRs and CONTEXT.md.
 ```
 
 **When:** an initiative ships, is abandoned, or is superseded. Also for sweeping designs that
-never closed out. **Skill:** `close-design`. See [The workflow](workflow.md#_7-close-the-design).
+never closed out. **Skill:** `close-design`, explicit only. See [The workflow](workflow.md#_7-close-the-design).
 
 ## Learn
 

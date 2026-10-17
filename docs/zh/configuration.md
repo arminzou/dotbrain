@@ -91,9 +91,29 @@ skills:                       # extra skills for this project's workspaces
 | `beads.database` | 项目名 | 服务器上的数据库名 |
 | `skills` | `[]` | 链接到这个项目工作区的技能 |
 | `subagents` | `[]` | 在自带子 Agent 之外，只给这个项目用的子 Agent |
+| `retro.promotion.auto-deliver` | `false` | 由 skill 读取：允许自动提交、推送规则提案并创建 PR |
+| `retro.promotion.destinations` | `[]` | 允许修改的已有公开指南，相对仓库的路径数组；启用自动交付时不能为空 |
 
 `public-tracker` 用来设置公开的任务入口和与贡献者的协作。它从不镜像私有的工作图，也不会把私有工作变成
 公开任务；见 `triage-public` 技能。
+
+`run-retro` 直接读取这些设置，不增加 CLI 交付命令。自动交付未设置或关闭时，它更新私有发现，
+查找仓库已有的规则、标准或贡献指南，并建议文件位置和规则，由你决定是否创建 PR。
+你可以单独授权某个提案，也可以在确认仓库接受该位置后启用自动交付：
+
+```yaml
+# project.yaml — 先确认这个仓库接受该位置，再启用
+retro:
+  promotion:
+    auto-deliver: true
+    destinations:
+      - CONTRIBUTING.md
+      - docs/code-standards.md
+```
+
+各目标文件必须已存在于仓库内。skill 按发现的主题和适用范围选择最合适的文件，不把同一规则复制到所有文件。
+没有合适位置或归属不清时，它会建议位置，由你决定。新建规则文件需要明确同意；skill 不会默认要求仓库采用 `RULES.md`。
+PR 批准与合并仍由你决定。关闭自动交付后，私有记录和只读的合并状态核对照常进行。
 
 ::: info
 `dotbrain refresh` 会逐字节保留项目声明。有意更新 Beads 配置时，会保留不相关的键、未知的嵌套值和显式的

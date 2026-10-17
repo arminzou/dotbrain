@@ -9,8 +9,8 @@ pageClass: prompt-examples
 
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
-不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。有两个技能，
-`iterate-design` 和 `review-architecture`，从不会自动启动，需要显式调用，比如在 Claude Code 里用
+不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
+`iterate-design`、`review-architecture`、`run-retro` 和 `close-design` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
 `/dotbrain:iterate-design`。
 
 ## 配置 {#set-up}
@@ -129,7 +129,8 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 ```
 
 **什么时候用：** 设计处于 active 状态，工作有机械化的检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
-（范围、分支、检查项、worker 数量、PR 交付方式），等你回复 `GO` 才开始。合并始终由你来做。**技能：**
+（范围、分支、检查项、worker 数量、PR 交付方式、验收/UAT、审阅、provider/auth 和执行上限）。
+完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**技能：**
 `iterate-design`，只能显式调用。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### Handoff：并行执行 {#handoff-parallel-execution}
@@ -215,12 +216,12 @@ Run a simplify review on this branch: what can we delete or replace?
 ### 结束设计 {#close-a-design}
 
 ```text
-The orders-pagination work is merged. Close the design: record the evidence and promote what should
+/dotbrain:close-design The orders-pagination work is merged. Close the design: record the evidence and promote what should
 outlive it to ADRs and CONTEXT.md.
 ```
 
 **什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**技能：**
-`close-design`。见[工作流程](workflow.md#_7-close-the-design)。
+`close-design`，需显式调用。见[工作流程](workflow.md#_7-close-the-design)。
 
 ## 学习 {#learn}
 

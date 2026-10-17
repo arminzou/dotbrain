@@ -99,6 +99,10 @@ criteria and `blocks` dependencies. "What can I work on next" is then a query in
 bd ready
 ```
 
+It investigates prerequisites and surfaces foreseeable human decisions with evidence and
+recommendations before unattended work. A settled design needs no second task-set sign-off;
+an entirely autonomous implementation graph is valid. Unresolved decisions block affected work.
+
 ## 5. Work the Issues
 
 `manage-work-graph` keeps the work graph: it files, links, and claims issues and closes them when
@@ -122,20 +126,23 @@ share no build outputs, databases, or ports. When you are directing the work, it
 split before starting, and you can change it.
 
 Either way, the work happens on a dedicated branch and reaches `main` through a pull request you
-review. The agent asks before pushing or opening that pull request, and lands work directly on
+review. The agent reuses complete applicable delivery approval, asks only for missing or changed
+authority before pushing or opening that pull request, and lands work directly on
 `main` only when you tell it to.
 
 **Or hand it off.** For an unattended run against an active design, `iterate-design` drives the
 agent's loop mode with a mechanical verifier and a hard stop. You approve a contract first: the
 scope, the branch, the checks, how many workers may run at once, and how the pull request is
-delivered. Then:
+delivered, provider/auth and PR authority, acceptance/UAT, reviews, and finite limits. A complete
+approved contract is validated and reused without repeat `GO`; an execution request alone grants
+no missing authority. Remaining limits and narrower instructions survive resume. Then:
 
 - At its first push it opens a draft pull request, and it pushes again after each accepted integration group.
 - When an issue fails its checks three times in a row, or needs your decision, only that issue and
   the issues waiting on it stop. Independent issues continue.
 - When the run stops blocked, it mentions you on the pull request, so you are notified.
 - When everything is done and reviewed, it marks the pull request ready and requests your review.
-  Merging stays with you.
+  PR approval, target-branch merge, and release stay with you.
 
 ## 6. Review
 
@@ -156,17 +163,23 @@ Reviews happen at two levels:
   The final integration review can supply this only with explicit whole-branch coverage at the
   exact final revision; approval of the latest group alone is insufficient. Otherwise arrange a
   whole-branch review. Later changes affecting coverage need refreshed evidence. A handoff
-  also runs a simplification pass. Its suggestions never block the pull request; you decide on
-  them alongside it.
+  also runs a simplification pass. Its suggestions never block the pull request; the lead records
+  dispositions within approved scope and returns new consequential decisions to you.
 
 `review-gate` runs these reviews in focused modes (correctness, simplification, or readiness) and
-records each outcome in the tracker. The agent never closes a review on its own judgment: it closes
-a code review's record once it sees you merge the reviewed pull request, and every other review
-waits for you.
+records each outcome in the tracker. Within approved authority, the lead closes accepted work and
+reviews before PR merge: required independent verdicts and acceptance/UAT evidence cover the exact
+integrated revision, blocking findings are resolved, and other findings have recorded dispositions.
+Simplify stays non-blocking and closes once every finding is applied, filed, or declined with a reason.
+Reviews gain no automatic human gate. Genuine human decisions still block affected work; review
+closure grants no PR approval, merge, or release authority.
 
 ## 7. Close the Design
 
-`close-design` moves the design to a terminal state. It records the evidence that the success
+You manually invoke `close-design` to move the design to a terminal state. For shipped work it
+checks the actual PR, target branch, merge commit and merge date; closed-unmerged never establishes
+shipment. A ready PR leaves the design and epic active. Work/review closure never invokes closeout
+automatically, and no merge polling is added. It records the evidence that the success
 criteria were met, promotes what should outlive the initiative into `adr/` and `CONTEXT.md`, and
 closes the epic. The next initiative starts with those decisions already in the Brain.
 

@@ -30,8 +30,10 @@ Read at session start, before doing anything else:
    - `gh` — operate GitHub Issues; load [references/github.md](references/github.md) for CLI
      mechanics and labels. Infer the repo from the adopter remote; use `public-tracker-id` only
      when it is explicitly set.
-2. **`.brain/AGENTS.md`** (Project section) — project tracker conventions shared with
-   `manage-work-graph`: linking rules, ADR policy, priority deviations. Absent or empty means pure defaults.
+2. **Public `AGENTS.md` and root `RULES.md`** — repository routing and established conventions.
+   Read `.brain/AGENTS.md` for private tracker conventions; absent or empty means defaults.
+   Shared Brain operations and private retrieval come from `DOTBRAIN.md`; use task-relevant
+   findings supplied by the lead, without reading the whole retrospective notebook.
 
 ## Triage roles
 

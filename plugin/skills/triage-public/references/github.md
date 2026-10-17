@@ -42,7 +42,7 @@ The public/private link is one-directional and inward: the private work item hol
 `gh-<number>` reference for its public origin. Never create a GitHub issue from a private design,
 epic, or bead just to track it publicly. A PR can provide a public review surface without an issue.
 When a PR uses `Closes #N`, it closes the public issue only; the private work item still needs an
-explicit close. Project linking discipline lives in the Brain's `AGENTS.md` (Project section).
+explicit close. Project linking discipline follows public repository instructions, root `RULES.md`, and private `.brain/AGENTS.md` tracker conventions.
 
 ## Skill-phrase mappings
 

@@ -35,8 +35,8 @@ symlinks.
 
 ## Make and check your change
 
-Keep each pull request focused. Follow the dependency layering and subprocess test seams described
-in [AGENTS.md](AGENTS.md); [Architecture](docs/architecture.md) explains the product model.
+Keep each pull request focused. Follow the dependency layering, subprocess test seams, and other
+requirements in [RULES.md](RULES.md); [Architecture](docs/architecture.md) explains the product model.
 Add a regression test for a behavior fix where practical. Run the affected tests while iterating
 and `uv run pytest` before submitting code changes. There is no configured linter.
 

@@ -26,7 +26,7 @@ Boundaries:
   promoted inward with a provenance link, but private work is never published outward for tracking.
   See [references/public-provenance.md](references/public-provenance.md) when work crosses that
   boundary.
-- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`; owned by other skills.
+- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`, `.brain/DOTBRAIN.md`; owned by other skills.
 
 ## What this skill owns
 
@@ -84,16 +84,16 @@ Unflagged items are **autonomous**: the agent may pick them up, work them, and c
 stopping for sign-off. This is the default because most items are small enough that the check-in
 adds friction without value. The human-review flag is the intentional exception.
 
-Flag an item for human review when it genuinely needs a decision — scope ambiguity, design
-trade-offs, cross-cutting impact, or anything you want to see before work starts. Leave
-everything else unflagged so the agent can flow through the ready frontier.
+Flag an item for human review when a genuine unresolved scope, authority, acceptance, or design
+decision needs the human. Explicit operator overrides and stricter instructions remain binding.
+Authorized task shaping, local commits, candidate integration, checks/UAT, and accepted work or
+review closure need no routine human sign-off. A review alone never warrants a `human` label.
 
 ## Operating loop
 
 1. On a new session or after context recovery, run `bd prime` for the Beads protocol. dotbrain
    injects no Beads context; skip it only when the operator's own Beads hook already supplied it.
-   Then read `.brain/AGENTS.md` (Project section — project tracker conventions; absent or empty
-   means pure defaults), [references/beads.md](references/beads.md) (engine mechanics and native-modeling
+   Read `.brain/AGENTS.md` for private tracker conventions (absent or empty means defaults), and follow public repository instructions/root `RULES.md`; read [references/beads.md](references/beads.md) (engine mechanics and native-modeling
    rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
    project Brain context and relevant ADRs.
 2. Inspect the graph with structured, non-interactive output: ready frontier, list, and item detail
@@ -114,22 +114,19 @@ everything else unflagged so the agent can flow through the ready frontier.
    cover the exact integrated revision; dependent bases contain accepted prerequisites. Failed
    or uncovered groups and their dependents stay held while only proven independent work continues
    from accepted bases with isolated candidates in either workflow. For
-   single-item work in the HITL workflow, present what was done and confirm before closing, unless the user
-   explicitly asked you to close it. Review beads follow their human-owned closing rules,
-   including the observed human merge exception for code review (see Review beads below). Work originating from
+   single-item work in either workflow, close accepted work without routine confirmation.
+   Review beads follow their evidence and disposition rules (see Review beads below). Work originating from
    an existing public issue may land through its public PR collaboration flow
    ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
    private close signal.
-7. If that close emptied a design-linked epic — no open work items left under an epic carrying
-   `spec-id design:<slug>`, ignoring its open review beads — run `close-design` before moving on.
-   Review beads never close on an agent's own judgment, so an epic whose only open children are review beads has
-   reached its final review step, not a stall. The design doc is still marked `active` and its
-   residue is still unharvested; that is the moment to settle both, and `close-design` discharges
-   the review beads with it.
+7. Work and review closure never merges the target branch and never automatically invokes
+   `close-design`. Even when all scoped work and reviews close, leave the design and epic active
+   until manually invoked terminal closeout. A ready PR awaits human approval and merge.
 8. When implementation exposes hidden requirements or follow-up work: do the obvious in-scope work
    directly; create or update related items when new work becomes explicit; split or reshape the
-   current item when it is no longer the right shape; adjust dependencies or acceptance when the
-   graph is wrong. Put discoveries back into the graph, never into ad hoc todo files.
+   current item when it is no longer the right shape; adjust dependencies within approved scope.
+   Acceptance criteria remain human-owned: surface proposed changes for a decision, never weaken
+   them to fit the build. Put discoveries back into the graph, never into ad hoc todo files.
 9. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
 

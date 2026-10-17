@@ -76,7 +76,7 @@ def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
     convention = _text(CONVENTION)
     loop = _text(SKILLS / "iterate-design/SKILL.md")
 
-    assert "explicit `GO`" in convention
+    assert "without repeat `GO`" in convention
     assert "PR authorization" in convention
     assert "ready-for-review PR" in convention
     assert "a draft PR at the first push" in convention
@@ -84,7 +84,7 @@ def test_automation_handoff_authorizes_only_a_ready_for_review_pr():
     assert "authorizes only the agreed push of its dedicated branch, a ready-for-review PR" not in convention
     assert "Preflight contract" in loop
     assert "ready-for-review PR" in loop
-    assert "does not authorize merge, deploy, publish, dependency changes" in loop
+    assert "does not authorize PR approval, target-branch merge, release, deploy, publish, dependency changes" in loop
 
 
 def test_adr_offer_test_is_single_sourced():
@@ -165,11 +165,13 @@ def test_iterate_design_runs_executions_through_run_execution():
     "Behavior includes code, tests, build or CI config, and instructions agents execute",
     "Changes confined to human-facing prose docs, comments, formatting, or generated output are exempt",
     "## Review skipped: <reason>",
+    "In the HITL workflow only, the lead may ask whether a small behavior change needs review",
     "prompt includes the diffstat, the behavior changed, and the lead's recommendation",
     "Keep the item open until the human answers",
+    "An explicit human review override remains binding",
     "## Review skipped: declined by human — <reason>",
     "Standing answers hold until the human changes them",
-    "The handoff workflow never asks",
+    "The handoff workflow never asks; it reviews every behavior change",
     "The lead never reviews changes it authored",
     "Item and integration reviews never get a batch review bead",
     "Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed changes",
@@ -221,12 +223,12 @@ def test_item_review_streak_survives_worker_checks():
         "finite active-writing cap", "fills and refills", "separate worktrees",
         "write no work-graph comments", "exact integrated revision",
         "approval of only the latest group is insufficient", "proves isolation",
-        "final human review record", "cheapest next action", "verification boundaries",
+        "final human PR review", "cheapest next action", "verification boundaries",
     ), ("up to two workers", "fresh whole-branch code review", "their Beads comment ID")),
     ("docs/zh/agent-team.md", (
         "有限的同时写入人数上限", "继续补位", "不同 worktree",
         "不写工作图评论", "准确的集成版本", "只批准最后一组改动不够",
-        "证明继续的工作与失败组隔离", "最终人工审阅记录", "成本最低的下一步", "验证边界",
+        "证明继续的工作与失败组隔离", "最终人工 PR 审阅", "成本最低的下一步", "验证边界",
     ), ("默认最多同时有两个 worker", "一位新 reviewer", "自己写入的 Beads 评论 ID")),
 ])
 def test_agent_team_guides_preserve_acceptance_and_coordination_boundaries(path, contracts, obsolete):
@@ -368,23 +370,24 @@ def test_review_modes_keep_distinct_verdicts_and_metadata():
         assert not re.search(r"NO-GO|no-go|request changes|verdict=go", _text(path)), path
 
 
-def test_review_closure_requires_a_human_decision():
+def test_review_closure_requires_evidence_and_dispositions_before_merge():
     record = _text(SKILLS / "manage-work-graph/references/review-beads.md")
     for guard in (
-        "never closes it on its own judgment",
-        "the lead may close a `code` review bead after observing the human's merge of the PR recorded on that bead",
-        "Cite that PR and its merge commit in the closeout",
-        "A PR closed unmerged leaves the bead open",
-        "Approval alone is not merge evidence",
-        "A `readiness` bead has no merge-based exception",
+        "lead closes accepted reviews before PR merge, without routine human sign-off",
+        "require `APPROVE`/`READY`, respectively",
+        "exact integrated revision",
+        "Blocking findings must be resolved",
+        "Other findings require recorded dispositions",
+        "`CHANGES`, `NOT-READY`, pending verdicts",
+        "failed, missing, or stale evidence hold affected work and reviews open",
         "A `simplify` bead does not close on merge",
-        "until every finding is applied, filed as its own item, or declined",
+        "once every finding is applied, filed as its own item, or declined with a reason",
     ):
         assert guard in record
     gate = _text(SKILLS / "review-gate/SKILL.md")
-    assert "disposition does not replace the human close" in gate
+    assert "no blanket `human` label for reviews" in gate
     graph = _text(SKILLS / "manage-work-graph/SKILL.md")
-    assert "including the observed human merge exception for code review" in graph
+    assert "close accepted work without routine confirmation" in graph
 
 
 @pytest.mark.parametrize("path", [
@@ -440,7 +443,7 @@ WHOLE_HANDOFF_STOPS = (
     "wrong or unmeetable criteria",
     "unresolvable scope, safety, or design ambiguity",
     "two cycles without a code change, new verification evidence, or resolved scope",
-    "an action outside GO",
+    "an action outside the approved contract",
     "a missing required capability or a PR that cannot be opened",
     "a failure that compromises shared state",
     "cancellation",

@@ -380,6 +380,37 @@ def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _defau
     return None
 
 
+def remove_agent_context_pointer(repo: Path) -> list[str]:
+    """Remove only complete Dotbrain pointer blocks from local real files.
+
+    Symlinks remain untouched, including links to external instruction files. Match
+    complete lines so quoted examples and unrelated instructions survive maintenance.
+    """
+    changed = []
+    pointer = paths.ADOPTER_POINTER.encode("utf-8")
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        file = Path(repo) / name
+        if file.is_symlink() or not file.is_file():
+            continue
+        original = file.read_bytes()
+        lines = original.splitlines(keepends=True)
+        cleaned = []
+        index = 0
+        expected = pointer.splitlines()
+        while index < len(lines):
+            if [line.rstrip(b"\r\n") for line in lines[index:index + len(expected)]] == expected:
+                index += len(expected)
+            else:
+                cleaned.append(lines[index])
+                index += 1
+        content = b"".join(cleaned)
+        if content != original:
+            file.write_bytes(content)
+            changed.append(name)
+    return changed
+
+
+
 def append_pointer_to_file(file: Path, pointer: str) -> str | None:
     file = Path(file)
     if file.is_symlink():
@@ -569,15 +600,15 @@ def unwire_repo(
             result.logs.append(f"{verb} dotbrain ignore rules from .git/info/exclude")
 
 
-    for fname in ("AGENTS.md", "CLAUDE.md"):
-        f = repo / fname
-        if not f.exists() or f.is_symlink():
+    for fname in remove_agent_context_pointer(repo):
+        result.logs.append(f"{verb} agent-context pointer from {fname}")
+    import_line = paths.ADOPTER_POINTER.splitlines()[0]
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        file = Path(repo) / name
+        if file.is_symlink() or not file.is_file():
             continue
-        text = f.read_text(encoding="utf-8")
-        pointer_lines = set(paths.ADOPTER_POINTER.strip().splitlines())
-        if any(pl in text for pl in pointer_lines):
-            cleaned = "\n".join(l for l in text.splitlines() if l.strip() not in pointer_lines).strip()
-            f.write_text(cleaned + "\n" if cleaned else "", encoding="utf-8", newline="\n")
-            result.logs.append(f"{verb} agent-context pointer from {fname}")
+        if import_line in (l.strip() for l in file.read_text(encoding="utf-8", errors="replace").splitlines()):
+            result.warnings.append(f"{file} still contains the Dotbrain pointer line {import_line}; "
+                                   "remove it if Dotbrain added it")
 
     return result

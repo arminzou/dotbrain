@@ -1,9 +1,12 @@
 # AGENTS.md
 
-Private agent context for this project. The repo-root `AGENTS.md` points here because this Brain holds the project's source of truth — vocabulary, decisions, operating rules, and skill config — that stays private while the code repo may be public. Execution lives in beads (`bd`), not in here.
+Small private project rules and personal preferences. Repository-wide requirements belong in
+public root `RULES.md`; keep preferences that should not travel with the repo here.
 
 `DOTBRAIN.md` carries the shared operating rules (wiring, conventions, public/private boundary) and is synced by `dotbrain refresh`.
 
 ## Project
 
-Cross-cutting rules with no structured home: build and test commands, project-wide constraints, gotchas, and project tracker conventions (linking rules, ADR-pairing policy, priority deviations) read by `manage-work-graph` and `triage-public` — absent or empty means pure defaults. Vocabulary goes in CONTEXT.md, decisions in adr/, skill selection in project.yaml.
+Private preferences and project tracker conventions — absent or empty means defaults.
+Vocabulary belongs in `CONTEXT.md`, decisions in `adr/`, evidence-backed findings in `RETRO.md`,
+and skill selection in `project.yaml`. Do not duplicate those documents here.

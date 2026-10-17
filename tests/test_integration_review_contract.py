@@ -133,8 +133,10 @@ def test_lead_records_review_and_final_human_gate_is_preserved():
     assert "reviewer returns a complete report to the lead without tracker writes" in gate
     assert "lead records findings and provenance on the review bead" in gate
     assert "review reuse removes no human gate" in gate
-    assert "a clean agent result does not close it" in gate
-    assert "A PR closed unmerged leaves the bead open" in gate
+    assert "lead closes `code`/`readiness` reviews" in gate
+    assert "before PR merge" in gate
+    assert "resolved blocking findings" in gate
+    assert "Failed, missing, or stale evidence holds affected work" in gate
     assert "A `simplify` bead does not close on merge" in gate
 
 

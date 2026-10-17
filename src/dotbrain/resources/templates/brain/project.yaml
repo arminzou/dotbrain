@@ -13,6 +13,13 @@ agents:
 public-tracker: none
 # public-tracker-id: ""
 
+# Read by the run-retro skill; public delivery is disabled when omitted.
+# Existing repository guidance is discovered and suggested without public mutations.
+# retro:
+#   promotion:
+#     auto-deliver: false
+#     destinations: []  # allowed existing repo-relative guides; empty blocks auto-delivery
+
 # beads: deviations from global defaults only — uncomment the keys you need.
 #   mode: embedded     # one of: embedded, server, none
 #   remote: https://doltremoteapi.dolthub.com/owner/repo

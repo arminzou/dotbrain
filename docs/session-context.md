@@ -13,8 +13,10 @@ sequenceDiagram
   participant B as .brain/
   A->>D: Session starts
   D-->>A: dotbrain convention (wired repos only)
-  A->>B: Read AGENTS.md, before substantial work
-  B-->>A: The project's own rules
+  A->>B: Read AGENTS.md before substantial work
+  B-->>A: Private project rules and preferences
+  A->>B: Lead searches task-relevant retrospective findings
+  B-->>A: Relevant findings for existing assignments
 ```
 
 The plugin registers one `SessionStart` hook that runs `dotbrain hook session-start`. It fires on
@@ -31,7 +33,9 @@ The project's own files are not injected:
 | File | Loaded how |
 | --- | --- |
 | `.brain/DOTBRAIN.md` | Injected by the hook |
-| `.brain/AGENTS.md` | Read by the agent; the convention tells it to |
+| `.brain/AGENTS.md` | Read before substantial work for private rules and preferences; never injected |
+| Public `AGENTS.md` and root `RULES.md` | Repository entry point routes making/reviewing changes to tracked rules, usable without a Brain |
+| `.brain/RETRO.md` | Lead or sole agent searches relevant findings during implementation or review preparation; passes them through assignments |
 | `.brain/CONTEXT.md`, `adr/`, `designs/` | Read by the agent when the work needs them |
 | `.brain/docs/` | Searched by the agent before it answers how the project works |
 | Beads workflow primer | Not injected by dotbrain; the agent runs `bd prime` when it needs it |
@@ -43,7 +47,7 @@ To have the Beads primer injected too, add Beads' own hook with `bd setup claude
 Dotbrain tests its session-start payload against a 10,000-byte budget. This budget comes from
 measured Claude Code behavior: 9,961 bytes reached the model, while 10,010 bytes were written to
 a file instead. It is not a verified limit for every runtime. `DOTBRAIN.md` has a bounded size;
-a project's `AGENTS.md` grows with the project. Injecting only the convention keeps the payload
+repository rules and retrospective notebooks grow with the project. Injecting only the convention keeps the payload
 within that budget.
 :::
 
@@ -69,7 +73,8 @@ example prompts, and how the lead coordinates their results.
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
-Each reads the Brain before acting:
+Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
+without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 
 | Subagent | Does |
 | --- | --- |

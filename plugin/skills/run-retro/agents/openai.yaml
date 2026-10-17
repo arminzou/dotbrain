@@ -1,0 +1,5 @@
+interface:
+  display_name: "Run Retrospective"
+  short_description: "Capture findings and prepare recurring public rules"
+policy:
+  allow_implicit_invocation: false

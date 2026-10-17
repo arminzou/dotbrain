@@ -94,9 +94,32 @@ skills:                       # extra skills for this project's workspaces
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
 | `subagents` | `[]` | Project-only subagents in addition to the packaged subagents |
+| `retro.promotion.auto-deliver` | `false` | Skill-read setting: allow unattended commit/push/PR delivery of rule proposals |
+| `retro.promotion.destinations` | `[]` | Allowed existing public guides as repo-relative paths; a nonempty array is required for auto-delivery |
 
 `public-tracker` sets up public issue intake and contributor collaboration. It never mirrors the
 private work graph or turns private work into public issues; see the `triage-public` skill.
+
+`run-retro` reads its settings directly; they add no CLI delivery command. With auto-delivery
+disabled or unset, it updates private findings, discovers the repository's guidance conventions,
+and suggests a destination and rule for your decision. You can authorize an individual PR or
+enable standing delivery to an agreed destination, for example:
+
+```yaml
+# project.yaml — opt in only after agreeing on this repository's destination
+retro:
+  promotion:
+    auto-deliver: true
+    destinations:
+      - CONTRIBUTING.md
+      - docs/code-standards.md
+```
+
+Each destination must exist inside the repository. The skill selects the best fit per finding,
+amending existing guidance without copying a rule into every file. If scope is ambiguous or no
+allowed file fits, it suggests the choice to you. A new rules file needs explicit agreement;
+the skill never assumes a repository should adopt `RULES.md`. Approval and merge remain human-owned.
+Disabling auto-delivery leaves private capture and read-only reconciliation available.
 
 ::: info
 `dotbrain refresh` preserves project declarations byte-for-byte. Intentional Beads configuration

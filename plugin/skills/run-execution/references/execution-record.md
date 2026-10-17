@@ -71,6 +71,14 @@ executed here.
 Check output belongs in evidence comments with revision and environment references. Do not copy
 full logs into metadata.
 
+Acceptance/UAT evidence records revision, environment, agreed user journeys, actual checks/results,
+and gaps. Agents may run UAT within approved authority. An unexercised journey is a gap, never a
+pass or an automatic request for the human to check. Failed, missing, or stale required evidence,
+including missing UAT, holds affected work. Refresh evidence when the integrated head changes;
+preserve prior records and remaining limits on resume. Record every finding's disposition:
+blocking findings resolved, other findings applied, filed with follow-up IDs, or declined with
+reasons. Local commits, integration, checks/UAT, and accepted closure need no routine sign-off.
+
 Write each comment file so its text arrives verbatim on Windows, macOS, and Linux, in a temporary
 location outside the project. Prefer the runtime's own file-writing tool. From a shell, use a
 quoted heredoc in bash or zsh, including Git Bash on Windows (`cat > <file> <<'EOF'`), or a

@@ -56,7 +56,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   `--spec-id design:<slug>` 把每个 bead 关联回设计。
 - **`grill-decisions`**：对照项目的术语和决策对计划做压力测试，再把长期有效的结论写进 `CONTEXT.md` 和 `adr/`。
 - **`find-unknowns`**：在确定设计之前，找出陌生领域里的盲点和隐含假设。
-- **`close-design`**：把设计文档推进到终态：记录证据，把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
+- **`close-design`**：手动把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
+  把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
 
 ## 执行 {#execution}
 
@@ -68,8 +69,23 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 
 ## 分诊与审阅 {#triage-and-review}
 
-- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；代码审阅在你合并
-  对应 PR 后关闭，其他审阅由你来关闭
+- **`run-retro`**：检查新增或变化的证据，在私有 Brain 中记录 Agent 的发现、成功做法和已处理的范围。
+  可手动调用，也可由外部定时任务调用。同一做法在三个不同证据日期得到支持后，默认只查找仓库已有的规则、标准或贡献指南，
+  建议合适的文件和规则，由你决定是否创建 PR。只有获得单次提案授权，或在私有项目配置中将
+  `retro.promotion.auto-deliver` 设为 `true` 并通过 `destinations` 数组列出允许修改的已有公开文件，它才会自动准备和交付改动。
+  它以只读方式检查 PR 和合并状态；只有确认改动已合入目标分支，才会记录规则已被接受。
+  PR 批准、合并和发布仍由你决定，定时调度由 Agent 宿主负责。
+  私有 `RETRO.md` 只用 Markdown 条目记录发现，文首简要记录审阅范围和未完成事项，不重复保存 YAML 台账。
+  审阅按声明的范围进行，不保证发现所有历史记录的编辑。
+  已采用的 `RULES.md` 按主题使用 `Rule` / `What to check` 表格，其他指南保留原有格式。规则提案使用 `run-retro` 自己的 PR 流程和格式，
+  不调用负责普通改动交付的 `pr` skill。
+  首次运行先读取根目录说明及其引用的标准，以当前 HEAD 为起点，不回溯历史。
+  若为仓库范围且没有规则或标准文件，会在首次运行（或之后尚未得到答复的运行）中询问一次是否创建 `RULES.md`，只收录已有说明中写明的要求，并以 PR 交付；
+  贡献者范围从不在仓库中创建文件。
+  后续按明确选定的贡献分支或 PR，或维护者选定的集成分支向前审阅，复用共享进度并读取当前适用的规则。
+  未选定范围时会报告缺口，不会默认审阅整个仓库
+- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；必要证据覆盖准确版本、
+  各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
 - **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
 - **`triage-public`**：对公开任务跟踪里的条目分类，把准备好的工作提升到私有执行中
 - **`review-architecture`**：审查代码库，寻找可以加深架构的机会

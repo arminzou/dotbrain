@@ -65,10 +65,11 @@ Each element of a Brain has one purpose:
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
+    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
-    AGENTS.md ## this project's agent conventions
+    RETRO.md ## optional private retrospective findings
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
@@ -77,10 +78,11 @@ treeView-beta
 
 | Element | Holds | Changes when |
 | --- | --- | --- |
+| `AGENTS.md` | Private preferences and project rules; `CLAUDE.md` is its alias | Working rules change |
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
-| `AGENTS.md` | This project's agent conventions | Working rules change |
+| `RETRO.md` | Optional private retrospective findings and evidence | A retrospective pass records findings |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
@@ -91,7 +93,35 @@ real trade-off. An **active** design is the living authority for its initiative;
 **shipped**, **abandoned**, or **superseded** it freezes as a record, and what should outlive it
 moves to `adr/` and `CONTEXT.md`. [The workflow](workflow.md) walks through that lifecycle.
 
+Design authoring settles scope, acceptance/UAT and execution authority with the human.
+Decomposition investigates prerequisites and foreseeable decisions before unattended work; a
+settled graph may be entirely autonomous and needs no second routine task-set approval.
+Iteration validates and reuses the complete approved contract without repeat approval, retaining
+narrower instructions and remaining limits on resume. Missing or changed scope, authority or
+criteria decisions stop affected work with evidence and a recommendation; credentials being
+available never grants permission. Agents check provider permissions at execution entry without
+exposing secrets.
+
+Agent delivery completes with agreed work, required reviews and acceptance/UAT complete at the
+integrated revision, and a ready PR requesting human review. PR approval, target-branch merge and
+release stay human. The design and epic remain active until manually invoked `close-design`
+checks actual merge evidence for shipment; a closed-unmerged PR never proves shipment.
+REFLECT keeps design discoveries in the design and execution facts in Beads. It adds no
+retrospective checkpoint, second reflection report or merge polling.
+
 Brain writes are commits in the dotbrain home, so every change can be reviewed and reverted.
+
+Public repository `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`.
+These instructions remain usable without a Brain. Shared `DOTBRAIN.md` owns private retrieval:
+the lead or sole agent searches relevant retrospective findings during implementation or review
+preparation and passes them through existing assignments. Workers and reviewers reuse supplied
+findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
+only shared conventions, never the notebook.
+
+Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
+rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
+never injected. Wiring and refresh preserve user-owned context and existing pointers.
+Public `RULES.md` holds repository requirements; private preferences stay private.
 
 ## Execution Lives in the Tracker
 

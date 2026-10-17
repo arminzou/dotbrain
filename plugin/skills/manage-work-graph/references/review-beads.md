@@ -22,9 +22,9 @@ Unmet acceptance or a blocker/high regression caused by the reviewed change prod
 wherever its symptom appears; unrelated existing defects and medium/low findings remain
 non-blocking discovered work. Missing safety evidence is a reported gap, not a verified claim.
 
-A review bead *is* a review gate, and a gate is human-owned at its close: an agent records the
-gate's lifecycle and never closes it on its own judgment. The observed human merge exception
-for `code` review beads is in Closing and human review below.
+A review bead records agent work. The lead applies the evidence and disposition rules in
+Closing below; independent review remains required. A genuine unresolved decision or explicit
+operator gate still binds, but being a review does not create a human gate.
 
 ## Verdict vocabulary
 
@@ -102,14 +102,14 @@ relative to when the bead exists*, not of what produced the findings:
 - **`--metadata`** — the current queryable result, separate from the append-only record:
   `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'`. Update `verdict` when the
   call is made. Query `verdict=changes` or `verdict=not-ready` with
-  `bd list --metadata-field verdict=<value> --all`; an agent verdict does not discharge the gate.
+  `bd list --metadata-field verdict=<value> --all`; verdict alone does not establish closure evidence.
   A simplify pass records findings without a `## Verdict:` comment or `verdict` metadata.
 
   ```bash
   bd create "<review title> @ <commit>" \
     --type task --priority 1 --parent <epic-id> \
     --description "Multi-pass readiness review: <the standard — the oracle>" \
-    --acceptance "All passes recorded; verdict issued; every finding fixed or filed as its own bead." \
+    --acceptance "All passes recorded; required verdict and evidence pass at the exact integrated revision; blocking findings resolved and other findings dispositioned." \
     --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'
   ```
   A review with no epic — a repo-wide audit, a release gate — is a top-level bead; use `--type
@@ -132,32 +132,36 @@ rewriting notes. Apply the matching rules above. The two disciplines are not
 interchangeable: rewriting a multi-pass bead's notes as "current state," or editing one of its
 comments, destroys the record the shape exists to protect.
 
-## Closing and human review
+## Closing
 
-A review bead is **human-gated by definition**: its lifecycle is a review gate, and only a person
-decides when that gate is discharged. Findings fixed, a clean verdict, or acceptance met do not
-authorize an agent to close the bead on its own judgment.
+The lead closes accepted reviews before PR merge, without routine human sign-off. Do not add
+the `human` label merely because a bead is a review. An explicit gate for a genuine unresolved
+decision and stricter operator instructions still bind; investigate within approved authority
+and return scope, authority, or acceptance changes to `grill-decisions`.
 
-An open review bead therefore means its **review gate is incomplete**, in one of these senses:
-review in progress, remediation in progress, a clean agent verdict awaiting a human, or a PR
-awaiting approval or merge.
-
-- **Agent at closeout** — once every finding is fixed, filed as its own bead, or consciously
-  declined, append the `## Closeout @ <commit>` record naming each disposition and surviving
-  follow-up ids, add the native `human` label, and leave the bead open with a one-line close
-  recommendation. The label is the pending-decision signal; never invent a second status label.
-- **Human** — closes it explicitly, or the review bead is discharged by `close-design` as part of a
-  design's terminal transition. `bd close` remains the close signal. A `simplify` bead stays open
-  until every finding is applied, filed as its own item, or declined; a human close or terminal
-  transition must account for those dispositions.
-- **Observed human merge** — the lead may close a `code` review bead after observing the human's
-  merge of the PR recorded on that bead. Cite that PR and its merge commit in the closeout, then
-  close. A PR closed unmerged leaves the bead open. Approval alone is not merge evidence.
-  A `readiness` bead has no merge-based exception. A `simplify` bead does not close on merge:
-  merging does not decide whether its suggestions are wanted.
-- **Findings are not the gate** — remediation a review files (defect fixes, follow-up tasks) are
-  ordinary beads: autonomous, agent-claimable, and closable. Only the review bead itself is
-  human-terminal. Never leave review-derived work open just because it came from a review.
+- **Code/readiness** — require `APPROVE`/`READY`, respectively, and all required acceptance
+  evidence at the exact integrated revision. Blocking findings must be resolved; filing or
+  declining a blocker does not resolve it. Other findings require recorded dispositions.
+  `CHANGES`, `NOT-READY`, pending verdicts, or failed, missing, or stale evidence hold affected
+  work and reviews open. After a changed integrated head, refresh review and checks before closure.
+  After a closed `APPROVE`/`READY` review, a later head change (repair, PR feedback, or rebase)
+  requires a new review record or reopening before that review counts as current evidence.
+- **Simplify** — close once every finding is applied, filed as its own item, or declined with a
+  reason within approved scope. Record follow-up IDs and reasons. A clean pass has zero findings
+  to disposition. Simplify remains non-blocking for PR readiness; an open simplify bead never
+  holds the PR or `FINAL`. A `simplify` bead does not close on merge.
+- **Closeout record** — append `## Closeout @ <commit>` with reviewer provenance, exact base/head,
+  required verdict and evidence references, every finding ID and disposition, surviving follow-up
+  IDs, and coverage gaps. Confirm the current integrated head matches before native `bd close`.
+  Preserve the assignee: close under its actor, naming the lead in the reason; never force closure.
+- **UAT evidence** — record revision, environment, agreed user journeys, actual checks/results,
+  and gaps. An unexercised journey is a gap, never a pass. Missing UAT holds affected work when
+  required; it is not an automatic request for the human to check. Investigate and repair within
+  remaining limits; preserve containment, retry caps, and finite whole-loop limits on resume.
+- **Delivery boundary** — closure grants no PR approval or merge authority, never merges the
+  target branch, and never automatically invokes `close-design`. Neither PR approval nor merge
+  is a prerequisite for accepted review closure. The design and epic remain active until manually
+  invoked terminal closeout. Review-derived follow-up work uses ordinary work closure rules.
 
 For an epic gate, make the review bead depend on every scoped implementation bead; it becomes
 claimable only after the graph reaches its final review step.

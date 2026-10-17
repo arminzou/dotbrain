@@ -70,7 +70,7 @@ in the conversation and nothing is parked.
 ### 1. Infer the context
 
 Work out what the user is asking about, which code or system it concerns, and which topic it belongs
-to. Read the repository `AGENTS.md`, `.brain/AGENTS.md`, `.brain/learning/AGENTS.md`, `MISSION.md`,
+to. Read the repository `AGENTS.md`, `RULES.md`, `.brain/AGENTS.md`, `.brain/learning/AGENTS.md`, `MISSION.md`,
 `NOTES.md`, and that topic's learning records. When the user is resuming a path ("continue step 3"),
 also read its `learn:` bead.
 

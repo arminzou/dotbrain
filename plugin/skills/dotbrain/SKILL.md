@@ -22,7 +22,7 @@ The convention describes the model; these skills act on it.
 | Create, claim, or close work items | `manage-work-graph` |
 | Do an item or a finite batch of items | `run-execution` |
 | Formalize an initiative, or record a decision | `to-design`, `grill-decisions` |
-| Edit a project's own rules in `.brain/AGENTS.md` | `curate-project-context` |
+| Curate repository rules and private context | `curate-project-context` |
 
 # DOTBRAIN.md
 
@@ -32,30 +32,28 @@ Brain template propagate to every brain.
 
 ## Wiring
 
-- This Brain lives in the private dotbrain home at
-  `~/dotbrain/brainspaces/<name>/.brain`, not in the code repo.
-- Repo-root `.brain` and `.beads` are gitignored symlinks into that Brainspace. `.claude` and
-  `.codex` are real project directories containing gitignored selected resources. Skills and
-  Claude agents are symlinks; Codex agents are generated real TOML files marked
-  `# dotbrain-managed-agent: v1`. Customize their private source; delivered copies are disposable.
-  These resources are local machine wiring: never commit them to the code repo.
-- Brain changes are committed in `~/dotbrain`. The code repo's `git status` never shows them.
-- Worktrees reach this same Brain through their own `.brain` and `.beads` symlinks; never copy it
-  per worktree.
-- Attach a main checkout or Git worktree with `dotbrain wire`; Git metadata connects a worktree
-  to its main checkout's existing Brainspace without changing registration or declarations.
+- The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
+  `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
+  Commit Brain changes in `~/dotbrain`, not the code repo.
+- `.claude` and `.codex` are real checkout directories: skills/Claude agents are symlinks;
+  Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
+  commit local wiring or delivered copies.
+- `dotbrain wire` attaches a main checkout or Git worktree; Git metadata connects worktrees
+  to the main checkout's existing Brainspace without changing registration or declarations.
 - Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
-- `dotbrain unwire` detaches the selected checkout while retaining the Brainspace, shared tracker,
-  other worktrees, and user-owned workspace content. Retire Brainspaces through filesystem actions.
-- Never hand-create links under `.claude` or `.codex`. Their targets are relative paths the CLI
-  computes from the checkout's real location; a hand-counted `../` depth dangles without error.
+- `dotbrain unwire` detaches one checkout, retaining data and other checkouts; retire Brainspaces via filesystem actions.
+- Let the CLI compute relative links under `.claude` and `.codex`; hand-counted paths can dangle.
 
 ## Rules
 
-- Read `.brain/AGENTS.md` before substantial work. It holds this project's own rules and is
-  not injected at session start. If it is missing, note the gap and continue.
+- Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
+- Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
+- During implementation or review preparation, the lead or sole agent searches `.brain/RETRO.md`
+  for task-relevant findings and passes applicable findings through existing assignments.
+  Workers and reviewers reuse supplied findings; they need not read the whole notebook.
+  Reuse findings in context. A missing notebook blocks nothing; do not scaffold it.
 - Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
@@ -65,25 +63,22 @@ Brain template propagate to every brain.
 - Both the HITL and handoff workflows run on a dedicated branch and land through a review
   surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
   into that branch, never into `main`. In the HITL workflow, propose the branch at the first
-  bounded execution; it may span several bounded executions. Ask before pushing or opening a PR.
-  Merge stays human-owned. Local HITL landing requires explicit human instruction, recorded
+  bounded execution; it may span several bounded executions. Reuse approval before pushing or opening a PR;
+  ask only for missing authority. Merge stays human-owned; PR approval and release too.
+  Local HITL landing requires explicit human instruction, recorded
   by the lead; it is never the default.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
   Do not drift to synonyms.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
 - If `CONTEXT.md` or `adr/` are missing or empty, proceed silently — note the gap, don't
   scaffold them unasked.
-- `.brain/docs/` holds project-scoped knowledge (runbooks, references, derived notes) that
-  is not auto-injected into context. Before answering how this project builds, runs, deploys,
-  integrates, or otherwise works, check and search `.brain/docs/` first — do not infer from
-  the public repo or generic conventions when the Brain has a documented answer.
-- Search the Brain by targeting `.brain/`: it is hidden and gitignored, so a search from
-  the repo root skips it.
+- Before explaining how the project works (build, runtime, deployment, integrations), search
+  `.brain/docs/` for documented answers. These private references are not injected.
+- Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the code
   repo — for a public need, derive a fresh audience-specific doc instead.
-- Public-facing repo docs (README.md, repo-root AGENTS.md) must not expose private Brain
-  paths or content. The only `.brain` reference allowed in the repo root is the one-line
-  agent pointer to `.brain/AGENTS.md`.
+- Public repo docs must not expose private content; derive standalone guidance. The standard
+  `.brain/AGENTS.md` agent pointer is allowed.
 - Never reference private Brain context from code, tests, comments, commit messages, or
   PR text: no ADR numbers, Brain paths, or decision-record identifiers in anything the
   public repo carries. State the rationale in plain terms instead; the ADR linkage stays
@@ -94,23 +89,22 @@ Brain template propagate to every brain.
 These invariants bind any iterative or autonomous execution, whatever skill or loop primitive
 drives it:
 
-- Verification, success, and acceptance criteria are human-owned. They can change, but only through
-  the human: surface the proposed wording and the reason, get approval, then record what changed.
-  Where no human is present to approve — an autonomous loop — that is a stop condition, not a
-  licence to decide. What is ruled out in every workflow is an agent weakening or rewriting them on
-  its own to match what the build does.
+- Verification, success, and acceptance criteria are human-owned; never weaken them to fit the build.
+  New scope/authority/criteria decisions stop affected work with evidence and a recommendation.
+  Get human approval; record changes. Contain independent work.
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
-- An explicit automation-handoff contract — scope, branch/base, verification plan, review mode,
-  available provider/auth, PR authorization, and an explicit `GO` — authorizes only pushing its
-  dedicated branch, a draft PR at the first push, one mention of the human for each blocked stop,
-  and, at `FINAL`, a ready-for-review PR with the human's review requested. Merge, deploy,
-  publish, dependency changes, and every other outward action end the loop and go to the human.
-- A review gate is human-owned at close: a clean agent verdict does not close it. Closing is the
-  human's, or `close-design`'s terminal transition. The lead may close a `code` review bead after
-  observing the human's merge of its recorded PR, citing that PR and merge commit. A PR closed
-  unmerged leaves it open. A `simplify` bead does not close on merge and waits for every finding's
-  disposition. Detailed closing rules live in `manage-work-graph/references/review-beads.md`.
+- Reuse complete approval without repeat `GO`; execution requests grant no missing authority.
+  `iterate-design` validates scope, branch/base, checks/UAT, reviews, provider/auth, PR authorization
+  and finite limits; preserve overrides and remaining limits on resume. Check credentials privately;
+  availability grants no authority. Delivery: a draft PR at the first push, one mention of the human
+  for each blocked stop. `FINAL`: agreed work, reviews, acceptance/UAT complete; ready-for-review PR
+  requests human review. Unauthorized actions end the loop and go to the human.
+- The lead closes accepted work and reviews without routine human sign-off, before PR merge:
+  required verdict/evidence at the exact integrated revision, blocking findings resolved and other
+  findings dispositioned. Simplify closes on dispositions, stays non-blocking. Explicit gates bind.
+  Closure never merges the target branch and never automatically invokes `close-design`. Details:
+  `manage-work-graph/references/review-beads.md`.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 
@@ -121,7 +115,7 @@ decisions, rules) and the territory (the codebase and its real constraints). Tha
 project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
 design docs speak one language:
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and `AGENTS.md`.
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, public `RULES.md`, and private `AGENTS.md`.
 - **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
 - **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
   Surfaced by grilling and prototypes, then written into canon.
@@ -138,6 +132,10 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
 
 ## Brain structure
 
+- `AGENTS.md` — small private rules/preferences; `CLAUDE.md` is its relative symlink
+- `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
+- `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
+  established repository rules remain authoritative in public `RULES.md`
 - `CONTEXT.md` — domain vocabulary for this project
 - `project.yaml` — per-project skill selection and engine/tracker config
 - `adr/` — Architecture Decision Records, one file per decision
@@ -149,7 +147,8 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   bead epics by `to-issues`.
   Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
   freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
-  (vocabulary). Driving a design to a terminal state is `close-design`'s job.
+  (vocabulary). Manual `close-design` checks actual PR merge evidence for shipment; until then
+  design/epic stay active. Closed-unmerged is never shipped.
   Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
   `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc
   invented fields drift the vocabulary apart; say anything else in prose
@@ -159,9 +158,8 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
   asks to park a concept for later learning, file it per `manage-work-graph`'s learning-beads
   reference
-- `site/` — the Brain site's settings (`site.yaml`, whose nav is the sidebar), its home page
-  `index.md`, dotbrain's manual `configure.md`, and optional theme extensions. Optional; `dotbrain site` renders every Markdown file
-  in the Brain as a page, and `brain-site` maintains it
+- `site/` — optional site settings (`site.yaml` nav), home (`index.md`), `configure.md`, and
+  theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
-`project.yaml` (`skills:`); project tracker conventions live in `AGENTS.md` under Project.
+`project.yaml` (`skills:`). Public instructions route changes and reviews to `RULES.md` if present.

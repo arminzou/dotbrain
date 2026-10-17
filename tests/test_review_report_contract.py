@@ -77,7 +77,7 @@ def test_lead_records_provenance_and_single_cross_item_repair_ownership():
         "Repair references go to the original workers",
         "unchanged consumers and interactions",
         "Missing safety evidence is a reported gap",
-        "only a person decides when that gate is discharged",
+        "lead closes accepted reviews before PR merge, without routine human sign-off",
     ):
         assert requirement in graph, requirement
     target = Path("plugin/skills/manage-work-graph/references") / "../../run-execution/references/execution-record.md"

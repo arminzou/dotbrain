@@ -63,9 +63,10 @@ sole writer, it is also the assignee: a team of one. One delegated writer is seq
   the work graph, or writes an item's `dotbrain_` metadata. A writing worker writes only its own claim and,
   when assigned, evidence comments on its own item. It returns candidate results, check evidence,
   discovered work, and design-relevant learning; the lead records them.
-- A work item has at most one active worker. When parts of one item could run concurrently, ask the
-  human before the execution starts; on agreement split the item through `manage-work-graph`, and
-  both parts join the fixed item set.
+- A work item has at most one active worker. When parts of one item could run concurrently, the
+  lead shapes the item through `manage-work-graph` before execution starts, preserving approved
+  scope, acceptance criteria, and finite limits; both parts join the fixed item set. An explicit
+  unresolved decision or stricter operator instruction still binds.
 - A writing worker's own checkpoint checks run in its checkout as part of its work and are not
   verifier runs. It stops after 3 consecutive failed checks on one checkpoint unless the request
   names another limit.
@@ -116,7 +117,7 @@ into the target and route needed rebases to the original workers.
 
 | Operation | Required input or gate | Result and next operation |
 | --- | --- | --- |
-| Select | Authorized scope, ready frontier, human gates, routing hints, and limits. | Fixed item set and eligible members; any split agreed with the human first. |
+| Select | Authorized scope, ready frontier, human gates, routing hints, and limits. | Fixed item set and eligible members; in-scope shaping preserves acceptance criteria and limits. |
 | Dispatch and claim | Required capabilities, the worker cap, and resource constraints. | A `Dispatched` record and an item claimed under the worker's own actor, or a surfaced blocker. |
 | Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
 | Integrate provisionally | Passing worker checks, coherent group membership, and the accepted delivery head; workers remain assignees. | Create an isolated group candidate branch from the accepted delivery head. For each candidate, rebase the item branch onto the current group candidate, then fast-forward the group candidate with `git merge --ff-only <item-branch>`; never create a merge commit. On conflict, resume the original worker and rerun checks. Keep all members open and dependents held. |
@@ -173,7 +174,8 @@ In the HITL workflow only, the lead may ask whether a small behavior change need
 prompt includes the diffstat, the behavior changed, and the lead's recommendation. Keep the item
 open until the human answers. Record a decline as
 `## Review skipped: declined by human — <reason>`. Standing answers hold until the human changes
-them. The handoff workflow never asks; it reviews every behavior change.
+them. The handoff workflow never asks; it reviews every behavior change. An explicit human review
+override remains binding.
 
 Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
 it authored. Fix the boundary at the group base and exact integrated head, included items,
@@ -329,6 +331,12 @@ acceptance decisions stop the entire execution. Cancellation remains a whole-exe
   do not promise to restore the former batch exactly or pick a different one.
 
 ## Completion
+
+Within approved authority, the lead implements, commits locally, integrates candidates, runs
+checks and UAT, shapes tasks, and closes accepted work without routine human sign-off. Explicit
+operator overrides and stricter instructions remain binding. Closure never merges the target
+branch and never automatically invokes `close-design`; the design and epic remain active until
+manually invoked terminal closeout.
 
 Every item in the fixed set is closed with integrated acceptance evidence, or is open with a
 recorded blocker, human gate, or cancellation. Workers' merged worktrees and branches are removed.

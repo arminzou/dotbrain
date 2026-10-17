@@ -61,10 +61,11 @@ Brain 里的每个部分各有一个用途：
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
+    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
-    AGENTS.md ## this project's agent conventions
+    RETRO.md ## optional private retrospective findings
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
@@ -73,18 +74,39 @@ treeView-beta
 
 | 部分 | 内容 | 何时变化 |
 | --- | --- | --- |
+| `AGENTS.md` | 私有偏好和项目规则；`CLAUDE.md` 是它的别名 | 工作规则变化时 |
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |
 | `adr/` | 架构决策记录（ADR），每个决策一条 | 做出一个难以撤回、有真实取舍的选择时 |
 | `designs/` | 设计文档，每项工作一个文件 | 一项工作被规划、实现或结束时 |
-| `AGENTS.md` | 本项目的 Agent 约定 | 工作规则变化时 |
+| `RETRO.md` | 可选的私有复盘发现和证据 | 复盘记录新发现时 |
 | `DOTBRAIN.md` | 共享约定，由 dotbrain 维护 | `dotbrain refresh` 更新它时 |
 | `project.yaml` | 运行时、任务跟踪、技能和子 Agent 的选择 | 你改变项目使用的东西时 |
 | `docs/` | 派生的操作手册和参考资料 | 随时；从不作为权威依据 |
 | `learning/` | 可选的个人学习工作区 | 你用 `teach-me` 学习项目时 |
 
+公开的仓库 `AGENTS.md` 会指引 Agent 在修改或审阅代码时读取根目录下、由 Git 跟踪的
+`RULES.md`；没有 Brain 也能照常使用。共享约定 `DOTBRAIN.md` 负责私有上下文的检索：
+lead 或独立工作的 Agent 在实现或审阅准备时搜索复盘笔记，把相关发现随任务分派传递。
+worker 和 reviewer 复用这些发现，不必通读笔记；笔记缺失不会阻塞工作，也不会因此自动创建。
+会话开始时只注入共享约定，不会注入复盘笔记。
+
+新建 Brain 会生成私有的 `AGENTS.md`，保存少量个人偏好和项目私有规则，
+`CLAUDE.md` 是它的符号链接。Agent 在开始实质工作前读取它，会话启动时不注入。
+wire 和 refresh 保留已有内容和上下文指针。仓库要求放在公开的 `RULES.md`，个人偏好保持私有。
+
 ADR 记录的是难以撤回、没有上下文会让人意外、并且经过真实取舍的决策。**active** 的设计是这项工作的
 权威依据；一旦变成 **shipped**、**abandoned** 或 **superseded**，它就冻结为一份记录，需要长期保留的内容
 转移到 `adr/` 和 `CONTEXT.md`。[工作流程](workflow.md)介绍了这个生命周期。
+
+写设计时，先与你敲定范围、验收/UAT 和执行权限。拆分任务前调查前置条件和可预见的决策；
+设计已定，就不必再为任务拆分单独确认，实现任务也可以全部自主完成。执行时核实并复用完整授权，
+恢复时保留更窄的指令和剩余次数、预算。遇到新的范围、权限或验收标准问题，先停下相关工作，
+带上证据和建议交给你决定。执行入口检查 provider 权限，不暴露凭据；有凭据不等于有授权。
+
+Agent 完成约定的工作、必要审阅和验收/UAT，证据覆盖准确的集成版本，再把 PR 标为 ready 并请求你审阅。
+PR 批准、合并到目标分支和发布仍由你决定。设计和 epic 保持 active，直到你手动调用 `close-design`；
+认定已交付前要核实真实合并证据，关闭但未合并的 PR 不算交付。REFLECT 仍把设计发现写回设计、执行事实
+写入 Beads，不增加复盘检查点、第二份反思报告或合并轮询。
 
 对 Brain 的写入都是 dotbrain 主目录里的提交，所以每次改动都可以审阅和撤回。
 

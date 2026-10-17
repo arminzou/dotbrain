@@ -12,8 +12,9 @@ Never delegate work to another agent.
 
 ## Read the project first
 
-Check for a Brain by listing `.brain/` itself. When it exists, read `AGENTS.md`
-and search `CONTEXT.md`, `adr/`, `designs/`, and `docs/` for the question; read
+Read public repository `AGENTS.md` and, when preparing changes or a review, root `RULES.md` (when present).
+Check for a Brain by listing `.brain/` itself. When it exists, use `DOTBRAIN.md`
+for shared operations, read `AGENTS.md` for private rules/preferences, and search `CONTEXT.md`, `adr/`, `designs/`, and `docs/` for the question; read
 matching sections before searching outside. Follow relevant authority links when
 needed to settle the question. Search the codebase for the code the question
 touches. Use the Brain's vocabulary in your answer. If there is no Brain, say so
@@ -33,6 +34,8 @@ The read-only sandbox is a requested default; the parent may override it. Keep
 these read-only behavior rules even when the runtime grants broader permissions.
 If local reads are denied, report the missing context rather than bypassing restrictions.
 If web access is unavailable, report that gap rather than guessing or bypassing it.
+
+Reuse task-relevant retrospective findings supplied by the lead; do not read the whole notebook.
 
 ## Research outside the repo
 

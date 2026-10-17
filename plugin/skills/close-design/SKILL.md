@@ -1,6 +1,7 @@
 ---
 name: close-design
-description: Drives a design doc to a terminal lifecycle state — records achieved evidence, promotes residue to adr/ and CONTEXT.md, stamps frontmatter, closes the epic. Use when an initiative ships, is abandoned or superseded, when a stale `active` doc needs classifying, or when sweeping `.brain/designs/` for docs that never closed out.
+description: Manually closes a shipped, abandoned or superseded design — checks shipment evidence, promotes durable residue, stamps frontmatter and closes the epic.
+disable-model-invocation: true
 ---
 
 # Close Design
@@ -9,8 +10,9 @@ A design doc is `active` only while it is the living design authority. Once the 
 dropped, or is replaced, the doc freezes and its durable residue belongs in canon. This skill owns
 that transition.
 
-`manage-work-graph` reaches this skill when the last open work item under a design-linked epic closes.
-It is also invoked directly for the sweep and retroactive cases below.
+This skill is only manually invoked by the human, including sweep and retroactive cases.
+Closing implementation or review work and delivering a ready PR never invokes it automatically.
+The design and epic remain active until manual terminal closeout. Do not poll for merge.
 
 ## Stop before you start
 
@@ -23,7 +25,7 @@ It is also invoked directly for the sweep and retroactive cases below.
 
 | Trigger | Terminal state |
 |---|---|
-| Work landed and verification passed | `shipped` |
+| Actual PR merged into the agreed target and verification evidence recorded | `shipped` |
 | Work dropped without landing | `abandoned` |
 | A newer design replaced this one | `superseded` |
 | Sweep: `active` doc that went quiet | whichever of the three fits |
@@ -45,8 +47,14 @@ drawing any conclusion about which work items belong to this doc. `--spec-id` is
 is not accepted by `bd list`.
 
 For a sweep, enumerate every doc in `.brain/designs/` with its lifecycle and the state of its epic.
-An `active` doc whose work items are all closed shipped and was never stamped; one whose epic was
-dropped is abandoned; one whose design was replaced is superseded, and names its replacement.
+Closed work items alone do not establish shipment. For shipped work, inspect the actual PR's
+repository, delivery branch, target branch, merged state, merge commit and merge date; record its
+URL and merge evidence. A closed-unmerged PR never establishes shipment. A ready or approved PR
+is still awaiting human merge, so leave the design and epic active. If PR state is unavailable or
+does not match the agreed delivery, report the gap and stop shipped closeout.
+For a sweep, apply the same evidence check to each candidate. An explicitly dropped initiative
+is abandoned; a replaced design is superseded and names its replacement. Neither classification
+is inferred merely from PR closure; each needs its own supporting evidence.
 
 Present the classification and confirm before writing anything. A terminal state is a claim about
 what happened, and getting it wrong buries the initiative under the wrong label.
@@ -95,11 +103,11 @@ Set `lifecycle:` to the terminal state and `ended:` to the date the work actuall
 today's date, unless they are the same. For `superseded`, the replacing design carries
 `extends: <slug>.md`.
 
-Close the epic if it is still open, and discharge its review beads with it. A review bead closes
-here only when its closeout record shows every finding fixed, filed, or declined; a review bead with
-an unresolved finding stays open, and this close-out reports it as the epic's surviving gate rather
-than burying it under a `shipped` design. Discharging a review bead as part of this terminal
-transition is the one close an agent may perform on one, and it is never a way to manage work.
+Close the epic if it is still open. Implementation and review records may already have closed
+under their own acceptance rules before PR approval or merge; that grants no shipment authority.
+For any surviving review bead, follow the review closing rules: required verdict and evidence,
+resolved blocking findings, and recorded dispositions. Unresolved findings remain explicit;
+terminal closeout never bypasses their gates or hides them under a shipped design.
 
 Where the initiative had a public collaboration issue, that closes through its own public flow;
 `bd close` remains the private close signal.

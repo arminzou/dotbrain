@@ -31,9 +31,8 @@ ADOPTER_POINTER: str = (
     "read it before substantial agent work."
 )
 
-# Disabled for now: brain context (DOTBRAIN.md + .brain/AGENTS.md) is injected at
-# session start via the SessionStart hook, so the adopter pointer is
-# redundant. Flip to True to re-enable wire/doctor pointer management.
+# The session-start hook injects DOTBRAIN.md, which directs private AGENTS.md
+# retrieval. Pointer insertion and doctor checks stay disabled by default.
 INJECT_ADOPTER_POINTER: bool = False
 
 # Windows WinError raised when creating a directory symlink without Developer Mode or elevation.
