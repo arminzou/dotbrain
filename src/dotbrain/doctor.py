@@ -258,7 +258,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.append(Finding("ok", "Brain-only project: no checkout assets"))
     elif not repo.is_dir() and skip_absent and not (target.brainspace / ".repo.local").is_file():
         # A shared .repo may name a checkout that lives only on another machine.
-        findings.append(Finding("skip", f"checkout not on this machine: {repo}; checkout checks skipped",
+        findings.append(Finding("skip", "checkout not on this machine; checkout checks skipped",
                                 "add .repo.local to check a checkout here"))
     elif not repo.is_dir():
         findings.append(Finding("error", f"registered checkout missing: {repo}", "correct .repo.local or .repo"))
