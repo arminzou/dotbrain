@@ -11,6 +11,7 @@ from dotbrain.cli import app
     ["wire", "--name", "sample"],
     ["wire", "--all"],
     ["wire", "--beads-database", "sample"],
+    ["wire", "--no-repo", "--project", "sample"],
     ["refresh", "--name", "sample"],
     ["refresh", "--repo-base", "anywhere"],
     ["refresh", "--dry-run"],

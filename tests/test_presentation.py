@@ -25,7 +25,7 @@ def capture(monkeypatch, callback, width=96):
 
 
 def project(name, runtime="codex", mode="none"):
-    return {"project": name, "checkout": None, "brain_only": True, "runtimes": [runtime],
+    return {"project": name, "checkout": None, "runtimes": [runtime],
             "beads": {"mode": mode}, "wiring": {}}
 
 
@@ -75,7 +75,7 @@ def test_project_table_shared_footer_or_explicit_differences(monkeypatch, differ
     result = CommandResult("projects list", targets=[TargetResult(project=row["project"], data=row) for row in records])
     before = asdict(result)
     output = capture(monkeypatch, lambda: render(result))
-    assert "one" in output and "two" in output and "Brain-only" in output
+    assert "one" in output and "two" in output and "No checkout" in output
     assert "success" not in output and "2 projects" in output
     if different:
         assert "Runtimes" in output and "Tracker" in output and "Claude" in output and "server" in output

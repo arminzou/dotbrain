@@ -255,7 +255,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
     repo = target.checkout
     if repo is None:
-        findings.append(Finding("ok", "Brain-only project: no checkout assets"))
+        findings.append(Finding("warn", paths.NO_CHECKOUT,
+                                f"run dotbrain wire --project {target.project} from its repository, or archive the Brainspace"))
     elif not repo.is_dir() and skip_absent and not (target.brainspace / ".repo.local").is_file():
         # A shared .repo may name a checkout that lives only on another machine.
         findings.append(Finding("skip", "checkout not on this machine; checkout checks skipped",

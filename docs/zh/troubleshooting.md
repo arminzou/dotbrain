@@ -86,7 +86,8 @@ dotbrain wire --repo ~/repos/my-app
 
 ### 没有代码仓库能用 dotbrain 吗？ {#can-i-use-dotbrain-without-a-code-repo}
 
-可以。`dotbrain wire --no-repo --project <project>` 会创建一个只有 Brain 的 Brainspace。
+现在不行了。每个项目都需要一个仓库作为工作目录，不过它可以是只放文档的私有仓库。要把以前的 Brain-only 项目
+迁过去，在那个仓库里运行 `dotbrain wire --project <project>`。
 
 ### 怎么让某个仓库不再使用 dotbrain？ {#how-do-i-stop-using-dotbrain-on-a-repo}
 

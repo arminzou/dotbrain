@@ -90,7 +90,6 @@ dotbrain wire [OPTIONS]
 | --- | --- | --- |
 | `--repo` *path* | — | 要连接的 checkout；默认是当前的 Git checkout。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
-| `--no-repo` | — | 创建只有 Brain 的项目；需要 `--project`。 |
 | `--skip-beads` | — | 创建时不带任务跟踪。 |
 | `--remote` *text* | — | 首次创建任务跟踪时使用的 Dolt remote。 |
 | `--server-host` *text* | — | Dolt 服务器主机；默认取自配置。 |

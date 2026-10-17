@@ -123,7 +123,7 @@ def repo_for_brainspace(
     3. dotbrain_home itself when brainspace.name == "dotbrain"
     4. repo_base/<brainspace.name> when the directory exists
 
-    A ``(brain-only)`` pointer resolves to ``None``: the Brainspace declares no adopter repo.
+    A retired ``(brain-only)`` pointer resolves to ``None``: it names no checkout.
     """
     for pointer_name in (".repo.local", ".repo"):
         pointer = brainspace / pointer_name
@@ -226,7 +226,7 @@ def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
         res = run(argv, cwd=cwd, check=True)
     except subprocess.CalledProcessError:
         loc = str(cwd) if cwd else "current directory"
-        raise ValueError(f"{loc} is not inside a git repository; select --project <name> or use wire --no-repo --project <name>")
+        raise ValueError(f"{loc} is not inside a git repository; run from a Git checkout or select --project <name>")
     return Path((res.stdout or "").strip()).resolve()
 
 

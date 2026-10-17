@@ -13,6 +13,7 @@ from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
+from dotbrain import paths
 from dotbrain.adopter_repos import abbrev_home
 
 HEADING_STYLE = "bold green"
@@ -149,7 +150,7 @@ def _messages(output: Console, messages: list[str], severity: str, checkout: str
 
 
 def _human_status(target) -> str:
-    if target.status == "success" and any(f["message"] == "Brain-only project: no checkout assets" for f in target.findings):
+    if target.status == "success" and any(f["message"] == paths.NO_CHECKOUT for f in target.findings):
         return "skipped"
     return target.status
 
@@ -176,7 +177,7 @@ def render_operation(result, *, preview: bool = False) -> None:
         if target.checkout:
             label += " · " + abbrev_home(Path(target.checkout))
         elif target.project:
-            label += " · Brain-only"
+            label += " · no checkout"
         line(output, label, NAME_STYLE)
         _messages(output, target.errors, "error", target.checkout)
         for finding in target.findings:
@@ -258,7 +259,7 @@ def render_catalog(result) -> None:
 
 
 def _wiring(record) -> str:
-    if record["brain_only"]:
+    if record["checkout"] is None:
         return "No checkout"
     problems = [f"{name} {status}" for name, status in record["wiring"].items() if status != "healthy"]
     return ", ".join(problems) or "Healthy"
@@ -276,8 +277,8 @@ def render_projects(result) -> None:
         for record in records:
             failure = "error" in record
             wiring = "Declaration error" if failure else _wiring(record)
-            rows.append([record["project"], abbrev_home(Path(record["checkout"])) if record["checkout"] else "Brain-only",
-                         text(wiring, output, "red" if failure or wiring not in {"Healthy", "No checkout"} else "green"),
+            rows.append([record["project"], abbrev_home(Path(record["checkout"])) if record["checkout"] else "-",
+                         text(wiring, output, "red" if failure or wiring != "Healthy" else "green"),
                          *([] if shared_runtime else ["unknown" if failure else _runtimes(record["runtimes"])]),
                          *([] if shared_tracker else ["unknown" if failure else record["beads"]["mode"]])])
         if rows:
@@ -299,7 +300,7 @@ def render_projects(result) -> None:
         record = target.data
         output.print(Text.assemble(text("Project: ", output, HEADING_STYLE),
                                    text(target.project, output, NAME_STYLE)))
-        table(output, ["Property", "Value"], [["Checkout", record["checkout"] or "Brain-only"],
+        table(output, ["Property", "Value"], [["Checkout", record["checkout"] or "none"],
               ["Runtimes", _runtimes(record["runtimes"])], ["Tracker", record["beads"]["mode"]], ["Wiring", _wiring(record)]])
         line(output, "Paths", HEADING_STYLE)
         table(output, ["Path", "Location"], [["Brainspace", record["brainspace"]],

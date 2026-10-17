@@ -33,9 +33,11 @@ agent-facing conventions. In dotbrain terms, the Brain is narrower than the full
 
 ### Brain-only project
 
-A project created without a code checkout, using `dotbrain wire --no-repo --project <name>`.
-It can still have an execution store. Add `--skip-beads` to create it without a tracker;
-tracker-free projects can also have wired checkouts.
+A retired kind of project with no code checkout. `dotbrain wire --no-repo` no longer exists: every
+project has a repository as its working home. That repository can be private and hold only
+documents. To migrate a Brain-only Brainspace, run `dotbrain wire --project <name>` from its new
+repository, or move the Brainspace out of `brainspaces/` to archive it. Add `--skip-beads` to
+create a project without a tracker.
 
 ### ADR
 

@@ -96,7 +96,6 @@ dotbrain wire [OPTIONS]
 | --- | --- | --- |
 | `--repo` *path* | — | Checkout to attach; defaults to the current Git checkout. |
 | `--project` *text* | — | Select a named Brainspace. |
-| `--no-repo` | — | Create a Brain-only project; requires `--project`. |
 | `--skip-beads` | — | Create without a tracker. |
 | `--remote` *text* | — | Dolt remote for initial tracker creation. |
 | `--server-host` *text* | — | Dolt server host; defaults to config. |

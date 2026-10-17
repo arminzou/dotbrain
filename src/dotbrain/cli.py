@@ -166,7 +166,6 @@ def doctor(home: HomeOption = None,
 def wire(
     repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout to attach; defaults to the current Git checkout.'),
     project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
-    no_repo: bool = typer.Option(False, '--no-repo', help='Create a Brain-only project; requires --project.'),
     skip_beads: bool = typer.Option(False, '--skip-beads', help='Create without a tracker.'),
     remote: str = typer.Option('', '--remote', help='Dolt remote for initial tracker creation.'),
     server_host: Optional[str] = typer.Option(None, '--server-host', help='Dolt server host; defaults to config.'),
@@ -183,7 +182,7 @@ def wire(
         if remote and selected_host:
             raise ValueError('--remote and --server-host are mutually exclusive')
         with activity("Wiring project...", enabled=not json_output):
-            result = workflows.wire_project(dotbrain_home=root, repo=repo, project=project, no_repo=no_repo,
+            result = workflows.wire_project(dotbrain_home=root, repo=repo, project=project,
                     run_beads=not skip_beads, remote=remote, server_host=selected_host,
                     server_port=cfg.port if server_port is None else server_port,
                     server_user=cfg.user if server_user is None else server_user, database=database)

@@ -21,6 +21,9 @@ DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 
+# Reported for a Brainspace with no registered checkout, such as a retired Brain-only one.
+NO_CHECKOUT = "no registered checkout"
+
 # Breadcrumb appended to an adopter repo's real AGENTS.md / CLAUDE.md.
 ADOPTER_POINTER: str = (
     "@.brain/CLAUDE.md\n"

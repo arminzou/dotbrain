@@ -88,7 +88,7 @@ def inspect_project(home: Path, target: ProjectTarget, *, expand_assets: bool = 
     return {
         "project": target.project, "brainspace": str(target.brainspace),
         "checkout": str(target.checkout) if target.checkout is not None else None,
-        "brain_only": target.checkout is None, "runtimes": list(runtimes),
+        "runtimes": list(runtimes),
         "paths": {"brain": str(paths.confined_path(target.brainspace, ".brain")),
                   "execution": str(paths.confined_path(target.brainspace, ".beads"))
                   if beads.mode != "none" else None,
