@@ -85,7 +85,9 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   findings, successful practices, and bounded progress. Invoke manually or through an external
   agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:
   it discovers repository rules, standards, or contributor guidance and suggests a destination
-  and rule for your decision. Set `retro.promotion.auto-deliver: true` and an existing
+  and rule for your decision, plus the strongest mechanical enforcement (structure, type,
+  check or hook, test) that would make the rule fail loudly. It never builds that check itself;
+  building one is separate work you approve. Set `retro.promotion.auto-deliver: true` and an existing
   repo-relative `destinations` array in private project configuration to authorize unattended
   commit/push/PR delivery. Otherwise authorize individual proposals. It reads PR/merge state
   read-only to reconcile acceptance; approval and merge remain human-owned.

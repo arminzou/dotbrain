@@ -42,6 +42,27 @@ other delivery to it. An existing `RULES.md` does not itself enable delivery. Di
 auto-delivery stops public mutations, including PR updates, unless specifically authorized.
 Read-only reconciliation continues in either mode. Approval, merge, and release stay human-owned.
 
+## Suggest enforcement
+
+A text rule fails silently when an agent skips it. For each eligible finding, name the strongest
+mechanical enforcement that would work, trying each level in order:
+
+1. **Structure:** give the state one owner or the task one supported way, so the wrong path is
+   removed or unreachable.
+2. **Type:** make the bad state impossible to write.
+3. **Check or hook:** a lint, CI check, or Git hook whose failure names the fix.
+4. **Test:** assert the behavior users observe, so it fails when the practice is broken.
+
+Name the concrete check and the real past mistake from the finding's evidence that it would have
+caught. Keep that citation private; public rule text stays free of private incidents. Record an
+`Enforcement:` line beside the finding with the level and check, or with the reason no mechanical
+enforcement fits. Rule text remains the fallback and the only form for judgment calls; when a
+check exists, the rule's review check names it.
+
+Suggest only. Never build a check, hook, or test from a retrospective, even when auto-delivery is
+enabled: building one is separate work the user approves through the work graph. Rule-text
+delivery authority is unchanged.
+
 ## Prepare an authorized proposal
 
 1. Identify the upstream target repository/base branch, verified target commit, push repository

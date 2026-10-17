@@ -96,7 +96,10 @@ Completion: findings are durable and progress describes only saved, actually rev
 
 Read [promotion](references/promotion.md) for eligible findings and pending proposals, even
 when capture found no new evidence. After three distinct supported days, discover repository
-guidance and suggest an appropriate file, practice, rationale, and review check.
+guidance and suggest an appropriate file, practice, rationale, and review check. Also suggest
+the strongest mechanical enforcement that would work (structure, type, check or hook, test),
+recorded as `Enforcement:`; rule text is the fallback. Suggest only: never build the check,
+even with auto-delivery enabled.
 
 With auto-delivery disabled/unset, keep the suggestion private and report it for the user's
 decision. Make no public edit, commit, push, or PR without proposal-specific authorization.
