@@ -28,6 +28,8 @@ Individual worker checks do not establish that their combined changes work.
 - 2026-04-05 — <independent evidence>: a later integration repeated the same failure pattern.
 - Limits: recorded local results only; no shipment or broader productivity claim.
 - Seen 3× (2026-04-01, 2026-04-03, 2026-04-05).
+- Enforcement: check — CI runs the combined suite on the integrated head; it would have caught
+  the 2026-04-05 failure.
 - Proposal: <public PR URL>, pending.
 
 **Preserve user-owned content during reconciliation.**
@@ -39,6 +41,7 @@ Individual worker checks do not establish that their combined changes work.
 
 This example is illustrative, not project evidence. Add optional lines only when useful:
 `Suggestion:` for an eligible practice and proposed file awaiting the user's decision,
+`Enforcement:` for the suggested mechanical check and its level, or why none fits,
 `Proposal:` for authorized delivery (upstream/base, push repository/head, and PR when available),
 `Hold:` for a blocker or rejected proposal, and `Accepted:` only after verified adoption.
 Keep a prepared public wording or patch with its proposal when needed for interrupted delivery.

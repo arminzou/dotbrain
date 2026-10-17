@@ -23,7 +23,8 @@ active design records current intent, and Beads tracks private execution.
   In repository scope it offers once to create `RULES.md` when no rules or standards file
   exists; contributor scope never creates one. It may prepare a public `RULES.md` change and
   reads PR/merge state read-only to reconcile
-  acceptance. By default it suggests an existing public destination for the user's decision.
+  acceptance. By default it suggests an existing public destination for the user's decision,
+  along with the strongest mechanical enforcement for the rule, which it never builds itself.
   Public delivery needs proposal-specific authorization or enabled project auto-delivery with
   a configured destination; run-retro owns its PR process. Approval and merge remain human-owned.
 - **Close out:** [`close-design`](close-design/SKILL.md) records what was verified, promotes lasting

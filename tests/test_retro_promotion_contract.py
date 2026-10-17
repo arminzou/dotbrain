@@ -23,6 +23,8 @@ def text(name):
     ("Approval, unmerged closure", "never establish acceptance", "actual merge date", "unchanged lookup"),
     ("already accepted", "no edit or PR", "Never relabel a pending or rejected proposal"),
     ("closed-unmerged", "new explicit direction", "do not automatically erase a public rule"),
+    ("Structure:", "Type:", "Check or hook:", "Test:", "real past mistake", "Keep that citation private"),
+    ("`Enforcement:` line", "fallback", "Suggest only", "even when auto-delivery is enabled"),
 ])
 def test_public_rule_promotion_guards(contracts):
     for contract in contracts:
@@ -47,3 +49,10 @@ def test_retro_catalog_mentions_public_edit_and_read_only_reconciliation(path):
     assert "RULES.md" in paragraph
     assert "PR" in paragraph
     assert "read-only" in paragraph or "只读" in paragraph
+
+
+def test_enforcement_suggestion_is_recorded_and_never_built():
+    assert text("references/promotion.md").index("## Suggest enforcement") < text(
+        "references/promotion.md").index("## Prepare an authorized proposal")
+    assert "never build the check" in text("SKILL.md")
+    assert "`Enforcement:`" in text("references/retro.md")
