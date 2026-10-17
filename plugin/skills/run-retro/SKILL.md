@@ -38,17 +38,18 @@ has stopped (check process creation time as well as PID). Only this writer edits
 Read [the retrospective format](references/retro.md). On first use, read current root guidance
 and referenced standards, establish current HEAD as the baseline, and record scope, guidance
 links, initialization time, timezone, exclusions, and `Unfinished: none`. No history audit or
-findings are created just by reading standards. In repository scope with no public rules or
-standards file, offer once to create root `RULES.md` per [the rules file offer](references/retro.md);
-contributor scope never creates a public file. Save and report initialization, then stop.
+findings are created just by reading standards. Save and report initialization, then stop.
 An explicitly requested historical pass is separate and does not move the forward boundary.
 
 Reuse existing shared progress across worktrees and machines. Require an explicitly selected
 contributor scope (branches/PRs) or repository scope (integration branch); never infer ownership
 from authors or silently include all upstream commits. If scope is unset, report the missing
-choice without capturing work. On later passes, resume recorded unfinished work or freeze the
-next source head/cutoff and review forward from its saved boundary. Record exclusions and gaps;
-never imply excluded older history was reviewed or reset a mismatching boundary automatically.
+choice without capturing work. In repository scope, while the notebook header has no
+`Rules file:` line or says `Rules file: offered`, follow [the rules file offer](references/retro.md),
+including on first use; contributor scope never creates a public file. On later passes, resume
+recorded unfinished work or freeze the next source head/cutoff and review forward from its
+saved boundary. Record exclusions and gaps; never imply excluded older history was reviewed or
+reset a mismatching boundary automatically.
 
 Completion: one writer owns the notebook and the intended scope is explicit.
 

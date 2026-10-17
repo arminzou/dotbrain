@@ -97,7 +97,9 @@ def test_chinese_retro_description_requires_preparation_and_verified_acceptance(
 
 
 def test_only_repository_scope_offers_to_create_rules_file():
-    assert "contributor scope never creates a public file" in _text("SKILL.md")
+    skill = _text("SKILL.md")
+    assert "contributor scope never creates a public file" in skill
+    assert "no `Rules file:` line or says `Rules file: offered`" in skill
     retro = _text("references/retro.md")
     for contract in ("Repository scope only", "a contributing guide alone does not count",
                      "a contributor-scope run never creates a public file",

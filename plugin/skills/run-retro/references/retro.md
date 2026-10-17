@@ -82,8 +82,10 @@ For several selected sources, record each boundary as ordinary header bullets, n
 
 ## Rules file offer
 
-Repository scope only. If the repository has no rules or standards file (a contributing guide
-alone does not count), offer once to create root `RULES.md`; a contributor-scope run never creates a
+Repository scope only, on any pass while the header has no `Rules file:` line or says
+`Rules file: offered`, so notebooks initialized earlier are covered too. If the repository has no rules or standards file (a
+contributing guide alone does not count), offer once to create root `RULES.md`; if one exists,
+record `Rules file: existing <path>` instead; a contributor-scope run never creates a
 public file and keeps suggestions private until a suitable upstream file exists. On the user's
 explicit yes, seed `RULES.md` only with requirements existing guidance already states, in
 [the rule format](rules.md); link it from public `AGENTS.md`; and deliver it through
