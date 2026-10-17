@@ -34,7 +34,8 @@ supported findings under [promotion](promotion.md); three dates justify a propos
 README describes the project and onboarding; AGENTS routes agents to relevant guidance;
 public rules state what changes must satisfy. Specialist guides and configuration can remain
 authoritative for detailed procedures or mechanically enforced conventions. Amend or link
-those sources instead of duplicating them. Outside the repository-scope rules file offer,
+those sources' guidance text instead of duplicating it; changes to enforcing configuration
+follow [promotion](promotion.md) and are suggested, never made. Outside the repository-scope rules file offer,
 a suitable existing contributing guide takes precedence over introducing a new file;
 delivery requires the agreed destination and authority.
 

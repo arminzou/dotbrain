@@ -113,12 +113,13 @@ proposal; related rules may share a PR. Reconcile actual acceptance read-only, w
 capture dates or coverage. After acceptance checks, add `Accepted:` beside the original finding;
 keep it in its work-area section.
 
-Completion: each eligible finding has a suggestion, proposal, accepted rule, or clear hold;
+Completion: each eligible finding has a suggestion, proposal, accepted rule, or clear hold, and an
+`Enforcement:` line;
 authorized delivery has a confirmed PR or recorded blocker.
 
 ### 6. Report
 
 Report the reviewed range, finding practices and supported counts, exclusions, unfinished work,
-source gaps, suggestions, PR URLs, and accepted destinations. Distinguish a prepared local change,
+source gaps, suggestions, enforcement suggestions, PR URLs, and accepted destinations. Distinguish a prepared local change,
 a delivered PR, and repository acceptance. Keep private evidence out of public delivery text.
 Release ownership on exit, including partial failure. Do not create a second diary.
