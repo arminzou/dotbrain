@@ -327,15 +327,16 @@ def render_doctor(report, *, verbose: bool = False) -> None:
     def counted(count, noun):
         return f"{count} {noun}{'' if count == 1 else 's'}"
     passed = counted(counts["ok"], "check") + " passed"
-    line(output, counted(counts["error"], "problem") + " · " + counted(counts["warn"], "warning") + " · " + passed, "dim")
-    statuses = [("error", "red"), ("warn", "yellow")] + ([("ok", "green"), ("info", "dim")] if verbose else [])
+    skipped = f" · {counts['skip']} skipped" if counts["skip"] else ""
+    line(output, counted(counts["error"], "problem") + " · " + counted(counts["warn"], "warning") + " · " + passed + skipped, "dim")
+    statuses = [("error", "red"), ("warn", "yellow"), ("skip", "dim")] + ([("ok", "green"), ("info", "dim")] if verbose else [])
     for status, style in statuses:
         for name, checkout, findings in groups:
             selected = [finding for finding in findings if finding.status == status]
             if not selected:
                 continue
             line(output)
-            marker = symbol(output, False) if status == "error" else "!" if status == "warn" else "i" if status == "info" else symbol(output, True)
+            marker = symbol(output, False) if status == "error" else "!" if status == "warn" else "-" if status == "skip" else "i" if status == "info" else symbol(output, True)
             line(output, f"{marker} {name}" + (" · " + abbrev_home(Path(checkout)) if checkout else ""), "bold " + style)
             combined = {}
             for finding in selected:

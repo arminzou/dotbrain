@@ -245,7 +245,7 @@ def _check_beads_state(brainspace: Path, name: str, dotbrain_home: Path, *, run:
     return findings
 
 
-def _check_project(target: projects.ProjectTarget, root: Path, run: Runner) -> list[Finding]:
+def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, skip_absent: bool = False) -> list[Finding]:
     findings = []
     beads = config.load_project_config(root, target.project)
     workspaces = assets.project_workspaces(root, target, "all")
@@ -256,6 +256,10 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner) -> l
     repo = target.checkout
     if repo is None:
         findings.append(Finding("ok", "Brain-only project: no checkout assets"))
+    elif not repo.is_dir() and skip_absent and not (target.brainspace / ".repo.local").is_file():
+        # A shared .repo may name a checkout that lives only on another machine.
+        findings.append(Finding("skip", f"checkout not on this machine: {repo}; checkout checks skipped",
+                                "add .repo.local to check a checkout here"))
     elif not repo.is_dir():
         findings.append(Finding("error", f"registered checkout missing: {repo}", "correct .repo.local or .repo"))
     else:
@@ -304,7 +308,7 @@ def run_doctor(dotbrain_home: Path, home: Path | None = None, *, project: str | 
     for target in targets:
         report.checkouts[target.project] = str(target.checkout) if target.checkout else None
         try:
-            report.projects[target.project] = _check_project(target, root, run)
+            report.projects[target.project] = _check_project(target, root, run, skip_absent=all_projects)
         except DIAGNOSIS_ERRORS as exc:
             report.projects[target.project] = [Finding("error", f"project diagnosis failed: {exc}", "correct the declaration or inaccessible paths")]
     return report
@@ -317,9 +321,11 @@ def as_result(report: DoctorReport) -> CommandResult:
         item = TargetResult(project=name, checkout=report.checkouts.get(name), scope=scope)
         for finding in findings:
             message = finding.message + (f"; {finding.suggestion}" if finding.suggestion else "")
-            item.findings.append({"severity": {"ok": "info", "info": "info", "warn": "warning", "error": "error"}[finding.status], "message": message})
+            item.findings.append({"severity": {"ok": "info", "info": "info", "skip": "info", "warn": "warning", "error": "error"}[finding.status], "message": message})
         if any(f.status == "error" for f in findings):
             item.status = "failure"
+        elif any(f.status == "skip" for f in findings):
+            item.status = "skipped"
         result.targets.append(item)
     failures = sum(item.status == "failure" for item in result.targets)
     if failures:
