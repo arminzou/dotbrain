@@ -84,7 +84,7 @@ def test_disabled_components_do_not_require_bd_node_dolt(tmp_path, monkeypatch):
     calls = []
     report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(tmp_path, calls))
     assert calls == [] and not errors(report.machine) and not errors(report.projects["example"])
-    assert any("Brain-only" in f.message for f in report.projects["example"])
+    assert any(f.message == paths.NO_CHECKOUT for f in report.projects["example"])
 
 
 def test_named_wrong_brainspace_and_beads_destinations_are_errors(tmp_path):

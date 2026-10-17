@@ -31,8 +31,10 @@ Brainspace 小。
 
 ### Brain-only project
 
-没有代码 checkout 的项目，用 `dotbrain wire --no-repo --project <name>` 创建。它仍然可以有执行存储。加上
-`--skip-beads` 可以创建一个没有任务跟踪的项目；没有任务跟踪的项目也可以连接 checkout。
+已经停用的项目类型，没有代码 checkout。`dotbrain wire --no-repo` 已经移除：每个项目都以一个仓库作为工作目录。
+这个仓库可以是私有的，只放文档。要迁移 Brain-only 的 Brainspace，在新仓库里运行
+`dotbrain wire --project <name>`；或者把 Brainspace 移出 `brainspaces/` 归档。加上 `--skip-beads` 可以创建一个
+没有任务跟踪的项目。
 
 ### ADR
 

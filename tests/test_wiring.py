@@ -17,6 +17,13 @@ from dotbrain import hooks
 from dotbrain import beads, config, paths, resource_loader, workflows
 
 
+def _repo(tmp_path: Path, name: str) -> Path:
+    repo = tmp_path / name
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    return repo
+
+
 def make_runner(calls: list[list[str]]):
     def run(argv, *, cwd=None, env=None, check=True):
         calls.append(list(argv))
@@ -370,21 +377,6 @@ def test_wire_project_workspace_can_become_project_owned_without_force(
     ).returncode == 0
 
 
-def test_wire_project_brain_only(dotbrain_home: Path, fake_home: Path):
-    result = workflows.wire_project(
-        dotbrain_home=dotbrain_home,
-        project="brainonly",
-        no_repo=True,
-        run_beads=False,
-        home=fake_home,
-        run=make_runner([]),
-    )
-    brainspace = dotbrain_home / "brainspaces" / "brainonly"
-    assert result.repo is None
-    assert (brainspace / ".repo").read_text() == "(brain-only)\n"
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
-
-
 def test_wire_project_leaves_archived_directory_user_owned(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     """dotbrain wire on an archived project restores it before wiring."""
     repo = tmp_path / "archived-proj"
@@ -503,11 +495,10 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
         assert text.count(paths.ADOPTER_POINTER) == 1
 
 
-def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home: Path):
+def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     workflows.wire_project(
         dotbrain_home=dotbrain_home,
-        project="fork",
-        no_repo=True,
+        repo=_repo(tmp_path, "fork"),
         remote="https://example.com/fork",
         home=fake_home,
         run=make_runner([]),
@@ -532,13 +523,12 @@ def _runner_creating_beads(brainspace: Path):
 
 
 def test_wire_project_server_host_records_server_mode(
-    dotbrain_home: Path, fake_home: Path
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
     brainspace = dotbrain_home / "brainspaces" / "plain"
     workflows.wire_project(
         dotbrain_home=dotbrain_home,
-        project="plain",
-        no_repo=True,
+        repo=_repo(tmp_path, "plain"),
         server_host="db.local",
         home=fake_home,
         run=_runner_creating_beads(brainspace),
@@ -548,12 +538,11 @@ def test_wire_project_server_host_records_server_mode(
     assert config.load_project_config(dotbrain_home, "plain").mode == "server"
 
 
-def test_wire_project_records_custom_database(dotbrain_home: Path, fake_home: Path):
+def test_wire_project_records_custom_database(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     brainspace = dotbrain_home / "brainspaces" / "renamed"
     workflows.wire_project(
         dotbrain_home=dotbrain_home,
-        project="renamed",
-        no_repo=True,
+        repo=_repo(tmp_path, "renamed"),
         server_host="db.local",
         database="legacy_name",
         home=fake_home,

@@ -72,10 +72,6 @@ dotbrain wire
 dotbrain wire --repo ~/repos/my-app
 ```
 
-```bash [Brain only]
-dotbrain wire --no-repo --project research
-```
-
 :::
 
 `wire` creates or repairs:
@@ -146,8 +142,10 @@ tracker state. Named selection and `--all` use registered checkouts rather than 
 ## Selection and reports
 
 Project commands default to the current wired checkout, including its subdirectories. Outside
-one, use `--project <name>`. Named selection respects `.repo.local` before `.repo`; Brain-only
-projects are valid for operations that do not need a checkout. Use `dotbrain projects list` and
+one, use `--project <name>`. Named selection respects `.repo.local` before `.repo`. A Brainspace with
+no registered checkout, such as an older Brain-only one, stays valid for operations that do not need
+a checkout; `doctor` warns about it, and `--all` asset linking skips it. Run
+`dotbrain wire --project <name>` from a repository to register one. Use `dotbrain projects list` and
 `dotbrain projects show` to inspect identities and resolved settings without remote probes.
 
 `--all` conflicts with `--project` and `--repo`. Applicable leaf commands accept `--home <path>`

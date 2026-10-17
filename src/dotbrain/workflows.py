@@ -94,7 +94,6 @@ def wire_project(
     dotbrain_home: Path,
     repo: Path | None = None,
     project: str | None = None,
-    no_repo: bool = False,
     run_beads: bool = True,
     remote: str = "",
     server_host: str = "",
@@ -109,23 +108,15 @@ def wire_project(
     if not (dotbrain_home / ".git").exists():
         raise RuntimeError(f"{dotbrain_home} is not a dotbrain git checkout")
 
-    resolved_repo: Path | None
-    if no_repo:
-        if repo is not None:
-            raise ValueError("--no-repo cannot be combined with --repo")
-        if not project:
-            raise ValueError("--no-repo requires --project <name>")
-        resolved_repo = None
-    else:
-        resolved_repo = adopter_repos.repo_root(repo, run)
-        adopter_repos.ensure_not_wired_to_foreign_dotbrain(resolved_repo, dotbrain_home)
-        if (resolved_repo / ".brain").is_symlink():
-            wired = project_selection._wired(dotbrain_home, resolved_repo)
-            if project is not None and project != wired.project:
-                raise ValueError("--project does not match this checkout's Brainspace")
-            project = wired.project
+    resolved_repo = adopter_repos.repo_root(repo, run)
+    adopter_repos.ensure_not_wired_to_foreign_dotbrain(resolved_repo, dotbrain_home)
+    if (resolved_repo / ".brain").is_symlink():
+        wired = project_selection._wired(dotbrain_home, resolved_repo)
+        if project is not None and project != wired.project:
+            raise ValueError("--project does not match this checkout's Brainspace")
+        project = wired.project
 
-    parent = adopter_repos.linked_worktree_parent(resolved_repo, run) if resolved_repo else None
+    parent = adopter_repos.linked_worktree_parent(resolved_repo, run)
     if parent is not None:
         main = project_selection.select_projects(dotbrain_home, repo=parent, run=run)[0]
         if project is not None and project != main.project:
@@ -137,15 +128,14 @@ def wire_project(
     # Resolve identity and every managed destination before even root housekeeping:
     # rejecting a selector must not seed a phantom project or rewrite registration.
     paths.brainspace_link_targets(dotbrain_home, project)
-    for relative in (".repo", ".repo.local", ".brain/project.yaml", ".claude", ".codex"):
+    for relative in (".repo", ".repo.local", ".brain/project.yaml"):
         paths.confined_path(brainspace, relative)
     paths.confined_path(dotbrain_home, ".gitignore")
-    if resolved_repo is not None:
-        adopter_repos.ensure_wiring_matches(resolved_repo, dotbrain_home, project)
-        for name in (".brain", ".beads"):
-            entry = resolved_repo / name
-            if entry.exists() and not entry.is_symlink():
-                raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
+    adopter_repos.ensure_wiring_matches(resolved_repo, dotbrain_home, project)
+    for name in (".brain", ".beads"):
+        entry = resolved_repo / name
+        if entry.exists() and not entry.is_symlink():
+            raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
     if existing:
         legacy = brainspace / ".brain/agents/skills.yaml"
@@ -168,44 +158,37 @@ def wire_project(
     rel = paths.data_dir(dotbrain_home).name
     bootstrap.ensure_root_gitignore(dotbrain_home)
     brainspace.mkdir(parents=True, exist_ok=True)
-    if no_repo and not existing:
-        (brainspace / ".repo").write_text(
-            "(brain-only)\n", encoding="utf-8", newline="\n"
-        )
-    elif not existing:
-        assert resolved_repo is not None
+    if not existing:
         (brainspace / ".repo").write_text(
             f"{adopter_repos.abbrev_home(resolved_repo, home)}\n",
             encoding="utf-8",
             newline="\n",
         )
-    elif parent is None and resolved_repo is not None and adopter_repos.repo_for_brainspace(brainspace, dotbrain_home) is None:
+    elif parent is None and adopter_repos.repo_for_brainspace(brainspace, dotbrain_home) is None:
+        # A Brainspace without a usable pointer, including a retired Brain-only one, adopts this checkout.
         pointer = brainspace / (".repo.local" if (brainspace / ".repo.local").exists() else ".repo")
         paths.confined_path(brainspace, pointer.name)
         pointer.write_text(f"{adopter_repos.abbrev_home(resolved_repo, home)}\n", encoding="utf-8", newline="\n")
 
     result = WireResult(brainspace=brainspace, repo=resolved_repo, project=project)
-    missing_links = [name for name in paths.BRAINSPACE_LINKS
-                     if resolved_repo is not None and not (resolved_repo / name).is_symlink()]
+    missing_links = [name for name in paths.BRAINSPACE_LINKS if not (resolved_repo / name).is_symlink()]
     changed_workspaces = [name for name in brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
-                          if resolved_repo is not None and
-                          ((resolved_repo / name).is_symlink() or not (resolved_repo / name).exists())]
+                          if (resolved_repo / name).is_symlink() or not (resolved_repo / name).exists()]
 
     if parent is None:
         result.logs += [f"shared Brain: updated {relative}" for relative in brainspaces.seed_brain(brainspace, dotbrain_home)]
     active_workspaces = brainspaces.active_agent_workspaces(brainspace, dotbrain_home)
-    result.warnings += brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, home)
-    if resolved_repo is not None:
-        workspace_dirs, workspace_warnings = project_workspace_dirs(brainspace, resolved_repo, active_workspaces, run)
-        result.errors += workspace_warnings
-        result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs]
-        target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
-        if not result.errors:
-            for kind in ("skills", "agents"):
-                linked = assets.link_project(dotbrain_home, target, kind, run=run)
-                result.errors += linked.warnings
-                result.logs += [f"linked {entry}" for entry in linked.linked]
-                result.logs += [f"pruned {entry}" for entry in linked.pruned]
+    result.warnings += brainspaces.unknown_agent_warnings(brainspace, dotbrain_home)
+    workspace_dirs, workspace_warnings = project_workspace_dirs(brainspace, resolved_repo, active_workspaces, run)
+    result.errors += workspace_warnings
+    result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs]
+    target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
+    if not result.errors:
+        for kind in ("skills", "agents"):
+            linked = assets.link_project(dotbrain_home, target, kind, run=run)
+            result.errors += linked.warnings
+            result.logs += [f"linked {entry}" for entry in linked.linked]
+            result.logs += [f"pruned {entry}" for entry in linked.pruned]
     if existing and run_beads and parent is None:
         synced = beads.pull_beads_for_all(dotbrain_home, projects=[project], run=run)
         result.logs += _tracker_changes(synced)
@@ -237,10 +220,6 @@ def wire_project(
     if not existing:
         result.logs.append(f"created Brainspace at {rel}/{project}")
 
-    if no_repo:
-        return result
-
-    assert resolved_repo is not None
     result.warnings += adopter_repos.wire_repo(
         resolved_repo,
         brainspace,

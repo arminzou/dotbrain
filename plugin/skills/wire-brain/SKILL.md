@@ -70,7 +70,7 @@ this table only carries the routing.
 |---|---|
 | Attach a main checkout or linked Git worktree | `dotbrain wire --repo <path>` |
 | Repair an existing wired checkout | `dotbrain refresh` from that checkout |
-| Brain-only project, no adopter repo | `dotbrain wire --project <project> --no-repo` |
+| Brainspace has no registered checkout (retired Brain-only project) | `dotbrain wire --project <project>` from its repository, or archive the Brainspace |
 | Existing Brainspaces need registered-checkout reconciliation | `dotbrain refresh --all` |
 | Config, skills, agents, hooks, or templates changed | `dotbrain refresh --project <project>` / `--all` |
 | Prepare machine-global resources | `dotbrain bootstrap` |

@@ -94,7 +94,9 @@ Yes. Set `DOTBRAIN_HOME` to the directory you want.
 
 ### Can I use dotbrain without a code repo?
 
-Yes. `dotbrain wire --no-repo --project <project>` creates a Brain-only Brainspace.
+Not anymore. Every project needs a repository as its working home, but it can be a private
+repository that holds only documents. To move an older Brain-only project onto one, run
+`dotbrain wire --project <project>` from that repository.
 
 ### How do I stop using dotbrain on a repo?
 

@@ -70,10 +70,6 @@ dotbrain wire
 dotbrain wire --repo ~/repos/my-app
 ```
 
-```bash [只建 Brain]
-dotbrain wire --no-repo --project research
-```
-
 :::
 
 `wire` 会创建或修复：
@@ -143,7 +139,9 @@ worktree 里运行不带参数的维护命令和资源链接命令，只影响�
 ## 选择项目与结果输出 {#selection-and-reports}
 
 项目命令默认作用于当前已连接的 checkout，包括它的子目录。在它之外，请用 `--project <name>`。按名字选择时，
-`.repo.local` 优先于 `.repo`；对于不需要 checkout 的操作，只有 Brain 的项目也是有效的。用
+`.repo.local` 优先于 `.repo`。没有注册 checkout 的 Brainspace（比如以前的 Brain-only 项目）仍然可以用于不需要
+checkout 的操作；`doctor` 会给出警告，`--all` 链接资源时会跳过它。在仓库里运行 `dotbrain wire --project <name>`
+就能注册 checkout。用
 `dotbrain projects list` 和 `dotbrain projects show` 查看项目身份和解析后的设置，不会探测远程。
 
 `--all` 不能和 `--project`、`--repo` 一起用。适用的子命令都接受 `--home <path>` 和 `--json`。JSON 输出是

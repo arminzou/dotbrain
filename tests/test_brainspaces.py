@@ -73,44 +73,8 @@ def test_seed_brain_does_not_rewrite_unchanged_owned_files(
     assert readme.stat().st_mtime_ns == original_mtime
 
 
-def test_seed_agent_workspaces_skips_a_repo_backed_brainspace(
-    dotbrain_home: Path, fake_home: Path, tmp_path: Path
-):
-    """A repo-backed Brainspace links from the code repo, so a workspace here would be dead."""
-
-    brainspace = tmp_path / "brainspace"
-    brainspace.mkdir()
-    (brainspace / ".repo").write_text("~/repos/projects/thing", encoding="utf-8")
-
-    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
-
-    assert warnings == []
-    assert not (brainspace / ".claude").exists()
-    assert not (brainspace / ".codex").exists()
-
-
-def test_seed_agent_workspaces_serves_a_brain_only_brainspace(
-    dotbrain_home: Path, fake_home: Path, tmp_path: Path
-):
-    """With no repo there is nowhere else for its links to live."""
-
-    brainspace = tmp_path / "brainspace"
-    brainspace.mkdir()
-    (brainspace / ".repo").write_text("(brain-only)", encoding="utf-8")
-
-    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
-    warnings_again = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
-
-    assert warnings == []
-    assert warnings_again == []
-    assert (brainspace / ".claude").is_dir()
-    assert (brainspace / ".codex").is_dir()
-    assert not (brainspace / ".claude" / "settings.json").exists()
-    assert not (brainspace / ".codex" / "hooks.json").exists()
-
-
-def test_seed_agent_workspaces_warns_on_an_unknown_agent(dotbrain_home: Path, fake_home: Path):
-    """A typo in project.yaml warns whether or not anything gets created."""
+def test_unknown_agent_warnings_name_a_project_yaml_typo(dotbrain_home: Path):
+    """A typo in project.yaml warns and creates nothing in the Brainspace."""
 
     brainspace = dotbrain_home / "brainspaces" / "claude-only"
     (brainspace / ".brain").mkdir(parents=True)
@@ -118,7 +82,7 @@ def test_seed_agent_workspaces_warns_on_an_unknown_agent(dotbrain_home: Path, fa
         "agents:" + chr(10) + "  - claude" + chr(10) + "  - custom" + chr(10)
     )
 
-    warnings = brainspaces.seed_agent_workspaces(brainspace, dotbrain_home, fake_home)
+    warnings = brainspaces.unknown_agent_warnings(brainspace, dotbrain_home)
 
     assert warnings == [f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: custom"]
     assert not (brainspace / ".claude").exists()

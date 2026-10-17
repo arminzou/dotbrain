@@ -5,7 +5,7 @@ from conftest import set_fake_home
 
 from typer.testing import CliRunner
 
-from dotbrain import bootstrap
+from dotbrain import bootstrap, paths
 from dotbrain.cli import app
 
 runner = CliRunner()
@@ -29,7 +29,7 @@ def test_warning_findings_use_current_severity_and_preserve_success(tmp_path, mo
         scope, project = "machine", None
     else:
         args = [command, "link", "--all"]
-        message = "Brain-only project: no checkout assets"
+        message = paths.NO_CHECKOUT
         scope, project = "project", "example"
     args += ["--home", str(root)] + (["--json"] if json_output else [])
     result = runner.invoke(app, args)

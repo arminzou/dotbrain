@@ -136,27 +136,6 @@ def test_migrate_beads_exits_nonzero_when_unverified(
     assert result.exit_code == 1
 
 
-def test_wire_brain_only_creates_brainspace(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    result = runner.invoke(
-        app, ["wire", "--no-repo", "--project", "demo", "--skip-beads"]
-    )
-    assert result.exit_code == 0, result.output
-    brainspace = dotbrain_home / "brainspaces" / "demo"
-    assert (brainspace / ".repo").read_text() == "(brain-only)\n"
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
-
-
-def test_wire_no_repo_requires_project(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    result = runner.invoke(app, ["wire", "--no-repo"])
-    assert result.exit_code != 0
-
-
 def test_wire_uses_configured_beads_server(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -172,7 +151,7 @@ def test_wire_uses_configured_beads_server(
 
     monkeypatch.setattr("dotbrain.cli.workflows.wire_project", fake_wire_project)
 
-    result = runner.invoke(app, ["wire", "--no-repo", "--project", "demo"])
+    result = runner.invoke(app, ["wire", "--project", "demo"])
 
     assert result.exit_code == 0, result.output
     assert captured["server_host"] == "10.0.0.9"
@@ -194,7 +173,7 @@ def test_wire_passes_explicit_beads_remote(
 
     result = runner.invoke(
         app,
-        ["wire", "--no-repo", "--project", "demo",
+        ["wire", "--project", "demo",
          "--remote", "https://example.com/beads"],
     )
 
@@ -549,7 +528,7 @@ def test_wire_renders_symlink_privilege_failure(
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("enable Developer Mode")),
     )
 
-    result = runner.invoke(app, ["wire", "--no-repo", "--project", "demo"])
+    result = runner.invoke(app, ["wire", "--project", "demo"])
 
     assert result.exit_code != 0
     assert "enable Developer Mode" in result.output
