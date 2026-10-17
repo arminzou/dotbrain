@@ -65,6 +65,7 @@ Each element of a Brain has one purpose:
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
+    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
@@ -77,6 +78,7 @@ treeView-beta
 
 | Element | Holds | Changes when |
 | --- | --- | --- |
+| `AGENTS.md` | Private preferences and project rules; `CLAUDE.md` is its alias | Working rules change |
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |

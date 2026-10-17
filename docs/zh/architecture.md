@@ -61,6 +61,7 @@ Brain 里的每个部分各有一个用途：
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
+    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
@@ -73,6 +74,7 @@ treeView-beta
 
 | 部分 | 内容 | 何时变化 |
 | --- | --- | --- |
+| `AGENTS.md` | 私有偏好和项目规则；`CLAUDE.md` 是它的别名 | 工作规则变化时 |
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |
 | `adr/` | 架构决策记录（ADR），每个决策一条 | 做出一个难以撤回、有真实取舍的选择时 |
 | `designs/` | 设计文档，每项工作一个文件 | 一项工作被规划、实现或结束时 |

@@ -23,7 +23,7 @@ Brain template propagate to every brain.
 ## Rules
 
 - Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
-- Public `AGENTS.md` routes changes/reviews to root `RULES.md`, usable without a Brain.
+- Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
 - During implementation or review preparation, the lead or sole agent searches `.brain/RETRO.md`
   for task-relevant findings and passes applicable findings through existing assignments.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
@@ -136,4 +136,4 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
-`project.yaml` (`skills:`). Public repository instructions route changes and reviews to `RULES.md`.
+`project.yaml` (`skills:`). Public instructions route changes and reviews to `RULES.md` if present.

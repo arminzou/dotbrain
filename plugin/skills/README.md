@@ -16,11 +16,11 @@ active design records current intent, and Beads tracks private execution.
   its ready frontier; [`run-execution`](run-execution/SKILL.md) carries out an item or a
   finite batch. Discoveries feed back into the active design or work graph before the next work item.
   With an explicit handoff, [`iterate-design`](iterate-design/SKILL.md) can run a bounded loop.
-- **Review:** [`review-gate`](review-gate/SKILL.md) records findings and verification evidence for
-  a human-owned review decision.
+- **Review:** [`review-gate`](review-gate/SKILL.md) records findings and verification evidence; the lead
+  closes accepted reviews, and PR approval and merge stay human-owned.
 - **Retrospective:** [`run-retro`](run-retro/SKILL.md) reviews changed evidence in a separate manual or
   externally invoked pass, retaining private findings, successful practices, and source progress.
-  First use in repository scope offers to create `RULES.md` when no rules or standards file
+  In repository scope it offers once to create `RULES.md` when no rules or standards file
   exists; contributor scope never creates one. It may prepare a public `RULES.md` change and
   reads PR/merge state read-only to reconcile
   acceptance. By default it suggests an existing public destination for the user's decision.

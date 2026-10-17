@@ -10,7 +10,7 @@ pageClass: prompt-examples
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
 不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
-`iterate-design`、`review-architecture` 和 `run-retro` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
+`iterate-design`、`review-architecture`、`run-retro` 和 `close-design` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
 `/dotbrain:iterate-design`。
 
 ## 配置 {#set-up}
@@ -216,12 +216,12 @@ Run a simplify review on this branch: what can we delete or replace?
 ### 结束设计 {#close-a-design}
 
 ```text
-The orders-pagination work is merged. Close the design: record the evidence and promote what should
+/dotbrain:close-design The orders-pagination work is merged. Close the design: record the evidence and promote what should
 outlive it to ADRs and CONTEXT.md.
 ```
 
 **什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**技能：**
-`close-design`。见[工作流程](workflow.md#_7-close-the-design)。
+`close-design`，需显式调用。见[工作流程](workflow.md#_7-close-the-design)。
 
 ## 学习 {#learn}
 

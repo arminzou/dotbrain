@@ -96,7 +96,7 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   PR process and body, independent of the `pr` skill used for ordinary changes.
   First use reads existing root guidance and referenced standards, records current HEAD as
   a baseline, and stops without reviewing history. In repository scope with no rules or
-  standards file, first use offers once to create `RULES.md` from requirements existing guidance
+  standards file, it offers once, on the first pass until answered, to create `RULES.md` from requirements existing guidance
   already states and delivers it as a PR; contributor scope never creates a file in the repo.
   Later runs review forward within explicitly
   selected contribution branches/PRs or a maintainer-selected integration branch, reusing shared

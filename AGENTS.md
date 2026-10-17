@@ -5,6 +5,7 @@
 Read the guidance relevant to your task. Prefer nearer `AGENTS.md` instructions
 when working within a directory.
 
+- Before making or reviewing a change, read [RULES.md](RULES.md).
 - For product usage and setup, read [README.md](README.md).
 - Before changing design boundaries, read [docs/architecture.md](docs/architecture.md).
 
@@ -31,7 +32,7 @@ when working within a directory.
 
 ## Documentation
 
-Before editing public documentation, read [docs/agents.md](docs/agents.md).
+Before editing public documentation, read [docs/AGENTS.md](docs/AGENTS.md).
 Check the corresponding English and Chinese pages for affected guidance.
 
 ## Verification

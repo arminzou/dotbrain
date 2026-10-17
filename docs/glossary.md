@@ -104,7 +104,7 @@ request you review. See [The workflow](workflow.md#_5-work-the-issues).
 
 ### Handoff workflow
 
-The workflow in which an agent continues within a contract you approved with an explicit `GO`,
+The workflow in which an agent continues within a contract you approved, with an explicit `GO` or by reusing an approved contract,
 until it finishes, reaches a human gate, or hits a hard stop. `iterate-design` runs it and delivers
 the work through a pull request that becomes ready for your review.
 

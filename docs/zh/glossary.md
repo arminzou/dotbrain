@@ -91,7 +91,7 @@ dotbrain 的全局配置文件，通常在 `~/dotbrain/config.yaml`。它存放�
 
 ### Handoff workflow
 
-Agent 在你用明确的 `GO` 批准的约定范围内继续工作，直到完成、遇到需要人来把关的关卡，或者触发硬性停止条件。
+Agent 在你批准的约定范围内继续工作（通过明确的 `GO`，或复用已批准的约定），直到完成、遇到需要人来把关的关卡，或者触发硬性停止条件。
 `iterate-design` 负责运行它，并通过一个转为 ready、等你审阅的 PR 交付工作。
 
 ### Execution mode
