@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0](https://github.com/arminzou/dotbrain/compare/v0.7.0...v0.8.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **wire:** `dotbrain wire --no-repo` is removed, and `projects list/show --json` no longer reports `brain_only`; a null `checkout` means no registered checkout. Move a Brain-only project onto a repository (it may be private and docs-only) with `dotbrain wire --project <name>` from that repository, or archive the Brainspace by moving it out of `brainspaces/`.
+
+### Features
+
+* **wire:** require a repository as every project's working home ([1510bce](https://github.com/arminzou/dotbrain/commit/1510bcebb450c0127e2f1454324f8f3508253a5c))
+
+
+### Bug Fixes
+
+* **doctor:** drop the repeated path from the skip message ([0b588c6](https://github.com/arminzou/dotbrain/commit/0b588c65175d15a6a677ffce4bc5b188409f90b6))
+* **doctor:** skip shared checkouts absent on this machine under --all ([5e604c6](https://github.com/arminzou/dotbrain/commit/5e604c64234e96078752104ac5b6603f503f3939))
+
 ## [0.7.0](https://github.com/arminzou/dotbrain/compare/v0.6.1...v0.7.0) (2026-10-15)
 
 
