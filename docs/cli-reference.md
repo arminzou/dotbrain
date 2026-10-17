@@ -8,7 +8,9 @@ for catalogs and project inspection. Empty lists, previews, and skipped work are
 Doctor shows problems and warnings first; use `doctor -v` to include every healthy check.
 Runtime activation and session uncertainty are informational, shown with `doctor -v` and in
 JSON; they do not count as passed checks. Missing registered hook files and failed plugin
-checks remain warnings.
+checks remain warnings. With `--all`, a project whose shared `.repo` checkout is absent on this
+machine is reported as skipped, not failed; a missing `.repo.local` checkout or an explicit
+`--project` still fails.
 Colors follow terminal capabilities; redirected output stays plain.
 
 Finite reports support `--json`: stdout contains one result with command, overall status,

@@ -366,3 +366,26 @@ def test_plugin_check_warns_when_the_plugin_lacks_packaged_claude_agents(tmp_pat
     for name in subagents.PROJECT_BASELINE:
         write(install / "agents" / f"{name}.md", "---\nname: x\n---\n")
     assert not any(f.status == "warn" for f in doctor._check_plugin(tmp_path, "claude-code"))
+
+
+def test_all_skips_shared_checkouts_absent_on_this_machine(tmp_path):
+    root = tmp_path / "home"
+    repo = tmp_path / "repo"
+    make_project(root, "local", repo=repo)
+    write(make_project(root, "shared") / ".repo", str(tmp_path / "elsewhere"))
+    override = make_project(root, "override")
+    write(override / ".repo", str(tmp_path / "elsewhere"))
+    write(override / ".repo.local", str(tmp_path / "missing-local"))
+    calls = []
+    before = snapshot(tmp_path)
+    report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True, run=recording_run(repo, calls))
+    assert snapshot(tmp_path) == before
+    assert not errors(report.projects["local"])
+    assert not errors(report.projects["shared"])
+    assert [f.status for f in report.projects["shared"]].count("skip") == 1
+    assert not any(str(tmp_path / "elsewhere") in str(kwargs.get("cwd")) for _, kwargs in calls)
+    assert any("registered checkout missing" in m for m in errors(report.projects["override"]))
+    statuses = {t.project: t.status for t in doctor.as_result(report).targets}
+    assert statuses == {None: statuses[None], "local": "success", "shared": "skipped", "override": "failure"}
+    explicit = doctor.run_doctor(root, home=tmp_path / "user", project="shared", run=recording_run(repo, []))
+    assert any("registered checkout missing" in m for m in errors(explicit.projects["shared"]))
