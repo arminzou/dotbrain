@@ -16,7 +16,7 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 
 | Rule | What to check |
 | --- | --- |
-| Modules that run `bd` or `git` take an injected `run` callable shaped like `subprocess.run`. | Tests pass a fake runner and assert on the recorded argv; no test executes real `bd`/`git` through that path. |
+| Modules that run `bd` or `git` take an injected `run` callable shaped like `subprocess.run`. | New subprocess calls go through the injected `run`; tests that assert on commands pass a fake runner and check the recorded argv. |
 
 ## User data and filesystem changes
 
@@ -52,5 +52,5 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 
 | Rule | What to check |
 | --- | --- |
-| Use Conventional Commit messages, as in `fix(cli): explain invalid project selection`. | Each commit subject matches `type: summary` or `type(scope): summary`. |
+| Use Conventional Commit messages, as in `fix(cli): explain invalid project selection`. | Each commit subject matches `type(scope): summary`, with the scope optional and `!` marking a breaking change. |
 | Explain the problem, resulting behavior, and verification; call out command syntax or JSON output changes with migration steps. | The PR body covers each, with screenshots for visual changes. |

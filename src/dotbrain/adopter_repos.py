@@ -608,7 +608,7 @@ def unwire_repo(
         if file.is_symlink() or not file.is_file():
             continue
         if import_line in (l.strip() for l in file.read_text(encoding="utf-8", errors="replace").splitlines()):
-            result.warnings.append(f"{file} still imports {import_line}, which no longer resolves; "
-                                   "remove that line if Dotbrain added it")
+            result.warnings.append(f"{file} still contains the Dotbrain pointer line {import_line}; "
+                                   "remove it if Dotbrain added it")
 
     return result
