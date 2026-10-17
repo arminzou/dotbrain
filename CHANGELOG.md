@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.0](https://github.com/arminzou/dotbrain/compare/v0.8.0...v0.9.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow:** `close-design` now runs only when invoked explicitly (`/dotbrain:close-design` in Claude Code); describing the job no longer triggers it. The lead agent now closes accepted reviews and approved work items itself after independent review; PR approval, merge, and release stay human-owned.
+
+### Features
+
+* **skills:** add `run-retro` for private retrospectives and public rule proposals ([5b1062d](https://github.com/arminzou/dotbrain/commit/5b1062d033fbba8a00bc6f16587b674aae199d1c))
+* **workflow:** let agents finish approved work and add agent retrospectives ([5b1062d](https://github.com/arminzou/dotbrain/commit/5b1062d033fbba8a00bc6f16587b674aae199d1c))
+
+
+### Bug Fixes
+
+* **unwire:** warn when an edited pointer line is left in `AGENTS.md` or `CLAUDE.md` ([5b1062d](https://github.com/arminzou/dotbrain/commit/5b1062d033fbba8a00bc6f16587b674aae199d1c))
+
 ## [0.8.0](https://github.com/arminzou/dotbrain/compare/v0.7.0...v0.8.0) (2026-10-17)
 
 
