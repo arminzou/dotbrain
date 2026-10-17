@@ -54,13 +54,14 @@ mechanical enforcement that would work, trying each level in order:
 4. **Test:** assert the behavior users observe, so it fails when the practice is broken.
 
 Name the concrete check and the real past mistake from the finding's evidence that it would have
-caught. Keep that citation private; public rule text stays free of private incidents. Record an
+caught, or state that the evidence records no such mistake; never invent or stretch one. Keep that
+citation private; public rule text stays free of private incidents. Record an
 `Enforcement:` line beside the finding with the level and check, or with the reason no mechanical
-enforcement fits. Rule text remains the fallback and the only form for judgment calls; when a
-check exists, the rule's review check names it.
+enforcement fits. Rule text remains the fallback and the only form for judgment calls; when such
+a check already exists in the repository, the rule's review check names it.
 
-Suggest only. Never build a check, hook, or test from a retrospective, even when auto-delivery is
-enabled: building one is separate work the user approves through the work graph. Rule-text
+Suggest only. Never build a check, hook, or test from a retrospective, including enabling a rule
+in existing lint, CI, or hook configuration, even when auto-delivery is enabled: building one is separate work the user approves through the work graph. Rule-text
 delivery authority is unchanged.
 
 ## Prepare an authorized proposal
