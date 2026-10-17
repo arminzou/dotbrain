@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/arminzou/dotbrain/compare/v0.9.0...v0.10.0) (2026-10-17)
+
+
+### Features
+
+* **skills:** suggest mechanical enforcement for promoted retro rules ([cd66642](https://github.com/arminzou/dotbrain/commit/cd666421f26b62ff56e04c3909edebc273d90d4b))
+
+
+### Bug Fixes
+
+* **skills:** tighten retro enforcement wording after review ([4f1e3ae](https://github.com/arminzou/dotbrain/commit/4f1e3ae1e4e5b8d0a2dfaf6a1be3d4f144830708))
+
 ## [0.9.0](https://github.com/arminzou/dotbrain/compare/v0.8.0...v0.9.0) (2026-10-17)
 
 

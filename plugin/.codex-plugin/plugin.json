@@ -1,6 +1,6 @@
 {
   "name": "dotbrain",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Private project context, shared across coding agents and worktrees.",
   "author": {
     "name": "Armin Zou",
