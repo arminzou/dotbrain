@@ -255,16 +255,21 @@ def _push(home: Path, report: SyncReport, run: Runner, env: dict) -> None:
 
 def _copy_name(home: Path, path: str, tracked: Container[str] = ()) -> str:
     """``dir/NAME.sync-conflict-YYYY-MM-DD-<host>[-n].ext``, split on the file name only, free in
-    the working tree and not in ``tracked``."""
+    the working tree and, casefolded, not in ``tracked``."""
     pure = PurePosixPath(path)
     base = f"{pure.stem}.sync-conflict-{date.today().isoformat()}-{platform.node()}"
     n = 1
     while True:
         suffix = "" if n == 1 else f"-{n}"
         name = str(pure.with_name(f"{base}{suffix}{pure.suffix}"))
-        if not os.path.lexists(home / name) and name not in tracked:
+        if not os.path.lexists(home / name) and name.casefold() not in tracked:
             return name
         n += 1
+
+
+def _head_paths(home: Path, run: Runner) -> set[str]:
+    """HEAD's files, casefolded: on a case-insensitive file system names differing in case collide."""
+    return {path.casefold() for path in _git(run, home, "ls-tree", "-r", "--name-only", "-z", "HEAD").stdout.split("\0")}
 
 
 def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
@@ -300,7 +305,7 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
         return
     report.merged = True
     # a name HEAD tracks but the upstream deleted is free in the tree, yet an abort must restore it
-    tracked = set(_git(run, home, "ls-tree", "-r", "--name-only", "-z", "HEAD").stdout.split("\0"))
+    tracked = _head_paths(home, run)
     for path, present in sorted(stages.items()):
         if {"2", "3"} <= present:  # both changed it: this machine's in place, the other's beside it
             copy = _copy_name(home, path, tracked)
@@ -342,9 +347,11 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
             try:
                 _git(run, home, "merge", "--abort", check=False)
             finally:
-                for copy in copies:  # left untracked, the next sync would record and push them
-                    # copy names avoid HEAD's files; still, never delete a file HEAD tracks
-                    if _git(run, home, "cat-file", "-e", f"HEAD:{copy}", check=False).returncode != 0:
+                # left untracked, the next sync would record and push them; copy names avoid
+                # HEAD's files, but still never delete a file HEAD tracks
+                tracked = _head_paths(home, run) if copies else set()
+                for copy in copies:
+                    if copy.casefold() not in tracked:
                         (home / copy).unlink(missing_ok=True)
         raise
 
