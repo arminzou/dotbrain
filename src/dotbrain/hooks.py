@@ -95,17 +95,17 @@ def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) 
         return
 
 
-def session_source(stream: TextIO | None = None) -> str | None:
-    """The ``source`` of the SessionStart payload on stdin (startup, resume, clear, compact)."""
+def payload_field(key: str, stream: TextIO | None = None) -> str | None:
+    """A string field of the hook payload on stdin: SessionStart ``source``, SessionEnd ``reason``."""
 
     stream = stream if stream is not None else sys.stdin
     try:
         if stream is None or stream.isatty():
             return None
-        source = json.loads(stream.read() or "{}").get("source")
+        value = json.loads(stream.read() or "{}").get(key)
     except (OSError, ValueError, AttributeError):
         return None
-    return source if isinstance(source, str) else None
+    return value if isinstance(value, str) else None
 
 
 def _sync_argv(home: Path, push_only: bool) -> list[str]:

@@ -328,6 +328,18 @@ def test_session_end_runs_the_full_sync(tmp_path: Path):
     assert _eventually(lambda: (home / "from-other.md").is_file())
 
 
+@pytest.mark.parametrize(("stdin", "launched"), [(b'{"reason": "clear"}', 0), (b'{"reason": "logout"}', 1), (b"", 1)])
+def test_session_end_skips_sync_on_clear(tmp_path: Path, monkeypatch, launches, stdin, launched):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(home)
+
+    result = CliRunner().invoke(app, ["hook", "session-end"], input=stdin)
+
+    assert result.exit_code == 0
+    assert len(launches) == launched
+
+
 def test_hooks_sync_only_in_wired_checkouts_or_the_home(tmp_path: Path, monkeypatch, launches):
     home = _home(tmp_path, tmp_path / "remote.git")
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
