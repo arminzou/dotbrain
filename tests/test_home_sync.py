@@ -425,6 +425,82 @@ def no_operation_in_progress(repo: Path) -> bool:
     return not any((git_dir / name).exists() for name in home_sync._IN_PROGRESS) and git(repo, "status", "--porcelain") == ""
 
 
+@pytest.mark.parametrize("gitfile", [False, True])
+def test_nested_repository_files_listed_individually_are_never_recorded(home: Path, remote: Path,
+                                                                      tmp_path: Path, gitfile: bool):
+    relative = ALPHA / "vendor"
+    nested = home / relative
+    write(nested / "tracked.md", "initial\n")
+    home_sync.sync(home)
+    tip = git(home, "rev-parse", "HEAD")
+    args = ["--separate-git-dir", str(tmp_path / "nested.git")] if gitfile else []
+    git(nested, "init", "-q", "-b", "main", *args)
+    write(nested / "tracked.md", "local edit\n")
+    write(nested / "local.md", "local\n")
+    write(nested / "subdir" / "another.md", "another\n")
+    before = tree(home)
+    assert (relative / "local.md").as_posix() in home_sync._changed_paths(subprocess.run, home)
+
+    for push_only in (False, True):
+        report = home_sync.sync(home, push_only=push_only)
+        assert report.nested == [relative.as_posix()]
+        assert report.commits == [] and report.push == "up-to-date"
+        assert git(home, "rev-parse", "HEAD") == tip
+        assert git(remote, "rev-parse", "main") == tip
+        assert (relative / "local.md").as_posix() not in git(home, "ls-files")
+        assert tree(home) == before
+
+
+@pytest.mark.parametrize("change", ["added", "edited", "root"])
+def test_incoming_paths_in_nested_repository_block_merge_and_push(home: Path, other: Path,
+                                                                remote: Path, change: str):
+    relative = ALPHA / "vendor"
+    incoming = relative if change == "root" else relative / "upstream.md"
+    if change == "edited":
+        write(other / incoming, "initial\n")
+        home_sync.sync(other)
+        home_sync.sync(home)
+    nested = home / relative
+    nested.mkdir(parents=True, exist_ok=True)
+    git(nested, "init", "-q", "-b", "main")
+    write(nested / "local.md", "local\n")
+    write(other / incoming, "upstream\n")
+    home_sync.sync(other)
+    remote_tip = git(remote, "rev-parse", "main")
+    write(home / ALPHA / "notes.md", "local notes\n")  # a commit waiting to be pushed
+    before = tree(home)
+    calls: list[list[str]] = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.run(argv, **kwargs)
+
+    for _ in range(2):
+        report = home_sync.sync(home, run=run)
+        assert report.status == "collision" and report.push == "none"
+        assert report.collisions == [incoming.as_posix()]
+        assert report.nested == [relative.as_posix()]
+        assert not report.merged and report.waiting == 1
+        assert git(remote, "rev-parse", "main") == remote_tip
+        assert tree(home) == before
+        assert git(home, "ls-files", "--unmerged") == ""
+        assert not (home / ".git" / "MERGE_HEAD").exists()
+    assert not any("merge" in call or "push" in call for call in calls)
+
+
+def test_nested_repository_does_not_block_incoming_sibling(home: Path, other: Path):
+    make_repo(home / ALPHA / "vendor")
+    write(home / ALPHA / "vendor" / "local.md")
+    write(other / ALPHA / "vendor-notes.md", "upstream\n")
+    home_sync.sync(other)
+
+    report = home_sync.sync(home)
+
+    assert report.status == "synced" and report.merged and not report.collisions
+    assert (home / ALPHA / "vendor-notes.md").read_text(encoding="utf-8") == "upstream\n"
+    assert "vendor/local.md" not in git(home, "ls-files")
+
+
 def both_sync(first: Path, second: Path) -> None:
     for repo in (first, second, first):
         assert home_sync.sync(repo).push in ("pushed", "up-to-date")
@@ -459,6 +535,22 @@ def test_edits_to_different_paragraphs_merge_without_copies(home: Path, other: P
     both_sync(home, other)
     assert (other / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "one by V\n\ntwo\n\nthree by W\n"
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
+
+
+def test_diverged_sync_overrides_merge_ff_only(home: Path, other: Path, remote: Path):
+    write(other / ALPHA / "upstream.md", "upstream\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "local.md", "local\n")
+    git(home, "config", "merge.ff", "only")
+
+    report = home_sync.sync(home)
+
+    assert report.status == "synced" and report.merged and report.push == "pushed"
+    assert len(git(home, "rev-list", "--parents", "-n", "1", "HEAD").split()) == 3
+    assert git(remote, "rev-parse", "main") == git(home, "rev-parse", "HEAD")
+    assert (home / ALPHA / "local.md").read_text(encoding="utf-8") == "local\n"
+    assert (home / ALPHA / "upstream.md").read_text(encoding="utf-8") == "upstream\n"
+    assert no_operation_in_progress(home)
 
 
 def test_same_paragraph_edits_keep_both_versions(home: Path, other: Path):
@@ -619,6 +711,81 @@ def test_failure_while_merging_leaves_no_merge_in_progress(home: Path, other: Pa
     assert git(home, "rev-parse", "HEAD") != head  # the sync commit stays, unpushed
     assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "W\n"
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
+
+
+@pytest.mark.parametrize("hook_name", ["pre-merge-commit", "commit-msg"])
+def test_failing_merge_commit_hook_aborts_merge(home: Path, other: Path, remote: Path, hook_name: str):
+    write(other / ALPHA / "upstream.md", "upstream\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "local.md", "local\n")
+    git(home, "add", "-A")
+    git(home, "commit", "-q", "-m", "local edit")
+    tip = git(home, "rev-parse", "HEAD")
+    remote_tip = git(remote, "rev-parse", "main")
+    before = tree(home)
+    git_dir = Path(git(home, "rev-parse", "--absolute-git-dir"))
+    hook = git_dir / "hooks" / hook_name
+    hook.write_bytes(b"#!/bin/sh\necho 'merge hook failed' >&2\nexit 1\n")
+    hook.chmod(0o755)
+
+    with pytest.raises(home_sync.SyncError, match="merge hook failed"):
+        home_sync.sync(home)
+
+    assert not (git_dir / "MERGE_HEAD").exists()
+    assert no_operation_in_progress(home)
+    assert git(home, "rev-parse", "HEAD") == tip
+    assert git(remote, "rev-parse", "main") == remote_tip
+    assert tree(home) == before
+
+
+def test_unrelated_upstream_history_is_an_error(home: Path, remote: Path):
+    git(home, "switch", "-q", "--orphan", "unrelated")
+    write(home / "unrelated.md")
+    git(home, "add", "-A")
+    git(home, "commit", "-q", "-m", "unrelated root")
+    git(home, "branch", "--set-upstream-to", "origin/main")
+    before = tree(home)
+    tip = git(home, "rev-parse", "HEAD")
+    remote_tip = git(remote, "rev-parse", "main")
+
+    with pytest.raises(home_sync.SyncError, match="unrelated histories"):
+        home_sync.sync(home)
+
+    assert no_operation_in_progress(home)
+    assert git(home, "rev-parse", "HEAD") == tip
+    assert git(remote, "rev-parse", "main") == remote_tip
+    assert tree(home) == before
+
+
+@pytest.mark.parametrize("diagnostic,merge_started", [
+    ("error: unknown option", False),
+    ("fatal: refusing to merge unrelated histories", False),
+    ("merge hook failed", True),
+])
+def test_merge_errors_raise_and_abort_only_a_started_merge(tmp_path: Path, diagnostic: str, merge_started: bool):
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    calls = []
+
+    def run(argv, **kwargs):
+        args = argv[2:]
+        calls.append(args)
+        if args[0] == "merge-base":
+            return subprocess.CompletedProcess(argv, 1, "", "")
+        if args[:2] == ["merge", "--abort"]:
+            (git_dir / "MERGE_HEAD").unlink()
+        elif args[0] == "merge":
+            if merge_started:
+                write(git_dir / "MERGE_HEAD", "incoming\n")
+            return subprocess.CompletedProcess(argv, 1, "", diagnostic)
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    report = home_sync.SyncReport()
+    with pytest.raises(home_sync.SyncError, match=diagnostic):
+        home_sync._integrate(tmp_path, git_dir, "origin/main", report, run)
+    assert not report.collisions
+    assert not (git_dir / "MERGE_HEAD").exists()
+    assert (["merge", "--abort"] in calls) == merge_started
 
 
 def over_limit_edit_against_upstream(home: Path, other: Path, name: str = "CONTEXT.md",

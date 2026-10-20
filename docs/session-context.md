@@ -81,10 +81,10 @@ A full sync runs four steps:
 Home sync is quiet and fails open. It writes nothing to the agent's context, and a failure never
 blocks the session. Offline machines and homes without a remote keep their sync commits locally
 until a later sync can push them. Hooks sync only in a checkout wired to a Brainspace, or in the
-dotbrain home itself. A lock keeps two syncs on one machine apart. Session-start sync briefly waits
-for a busy lock within its 10-second bound; other sync entrypoints return at once if the lock is
-busy. Run `dotbrain sync` to sync by hand, and `dotbrain doctor` to see waiting commits, conflict
-copies, and skipped files. To turn sync
+dotbrain home itself. A lock keeps two syncs on one machine apart. The full sync at session start
+briefly waits for a busy lock within its 10-second bound. The push-only sync after compaction and
+other sync entrypoints return at once if the lock is busy. Run `dotbrain sync` to sync by hand,
+and `dotbrain doctor` to see waiting commits, conflict copies, and skipped files. To turn sync
 off, see [`sync:`](configuration.md#sync).
 
 Home sync does not sync the Beads tracker; `dotbrain beads sync` keeps its own path.

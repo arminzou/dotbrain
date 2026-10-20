@@ -52,7 +52,7 @@ class SyncReport:
     merged: bool = False  # the fetched upstream was integrated by merge (including fast-forward)
     conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
     attempts: int = 0  # fetch-integrate-push rounds run
-    collisions: list[str] = field(default_factory=list)  # raw Git diagnostics for a refused merge; not integrated
+    collisions: list[str] = field(default_factory=list)  # overlapping nested paths or Git refusal diagnostics
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -107,9 +107,21 @@ def _too_large(home: Path, path: str, limit: int) -> bool:
 
 
 def _is_nested_repo(home: Path, path: str) -> bool:
-    """An untracked nested repository (listed with a trailing slash) or a submodule's gitlink."""
+    """A nested repository, submodule, or a file inside one."""
+    return _nested_repo_path(home, path) is not None
+
+
+def _nested_repo_path(home: Path, path: str) -> str | None:
+    """Find the repository root even when Git lists its files individually."""
+    parts = PurePosixPath(path).parts
+    for count in range(1, len(parts) + 1):
+        directory = home.joinpath(*parts[:count])
+        if os.path.lexists(directory / ".git"):
+            return directory.relative_to(home).as_posix()
     full = home / path
-    return path.endswith("/") or (full.is_dir() and not full.is_symlink())
+    if path.endswith("/") or (full.is_dir() and not full.is_symlink()):
+        return path.rstrip("/")  # Git can also list a submodule without a .git entry
+    return None
 
 
 def record(home: Path, max_file_size: int,
@@ -123,8 +135,10 @@ def record(home: Path, max_file_size: int,
     skipped: list[str] = []
     nested: list[str] = []
     for path in _changed_paths(run, home):
-        if _is_nested_repo(home, path):
-            nested.append(path.rstrip("/"))
+        repository = _nested_repo_path(home, path)
+        if repository is not None:
+            if repository not in nested:
+                nested.append(repository)
             continue
         if _too_large(home, path, max_file_size):
             skipped.append(path)
@@ -215,11 +229,11 @@ def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
     return stages
 
 
-def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
+def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
     """Merge the upstream, settling every conflict without losing either side's content."""
     host = platform.node()
     clean_message = f"sync: merge on {host}, 0 conflict copies"
-    merged = _git(run, home, "merge", "--no-edit", "--no-autostash", "--no-overwrite-ignore", "--quiet", "-m",
+    merged = _git(run, home, "merge", "--ff", "--no-edit", "--no-autostash", "--no-overwrite-ignore", "--quiet", "-m",
                   clean_message, upstream, check=False)
     if merged.returncode == 0:
         report.merged = True
@@ -227,8 +241,12 @@ def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
         return
     stages = _unmerged(home, run)
     if not stages:
+        diagnostic = merged.stderr or merged.stdout
+        if ((git_dir / "MERGE_HEAD").exists()
+                or not any(text in diagnostic for text in ("would be overwritten by merge", "would be removed by merge"))):
+            raise SyncError(f"git merge failed: {diagnostic.strip()}")
         report.status = "collision"
-        report.collisions.append(merged.stderr or merged.stdout)
+        report.collisions.append(diagnostic)
         return
     report.merged = True
     copies: list[str] = []
@@ -258,8 +276,15 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
     if (git_dir / "MERGE_HEAD").exists():
         report.status, report.blocked_by = "blocked", ["MERGE_HEAD"]
         return
+    if report.nested:
+        incoming = _git(run, home, "diff", "--name-only", "--no-renames", "-z", f"HEAD...{upstream}").stdout
+        report.collisions.extend(path for path in incoming.split("\0") if path and any(
+            path == nested or path.startswith(nested + "/") for nested in report.nested))
+        if report.collisions:
+            report.status = "collision"
+            return
     try:
-        _merge(home, upstream, report, run)
+        _merge(home, git_dir, upstream, report, run)
     except BaseException:
         if (git_dir / "MERGE_HEAD").exists():
             _git(run, home, "merge", "--abort", check=False)
