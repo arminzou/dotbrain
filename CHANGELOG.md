@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.0](https://github.com/arminzou/dotbrain/compare/v0.10.0...v0.11.0) (2026-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sync:** home sync is on by default. The first session after upgrading commits everything uncommitted in ~/dotbrain and pushes it with any unpushed commits. Before upgrading, commit what you want to keep, discard or .gitignore anything that must not be pushed, or set `sync: enabled: false` in ~/dotbrain/config.yaml. Codex users must trust the new hooks once through /hooks.
+
+### Features
+
+* **sync:** sync the dotbrain home automatically ([#29](https://github.com/arminzou/dotbrain/issues/29)) ([1748b75](https://github.com/arminzou/dotbrain/commit/1748b751b72f17fe042a836ae0698dacbdde2711))
+
 ## [0.10.0](https://github.com/arminzou/dotbrain/compare/v0.9.0...v0.10.0) (2026-10-17)
 
 
