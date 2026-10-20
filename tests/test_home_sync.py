@@ -736,7 +736,47 @@ def test_failure_while_merging_leaves_no_merge_in_progress(home: Path, other: Pa
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
 
 
-@pytest.mark.parametrize("hook_name", ["pre-merge-commit", "commit-msg"])
+def test_failure_after_writing_a_conflict_copy_removes_it(home: Path, other: Path):
+    for name in ("a.md", "b.md"):
+        write(other / ALPHA / name, "V\n")
+        write(home / ALPHA / name, "W\n")
+    home_sync.sync(other)
+    home_sync.sync(home, push_only=True)  # record the local edits; the push is rejected
+    before = tree(home)
+
+    def run(argv, **kwargs):
+        if "add" in argv:  # the first conflict copy is already written
+            raise OSError("disk full")
+        return subprocess.run(argv, **kwargs)
+
+    with pytest.raises(OSError):
+        home_sync.sync(home, run=run)
+
+    assert not (home / ".git" / "MERGE_HEAD").exists()
+    assert not list(home.rglob("*.sync-conflict-*"))
+    assert tree(home) == before
+    assert no_operation_in_progress(home)
+
+
+def test_gitignored_conflict_copy_name_is_still_committed_and_pushed(home: Path, other: Path, remote: Path):
+    write(home / ".gitignore", "*.sync-conflict-*\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    write(other / ALPHA / "CONTEXT.md", "V's line\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "W's line\n")
+
+    report = home_sync.sync(home)
+
+    copy = f"brainspaces/alpha/.brain/CONTEXT.sync-conflict-{TODAY}-{HOST}.md"
+    assert report.status == "synced" and report.conflict_copies == [copy] and report.push == "pushed"
+    assert copy in git(remote, "ls-tree", "-r", "--name-only", "main").splitlines()
+    assert git(remote, "rev-parse", "main") == git(home, "rev-parse", "HEAD")
+    assert no_operation_in_progress(home)
+    assert home_sync.sync(home).status == "synced"
+
+
+@pytest.mark.parametrize("hook_name",["pre-merge-commit", "commit-msg"])
 def test_failing_merge_commit_hook_aborts_merge(home: Path, other: Path, remote: Path, hook_name: str):
     write(other / ALPHA / "upstream.md", "upstream\n")
     home_sync.sync(other)
