@@ -759,8 +759,11 @@ def test_failure_after_writing_a_conflict_copy_removes_it(home: Path, other: Pat
         assert no_operation_in_progress(home)
 
 
-def test_failed_merge_keeps_a_tracked_file_whose_name_a_copy_reused(home: Path, other: Path):
-    taken = ALPHA / f"CONTEXT.sync-conflict-{TODAY}-{HOST}.md"
+@pytest.mark.parametrize("stem", ["CONTEXT", "context"])
+def test_failed_merge_keeps_a_tracked_file_whose_name_a_copy_reused(home: Path, other: Path, stem: str):
+    if stem == "context" and not (home / ALPHA / "context.md").exists():
+        pytest.skip("names differing only in case collide only on a case-insensitive file system")
+    taken = ALPHA / f"{stem}.sync-conflict-{TODAY}-{HOST}.md"
     write(home / taken, "committed\n")
     home_sync.sync(home)
     home_sync.sync(other)
