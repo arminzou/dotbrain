@@ -757,6 +757,29 @@ def test_unrelated_upstream_history_is_an_error(home: Path, remote: Path):
     assert tree(home) == before
 
 
+def test_only_merge_uses_c_locale_and_preserves_inherited_environment(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("LC_ALL", "fr_FR.UTF-8")
+    monkeypatch.setenv("LANGUAGE", "fr")
+    monkeypatch.setenv("DOTBRAIN_TEST_ENV", "inherited")
+    calls = []
+
+    def run(argv, **kwargs):
+        args = argv[2:]
+        calls.append((args, kwargs["env"]))
+        return subprocess.CompletedProcess(argv, 1 if args[0] == "merge-base" else 0, "", "")
+
+    report = home_sync.SyncReport()
+    home_sync._integrate(tmp_path, tmp_path / ".git", "origin/main", report, run)
+
+    assert report.merged
+    assert [args[0] for args, _ in calls] == ["merge-base", "merge"]
+    for args, env in calls:
+        assert env["LC_ALL"] == ("C" if args[0] == "merge" else "fr_FR.UTF-8")
+        assert env["LANGUAGE"] == ("C" if args[0] == "merge" else "fr")
+        assert env["DOTBRAIN_TEST_ENV"] == "inherited"
+        assert env["GIT_TERMINAL_PROMPT"] == "0"
+
+
 @pytest.mark.parametrize("diagnostic,merge_started", [
     ("error: unknown option", False),
     ("fatal: refusing to merge unrelated histories", False),
@@ -827,6 +850,48 @@ def test_uncommitted_over_limit_file_colliding_with_upstream_is_reported(home: P
     assert f"brainspaces/alpha/.brain/{name}" in target["errors"][0]
     assert_left_clean(home, name, local)
     assert subprocess.run(["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"], cwd=home).returncode == 1
+
+
+def test_upstream_file_replacing_directory_with_untracked_file_is_a_collision(home: Path, other: Path,
+                                                                           remote: Path):
+    directory = ALPHA / "notes"
+    write(home / "config.yaml", "sync:\n  max-file-size: 100\n")
+    write(home / directory / "tracked.md", "original\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    git(other, "rm", "-r", "--", directory.as_posix())
+    write(other / directory, "upstream file\n")
+    assert home_sync.sync(other).push == "pushed"
+    local_path = directory / "local.bin"
+    write(home / local_path, "y" * 200)
+    before = tree(home)
+    tip = git(home, "rev-parse", "HEAD")
+    remote_tip = git(remote, "rev-parse", "main")
+    status = git(home, "status", "--porcelain")
+    diagnostics = []
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        result = subprocess.run(argv, **kwargs)
+        if "merge" in argv:
+            diagnostics.append(result.stderr or result.stdout)
+        return result
+
+    report = home_sync.sync(home, run=run)
+
+    assert report.status == "collision" and report.push == "none"
+    assert not report.merged and report.commits == []
+    assert report.skipped == [local_path.as_posix()]
+    assert report.collisions == diagnostics and len(diagnostics) == 1
+    assert "would lose untracked files" in diagnostics[0]
+    assert directory.as_posix() in diagnostics[0]
+    assert tree(home) == before
+    assert git(home, "status", "--porcelain") == status
+    assert git(home, "rev-parse", "HEAD") == tip
+    assert git(remote, "rev-parse", "main") == remote_tip
+    assert not any("push" in call for call in calls)
+    assert_left_clean(home, local_path.relative_to(ALPHA).as_posix(), b"y" * 200)
 
 
 def test_configured_merge_autostash_is_not_used(home: Path, other: Path):

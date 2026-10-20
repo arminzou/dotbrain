@@ -234,7 +234,7 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
     host = platform.node()
     clean_message = f"sync: merge on {host}, 0 conflict copies"
     merged = _git(run, home, "merge", "--ff", "--no-edit", "--no-autostash", "--no-overwrite-ignore", "--quiet", "-m",
-                  clean_message, upstream, check=False)
+                  clean_message, upstream, check=False, env={"LC_ALL": "C", "LANGUAGE": "C"})
     if merged.returncode == 0:
         report.merged = True
         report.commits.append(clean_message)
@@ -243,7 +243,8 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
     if not stages:
         diagnostic = merged.stderr or merged.stdout
         if ((git_dir / "MERGE_HEAD").exists()
-                or not any(text in diagnostic for text in ("would be overwritten by merge", "would be removed by merge"))):
+                or not any(text in diagnostic for text in ("would be overwritten by merge", "would be removed by merge",
+                                                          "would lose untracked files"))):
             raise SyncError(f"git merge failed: {diagnostic.strip()}")
         report.status = "collision"
         report.collisions.append(diagnostic)
