@@ -73,7 +73,7 @@ doctor 报告 `home sync: open conflict copy <path>`。
 两台机器在同步之前改了同一个文件的同一处。同步保留了两个版本：
 
 - 这台机器的版本留在原处，文件名不变。
-- 另一台机器的版本存到旁边，名为 `<stem>.sync-conflict-<date>-<host>.<ext>`，例如
+- 另一台机器的版本存到旁边，名为 `<stem>.sync-conflict-<date>-<host>` 加上原来的扩展名，例如
   `CONTEXT.sync-conflict-2026-10-20-LAPTOP.md`。这里的主机名是执行合并、写出副本的那台机器，
   不是副本内容来自的机器。同一天同一个文件再次冲突时，会加上编号，如 `-2`。
 
@@ -104,7 +104,8 @@ doctor 报告 `home sync blocked: <state> in the dotbrain home`，`dotbrain sync
 
 doctor 报告 `home sync: <n> local commits waiting to be pushed to <upstream>`。
 
-上一次推送没有到达远程仓库：机器离线了，或者远程有了新提交，同步试了三次后放弃。这些提交是安全的。
+上一次推送没有到达远程仓库。可能是机器离线了，也可能是远程有了新提交：完整同步最多推送四次（第一次
+加三次重试）后放弃；Agent 每轮结束后的推送不会 fetch，被拒后就把提交留给下一次完整同步。这些提交是安全的。
 下一次同步会推送它们，也可以现在运行 `dotbrain sync`。如果一直失败，在 `~/dotbrain` 里手动试一下
 `git push`。
 

@@ -213,7 +213,9 @@ Sync is on by default. To turn it off, set `sync.enabled: false` in
 
 ::: warning Upgrading from an earlier version
 The first session after upgrading commits everything uncommitted in the home and pushes it.
-Commit or discard drafts you do not want shared before you upgrade, or turn sync off first.
+Committed work is pushed too, so before you upgrade, sort what is uncommitted: commit what you want
+to keep with your own message; discard it, move it out of the home, or add it to
+`~/dotbrain/.gitignore` if it must not be pushed; or turn sync off first.
 :::
 
 ::: danger Keep the remote private

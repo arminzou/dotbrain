@@ -80,7 +80,7 @@ Both machines changed the same part of a file before either synced. Sync kept bo
 
 - This machine's version stays in place under the original name.
 - The other machine's version is saved beside it as
-  `<stem>.sync-conflict-<date>-<host>.<ext>`, for example
+  `<stem>.sync-conflict-<date>-<host>` plus the original extension, for example
   `CONTEXT.sync-conflict-2026-10-20-LAPTOP.md`, where the host is the machine that merged and wrote the copy, not the
   machine whose version it holds.
   A second conflict on the same file and day adds a number, such as `-2`.
@@ -114,8 +114,10 @@ no branch. Finish or abort that operation with Git in `~/dotbrain`, check out th
 
 Doctor reports `home sync: <n> local commits waiting to be pushed to <upstream>`.
 
-The last push did not reach the remote: the machine was offline, or the remote moved and sync gave
-up after three tries. The commits are safe. The next sync pushes them, or run `dotbrain sync` now.
+The last push did not reach the remote. Either the machine was offline, or the remote moved: a full
+sync gives up after four push attempts (the first try and three retries), and the push after an
+agent turn, which never fetches, leaves its commits for the next full sync. The commits are safe.
+The next sync pushes them, or run `dotbrain sync` now.
 If it keeps failing, check that `git push` works by hand in `~/dotbrain`.
 
 `home sync: no remote configured; sync commits stay local` means the home's branch has no upstream.
