@@ -736,7 +736,8 @@ def test_failure_while_merging_leaves_no_merge_in_progress(home: Path, other: Pa
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
 
 
-def test_failure_after_writing_a_conflict_copy_removes_it(home: Path, other: Path):
+@pytest.mark.parametrize("abort_fails", [False, True])
+def test_failure_after_writing_a_conflict_copy_removes_it(home: Path, other: Path, abort_fails: bool):
     for name in ("a.md", "b.md"):
         write(other / ALPHA / name, "V\n")
         write(home / ALPHA / name, "W\n")
@@ -745,15 +746,40 @@ def test_failure_after_writing_a_conflict_copy_removes_it(home: Path, other: Pat
     before = tree(home)
 
     def run(argv, **kwargs):
-        if "add" in argv:  # the first conflict copy is already written
+        if "add" in argv or (abort_fails and "--abort" in argv):  # the first copy is already written
             raise OSError("disk full")
         return subprocess.run(argv, **kwargs)
 
     with pytest.raises(OSError):
         home_sync.sync(home, run=run)
 
-    assert not (home / ".git" / "MERGE_HEAD").exists()
     assert not list(home.rglob("*.sync-conflict-*"))
+    if not abort_fails:
+        assert tree(home) == before
+        assert no_operation_in_progress(home)
+
+
+def test_failed_merge_keeps_a_tracked_file_whose_name_a_copy_reused(home: Path, other: Path):
+    taken = ALPHA / f"CONTEXT.sync-conflict-{TODAY}-{HOST}.md"
+    write(home / taken, "committed\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    (other / taken).unlink()  # the upstream frees the name the next copy will take
+    write(other / ALPHA / "CONTEXT.md", "V\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "W\n")
+    home_sync.sync(home, push_only=True)
+    before = tree(home)
+
+    def run(argv, **kwargs):
+        if "add" in argv:
+            raise OSError("disk full")
+        return subprocess.run(argv, **kwargs)
+
+    with pytest.raises(OSError):
+        home_sync.sync(home, run=run)
+
+    assert (home / taken).read_text(encoding="utf-8") == "committed\n"
     assert tree(home) == before
     assert no_operation_in_progress(home)
 
