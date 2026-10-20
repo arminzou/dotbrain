@@ -289,7 +289,8 @@ _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then
                 "the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). "
                 "A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. "
                 "Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) "
-                "stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep "
+                "stay uncommitted and are reported; a full sync whose upstream changes such a file stops "
+                "before integrating, pushes nothing, and fails. Offline, rejected, and remote-less homes exit 0 and keep "
                 "the commits. Nested Git repositories are never recorded. Recording is refused during a "
                 "merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. "
                 "Turn sync off with sync.enabled: false. Known limit: sync unstages everything before "
@@ -327,6 +328,13 @@ def sync(
             render(CommandResult("sync", "failure", targets=[target]), json_output=json_output)
             raise typer.Exit(1)
         target.findings.append({"severity": "warning", "message": message})
+    elif report.status == "collision":
+        message = (f"did not integrate {report.upstream}: it changes files that stay uncommitted here: "
+                   f"{', '.join(report.collisions)}; nothing was pushed; commit, move aside, or discard "
+                   "the local copy, then sync again")
+        target.status, target.errors = "failure", [message]
+        render(CommandResult("sync", "failure", targets=[target]), json_output=json_output)
+        raise typer.Exit(1)
     else:
         target.findings += [{"severity": "warning", "message": f"not committed, larger than the size limit: {path}"}
                             for path in report.skipped]

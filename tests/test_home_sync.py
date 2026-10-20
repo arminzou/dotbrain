@@ -594,3 +594,59 @@ def test_failure_while_merging_leaves_no_merge_in_progress(home: Path, other: Pa
     assert git(home, "rev-parse", "HEAD") != head  # the sync commit stays, unpushed
     assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "W\n"
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
+
+
+def over_limit_edit_against_upstream(home: Path, other: Path, name: str = "CONTEXT.md",
+                                     conflict_elsewhere: bool = False) -> bytes:
+    """The upstream changes or adds ``name``; this machine holds an over-limit copy of it."""
+    write(home / "config.yaml", "sync:\n  max-file-size: 100\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    write(other / ALPHA / name, "V\n")
+    if conflict_elsewhere:
+        write(other / "brainspaces" / "beta" / ".brain" / "CONTEXT.md", "V's line\n")
+        write(home / "brainspaces" / "beta" / ".brain" / "CONTEXT.md", "W's line\n")
+    home_sync.sync(other)
+    local = b"y" * 200
+    (home / ALPHA / name).write_bytes(local)
+    return local
+
+
+def assert_left_clean(home: Path, name: str, local: bytes) -> None:
+    assert (home / ALPHA / name).read_bytes() == local
+    assert git(home, "ls-files", "--unmerged") == ""
+    assert git(home, "stash", "list") == ""
+    git_dir = Path(git(home, "rev-parse", "--absolute-git-dir"))
+    assert not any((git_dir / state).exists() for state in home_sync._IN_PROGRESS)
+
+
+@pytest.mark.parametrize("case", ["edited", "edited-and-conflict-elsewhere", "untracked-at-added-path"])
+def test_uncommitted_over_limit_file_colliding_with_upstream_is_reported(home: Path, other: Path, case: str):
+    name = "big.bin" if case == "untracked-at-added-path" else "CONTEXT.md"
+    local = over_limit_edit_against_upstream(home, other, name, case == "edited-and-conflict-elsewhere")
+
+    result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
+
+    assert result.exit_code == 1, result.output
+    target = json.loads(result.output)["targets"][0]
+    assert target["data"]["status"] == "collision"
+    assert target["data"]["collisions"] == [f"brainspaces/alpha/.brain/{name}"]
+    assert f"brainspaces/alpha/.brain/{name}" in target["errors"][0]
+    assert_left_clean(home, name, local)
+    assert subprocess.run(["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"], cwd=home).returncode == 1
+
+
+def test_autostash_conflict_after_a_clean_rebase_is_undone_and_reported(home: Path, other: Path):
+    local = over_limit_edit_against_upstream(home, other)
+
+    def run(argv, **kwargs):  # hide the incoming change from the pre-check, so the rebase runs
+        if "diff" in argv and "--name-only" in argv:
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        return subprocess.run(argv, **kwargs)
+
+    report = home_sync.sync(home, run=run)
+
+    assert report.status == "collision" and report.collisions == ["brainspaces/alpha/.brain/CONTEXT.md"]
+    assert report.push == "none"
+    assert_left_clean(home, "CONTEXT.md", local)
+    assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"

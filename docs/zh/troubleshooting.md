@@ -92,6 +92,18 @@ doctor 报告 `home sync: <path> is over the size limit and stays uncommitted`�
 
 `dotbrain sync` 还会对主目录里嵌套的 Git 仓库发出警告。同步永远不会记录它们。
 
+### 传入的改动碰到了未提交的文件 {#incoming-changes-touch-an-uncommitted-file}
+
+`dotbrain sync` 失败并报告 `did not integrate <upstream>: it changes files that stay uncommitted here: <paths>`。
+
+另一台机器改动或新增了一个在本机不会被同步提交的文件：它超过了大小上限，或者是嵌套的 Git 仓库。
+引入上游会与你的本地副本冲突或覆盖它，所以同步在整合之前停下，什么也不推送。本地文件保持原样。
+对每个列出的路径任选一种处理方式，然后运行 `dotbrain sync`：
+
+- 自己在 `~/dotbrain` 里提交它，或者调高上限，让同步可以合并它。
+- 把本地副本移出主目录。
+- 用 `git restore <path>` 丢弃本地副本；如果它未被跟踪，直接删除。
+
 ### 同步被拒绝 {#home-sync-is-blocked}
 
 doctor 报告 `home sync blocked: <state> in the dotbrain home`，`dotbrain sync` 也会失败。

@@ -101,6 +101,19 @@ Sync never commits a file larger than `sync.max-file-size` (default 1 MB). Pick 
 
 `dotbrain sync` also warns about nested Git repositories inside the home. Sync never records them.
 
+### Incoming changes touch an uncommitted file
+
+`dotbrain sync` fails with `did not integrate <upstream>: it changes files that stay uncommitted here: <paths>`.
+
+The other machine changed or added a file that sync leaves uncommitted here, because it is over the
+size limit or is a nested Git repository. Bringing in the upstream would conflict with your local
+copy or overwrite it, so sync stops before integrating and pushes nothing. Your local file is left
+as it was. Pick one for each listed path, then run `dotbrain sync`:
+
+- Commit it yourself in `~/dotbrain`, or raise the limit, so sync can merge it.
+- Move your local copy out of the home.
+- Discard your local copy with `git restore <path>`, or delete it if it is untracked.
+
 ### Home sync is blocked
 
 Doctor reports `home sync blocked: <state> in the dotbrain home`, and `dotbrain sync` fails.

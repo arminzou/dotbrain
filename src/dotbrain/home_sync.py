@@ -40,7 +40,7 @@ class SyncError(RuntimeError):
 
 @dataclass
 class SyncReport:
-    status: str = "synced"  # synced | disabled | locked | blocked
+    status: str = "synced"  # synced | disabled | locked | blocked | collision
     commits: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)  # home-relative paths over the size limit
     nested: list[str] = field(default_factory=list)  # nested Git repositories and submodules, never recorded
@@ -52,6 +52,7 @@ class SyncReport:
     merged: bool = False  # the replay conflicted, so the upstream was merged instead
     conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
     attempts: int = 0  # fetch-integrate-push rounds run
+    collisions: list[str] = field(default_factory=list)  # uncommitted paths the upstream changes; not integrated
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -251,15 +252,50 @@ def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
     report.commits.append(message)
 
 
+def _collisions(home: Path, upstream: str, left: list[str], run: Runner) -> list[str]:
+    """Paths left uncommitted here that the upstream changes or adds, so integrating would
+    conflict with them or refuse to overwrite them."""
+    if not left:
+        return []
+    incoming = [path for path in _git(run, home, "diff", "--name-only", "--no-renames", "-z",
+                                      f"HEAD...{upstream}").stdout.split("\0") if path]
+    return sorted(path for path in left if any(
+        path == other or other.startswith(path + "/") or path.startswith(other + "/") for other in incoming))
+
+
+def _undo_autostash_conflict(home: Path, stages: dict[str, set[str]], run: Runner) -> None:
+    """Put this machine's uncommitted bytes back on each path the autostash re-apply conflicted on,
+    clear the unmerged entries, and drop the autostash Git left in the stash list."""
+    for path, present in stages.items():
+        if "3" in present:  # stage 3 is the stashed, uncommitted version
+            _git(run, home, "checkout", "--theirs", "--", path)
+        else:
+            (home / path).unlink(missing_ok=True)
+    _git(run, home, "reset", "--quiet", "--", *stages)
+    if _git(run, home, "stash", "list", "-1", "--format=%gs", check=False).stdout.strip() == "autostash":
+        _git(run, home, "stash", "drop", "--quiet")
+
+
 def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
-    """Bring the fetched upstream into the current branch; never leaves a rebase or merge open."""
+    """Bring the fetched upstream into the current branch; never leaves a rebase or merge open.
+
+    Integration is skipped, with ``report.collisions`` set, when the upstream changes a path
+    that sync left uncommitted here."""
     if _git(run, home, "merge-base", "--is-ancestor", upstream, "HEAD", check=False).returncode == 0:
         return  # nothing new upstream
+    report.collisions = _collisions(home, upstream, report.skipped + report.nested, run)
+    if report.collisions:
+        return
     try:
         # Replaying only rewrites commits the upstream does not have; --autostash because files
         # skipped by the size limit leave the tree dirty.
         rebased = _git(run, home, "rebase", "--autostash", "--quiet", upstream, check=False)
         if rebased.returncode == 0:
+            # The rebase can succeed while re-applying the autostash conflicts.
+            stages = _unmerged(home, run)
+            if stages:
+                _undo_autostash_conflict(home, stages, run)
+                report.collisions = sorted(stages)
             return
         conflicted = bool(_unmerged(home, run))
         _git(run, home, "rebase", "--abort", check=False)
@@ -362,6 +398,9 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
                     report.push, report.waiting = "unreachable", _ahead(home, run)
                     break
                 _integrate(home, git_dir, report.upstream, report, run)
+                if report.collisions:
+                    report.status, report.push, report.waiting = "collision", "none", _ahead(home, run)
+                    break
             _push(home, report, run)
             if report.push != "rejected":
                 break
