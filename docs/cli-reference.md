@@ -40,6 +40,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`beads migrate`](#dotbrain-beads-migrate) | Migrate embedded trackers to a server, keeping history and rollback backups. |
 | [`beads list-db`](#dotbrain-beads-list-db) | List remote database identifiers, including databases without a Brainspace. |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | Explicitly delete a remote database; never infer it from the current project. |
+| [`sync`](#dotbrain-sync) | Record uncommitted home changes as sync commits and push them to the upstream. |
 | [`site init`](#dotbrain-site-init) | Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual. |
 | [`site dev`](#dotbrain-site-dev) | Serve the Brain site locally with live reload (127.0.0.1). |
 | [`site build`](#dotbrain-site-build) | Build the Brain site; fails on a nav link to a missing page. |
@@ -310,6 +311,26 @@ dotbrain beads drop-db [OPTIONS] NAME
 | `--server-port` *text* | — | Dolt server port; defaults to config. |
 | `--server-user` *text* | — | Dolt server user; defaults to config. |
 | `--ssh-host` *text* | — | Optional SSH hop; defaults to config. |
+| `--home` *path* | — | Override the private data root. |
+| `--json` | — | Emit one structured result. |
+
+## Exchange
+
+Record the dotbrain home's changes and exchange them with its remote.
+
+### `dotbrain sync` {#dotbrain-sync}
+
+Record uncommitted home changes as sync commits and push them to the upstream.
+
+Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep the commits. Turn sync off with sync.enabled: false.
+
+```text
+dotbrain sync [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--push-only` | — | Record and push without fetching the remote. |
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 

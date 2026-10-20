@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -15,7 +16,7 @@ from dotbrain.presentation import activity
 from dotbrain import __version__
 from dotbrain import projects
 from dotbrain import doctor as doctor_mod
-from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, hooks, migrate, paths, site as site_mod, workflows
+from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, home_sync, hooks, migrate, paths, site as site_mod, workflows
 
 app = HelpTyper(
     cls=ResultGroup,
@@ -253,6 +254,65 @@ def unwire(
         render(CommandResult('unwire', 'failure', errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(1) from exc
     _render_lifecycle('unwire', results, json_output)
+
+
+_SYNC_OUTCOMES = {
+    "pushed": "pushed {waiting} to {upstream}",
+    "rejected": "push rejected: {upstream} has moved; {waiting} wait for the next full sync",
+    "unreachable": "remote unreachable; {waiting} waiting to be pushed",
+    "no-upstream": "no remote: the current branch has no upstream, so sync commits stay local",
+}
+
+
+_SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. "
+                "Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) "
+                "stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep "
+                "the commits. Turn sync off with sync.enabled: false.")
+
+
+@app.command(epilog=_SYNC_EPILOG)
+def sync(
+    push_only: bool = typer.Option(False, "--push-only", help="Record and push without fetching the remote."),
+    home: HomeOption = None, json_output: JsonOption = False,
+) -> None:
+    """Record uncommitted home changes as sync commits and push them to the upstream."""
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
+    try:
+        with activity("Syncing home...", enabled=not json_output):
+            report = home_sync.sync(root, push_only=push_only)
+    except ValueError as exc:
+        render(CommandResult("sync", "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (home_sync.SyncError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult("sync", "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    target = TargetResult(scope="home", checkout=str(root), changes=list(report.commits),
+                          data=dataclasses.asdict(report))
+    if report.status == "disabled":
+        target.findings.append({"severity": "info", "message": "home sync is disabled (sync.enabled: false)"})
+    elif report.status == "locked":
+        target.findings.append({"severity": "info", "message": "another sync is running; exited without changes"})
+    elif report.status == "blocked":
+        message = (f"a merge or rebase is in progress ({', '.join(report.blocked_by)}); "
+                   "nothing was recorded; finish or abort it, then sync again")
+        if not push_only:
+            target.status, target.errors = "failure", [message]
+            render(CommandResult("sync", "failure", targets=[target]), json_output=json_output)
+            raise typer.Exit(1)
+        target.findings.append({"severity": "warning", "message": message})
+    else:
+        target.findings += [{"severity": "warning", "message": f"not committed, larger than the size limit: {path}"}
+                            for path in report.skipped]
+        outcome = _SYNC_OUTCOMES.get(report.push)
+        if outcome:
+            count = report.pushed if report.push == "pushed" else report.waiting
+            message = outcome.format(upstream=report.upstream, waiting=f"{count} commit{'' if count == 1 else 's'}")
+            if report.push == "pushed":
+                target.changes.append(message)
+            else:
+                target.findings.append({"severity": "info" if report.push == "no-upstream" else "warning",
+                                        "message": message})
+    render(CommandResult("sync", targets=[target]), json_output=json_output)
 
 
 def _resolve_beads_server(root, server_host, server_port, server_user, ssh_host=None):

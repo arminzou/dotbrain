@@ -1,7 +1,7 @@
 """Config store: global ``config.yaml`` + per-project ``.brain/project.yaml``.
 
 ``config.yaml`` (data root, version 3) holds global infrastructure defaults
-(``beads.server``).  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
+(``beads.server``, ``sync``).  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
 per-project identity (beads mode, database, remote).  The old
 ``dotbrain.yaml`` is read transparently as a fallback when ``config.yaml``
 is absent.
@@ -9,6 +9,7 @@ is absent.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -39,12 +40,22 @@ class ProjectBeads:
 
 DEFAULT_PROJECT_AGENTS: tuple[str, ...] = ("claude", "codex")
 
+_SIZE_UNITS = {"": 1, "B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
+
+
+@dataclass
+class SyncConfig:
+    """Home sync settings from the optional ``sync:`` section of config.yaml."""
+    enabled: bool = True
+    max_file_size: int = 1024 ** 2  # bytes
+
 
 @dataclass
 class DotbrainConfig:
     """Parsed representation of config.yaml (schema v3)."""
     version: int = 3
     beads_server: BeadsServer = field(default_factory=BeadsServer)
+    sync: SyncConfig = field(default_factory=SyncConfig)
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +76,27 @@ def _mapping(value: Any, location: str) -> dict:
     if not isinstance(value, dict):
         raise ValueError(f"{location}: expected a YAML mapping")
     return value
+
+
+def parse_size(value: Any, location: str) -> int:
+    """Parse a byte count: an integer, or a string such as ``"500KB"`` or ``"1MB"`` (1 KB = 1024 bytes)."""
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    if isinstance(value, str):
+        match = re.fullmatch(r"\s*(\d+)\s*([KMG]?B?)\s*", value.upper())
+        if match and match.group(2) in _SIZE_UNITS:
+            return int(match.group(1)) * _SIZE_UNITS[match.group(2)]
+    raise ValueError(f"{location}: expected a byte count such as 1048576, \"500KB\", or \"1MB\"")
+
+
+def _parse_sync(data: dict, location: str) -> SyncConfig:
+    section = _mapping(data.get("sync"), f"{location}: sync")
+    enabled = section.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise ValueError(f"{location}: sync.enabled must be true or false")
+    size = section.get("max-file-size")
+    return SyncConfig(enabled=enabled, max_file_size=SyncConfig.max_file_size if size is None
+                      else parse_size(size, f"{location}: sync.max-file-size"))
 
 
 def load_config(dotbrain_home: Path) -> DotbrainConfig:
@@ -95,6 +127,7 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
             user=str(server.get("user", "beads")),
             ssh_host=str(server.get("ssh_host", "")),
         ),
+        sync=_parse_sync(data, str(path)),
     )
 
 

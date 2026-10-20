@@ -30,6 +30,8 @@ GROUPS: list[tuple[str, str, str | None, list[str]]] = [
      ["skills list", "skills link", "agents list", "agents link"]),
     ("Beads", "Manage the Beads tracker's state and backend.", "beads-backend",
      ["beads sync", "beads migrate", "beads list-db", "beads drop-db"]),
+    ("Exchange", "Record the dotbrain home's changes and exchange them with its remote.", None,
+     ["sync"]),
     ("Brain site", "Set up and run a Brain's private site.", "brain-site",
      ["site init", "site dev", "site build", "site preview"]),
     ("Internal", "Run by the plugin's hooks, not by hand.", "session-context",
@@ -132,6 +134,8 @@ def _render_command(path: str, cmd: object) -> str:
     out = [f"### `dotbrain {path}` {{#{_anchor(path)}}}", ""]
     if cmd.help:
         out += [_paragraphs(cmd.help), ""]
+    if cmd.epilog:
+        out += [_paragraphs(cmd.epilog), ""]
     out += ["```text", usage, "```", ""]
     if arguments:
         out += ["| Argument | Description |", "| --- | --- |"]
