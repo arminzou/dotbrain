@@ -34,11 +34,14 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`beads migrate`](#dotbrain-beads-migrate) | 把 embedded 跟踪器迁移到服务器，保留历史和用于回滚的备份。 |
 | [`beads list-db`](#dotbrain-beads-list-db) | 列出远程数据库标识，包括没有对应 Brainspace 的数据库。 |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | 显式删除一个远程数据库；从不根据当前项目推断。 |
+| [`sync`](#dotbrain-sync) | 把 dotbrain home 里未提交的改动记录为同步提交，整合上游，然后推送。 |
 | [`site init`](#dotbrain-site-init) | 为 Brain 创建站点：生成 .brain/site/，包含 site.yaml、首页和使用手册。 |
 | [`site dev`](#dotbrain-site-dev) | 在本地（127.0.0.1）运行 Brain 站点，带热更新。 |
 | [`site build`](#dotbrain-site-build) | 构建 Brain 站点；导航链接到不存在的页面时失败。 |
 | [`site preview`](#dotbrain-site-preview) | 在本地（127.0.0.1）运行上一次的构建结果。 |
-| [`hook session-start`](#dotbrain-hook-session-start) | 输出已连接仓库的 Brain 上下文。 |
+| [`hook session-start`](#dotbrain-hook-session-start) | 先同步 home（最多等 10 秒），再输出已连接仓库的 Brain 上下文。 |
+| [`hook stop`](#dotbrain-hook-stop) | 在后台启动一次只推送的 home 同步，立即返回。 |
+| [`hook session-end`](#dotbrain-hook-session-end) | 在后台启动一次完整的 home 同步，立即返回。 |
 
 ## 配置 {#setup}
 
@@ -307,6 +310,26 @@ dotbrain beads drop-db [OPTIONS] NAME
 | `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果。 |
 
+## 交换 {#exchange}
+
+记录 dotbrain home 的改动，并与它的 remote 交换。
+
+### `dotbrain sync` {#dotbrain-sync}
+
+把 dotbrain home 里未提交的改动记录为同步提交，整合上游，然后推送。
+
+作用于整个 home：每个有改动的 Brainspace 一个提交，其余改动合成一个 home 提交。完整同步接着 fetch 上游，把还没推送的提交 rebase 上去；如果冲突，就改用 merge：两边都改过的文件，保留这台机器的版本，另一边的版本写到旁边的 NAME.sync-conflict-DATE-HOST.ext（一边编辑、一边删除时，保留编辑）。远程已有新提交导致推送被拒时，最多重试 3 次；sync 从不强制推送。超过 config.yaml 里 sync.max-file-size 的文件（字节数，或 500KB、1MB 这样的大小；默认 1MB）不会提交，会在结果中报告。离线、推送被拒、没有 remote 时都以 0 退出，提交留在本地。嵌套的 Git 仓库永远不会被记录。在 merge、rebase、cherry-pick 或 revert 进行中，有未合并路径，或处于 detached HEAD 时，拒绝记录。用 sync.enabled: false 关闭同步。已知限制：sync 在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、git rm `--cached`、暂存的权限变更）会被工作区内容替换。
+
+```text
+dotbrain sync [OPTIONS]
+```
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--push-only` | — | 记录并推送，不 fetch remote。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
 ## Brain 站点 {#brain-site}
 
 创建和运行 Brain 的私有站点。见 [Brain 站点](brain-site.md)。
@@ -372,10 +395,34 @@ dotbrain site preview [OPTIONS]
 
 ### `dotbrain hook session-start` {#dotbrain-hook-session-start}
 
-输出已连接仓库的 Brain 上下文。失败时放行：没有上下文时不输出，以 0 退出。
+先同步 home（最多等 10 秒），再输出已连接仓库的 Brain 上下文。失败时放行。
 
 ```text
 dotbrain hook session-start [ARGS]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook stop` {#dotbrain-hook-stop}
+
+在后台启动一次只推送的 home 同步，立即返回。失败时放行，不输出任何内容。
+
+```text
+dotbrain hook stop [ARGS]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook session-end` {#dotbrain-hook-session-end}
+
+在后台启动一次完整的 home 同步，立即返回。失败时放行，不输出任何内容。
+
+```text
+dotbrain hook session-end [ARGS]
 ```
 
 | 参数 | 说明 |

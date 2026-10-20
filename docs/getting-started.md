@@ -6,7 +6,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 1. Install the plugin.
 2. Get the CLI.
 3. Wire a repo.
-4. Back up your dotbrain home.
+4. Back up and sync your dotbrain home.
 5. Verify the result.
 
 | You need | Notes |
@@ -52,8 +52,9 @@ In Claude Code, send the two lines as separate prompts.
 
 ::: tip Codex needs one extra step
 Codex does not run a plugin's hooks until you approve them: start `codex`, open `/hooks`, trust the
-dotbrain hook, then start a new thread. Until then the skills load but Brain context is not injected
-at session start. Claude Code runs the hook as soon as the plugin installs.
+dotbrain hooks, then start a new thread. Until then the skills load, but Brain context is not
+injected at session start and the dotbrain home does not sync. Claude Code runs the hooks as soon as
+the plugin installs.
 :::
 
 Because the plugin installs at user scope, its skills are available in every session, including
@@ -168,25 +169,52 @@ treeView-beta
 
 [Wiring](wiring.md) explains each entry.
 
-## 4. Back Up Your Dotbrain Home
+## 4. Back Up and Sync Your Dotbrain Home
 
 `dotbrain bootstrap` makes `~/dotbrain` a Git repository, but it never adds a remote. Until you add
 one, every Brain exists on one disk only. Create an empty **private** repository on GitHub, GitLab,
-or your own Git server, then push to it:
+or your own Git server, then connect the home to it:
 
 ```bash
 cd ~/dotbrain
 git status
-git add .
-git commit -m "Back up dotbrain home"
 git remote add origin <private-remote-url>
+dotbrain sync
 git push -u origin HEAD
 ```
 
-Review the files before staging; keep credentials out of Git. Bootstrap initializes the repository
-without creating a commit, so the first push needs the commit above. For later Brain changes,
-stage and commit the changes you want to keep, then push. The remote is also how a second machine gets your Brains:
+Review `git status` first: `dotbrain sync` commits every file that `~/dotbrain/.gitignore` does not
+exclude. Keep credentials out of the home. The first `dotbrain sync` records the files as commits.
+`git push -u` sends them and sets the remote as the branch's upstream, which later syncs fetch from
+and push to. The remote is also how a second machine gets your Brains:
 [clone it there](#_2-get-the-cli) before wiring anything.
+
+### Home sync
+
+After that, you do not commit or push the home by hand. In a wired repo, the plugin's hooks run
+[home sync](session-context.md#home-sync) for you:
+
+- **Session start** records local changes, pulls in the other machine's work, and pushes.
+- **After each agent turn**, it records and pushes the changes without pulling, so files never
+  change under a running agent.
+- **Session end** runs a full sync again.
+
+Each changed Brainspace gets its own commit, such as
+`my-app: sync from LAPTOP (CONTEXT.md, designs/0004-x.md)`, and changes outside a Brainspace get a
+`home` commit. Uncommitted work in one project never blocks another project's changes. You can still
+commit yourself with a descriptive message; sync only records what nobody committed. Run
+`dotbrain sync` by hand whenever you want to sync now.
+
+When both machines edit the same part of a file, sync keeps both versions and `dotbrain doctor`
+lists the extra one. See [Conflict copies](troubleshooting.md#home-sync-left-a-conflict-copy).
+
+Sync is on by default. To turn it off, set `sync.enabled: false` in
+[`config.yaml`](configuration.md#sync); you then commit and push the home yourself.
+
+::: warning Upgrading from an earlier version
+The first session after upgrading commits everything uncommitted in the home and pushes it.
+Commit or discard drafts you do not want shared before you upgrade, or turn sync off first.
+:::
 
 ::: danger Keep the remote private
 The remote holds every project's Brain, including its decisions and designs. A public remote

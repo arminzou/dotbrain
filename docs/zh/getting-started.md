@@ -6,7 +6,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 1. 安装插件。
 2. 安装 CLI。
 3. 连接仓库。
-4. 备份 dotbrain 主目录。
+4. 备份并同步 dotbrain 主目录。
 5. 验证结果。
 
 | 需要 | 说明 |
@@ -50,9 +50,9 @@ codex plugin add dotbrain@dotbrain
 在 Claude Code 中，这两行要分两次发送。
 
 ::: tip Codex 还需要多做一步
-Codex 在你批准之前不会运行插件的 hook：启动 `codex`，打开 `/hooks`，信任 dotbrain 的 hook，
-然后新开一个 thread。在此之前，技能可以加载，但会话开始时不会注入 Brain 上下文。
-Claude Code 装好插件后就会运行 hook。
+Codex 在你批准之前不会运行插件的 hook：启动 `codex`，打开 `/hooks`，信任 dotbrain 的几个 hook，
+然后新开一个 thread。在此之前，技能可以加载，但会话开始时不会注入 Brain 上下文，dotbrain 主目录
+也不会同步。Claude Code 装好插件后就会运行这些 hook。
 :::
 
 插件装在用户级别，所以它的技能在每个会话里都可用，包括还没连接的仓库。这也是为什么在连接任何
@@ -158,24 +158,49 @@ treeView-beta
 
 [项目连接](wiring.md)逐项解释了这些条目。
 
-## 4. 备份 dotbrain 主目录 {#_4-back-up-your-dotbrain-home}
+## 4. 备份并同步 dotbrain 主目录 {#_4-back-up-and-sync-your-dotbrain-home}
 
 `dotbrain bootstrap` 会把 `~/dotbrain` 初始化为 Git 仓库，但不会添加远程仓库。在你添加之前，
 所有 Brain 都只存在一块硬盘上。在 GitHub、GitLab 或你自己的 Git 服务器上建一个空的**私有**仓库，
-然后推送：
+然后把主目录连上去：
 
 ```bash
 cd ~/dotbrain
 git status
-git add .
-git commit -m "Back up dotbrain home"
 git remote add origin <private-remote-url>
+dotbrain sync
 git push -u origin HEAD
 ```
 
-暂存之前先检查文件，别把凭据放进 Git。bootstrap 初始化仓库时不会创建提交，所以第一次推送需要上面
-这次提交。之后 Brain 有改动时，暂存并提交想保留的改动，再推送即可。第二台机器也是通过这个远程仓库
-拿到你的 Brain：在连接任何东西之前，先[在那台机器上克隆它](#_2-get-the-cli)。
+先看一遍 `git status`：`dotbrain sync` 会提交所有没被 `~/dotbrain/.gitignore` 排除的文件。别把凭据
+放进主目录。第一次 `dotbrain sync` 把这些文件记录为提交，`git push -u` 把它们推上去，并把这个远程
+仓库设为当前分支的上游，之后的同步都从它拉取、向它推送。第二台机器也是通过这个远程仓库拿到你的
+Brain：在连接任何东西之前，先[在那台机器上克隆它](#_2-get-the-cli)。
+
+### 主目录同步 {#home-sync}
+
+之后不用再手动提交和推送主目录。在已连接的仓库里，插件的 hook 会替你运行
+[主目录同步](session-context.md#home-sync)：
+
+- **会话开始时**，记录本地改动，拉取另一台机器的工作，然后推送。
+- **Agent 每轮结束后**，只记录和推送，不拉取，这样文件不会在 Agent 运行时被改动。
+- **会话结束时**，再做一次完整同步。
+
+每个有改动的 Brainspace 单独一个提交，例如
+`my-app: sync from LAPTOP (CONTEXT.md, designs/0004-x.md)`；Brainspace 之外的改动合成一个 `home`
+提交。一个项目里没提交的改动，不会卡住另一个项目。你仍然可以自己写说明清楚的提交，同步只记录没人
+提交的内容。想马上同步，手动运行 `dotbrain sync` 即可。
+
+两台机器改了同一个文件的同一处时，同步会保留两个版本，`dotbrain doctor` 会列出多出来的那份。
+见[冲突副本](troubleshooting.md#home-sync-left-a-conflict-copy)。
+
+同步默认开启。要关闭它，在 [`config.yaml`](configuration.md#sync) 里设置 `sync.enabled: false`，
+之后主目录要你自己提交和推送。
+
+::: warning 从旧版本升级
+升级后的第一个会话，会把主目录里所有没提交的内容提交并推送。不想共享的草稿，升级前先提交或丢弃，
+或者先关闭同步。
+:::
 
 ::: danger 远程仓库必须是私有的
 远程仓库里有每个项目的 Brain，包括决策和设计。用公开仓库就等于把这些全部公开。

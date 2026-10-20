@@ -36,8 +36,8 @@ asset changes use `dotbrain skills link --scope global` or `dotbrain agents link
 
 ## `config.yaml`
 
-Only needed for [server-mode](beads-backend.md#server-mode) Beads. The seeded file has the block
-commented out.
+Only needed for [server-mode](beads-backend.md#server-mode) Beads or to change
+[home sync](#sync). The seeded file has the Beads block commented out.
 
 ```yaml
 # ~/dotbrain/config.yaml
@@ -54,6 +54,28 @@ beads:
 ::: warning
 Never put credentials in `config.yaml`. Keep them in your secrets store.
 :::
+
+### `sync:` {#sync}
+
+[Home sync](session-context.md#home-sync) records uncommitted changes in the dotbrain home as
+commits and exchanges them with the home's remote. It is on when the section is absent. Add the
+section only to turn sync off or to change the size limit:
+
+```yaml
+# ~/dotbrain/config.yaml
+sync:
+  enabled: false        # default true
+  max-file-size: 5MB    # default 1MB
+```
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `sync.enabled` | `true` | `false` turns off the hooks' sync and `dotbrain sync`; you commit and push the home yourself |
+| `sync.max-file-size` | `1MB` | Files larger than this stay uncommitted and are reported. A byte count such as `1048576`, or a size such as `500KB`, `1MB`, or `2GB` (1 KB = 1024 bytes) |
+
+The remote is the upstream of the home's current branch; there is no remote setting.
+`config.yaml` is shared by every machine through that remote, so the setting applies on all of
+them. Sync names each machine in its commit messages by hostname.
 
 ## `project.yaml`
 

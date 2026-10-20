@@ -1,7 +1,8 @@
 # Session Context
 
 A wired repo's agent session starts with the dotbrain convention already in context. This page
-explains what gets injected, how, and what the agent reads on its own.
+explains what gets injected, how, what the agent reads on its own, and how the session's hooks keep
+the dotbrain home in sync.
 
 ## What Happens at Session Start
 
@@ -19,8 +20,9 @@ sequenceDiagram
   B-->>A: Relevant findings for existing assignments
 ```
 
-The plugin registers one `SessionStart` hook that runs `dotbrain hook session-start`. It fires on
-startup, resume, `/clear`, and compaction, so the convention survives a context reset.
+The plugin's `SessionStart` hook runs `dotbrain hook session-start`. It fires on startup, resume,
+`/clear`, and compaction, so the convention survives a context reset. Before it injects the
+convention, it runs [home sync](#home-sync).
 
 ## What Is Injected
 
@@ -51,6 +53,47 @@ repository rules and retrospective notebooks grow with the project. Injecting on
 within that budget.
 :::
 
+## Home Sync
+
+The plugin registers three hooks. Each one syncs the dotbrain home, the Git repository that holds
+every Brainspace, so Brain changes reach your other machines without a manual commit and push.
+
+| Hook | Runs | What it does |
+| --- | --- | --- |
+| `SessionStart` | `dotbrain hook session-start` | Runs a full sync and waits up to 10 seconds, then injects the convention. A slower sync keeps running in the background, and the session starts from local state. On compaction it only records and pushes, because compaction happens mid-turn. |
+| `Stop` | `dotbrain hook stop` | After each turn of the main agent, starts a background sync that records and pushes without fetching, and returns at once. Files never change under a running agent. |
+| `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once. |
+
+A full sync runs four steps:
+
+1. **Record.** Every uncommitted change becomes a sync commit: one per changed Brainspace, then one
+   `home` commit for everything else. Files over the size limit and nested Git repositories are
+   skipped and reported. Commits you wrote yourself are left alone.
+2. **Fetch** the upstream of the home's current branch.
+3. **Integrate.** Unpushed local commits are replayed onto the upstream. If that conflicts, sync
+   merges instead. When both machines changed a file, this machine's version stays in place and
+   the other machine's version is saved beside it as a conflict copy. When one side deleted a file
+   and the other edited it, the edit wins.
+4. **Push.** If the remote moved in the meantime, sync fetches and tries again, at most three
+   times. It never force-pushes.
+
+Home sync is quiet and fails open. It writes nothing to the agent's context, and a failure never
+blocks the session. Offline machines and homes without a remote keep their sync commits locally
+until a later sync can push them. Hooks sync only in a checkout wired to a Brainspace, or in the
+dotbrain home itself. A lock keeps two syncs on one machine apart. Run `dotbrain sync` to sync by
+hand, and `dotbrain doctor` to see waiting commits, conflict copies, and skipped files. To turn sync
+off, see [`sync:`](configuration.md#sync).
+
+Home sync does not sync the Beads tracker; `dotbrain beads sync` keeps its own path.
+
+::: warning Known limits
+- Sync unstages everything before it records, so state that exists only in the index (partially
+  staged hunks, `git rm --cached`, a staged mode change) is replaced by the working tree.
+- Nested Git repositories inside the home are never recorded.
+- A Git command you run in the home while a hook is committing can hit Git's lock error. Run it
+  again.
+:::
+
 ## Failing Open
 
 The hook never blocks a session. Outside a git repo, in a repo that is not wired, or when
@@ -60,10 +103,15 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 
 ## Runtime Notes
 
-- **Claude Code** runs the hook as soon as the plugin is installed.
+- **Claude Code** runs the hooks as soon as the plugin is installed.
 - **Codex** runs plugin hooks only after you trust them: open `/hooks` in `codex`, trust the
-  dotbrain hook, and start a new thread.
-- In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand.
+  dotbrain hooks, and start a new thread. Until then Codex sessions get no injected convention and
+  do not sync. Codex runs session-end hooks with a short time limit, so that hook only launches the
+  sync and returns. Whether Codex fires `Stop` for the main thread only, and whether it runs the
+  `Stop` hook in the background, is not yet verified. Either way, a sync that finds another one
+  running exits at once, and a push-only sync returns quickly.
+- In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
+  and run `dotbrain sync` yourself.
 
 ## Subagents
 

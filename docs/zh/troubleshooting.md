@@ -14,7 +14,7 @@ dotbrain doctor
 
 1. 确认仓库已连接：仓库根目录应该有 `.brain`，并且指向一个目录。
 2. 确认 Agent 的 shell 能在 `PATH` 上找到 CLI：`dotbrain --version`。找不到 `dotbrain` 时，hook 不会有任何输出。
-3. **Codex：** 在 `/hooks` 里信任 dotbrain 的 hook，然后新开一个 thread。
+3. **Codex：** 在 `/hooks` 里信任 dotbrain 的几个 hook，然后新开一个 thread。
 4. 新开一个会话。hook 在会话开始时运行，不会在会话中途运行。
 
 ### `.brain` 或 `.beads` 缺失或失效 {#brain-or-beads-is-missing-or-dangling}
@@ -61,6 +61,70 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 找一找没加反引号的占位符，比如 `<name>` 或 `<path>`，用行内代码包起来，表格里也一样。见
 [Brain 站点配置](brain-site-configuration.md#what-fails-the-build)。
 
+## 主目录同步 {#home-sync}
+
+`dotbrain doctor` 根据本地 Git 数据报告[主目录同步](session-context.md#home-sync)的状态。它不会
+fetch，也不会改动任何东西。
+
+### 同步留下了冲突副本 {#home-sync-left-a-conflict-copy}
+
+doctor 报告 `home sync: open conflict copy <path>`。
+
+两台机器在同步之前改了同一个文件的同一处。同步保留了两个版本：
+
+- 这台机器的版本留在原处，文件名不变。
+- 另一台机器的版本存到旁边，名为 `<stem>.sync-conflict-<date>-<host>.<ext>`，例如
+  `CONTEXT.sync-conflict-2026-10-20-LAPTOP.md`。这里的主机名是执行合并、写出副本的那台机器，
+  不是副本内容来自的机器。同一天同一个文件再次冲突时，会加上编号，如 `-2`。
+
+同步不会替你合并。打开两个文件，把要保留的内容合并进原文件，然后删掉副本。下一次同步会记录这两处
+改动，另一台机器上的副本也会随之消失。Brain 站点会跳过冲突副本，所以它们不会变成多余的页面。
+
+### 有文件一直没提交 {#a-file-stays-uncommitted}
+
+doctor 报告 `home sync: <path> is over the size limit and stays uncommitted`。
+
+同步从不提交大于 `sync.max-file-size`（默认 1 MB）的文件。任选一种处理方式：
+
+- 如果它该放在 `~/dotbrain` 里，自己提交它。
+- 把它加进 `~/dotbrain/.gitignore`。
+- 在 [`config.yaml`](configuration.md#sync) 里调高上限。
+
+`dotbrain sync` 还会对主目录里嵌套的 Git 仓库发出警告。同步永远不会记录它们。
+
+### 同步被拒绝 {#home-sync-is-blocked}
+
+doctor 报告 `home sync blocked: <state> in the dotbrain home`，`dotbrain sync` 也会失败。
+
+主目录有 merge、rebase、cherry-pick 或 revert 正在进行，有未合并的路径，或处于 detached HEAD 时，
+同步拒绝记录。这时记录会把冲突标记提交进去，或者提交到不属于任何分支的位置。在 `~/dotbrain` 里用 Git
+完成或中止那个操作，切回分支，再运行 `dotbrain sync`。在此之前，hook 什么都不会记录。
+
+### 有提交等待推送 {#commits-are-waiting-to-be-pushed}
+
+doctor 报告 `home sync: <n> local commits waiting to be pushed to <upstream>`。
+
+上一次推送没有到达远程仓库：机器离线了，或者远程有了新提交，同步试了三次后放弃。这些提交是安全的。
+下一次同步会推送它们，也可以现在运行 `dotbrain sync`。如果一直失败，在 `~/dotbrain` 里手动试一下
+`git push`。
+
+`home sync: no remote configured; sync commits stay local` 表示主目录的分支没有上游。添加一个私有
+远程仓库并设为上游，做法见[快速开始](getting-started.md#_4-back-up-and-sync-your-dotbrain-home)。
+
+### 关闭主目录同步 {#turn-home-sync-off}
+
+在 `~/dotbrain/config.yaml` 的 `sync:` 下设置 `enabled: false`：
+
+```yaml
+# ~/dotbrain/config.yaml
+sync:
+  enabled: false
+```
+
+之后 hook 和 `dotbrain sync` 都不做任何事，doctor 报告 `home sync disabled`。主目录要你自己提交和推送。
+`config.yaml` 通过远程仓库共享：你推送这个改动后，其他机器在下一次同步拉到它时也会关闭同步。同步提交
+就是普通提交，不需要撤销什么。
+
 ## 常见问答 {#faq}
 
 ### Brain 里的内容会进入代码仓库吗？ {#does-anything-from-my-brain-reach-the-code-repo}
@@ -78,6 +142,7 @@ dotbrain bootstrap
 dotbrain wire --repo ~/repos/my-app
 ```
 
+之后，[主目录同步](session-context.md#home-sync)会让两台机器上的 Brain 保持最新。
 如果需要在多台机器之间实时共享任务跟踪，请用 [server 模式的 Beads 后端](beads-backend.md#server-mode)。
 
 ### Brain 能不放在 `~/dotbrain` 吗？ {#can-i-keep-the-brain-somewhere-other-than-dotbrain}

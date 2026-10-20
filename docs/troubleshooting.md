@@ -16,7 +16,7 @@ The session started without the dotbrain convention.
 1. Confirm the repo is wired: `.brain` should exist at the repo root and resolve to a directory.
 2. Confirm the CLI is on `PATH` for the agent's shell: `dotbrain --version`. The hook stays silent
    when it cannot find `dotbrain`.
-3. **Codex:** trust the dotbrain hook in `/hooks`, then start a new thread.
+3. **Codex:** trust the dotbrain hooks in `/hooks`, then start a new thread.
 4. Start a fresh session. The hook runs at session start, not mid-session.
 
 ### `.brain` or `.beads` is missing or dangling
@@ -67,6 +67,74 @@ build. For "Element is missing end tag", look for bare placeholders such as `<na
 and wrap them in inline code, including in tables. See
 [Brain site configuration](brain-site-configuration.md#what-fails-the-build).
 
+## Home Sync
+
+`dotbrain doctor` reports [home sync](session-context.md#home-sync) state from local Git data. It
+does not fetch or change anything.
+
+### Home sync left a conflict copy
+
+Doctor reports `home sync: open conflict copy <path>`.
+
+Both machines changed the same part of a file before either synced. Sync kept both versions:
+
+- This machine's version stays in place under the original name.
+- The other machine's version is saved beside it as
+  `<stem>.sync-conflict-<date>-<host>.<ext>`, for example
+  `CONTEXT.sync-conflict-2026-10-20-LAPTOP.md`, where the host is the machine that merged and wrote the copy, not the
+  machine whose version it holds.
+  A second conflict on the same file and day adds a number, such as `-2`.
+
+Sync never merges these for you. Open both files, merge what you want to keep into the original,
+and delete the copy. The next sync records both changes, and the copy disappears on the other
+machine too. The Brain site skips conflict copies, so they never show up as extra pages.
+
+### A file stays uncommitted
+
+Doctor reports `home sync: <path> is over the size limit and stays uncommitted`.
+
+Sync never commits a file larger than `sync.max-file-size` (default 1 MB). Pick one:
+
+- Commit it yourself in `~/dotbrain`, if it belongs there.
+- Add it to `~/dotbrain/.gitignore`.
+- Raise the limit in [`config.yaml`](configuration.md#sync).
+
+`dotbrain sync` also warns about nested Git repositories inside the home. Sync never records them.
+
+### Home sync is blocked
+
+Doctor reports `home sync blocked: <state> in the dotbrain home`, and `dotbrain sync` fails.
+
+Sync refuses to record while the home has a merge, rebase, cherry-pick, or revert in progress, has
+unmerged paths, or is on a detached HEAD. Recording then would commit conflict markers or commit to
+no branch. Finish or abort that operation with Git in `~/dotbrain`, check out the branch, and run
+`dotbrain sync`. Until then, the hooks record nothing.
+
+### Commits are waiting to be pushed
+
+Doctor reports `home sync: <n> local commits waiting to be pushed to <upstream>`.
+
+The last push did not reach the remote: the machine was offline, or the remote moved and sync gave
+up after three tries. The commits are safe. The next sync pushes them, or run `dotbrain sync` now.
+If it keeps failing, check that `git push` works by hand in `~/dotbrain`.
+
+`home sync: no remote configured; sync commits stay local` means the home's branch has no upstream.
+Add a private remote and set it, as in [Getting started](getting-started.md#_4-back-up-and-sync-your-dotbrain-home).
+
+### Turn home sync off
+
+Set `enabled: false` under `sync:` in `~/dotbrain/config.yaml`:
+
+```yaml
+# ~/dotbrain/config.yaml
+sync:
+  enabled: false
+```
+
+The hooks and `dotbrain sync` then do nothing, and doctor reports `home sync disabled`. Commit and
+push the home yourself. `config.yaml` is shared through the remote: once you push this change,
+each other machine turns sync off when its next sync brings the change in. Sync commits are ordinary commits, so nothing needs undoing.
+
 ## FAQ
 
 ### Does anything from my Brain reach the code repo?
@@ -85,6 +153,7 @@ dotbrain bootstrap
 dotbrain wire --repo ~/repos/my-app
 ```
 
+After that, [home sync](session-context.md#home-sync) keeps the Brains current on both machines.
 For an issue tracker shared live across machines, use the
 [server Beads backend](beads-backend.md#server-mode).
 
