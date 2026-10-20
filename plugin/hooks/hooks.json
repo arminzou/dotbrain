@@ -21,7 +21,8 @@
             "type": "command",
             "command": "if command -v dotbrain >/dev/null 2>&1; then dotbrain hook stop; fi",
             "commandWindows": "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook stop }",
-            "async": true
+            "async": true,
+            "statusMessage": "Pushing Brain home changes"
           }
         ]
       }
@@ -33,7 +34,8 @@
             "type": "command",
             "command": "if command -v dotbrain >/dev/null 2>&1; then dotbrain hook session-end; fi",
             "commandWindows": "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook session-end }",
-            "timeout": 30
+            "timeout": 3,
+            "statusMessage": "Syncing Brain home"
           }
         ]
       }

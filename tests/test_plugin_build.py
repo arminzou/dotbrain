@@ -63,6 +63,8 @@ def test_plugin_owns_hook_registration_for_both_runtimes():
         entries = [hook for entry in hooks[event] for hook in entry["hooks"]]
         assert len(entries) == 1
         hook = registered[event] = entries[0]
+        # Codex uses statusMessage as the hook's name in /hooks.
+        assert hook["statusMessage"].strip()
         # Both commands must guard on the CLI being present: the plugin installs at user scope, so
         # every session on the machine runs this hook, including before the CLI exists.
         assert hook["command"] == (
@@ -77,8 +79,8 @@ def test_plugin_owns_hook_registration_for_both_runtimes():
     assert registered["SessionStart"]["timeout"] > 10
     # Stop runs in the background so the turn never waits on the push.
     assert registered["Stop"]["async"] is True
-    # Without a timeout Claude Code gives SessionEnd about 1.5 s, which can cut off the launch.
-    assert registered["SessionEnd"]["timeout"] == 30
+    # Allow the detached launch more than Claude's default 1.5 s, within Codex's 3 s cap.
+    assert registered["SessionEnd"]["timeout"] == 3
     # Claude Code auto-discovers hooks/hooks.json; declaring it in the manifest too makes the
     # runtime reject the whole plugin with "Duplicate hooks file detected", skills included.
     claude_manifest = json.loads(
