@@ -27,7 +27,7 @@ LOCK_NAME = "dotbrain-sync.lock"
 STALE_LOCK_SECONDS = 600
 PUSH_TIMEOUT_SECONDS = 20
 _SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes"
-_IN_PROGRESS = ("MERGE_HEAD", "rebase-merge", "rebase-apply")
+_IN_PROGRESS = ("MERGE_HEAD", "rebase-merge", "rebase-apply", "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
 
 
 class SyncError(RuntimeError):
@@ -39,11 +39,12 @@ class SyncReport:
     status: str = "synced"  # synced | disabled | locked | blocked
     commits: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)  # home-relative paths over the size limit
+    nested: list[str] = field(default_factory=list)  # nested Git repositories and submodules, never recorded
     push: str = "none"  # pushed | up-to-date | rejected | unreachable | no-upstream | none
     upstream: str | None = None
     pushed: int = 0
     waiting: int = 0  # local commits not on the upstream after the run
-    blocked_by: list[str] = field(default_factory=list)  # merge or rebase state left in the home
+    blocked_by: list[str] = field(default_factory=list)  # why recording was refused
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -97,15 +98,26 @@ def _too_large(home: Path, path: str, limit: int) -> bool:
         return False
 
 
-def record(home: Path, max_file_size: int, run: Runner = subprocess.run) -> tuple[list[str], list[str]]:
-    """Commit uncommitted changes as sync commits. Returns (commit messages, skipped paths)."""
+def _is_nested_repo(home: Path, path: str) -> bool:
+    """An untracked nested repository (listed with a trailing slash) or a submodule's gitlink."""
+    full = home / path
+    return path.endswith("/") or (full.is_dir() and not full.is_symlink())
+
+
+def record(home: Path, max_file_size: int,
+           run: Runner = subprocess.run) -> tuple[list[str], list[str], list[str]]:
+    """Commit uncommitted changes as sync commits. Returns (messages, over-limit paths, nested repos)."""
     # Unstage everything first, so each commit holds exactly the files staged for it. Committing
     # with a pathspec would take working-tree content and could bring back an over-limit file.
     _git(run, home, "reset", "--quiet")
     data_dir = paths.data_dir(home).name
     groups: dict[str, list[tuple[str, str]]] = {}
     skipped: list[str] = []
+    nested: list[str] = []
     for path in _changed_paths(run, home):
+        if _is_nested_repo(home, path):
+            nested.append(path.rstrip("/"))
+            continue
         if _too_large(home, path, max_file_size):
             skipped.append(path)
             continue
@@ -117,10 +129,22 @@ def record(home: Path, max_file_size: int, run: Runner = subprocess.run) -> tupl
         files = groups[name]
         _git(run, home, "add", "--all", "--pathspec-from-file=-", "--pathspec-file-nul",
              input="\0".join(path for path, _ in files))
+        if _git(run, home, "diff", "--cached", "--quiet", check=False).returncode == 0:
+            continue  # nothing ended up staged for this group
         message = _message(name, [shown for _, shown in files])
         _git(run, home, "commit", "--quiet", "-m", message)
         messages.append(message)
-    return messages, skipped
+    return messages, skipped, nested
+
+
+def _blockers(home: Path, git_dir: Path, run: Runner) -> list[str]:
+    """States in which recording would commit conflict markers or commit onto no branch."""
+    blockers = [name for name in _IN_PROGRESS if (git_dir / name).exists()]
+    if _git(run, home, "ls-files", "--unmerged").stdout.strip():
+        blockers.append("unmerged paths")
+    if _git(run, home, "symbolic-ref", "--quiet", "HEAD", check=False).returncode != 0:
+        blockers.append("detached HEAD")
+    return blockers
 
 
 def _ssh_command(home: Path, run: Runner) -> str:
@@ -219,7 +243,7 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
         report.status = "disabled"
         return report
     git_dir = _git_dir(home, run)
-    report.blocked_by = [name for name in _IN_PROGRESS if (git_dir / name).exists()]
+    report.blocked_by = _blockers(home, git_dir, run)
     if report.blocked_by:
         report.status = "blocked"
         return report
@@ -228,7 +252,7 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
         report.status = "locked"
         return report
     try:
-        report.commits, report.skipped = record(home, settings.max_file_size, run)
+        report.commits, report.skipped, report.nested = record(home, settings.max_file_size, run)
         _push(home, report, run)
     finally:
         lock.unlink(missing_ok=True)

@@ -261,11 +261,86 @@ def test_merge_or_rebase_in_progress_records_nothing(home: Path, state: str):
     plain = runner.invoke(app, ["sync", "--home", str(home)])
     push_only = runner.invoke(app, ["sync", "--push-only", "--home", str(home), "--json"])
 
-    assert plain.exit_code == 1 and "merge or rebase is in progress" in plain.output
+    assert plain.exit_code == 1 and f"cannot record while the home has {state}" in plain.output
     assert push_only.exit_code == 0, push_only.output
     assert json.loads(push_only.output)["targets"][0]["data"]["status"] == "blocked"
     assert git(home, "rev-parse", "HEAD") == before
     assert (home / "brainspaces" / "alpha" / ".brain" / "new.md").exists()
+
+
+def conflict_on_alpha(home: Path) -> Path:
+    """Commit two edits to one line on separate branches; return the contested file."""
+    contested = home / "brainspaces" / "alpha" / ".brain" / "CONTEXT.md"
+    git(home, "switch", "-q", "-c", "side")
+    write(contested, "side\n")
+    git(home, "commit", "-q", "-am", "side edit")
+    git(home, "switch", "-q", "main")
+    write(contested, "main\n")
+    git(home, "commit", "-q", "-am", "main edit")
+    return contested
+
+
+def assert_refused(home: Path, reason: str) -> None:
+    before = git(home, "rev-parse", "HEAD")
+    write(home / "brainspaces" / "beta" / ".brain" / "new.md")
+    result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
+    assert result.exit_code == 1, result.output
+    assert reason in json.loads(result.output)["targets"][0]["data"]["blocked_by"]
+    assert git(home, "rev-parse", "HEAD") == before
+    assert "?? brainspaces/beta/.brain/new.md" in git(home, "status", "--porcelain")
+
+
+def test_conflicted_cherry_pick_records_nothing(home: Path):
+    conflict_on_alpha(home)
+    assert subprocess.run(["git", "cherry-pick", "side"], cwd=home, capture_output=True).returncode != 0
+    assert_refused(home, "CHERRY_PICK_HEAD")
+    assert git(home, "ls-files", "--unmerged")  # the conflict is still there to resolve
+
+
+def test_unmerged_paths_from_a_stash_pop_record_nothing(home: Path):
+    contested = conflict_on_alpha(home)
+    git(home, "switch", "-q", "side")
+    write(contested, "stashed\n")
+    git(home, "stash", "-q")
+    git(home, "switch", "-q", "main")
+    assert subprocess.run(["git", "stash", "pop"], cwd=home, capture_output=True).returncode != 0
+    assert_refused(home, "unmerged paths")
+
+
+def test_detached_head_records_nothing(home: Path):
+    git(home, "switch", "-q", "--detach")
+    assert_refused(home, "detached HEAD")
+
+
+def test_nested_repository_is_reported_not_recorded(home: Path):
+    nested = home / "brainspaces" / "alpha" / ".brain" / "vendor"
+    make_repo(nested)
+    write(nested / "file.md")
+    write(home / "brainspaces" / "alpha" / ".brain" / "notes.md")
+
+    result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
+
+    assert result.exit_code == 0, result.output
+    target = json.loads(result.output)["targets"][0]
+    assert target["data"]["nested"] == ["brainspaces/alpha/.brain/vendor"]
+    assert {"severity": "warning",
+            "message": "not committed, a nested Git repository: brainspaces/alpha/.brain/vendor"} in target["findings"]
+    assert subjects(home)[0] == f"alpha: sync from {HOST} (notes.md)"
+    assert "vendor" not in git(home, "ls-files")
+
+
+def test_group_with_nothing_staged_is_skipped(home: Path):
+    write(home / "brainspaces" / "alpha" / ".brain" / "a.md")
+    write(home / "brainspaces" / "beta" / ".brain" / "b.md")
+
+    def run(argv, **kwargs):
+        if "add" in argv and "beta" in kwargs.get("input", ""):
+            return subprocess.CompletedProcess(argv, 0, "", "")  # stage nothing for beta
+        return subprocess.run(argv, **kwargs)
+
+    report = home_sync.sync(home, run=run)
+
+    assert report.commits == [f"alpha: sync from {HOST} (a.md)"]
 
 
 def test_lock_held_by_a_dead_process_is_broken(home: Path):

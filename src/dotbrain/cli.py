@@ -267,7 +267,11 @@ _SYNC_OUTCOMES = {
 _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. "
                 "Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) "
                 "stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep "
-                "the commits. Turn sync off with sync.enabled: false.")
+                "the commits. Nested Git repositories are never recorded. Recording is refused during a "
+                "merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. "
+                "Turn sync off with sync.enabled: false. Known limit: sync unstages everything before "
+                "recording, so index-only state (partially staged hunks, git rm --cached, a staged mode "
+                "change) is replaced by the working tree.")
 
 
 @app.command(epilog=_SYNC_EPILOG)
@@ -293,8 +297,8 @@ def sync(
     elif report.status == "locked":
         target.findings.append({"severity": "info", "message": "another sync is running; exited without changes"})
     elif report.status == "blocked":
-        message = (f"a merge or rebase is in progress ({', '.join(report.blocked_by)}); "
-                   "nothing was recorded; finish or abort it, then sync again")
+        message = (f"cannot record while the home has {', '.join(report.blocked_by)}; "
+                   "nothing was recorded; finish or abort that, then sync again")
         if not push_only:
             target.status, target.errors = "failure", [message]
             render(CommandResult("sync", "failure", targets=[target]), json_output=json_output)
@@ -303,6 +307,8 @@ def sync(
     else:
         target.findings += [{"severity": "warning", "message": f"not committed, larger than the size limit: {path}"}
                             for path in report.skipped]
+        target.findings += [{"severity": "warning", "message": f"not committed, a nested Git repository: {path}"}
+                            for path in report.nested]
         outcome = _SYNC_OUTCOMES.get(report.push)
         if outcome:
             count = report.pushed if report.push == "pushed" else report.waiting

@@ -322,7 +322,7 @@ Record the dotbrain home's changes and exchange them with its remote.
 
 Record uncommitted home changes as sync commits and push them to the upstream.
 
-Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep the commits. Turn sync off with sync.enabled: false.
+Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep the commits. Nested Git repositories are never recorded. Recording is refused during a merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. Turn sync off with sync.enabled: false. Known limit: sync unstages everything before recording, so index-only state (partially staged hunks, git rm `--cached`, a staged mode change) is replaced by the working tree.
 
 ```text
 dotbrain sync [OPTIONS]
