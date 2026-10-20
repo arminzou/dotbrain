@@ -375,11 +375,12 @@ def test_a_nav_link_escaping_docs_is_dead(brain: Path):
         site.plan(brain)
 
 
-def test_pages_skip_node_modules_symlinks_and_bracketed_names(brain: Path, tmp_path: Path):
+def test_pages_skip_node_modules_symlinks_bracketed_names_and_conflict_copies(brain: Path, tmp_path: Path):
     _settings(brain)
     _write(brain / "node_modules" / "pkg" / "README.md", "x\n")
     _write(brain / "docs" / "notes [draft].md", "x\n")
     _write(brain / "AGENTS.md", "# Agents\n")
+    _write(brain / "AGENTS.sync-conflict-2026-10-20-host.md", "# Agents\n")
     _write(tmp_path / "outside" / "page.md", "x\n")
     (brain / "CLAUDE.md").symlink_to("AGENTS.md")
     (brain / "docs" / "linked").symlink_to(tmp_path / "outside", target_is_directory=True)
@@ -387,7 +388,8 @@ def test_pages_skip_node_modules_symlinks_and_bracketed_names(brain: Path, tmp_p
     result = site.plan(brain)
 
     assert result["pages"] == ["AGENTS.md"]
-    assert result["exclude"] == ["CLAUDE.md", "docs/linked/**", r"docs/notes \[draft\].md"]
+    assert result["exclude"] == ["AGENTS.sync-conflict-2026-10-20-host.md", "CLAUDE.md", "docs/linked/**",
+                                 r"docs/notes \[draft\].md"]
 
 
 def test_lesson_fields_come_from_frontmatter_only(brain: Path):

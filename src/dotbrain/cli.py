@@ -265,6 +265,10 @@ _SYNC_OUTCOMES = {
 
 
 _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. "
+                "A full sync then fetches the upstream and replays unpushed commits onto it; if that conflicts "
+                "it merges instead, keeping this machine's version of a file both sides changed and writing "
+                "the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). "
+                "A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. "
                 "Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) "
                 "stay uncommitted and are reported. Offline, rejected, and remote-less homes exit 0 and keep "
                 "the commits. Nested Git repositories are never recorded. Recording is refused during a "
@@ -279,7 +283,7 @@ def sync(
     push_only: bool = typer.Option(False, "--push-only", help="Record and push without fetching the remote."),
     home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Record uncommitted home changes as sync commits and push them to the upstream."""
+    """Record uncommitted home changes as sync commits, integrate the upstream, and push."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         with activity("Syncing home...", enabled=not json_output):
@@ -309,10 +313,14 @@ def sync(
                             for path in report.skipped]
         target.findings += [{"severity": "warning", "message": f"not committed, a nested Git repository: {path}"}
                             for path in report.nested]
+        target.findings += [{"severity": "warning", "message": f"conflict copy to reconcile: {path}"}
+                            for path in report.conflict_copies]
         outcome = _SYNC_OUTCOMES.get(report.push)
         if outcome:
             count = report.pushed if report.push == "pushed" else report.waiting
             message = outcome.format(upstream=report.upstream, waiting=f"{count} commit{'' if count == 1 else 's'}")
+            if report.push == "rejected" and not push_only:
+                message = f"{message} (gave up after {report.attempts} attempts)"
             if report.push == "pushed":
                 target.changes.append(message)
             else:

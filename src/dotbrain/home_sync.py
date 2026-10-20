@@ -1,10 +1,12 @@
-"""Home sync: record uncommitted changes in the dotbrain home as sync commits, then push them.
+"""Home sync: record uncommitted changes in the dotbrain home as sync commits, integrate, push.
 
 The home is one Git repository holding every Brainspace. Sync first commits whatever nobody
 committed, one commit per changed Brainspace and one ``home`` commit for the rest, so the working
-tree is clean and one project's drafts never hold back another's. It then pushes to the upstream
-of the current branch. Offline, rejected, and remote-less homes are reported, not errors: the
-commits stay local until a later sync sends them.
+tree is clean and one project's drafts never hold back another's. A full sync then fetches the
+upstream of the current branch and replays the unpushed commits onto it; when that conflicts it
+merges instead, keeping this machine's version of each contested file in place and the other
+machine's beside it as a conflict copy, so no edit is lost. Then it pushes. Offline, rejected, and
+remote-less homes are reported, not errors: the commits stay local until a later sync sends them.
 """
 
 from __future__ import annotations
@@ -16,7 +18,8 @@ import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
+from datetime import date
+from pathlib import Path, PurePosixPath
 
 from dotbrain import config, paths
 
@@ -26,6 +29,7 @@ Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 LOCK_NAME = "dotbrain-sync.lock"
 STALE_LOCK_SECONDS = 600
 PUSH_TIMEOUT_SECONDS = 20
+PUSH_RETRIES = 3  # a full sync re-fetches and re-integrates at most this often after a rejected push
 _SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes"
 _IN_PROGRESS = ("MERGE_HEAD", "rebase-merge", "rebase-apply", "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
 
@@ -45,6 +49,9 @@ class SyncReport:
     pushed: int = 0
     waiting: int = 0  # local commits not on the upstream after the run
     blocked_by: list[str] = field(default_factory=list)  # why recording was refused
+    merged: bool = False  # the replay conflicted, so the upstream was merged instead
+    conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
+    attempts: int = 0  # fetch-integrate-push rounds run
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -154,22 +161,31 @@ def _ssh_command(home: Path, run: Runner) -> str:
     return f"{base} {_SSH_OPTIONS}"
 
 
+def _remote_env(home: Path, run: Runner) -> dict:
+    return {"GIT_SSH_COMMAND": _ssh_command(home, run)}
+
+
+def _ahead(home: Path, run: Runner) -> int:
+    return int(_git(run, home, "rev-list", "--count", "@{upstream}..HEAD").stdout.strip())
+
+
+def _fetch(home: Path, run: Runner) -> bool:
+    try:
+        return _git(run, home, "fetch", "--quiet", check=False, env=_remote_env(home, run),
+                    timeout=PUSH_TIMEOUT_SECONDS).returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
+
 def _push(home: Path, report: SyncReport, run: Runner) -> None:
-    upstream = _git(run, home, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}",
-                    check=False)
-    if upstream.returncode != 0:
-        report.push = "no-upstream"
-        report.waiting = len(report.commits)
-        return
-    report.upstream = upstream.stdout.strip()
-    ahead = int(_git(run, home, "rev-list", "--count", "@{upstream}..HEAD").stdout.strip())
+    ahead = _ahead(home, run)
     if ahead == 0:
-        report.push = "up-to-date"
+        report.push, report.waiting = "up-to-date", 0
         return
     report.waiting = ahead
     try:
         pushed = _git(run, home, "-c", "push.default=upstream", "push", "--quiet", check=False,
-                      env={"GIT_SSH_COMMAND": _ssh_command(home, run)}, timeout=PUSH_TIMEOUT_SECONDS)
+                      env=_remote_env(home, run), timeout=PUSH_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         report.push = "unreachable"
         return
@@ -177,6 +193,85 @@ def _push(home: Path, report: SyncReport, run: Runner) -> None:
         report.push, report.pushed, report.waiting = "pushed", ahead, 0
     else:
         report.push = "rejected" if "rejected]" in pushed.stderr else "unreachable"
+
+
+def _copy_name(home: Path, path: str) -> str:
+    """``dir/NAME.sync-conflict-YYYY-MM-DD-<host>[-n].ext``, split on the file name only."""
+    pure = PurePosixPath(path)
+    base = f"{pure.stem}.sync-conflict-{date.today().isoformat()}-{platform.node()}"
+    n = 1
+    while True:
+        suffix = "" if n == 1 else f"-{n}"
+        name = str(pure.with_name(f"{base}{suffix}{pure.suffix}"))
+        if not os.path.lexists(home / name):
+            return name
+        n += 1
+
+
+def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
+    """Each conflicted path with the index stages it holds (1 base, 2 ours, 3 theirs)."""
+    stages: dict[str, set[str]] = {}
+    for entry in _git(run, home, "ls-files", "--unmerged", "-z").stdout.split("\0"):
+        if "\t" in entry:
+            info, path = entry.split("\t", 1)
+            stages.setdefault(path, set()).add(info.split()[2])
+    return stages
+
+
+def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
+    """Merge the upstream, settling every conflict without losing either side's content."""
+    host = platform.node()
+    report.merged = True
+    merged = _git(run, home, "merge", "--no-edit", "--quiet", "-m",
+                  f"sync: merge on {host}, 0 conflict copies", upstream, check=False)
+    if merged.returncode == 0:
+        report.commits.append(f"sync: merge on {host}, 0 conflict copies")
+        return
+    stages = _unmerged(home, run)
+    if not stages:
+        raise SyncError(f"git merge failed: {(merged.stderr or merged.stdout).strip()}")
+    copies: list[str] = []
+    for path, present in sorted(stages.items()):
+        if {"2", "3"} <= present:  # both changed it: this machine's in place, the other's beside it
+            copy = _copy_name(home, path)
+            _git(run, home, "checkout", "--theirs", "--", path)
+            os.replace(home / path, home / copy)
+            _git(run, home, "checkout", "--ours", "--", path)
+            _git(run, home, "add", "--", path, copy)
+            copies.append(copy)
+            report.conflict_copies.append(copy)
+        elif present & {"2", "3"}:  # deleted on one side, edited on the other: keep the edit
+            _git(run, home, "checkout", "--ours" if "2" in present else "--theirs", "--", path)
+            _git(run, home, "add", "--", path)
+        else:  # deleted on both sides
+            _git(run, home, "rm", "--quiet", "--cached", "--", path)
+    listed = ", ".join(copies[:3]) + (f" and {len(copies) - 3} more" if len(copies) > 3 else "")
+    message = f"sync: merge on {host}, {len(copies)} conflict copies" + (f" ({listed})" if copies else "")
+    _git(run, home, "commit", "--quiet", "-m", message)
+    report.commits.append(message)
+
+
+def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
+    """Bring the fetched upstream into the current branch; never leaves a rebase or merge open."""
+    if _git(run, home, "merge-base", "--is-ancestor", upstream, "HEAD", check=False).returncode == 0:
+        return  # nothing new upstream
+    try:
+        # Replaying only rewrites commits the upstream does not have; --autostash because files
+        # skipped by the size limit leave the tree dirty.
+        rebased = _git(run, home, "rebase", "--autostash", "--quiet", upstream, check=False)
+        if rebased.returncode == 0:
+            return
+        conflicted = bool(_unmerged(home, run))
+        _git(run, home, "rebase", "--abort", check=False)
+        if not conflicted:
+            raise SyncError(f"git rebase failed: {(rebased.stderr or rebased.stdout).strip()}")
+        _merge(home, upstream, report, run)
+    except BaseException:
+        if (git_dir / "MERGE_HEAD").exists():
+            _git(run, home, "merge", "--abort", check=False)
+        if (git_dir / "rebase-merge").exists() or (git_dir / "rebase-apply").exists():
+            _git(run, home, "rebase", "--abort", check=False)
+        raise
 
 
 def _git_dir(home: Path, run: Runner) -> Path:
@@ -233,9 +328,10 @@ def _acquire(lock: Path) -> bool:
 
 
 def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -> SyncReport:
-    """Record sync commits and push them; never fetches, rewrites, or force-pushes.
+    """Record sync commits, integrate the upstream unless ``push_only``, and push.
 
-    ``push_only`` is the form that never fetches; today both forms record and push only.
+    Never force-pushes or rewrites commits already on the upstream: only unpushed commits are
+    replayed, and a replay that conflicts becomes a merge.
     """
     settings = config.load_config(home).sync
     report = SyncReport()
@@ -253,7 +349,22 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
         return report
     try:
         report.commits, report.skipped, report.nested = record(home, settings.max_file_size, run)
-        _push(home, report, run)
+        upstream = _git(run, home, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}",
+                        check=False)
+        if upstream.returncode != 0:
+            report.push, report.waiting = "no-upstream", len(report.commits)
+            return report
+        report.upstream = upstream.stdout.strip()
+        for attempt in range(1, 2 if push_only else 2 + PUSH_RETRIES):
+            report.attempts = attempt
+            if not push_only:
+                if not _fetch(home, run):
+                    report.push, report.waiting = "unreachable", _ahead(home, run)
+                    break
+                _integrate(home, git_dir, report.upstream, report, run)
+            _push(home, report, run)
+            if report.push != "rejected":
+                break
     finally:
         lock.unlink(missing_ok=True)
     return report

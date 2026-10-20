@@ -7,6 +7,7 @@ import os
 import platform
 import subprocess
 import time
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -377,3 +378,219 @@ def test_push_fails_fast_and_times_out_as_unreachable(home: Path, monkeypatch):
     assert report.push == "unreachable" and report.waiting == 1
     assert calls[0]["timeout"] == home_sync.PUSH_TIMEOUT_SECONDS
     assert calls[0]["env"]["GIT_SSH_COMMAND"] == "ssh -i key -o ConnectTimeout=3 -o BatchMode=yes"
+
+
+# Full sync between two machines: ``home`` is machine W, ``other`` (a second clone) is machine V.
+
+ALPHA = Path("brainspaces") / "alpha" / ".brain"
+TODAY = date.today().isoformat()
+
+
+@pytest.fixture
+def other(tmp_path: Path, remote: Path, home: Path) -> Path:
+    clone = tmp_path / "other"
+    git(tmp_path, "clone", "-q", "-c", "core.autocrlf=false", str(remote), str(clone))
+    git(clone, "config", "user.name", "Other")
+    git(clone, "config", "user.email", "other@example.com")
+    return clone
+
+
+def tree(repo: Path) -> dict[str, bytes]:
+    return {path.relative_to(repo).as_posix(): path.read_bytes() for path in repo.rglob("*")
+            if path.is_file() and ".git" not in path.relative_to(repo).parts}
+
+
+def no_operation_in_progress(repo: Path) -> bool:
+    git_dir = Path(git(repo, "rev-parse", "--absolute-git-dir"))
+    return not any((git_dir / name).exists() for name in home_sync._IN_PROGRESS) and git(repo, "status", "--porcelain") == ""
+
+
+def both_sync(first: Path, second: Path) -> None:
+    for repo in (first, second, first):
+        assert home_sync.sync(repo).push in ("pushed", "up-to-date")
+    assert tree(first) == tree(second)
+    assert no_operation_in_progress(first) and no_operation_in_progress(second)
+
+
+def test_uncommitted_project_does_not_block_receiving_another(home: Path, other: Path):
+    (other / "brainspaces" / "beta" / ".brain" / "b.md").write_bytes(b"from V\n")
+    assert home_sync.sync(other).push == "pushed"
+    (home / "brainspaces" / "alpha" / ".brain" / "a.md").write_bytes(b"from W\n")
+
+    both_sync(home, other)
+
+    for repo in (home, other):
+        assert (repo / "brainspaces" / "alpha" / ".brain" / "a.md").read_bytes() == b"from W\n"
+        assert (repo / "brainspaces" / "beta" / ".brain" / "b.md").read_bytes() == b"from V\n"
+    assert not home_sync.sync(home).merged  # replayed, not merged
+
+
+def test_edits_to_different_paragraphs_merge_without_copies(home: Path, other: Path):
+    write(home / ALPHA / "CONTEXT.md", "one\n\ntwo\n\nthree\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    write(other / ALPHA / "CONTEXT.md", "one by V\n\ntwo\n\nthree\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "one\n\ntwo\n\nthree by W\n")
+
+    report = home_sync.sync(home)
+
+    assert not report.merged and report.conflict_copies == []
+    both_sync(home, other)
+    assert (other / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "one by V\n\ntwo\n\nthree by W\n"
+    assert not list((home / ALPHA).glob("*.sync-conflict-*"))
+
+
+def test_same_paragraph_edits_keep_both_versions(home: Path, other: Path):
+    write(other / ALPHA / "CONTEXT.md", "V's line\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "W's line\n")
+
+    result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
+
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)["targets"][0]["data"]
+    copy = f"brainspaces/alpha/.brain/CONTEXT.sync-conflict-{TODAY}-{HOST}.md"
+    message = f"sync: merge on {HOST}, 1 conflict copies ({copy})"
+    assert data["merged"] is True and data["conflict_copies"] == [copy] and data["attempts"] == 1
+    assert data["push"] == "pushed"
+    assert subjects(home)[0] == message
+    both_sync(home, other)
+    for repo in (home, other):
+        assert (repo / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "W's line\n"
+        assert (repo / copy).read_text(encoding="utf-8") == "V's line\n"
+
+
+def test_binary_conflict_copy_keeps_exact_bytes(home: Path, other: Path):
+    mine, theirs = b"\x00\xffW\r\n\x89", b"\x00\xfeV\n\x01"
+    (other / ALPHA / "image.bin").write_bytes(theirs)
+    home_sync.sync(other)
+    (home / ALPHA / "image.bin").write_bytes(mine)
+
+    report = home_sync.sync(home)
+
+    assert report.conflict_copies == [f"brainspaces/alpha/.brain/image.sync-conflict-{TODAY}-{HOST}.bin"]
+    assert (home / ALPHA / "image.bin").read_bytes() == mine
+    assert (home / report.conflict_copies[0]).read_bytes() == theirs
+
+
+@pytest.mark.parametrize("deleter", ["home", "other"])
+def test_an_edit_wins_over_a_delete(home: Path, other: Path, deleter: str):
+    machines = {"home": home, "other": other}
+    editor = "other" if deleter == "home" else "home"
+    (machines[deleter] / ALPHA / "CONTEXT.md").unlink()
+    write(machines[editor] / ALPHA / "CONTEXT.md", "edited\n")
+    home_sync.sync(other)
+
+    report = home_sync.sync(home)
+
+    assert report.merged and report.conflict_copies == []
+    assert subjects(home)[0] == f"sync: merge on {HOST}, 0 conflict copies"
+    both_sync(home, other)
+    assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "edited\n"
+
+
+def test_conflict_copy_names_split_on_the_file_name_and_stay_unique(tmp_path: Path):
+    base = f"notes.v2/archive.tar.sync-conflict-{TODAY}-{HOST}"
+    assert home_sync._copy_name(tmp_path, "notes.v2/archive.tar.gz") == f"{base}.gz"
+    write(tmp_path / f"{base}.gz")
+    assert home_sync._copy_name(tmp_path, "notes.v2/archive.tar.gz") == f"{base}-2.gz"
+    assert home_sync._copy_name(tmp_path, "Makefile") == f"Makefile.sync-conflict-{TODAY}-{HOST}"
+
+
+def test_files_skipped_by_the_size_limit_survive_the_replay(home: Path, other: Path):
+    write(home / "config.yaml", "sync:\n  max-file-size: 100\n")
+    home_sync.sync(home)
+    home_sync.sync(other)
+    write(other / "brainspaces" / "beta" / ".brain" / "b.md")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "y" * 200)  # tracked, now over the limit
+    write(home / ALPHA / "small.md")
+
+    report = home_sync.sync(home)
+
+    assert report.push == "pushed" and not report.merged
+    assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "y" * 200
+    assert (home / "brainspaces" / "beta" / ".brain" / "b.md").exists()
+    assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"
+
+
+def moving_remote(other: Path, moves: int):
+    """A runner where the other machine pushes just before each of the first ``moves`` pushes."""
+    calls: list[list[str]] = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        if "push" in argv and sum("push" in call for call in calls) <= moves:
+            write(other / "brainspaces" / "beta" / ".brain" / f"move{len(calls)}.md")
+            home_sync.sync(other)
+        return subprocess.run(argv, **kwargs)
+
+    return run, calls
+
+
+def test_rejected_full_sync_push_is_retried_at_most_three_times(home: Path, other: Path):
+    write(home / ALPHA / "a.md")
+    run, calls = moving_remote(other, moves=10)
+
+    result = home_sync.sync(home, run=run)
+
+    pushes = [call for call in calls if "push" in call]
+    assert len(pushes) == 1 + home_sync.PUSH_RETRIES and result.attempts == 4
+    assert result.push == "rejected" and result.waiting == 1
+    assert not any(flag in call for call in pushes for flag in ("--force", "-f", "--force-with-lease"))
+    assert no_operation_in_progress(home)
+
+
+def test_rejected_full_sync_push_integrates_again_and_pushes(home: Path, other: Path, remote: Path):
+    write(home / ALPHA / "a.md")
+    run, _ = moving_remote(other, moves=1)
+
+    result = home_sync.sync(home, run=run)
+
+    assert result.push == "pushed" and result.attempts == 2
+    assert git(remote, "rev-parse", "main") == git(home, "rev-parse", "HEAD")
+
+
+def test_push_only_never_fetches(home: Path):
+    write(home / ALPHA / "a.md")
+    calls: list[list[str]] = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.run(argv, **kwargs)
+
+    assert home_sync.sync(home, push_only=True, run=run).push == "pushed"
+    assert not any("fetch" in call or "rebase" in call or "merge" in call for call in calls)
+
+
+def test_offline_full_sync_later_pushes_waiting_commits(home: Path, remote: Path, tmp_path: Path):
+    git(home, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    write(home / ALPHA / "a.md")
+    assert home_sync.sync(home).push == "unreachable"
+    git(home, "remote", "set-url", "origin", str(remote))
+
+    report = home_sync.sync(home)
+
+    assert report.push == "pushed" and report.pushed == 1
+    assert git(remote, "rev-parse", "main") == git(home, "rev-parse", "HEAD")
+
+
+def test_failure_while_merging_leaves_no_merge_in_progress(home: Path, other: Path):
+    write(other / ALPHA / "CONTEXT.md", "V\n")
+    home_sync.sync(other)
+    write(home / ALPHA / "CONTEXT.md", "W\n")
+    head = git(home, "rev-parse", "HEAD")
+
+    def run(argv, **kwargs):
+        if "commit" in argv and any("merge on" in arg for arg in argv):
+            raise OSError("disk full")
+        return subprocess.run(argv, **kwargs)
+
+    with pytest.raises(OSError):
+        home_sync.sync(home, run=run)
+
+    assert no_operation_in_progress(home)
+    assert git(home, "rev-parse", "HEAD") != head  # the sync commit stays, unpushed
+    assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "W\n"
+    assert not list((home / ALPHA).glob("*.sync-conflict-*"))
