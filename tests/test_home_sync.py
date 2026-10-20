@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 import platform
 import subprocess
-import time
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +16,13 @@ from dotbrain import home_sync
 from dotbrain.cli import app
 
 runner = CliRunner()
-HOST = platform.node()
+HOST = "testhost"
+
+
+@pytest.fixture(autouse=True)
+def short_hostname(monkeypatch):
+    """A fixed short host name, so human output never wraps on runners with long host names."""
+    monkeypatch.setattr(platform, "node", lambda: HOST)
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -186,29 +191,62 @@ def test_disabled_sync_does_nothing_with_a_notice(home: Path):
     assert git(home, "rev-parse", "HEAD") == before
 
 
-def test_second_concurrent_run_exits_without_changes(home: Path):
-    lock = Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
-    lock.touch()
-    write(home / "config.yaml", "version: 3\n")
-    before = git(home, "rev-parse", "HEAD")
+def lock_path(home: Path) -> Path:
+    return Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
 
-    result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
 
-    assert result.exit_code == 0, result.output
-    assert json.loads(result.output)["targets"][0]["data"]["status"] == "locked"
-    assert git(home, "rev-parse", "HEAD") == before
+HOLD_LOCK = """
+import sys
+from pathlib import Path
+from dotbrain import home_sync
+held = home_sync._acquire(Path(sys.argv[1]))
+assert held is not None
+print("held", flush=True)
+sys.stdin.read()
+"""
+
+
+def test_lock_held_by_another_process_blocks_until_it_exits(home: Path):
+    lock = lock_path(home)
+    holder = subprocess.Popen([sys.executable, "-c", HOLD_LOCK, str(lock)], stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, encoding="utf-8")
+    try:
+        assert holder.stdout.readline().strip() == "held"
+        write(home / "config.yaml", "version: 3\n")
+        before = git(home, "rev-parse", "HEAD")
+
+        result = runner.invoke(app, ["sync", "--home", str(home), "--json"])
+
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.output)["targets"][0]["data"]["status"] == "locked"
+        assert git(home, "rev-parse", "HEAD") == before
+    finally:
+        holder.kill()  # dies without releasing: the OS drops its lock
+        holder.wait()
+        holder.stdin.close()
+        holder.stdout.close()
+
     assert lock.exists()
+    assert home_sync.sync(home).status == "synced"
+    assert lock.exists()  # the lock file stays; only the OS lock comes and goes
 
 
-def test_stale_lock_is_taken_over(home: Path):
-    lock = Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
-    lock.touch()
-    old = lock.stat().st_mtime - home_sync.STALE_LOCK_SECONDS - 10
-    os.utime(lock, (old, old))
+def test_lock_held_on_another_descriptor_blocks_a_second_sync(home: Path):
+    fd = home_sync._acquire(lock_path(home))
+    assert fd is not None
+    try:
+        assert home_sync._acquire(lock_path(home)) is None
+        assert home_sync.sync(home).status == "locked"
+    finally:
+        home_sync._release(fd)
+    assert home_sync.sync(home).status == "synced"
+
+
+def test_leftover_lock_file_does_not_block(home: Path):
+    lock_path(home).write_text("12345 0\n", encoding="utf-8")  # a dead owner's file, no OS lock
     write(home / "config.yaml", "version: 3\n")
 
     assert home_sync.sync(home).status == "synced"
-    assert not lock.exists()
 
 
 def test_human_output_lists_commits_and_push(home: Path):
@@ -342,27 +380,6 @@ def test_group_with_nothing_staged_is_skipped(home: Path):
     report = home_sync.sync(home, run=run)
 
     assert report.commits == [f"alpha: sync from {HOST} (a.md)"]
-
-
-def test_lock_held_by_a_dead_process_is_broken(home: Path):
-    lock = Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
-    dead = subprocess.Popen(["git", "--version"], stdout=subprocess.DEVNULL)
-    dead.wait()
-    lock.write_text(f"{dead.pid} {time.time()}\n", encoding="utf-8")
-    write(home / "config.yaml", "version: 3\n")
-
-    assert home_sync.sync(home).status == "synced"
-
-
-def test_lock_held_by_a_live_process_is_never_taken_over(home: Path):
-    lock = Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
-    lock.write_text(f"{os.getpid()} {time.time()}\n", encoding="utf-8")
-    assert home_sync.sync(home).status == "locked"
-    old = time.time() - home_sync.STALE_LOCK_SECONDS - 10
-    lock.write_text(f"{os.getpid()} {old}\n", encoding="utf-8")
-    os.utime(lock, (old, old))
-    assert home_sync.sync(home).status == "locked"
-    assert lock.exists()
 
 
 def test_push_fails_fast_and_times_out_as_unreachable(home: Path, monkeypatch):
@@ -647,9 +664,16 @@ def test_autostash_conflict_after_a_clean_rebase_is_undone_and_reported(home: Pa
             return subprocess.CompletedProcess(argv, 0, "", "")
         return subprocess.run(argv, **kwargs)
 
+    tip = git(home, "rev-parse", "HEAD")
+
     report = home_sync.sync(home, run=run)
 
     assert report.status == "collision" and report.collisions == ["brainspaces/alpha/.brain/CONTEXT.md"]
     assert report.push == "none"
+    assert git(home, "rev-parse", "HEAD") == tip  # back at its pre-rebase commit: nothing integrated
     assert_left_clean(home, "CONTEXT.md", local)
     assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"
+    again = home_sync.sync(home)
+    assert again.status == "collision" and again.collisions == report.collisions
+    assert git(home, "rev-parse", "HEAD") == tip
+    assert_left_clean(home, "CONTEXT.md", local)

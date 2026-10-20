@@ -15,11 +15,11 @@ import os
 import platform
 import subprocess
 import sys
-import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 
 from dotbrain import config, paths
 
@@ -27,7 +27,6 @@ from dotbrain import config, paths
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
 LOCK_NAME = "dotbrain-sync.lock"
-STALE_LOCK_SECONDS = 600
 PUSH_TIMEOUT_SECONDS = 20
 PUSH_RETRIES = 3  # a full sync re-fetches and re-integrates at most this often after a rejected push
 _SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes"
@@ -263,17 +262,18 @@ def _collisions(home: Path, upstream: str, left: list[str], run: Runner) -> list
         path == other or other.startswith(path + "/") or path.startswith(other + "/") for other in incoming))
 
 
-def _undo_autostash_conflict(home: Path, stages: dict[str, set[str]], run: Runner) -> None:
-    """Put this machine's uncommitted bytes back on each path the autostash re-apply conflicted on,
-    clear the unmerged entries, and drop the autostash Git left in the stash list."""
-    for path, present in stages.items():
-        if "3" in present:  # stage 3 is the stashed, uncommitted version
-            _git(run, home, "checkout", "--theirs", "--", path)
-        else:
-            (home / path).unlink(missing_ok=True)
-    _git(run, home, "reset", "--quiet", "--", *stages)
-    if _git(run, home, "stash", "list", "-1", "--format=%gs", check=False).stdout.strip() == "autostash":
-        _git(run, home, "stash", "drop", "--quiet")
+def _undo_rebase_with_autostash(home: Path, orig: str, run: Runner) -> None:
+    """Move the branch back to ``orig``, its tip before the rebase, and re-apply the autostash
+    Git kept after its re-apply conflicted, so the upstream stays unintegrated and this machine's
+    uncommitted bytes are back in place. Leaves no unmerged entries and no autostash."""
+    if _git(run, home, "stash", "list", "-1", "--format=%gs", check=False).stdout.strip() != "autostash":
+        raise SyncError("the rebase left conflicts but no autostash to restore")
+    stash = _git(run, home, "rev-parse", "stash@{0}").stdout.strip()
+    _git(run, home, "reset", "--hard", "--quiet", orig)
+    # The autostash was taken on ``orig``, so applying it there cannot conflict.
+    _git(run, home, "stash", "apply", "--quiet", stash)
+    _git(run, home, "reset", "--quiet")
+    _git(run, home, "stash", "drop", "--quiet", "stash@{0}")
 
 
 def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
@@ -286,6 +286,7 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
     report.collisions = _collisions(home, upstream, report.skipped + report.nested, run)
     if report.collisions:
         return
+    orig = _git(run, home, "rev-parse", "HEAD").stdout.strip()
     try:
         # Replaying only rewrites commits the upstream does not have; --autostash because files
         # skipped by the size limit leave the tree dirty.
@@ -294,7 +295,7 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
             # The rebase can succeed while re-applying the autostash conflicts.
             stages = _unmerged(home, run)
             if stages:
-                _undo_autostash_conflict(home, stages, run)
+                _undo_rebase_with_autostash(home, orig, run)
                 report.collisions = sorted(stages)
             return
         conflicted = bool(_unmerged(home, run))
@@ -318,53 +319,31 @@ def _git_dir(home: Path, run: Runner) -> Path:
     return Path(lines[1])
 
 
-def _process_alive(pid: int) -> bool:
+def _acquire(lock: Path) -> BinaryIO | None:
+    """Take the OS lock on ``lock`` without waiting; return the open file, or None if another
+    sync holds it. The file stays in place; the OS drops the lock when its holder exits, however
+    it exits, so a dead sync never blocks a later one."""
+    handle = open(lock, "ab", buffering=0)
+    try:
+        handle.seek(0)  # every sync locks the same first byte
+        if sys.platform == "win32":
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return None
+    return handle
+
+
+def _release(handle: BinaryIO) -> None:
     if sys.platform == "win32":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-        if not handle:
-            return False
-        code = ctypes.c_ulong()
-        kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
-        kernel32.CloseHandle(handle)
-        return code.value == 259  # STILL_ACTIVE
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
-
-
-def _lock_is_stale(lock: Path) -> bool:
-    """A lock is stale when its owner is gone; a lock that names no owner, when it is older than
-    ``STALE_LOCK_SECONDS``. A live owner's lock is never stale, however old: it may still be pushing."""
-    # ponytail: a dead owner's reused PID keeps the lock held; compare process start times if that bites.
-    try:
-        pid, _ = lock.read_text(encoding="utf-8").split()
-        if int(pid) <= 0:
-            raise ValueError(pid)
-        return not _process_alive(int(pid))
-    except FileNotFoundError:
-        return False
-    except ValueError:  # unreadable or half-written: fall back to the file's age
-        try:
-            return time.time() - lock.stat().st_mtime > STALE_LOCK_SECONDS
-        except FileNotFoundError:
-            return False
-
-
-def _acquire(lock: Path) -> bool:
-    if _lock_is_stale(lock):
-        lock.unlink(missing_ok=True)
-    try:
-        with open(lock, "x", encoding="utf-8", newline="\n") as handle:
-            handle.write(f"{os.getpid()} {time.time()}\n")
-    except FileExistsError:
-        return False
-    return True
+        import msvcrt
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    handle.close()  # closing releases a flock
 
 
 def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -> SyncReport:
@@ -383,8 +362,8 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
     if report.blocked_by:
         report.status = "blocked"
         return report
-    lock = git_dir / LOCK_NAME
-    if not _acquire(lock):
+    lock = _acquire(git_dir / LOCK_NAME)
+    if lock is None:
         report.status = "locked"
         return report
     try:
@@ -409,5 +388,5 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
             if report.push != "rejected":
                 break
     finally:
-        lock.unlink(missing_ok=True)
+        _release(lock)
     return report
