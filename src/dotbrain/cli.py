@@ -56,7 +56,7 @@ def main(
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
-    if hooks.session_source() == "compact":
+    if hooks.payload_field("source") == "compact":
         # Compaction fires mid-turn: never change files under the running agent.
         hooks.start_sync(push_only=True)
     else:
@@ -75,6 +75,8 @@ def hook_stop(args: list[str] = typer.Argument(None)) -> None:
 def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
     """Start a detached full home sync and return at once. Fail-open and silent."""
 
+    if hooks.payload_field("reason") == "clear":
+        return  # the SessionStart that follows /clear syncs; a second sync would only race it
     hooks.start_sync()
 
 

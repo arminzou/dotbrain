@@ -58,7 +58,7 @@ Brain 的改动不用手动提交和推送，就能到达你的其他机器。
 | --- | --- | --- |
 | `SessionStart` | `dotbrain hook session-start` | 运行一次完整同步，最多等 10 秒，然后注入约定。超时的同步会在后台继续跑完，会话从本地状态开始。上下文压缩时只记录和推送，因为压缩发生在一轮对话中间。 |
 | `Stop` | `dotbrain hook stop` | 主 Agent 每轮结束后，在后台启动一次只记录和推送、不 fetch 的同步，然后立即返回。文件不会在 Agent 运行时被改动。 |
-| `SessionEnd` | `dotbrain hook session-end` | 在后台启动一次完整同步，然后立即返回。 |
+| `SessionEnd` | `dotbrain hook session-end` | 在后台启动一次完整同步，然后立即返回；`/clear` 时跳过，由随后的 `SessionStart` 同步。 |
 
 一次完整同步分四步：
 

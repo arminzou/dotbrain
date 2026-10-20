@@ -62,7 +62,7 @@ every Brainspace, so Brain changes reach your other machines without a manual co
 | --- | --- | --- |
 | `SessionStart` | `dotbrain hook session-start` | Runs a full sync and waits up to 10 seconds, then injects the convention. A slower sync keeps running in the background, and the session starts from local state. On compaction it only records and pushes, because compaction happens mid-turn. |
 | `Stop` | `dotbrain hook stop` | After each turn of the main agent, starts a background sync that records and pushes without fetching, and returns at once. Files never change under a running agent. |
-| `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once. |
+| `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once; skipped on `/clear`, whose `SessionStart` syncs. |
 
 A full sync runs four steps:
 
