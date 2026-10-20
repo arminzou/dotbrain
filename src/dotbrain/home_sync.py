@@ -102,7 +102,7 @@ def _message(prefix: str, files: list[str]) -> str:
 def _too_large(home: Path, path: str, limit: int) -> bool:
     try:
         return os.lstat(home / path).st_size > limit
-    except FileNotFoundError:  # deleted: nothing to measure
+    except (FileNotFoundError, NotADirectoryError):  # deleted, or a parent became a file
         return False
 
 
