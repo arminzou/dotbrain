@@ -17,6 +17,11 @@ what ``cat`` produced: no newline translation on Windows, no re-encoding of Brai
 Beads context is not injected here, and dotbrain installs no hook that does. Agents run
 ``bd prime`` themselves; an operator who wants it injected adds Beads' own hook with
 ``bd setup``. This hook therefore does not set ``BEADS_DIR``.
+
+The session hooks also run home sync, in a child process so nothing it prints can reach
+stdout. The child is detached (own process group, no inherited stdio) so it outlives the
+hook: a headless run tears the hook down as soon as it returns, and a sync killed mid-replay
+leaves state every later sync refuses.
 """
 
 from __future__ import annotations
@@ -26,11 +31,16 @@ import sys
 from pathlib import Path
 from typing import BinaryIO
 
+from dotbrain import config, paths
+
 CONVENTION_HEADING = "## dotbrain convention"
 
 # Hook stdout over this many bytes is spilled to a file and never reaches the model.
 # Measured on Claude Code: 9,961 bytes delivered, 10,010 did not.
 PAYLOAD_LIMIT = 10_000
+
+# Session start waits this long for the full sync before falling back to local state.
+SESSION_START_SYNC_SECONDS = 10
 
 
 def repo_root(cwd: Path | None = None) -> Path | None:
@@ -81,4 +91,42 @@ def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) 
         target.flush()
     except (OSError, ValueError):
         # stdout closed or EPIPE at hook exit must not surface as a hook failure.
+        return
+
+
+def _sync_argv(home: Path, push_only: bool) -> list[str]:
+    argv = [sys.executable, "-c", "from dotbrain.cli import app; app()", "sync", "--home", str(home)]
+    return argv + ["--push-only"] if push_only else argv
+
+
+def _launch_detached(argv: list[str]) -> subprocess.Popen:
+    detach: dict = ({"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
+                    if sys.platform == "win32" else {"start_new_session": True})
+    return subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, **detach)
+
+
+def sync_home() -> Path | None:
+    """The home to sync for this session: its checkout is wired or is the home, and sync is on."""
+
+    home = paths.resolve_dotbrain_home().expanduser().resolve()
+    root = repo_root()
+    if root is None or not (paths.is_wired(root) or root.resolve() == home):
+        return None
+    return home if config.load_config(home).sync.enabled else None
+
+
+def start_sync(*, push_only: bool = False, wait: float = 0) -> None:
+    """Start a detached sync, waiting at most ``wait`` seconds for it. Fail-open: never raises."""
+
+    try:
+        home = sync_home()
+        if home is None:
+            return
+        child = _launch_detached(_sync_argv(home, push_only))
+        if wait:
+            child.wait(timeout=wait)
+    except subprocess.TimeoutExpired:
+        return  # still running: it finishes detached; killing it could strand a replay
+    except Exception:  # noqa: BLE001 - a hook must never break the session
         return

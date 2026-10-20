@@ -45,7 +45,9 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`site dev`](#dotbrain-site-dev) | Serve the Brain site locally with live reload (127.0.0.1). |
 | [`site build`](#dotbrain-site-build) | Build the Brain site; fails on a nav link to a missing page. |
 | [`site preview`](#dotbrain-site-preview) | Serve the last build locally (127.0.0.1). |
-| [`hook session-start`](#dotbrain-hook-session-start) | Emit a wired repo's Brain context. |
+| [`hook session-start`](#dotbrain-hook-session-start) | Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. |
+| [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
+| [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
 
 ## Setup
 
@@ -399,10 +401,34 @@ Run by the plugin's hooks, not by hand. See [Session context](session-context.md
 
 ### `dotbrain hook session-start` {#dotbrain-hook-session-start}
 
-Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is none.
+Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open.
 
 ```text
 dotbrain hook session-start [ARGS]
+```
+
+| Argument | Description |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook stop` {#dotbrain-hook-stop}
+
+Start a detached push-only home sync and return at once. Fail-open and silent.
+
+```text
+dotbrain hook stop [ARGS]
+```
+
+| Argument | Description |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook session-end` {#dotbrain-hook-session-end}
+
+Start a detached full home sync and return at once. Fail-open and silent.
+
+```text
+dotbrain hook session-end [ARGS]
 ```
 
 | Argument | Description |

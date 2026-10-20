@@ -54,9 +54,24 @@ def main(
 
 @hook_app.command("session-start")
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
-    """Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is none."""
+    """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
+    hooks.start_sync(wait=hooks.SESSION_START_SYNC_SECONDS)
     hooks.emit_brain_context()
+
+
+@hook_app.command("stop")
+def hook_stop(args: list[str] = typer.Argument(None)) -> None:
+    """Start a detached push-only home sync and return at once. Fail-open and silent."""
+
+    hooks.start_sync(push_only=True)
+
+
+@hook_app.command("session-end")
+def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
+    """Start a detached full home sync and return at once. Fail-open and silent."""
+
+    hooks.start_sync()
 
 
 def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:

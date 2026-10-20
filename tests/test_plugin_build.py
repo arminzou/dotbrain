@@ -53,23 +53,32 @@ def test_wire_brain_worktree_reference_is_self_contained_and_windows_safe():
     assert "ln -s" not in text and "mklink /D" not in text
 
 
-def test_plugin_owns_session_start_registration_for_both_runtimes():
+def test_plugin_owns_hook_registration_for_both_runtimes():
     hooks_path = PLUGIN_ROOT / "hooks" / "hooks.json"
-    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
-    entries = [hook for entry in hooks["hooks"]["SessionStart"] for hook in entry["hooks"]]
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))["hooks"]
+    assert set(hooks) == {"SessionStart", "Stop", "SessionEnd"}
 
-    assert len(entries) == 1
-    hook = entries[0]
-    # Both commands must guard on the CLI being present: the plugin installs at user scope, so
-    # every session on the machine runs this hook, including before the CLI exists.
-    assert hook["command"] == (
-        "if command -v dotbrain >/dev/null 2>&1; then dotbrain hook session-start; fi"
-    )
-    # commandWindows keeps the guard in PowerShell instead of resolving `bash`, where the
-    # System32 WSL launcher shadows Git Bash on PATH.
-    assert hook["commandWindows"] == (
-        "if (Get-Command dotbrain -ErrorAction SilentlyContinue) { dotbrain hook session-start }"
-    )
+    registered = {}
+    for event, command in (("SessionStart", "session-start"), ("Stop", "stop"), ("SessionEnd", "session-end")):
+        entries = [hook for entry in hooks[event] for hook in entry["hooks"]]
+        assert len(entries) == 1
+        hook = registered[event] = entries[0]
+        # Both commands must guard on the CLI being present: the plugin installs at user scope, so
+        # every session on the machine runs this hook, including before the CLI exists.
+        assert hook["command"] == (
+            f"if command -v dotbrain >/dev/null 2>&1; then dotbrain hook {command}; fi"
+        )
+        # commandWindows keeps the guard in PowerShell instead of resolving `bash`, where the
+        # System32 WSL launcher shadows Git Bash on PATH.
+        assert hook["commandWindows"] == (
+            f"if (Get-Command dotbrain -ErrorAction SilentlyContinue) {{ dotbrain hook {command} }}"
+        )
+    # Session start waits up to 10 s for sync before emitting context, so its budget covers both.
+    assert registered["SessionStart"]["timeout"] > 10
+    # Stop runs in the background so the turn never waits on the push.
+    assert registered["Stop"]["async"] is True
+    # Without a timeout Claude Code gives SessionEnd about 1.5 s, which can cut off the launch.
+    assert registered["SessionEnd"]["timeout"] == 30
     # Claude Code auto-discovers hooks/hooks.json; declaring it in the manifest too makes the
     # runtime reject the whole plugin with "Duplicate hooks file detected", skills included.
     claude_manifest = json.loads(
