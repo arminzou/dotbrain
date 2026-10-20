@@ -35,7 +35,8 @@ treeView-beta
 
 ## `config.yaml`
 
-只有使用 [server 模式](beads-backend.md#server-mode)的 Beads 时才需要。初始化出来的文件里，这一段是注释掉的。
+只有使用 [server 模式](beads-backend.md#server-mode)的 Beads，或要调整[主目录同步](#sync)时才需要。
+初始化出来的文件里，Beads 这一段是注释掉的。
 
 ```yaml
 # ~/dotbrain/config.yaml
@@ -52,6 +53,26 @@ beads:
 ::: warning
 不要把凭据写进 `config.yaml`，请放在你的密钥存储里。
 :::
+
+### `sync:` {#sync}
+
+[主目录同步](session-context.md#home-sync)把 dotbrain 主目录里没提交的改动记录为提交，再和主目录的
+远程仓库交换。没有这一段时，同步是开启的。只有要关闭同步或调整大小上限时，才需要加上它：
+
+```yaml
+# ~/dotbrain/config.yaml
+sync:
+  enabled: false        # default true
+  max-file-size: 5MB    # default 1MB
+```
+
+| 键 | 默认值 | 含义 |
+| --- | --- | --- |
+| `sync.enabled` | `true` | 设为 `false` 会关闭 hook 里的同步和 `dotbrain sync`，主目录要你自己提交和推送 |
+| `sync.max-file-size` | `1MB` | 超过这个大小的文件不会提交，并会被报告。可以写字节数，如 `1048576`；也可以写 `500KB`、`1MB`、`2GB` 这样的大小（1 KB = 1024 字节） |
+
+远程仓库就是主目录当前分支的上游，没有单独的配置项。`config.yaml` 通过这个远程仓库在所有机器间共享，
+所以设置对每台机器都生效。同步在提交信息里用主机名标出是哪台机器。
 
 ## `project.yaml`
 

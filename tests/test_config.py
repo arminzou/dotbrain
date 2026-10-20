@@ -339,3 +339,29 @@ def test_write_project_config_preserves_subagents(tmp_path: Path):
     config.write_project_config(tmp_path, "p", config.ProjectBeads(mode="embedded"))
     assert config.load_project_subagents(tmp_path, "p") == ("reviewer",)
     assert config.load_project_config(tmp_path, "p").mode == "embedded"
+
+
+# --------------------------------------------------------------------------- sync section
+
+
+def test_sync_defaults_when_section_absent(tmp_path):
+    (tmp_path / "config.yaml").write_text("version: 3\n", encoding="utf-8")
+    assert config.load_config(tmp_path).sync == config.SyncConfig(enabled=True, max_file_size=1024 ** 2)
+    assert config.load_config(tmp_path / "missing").sync.enabled is True
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("2048", 2048), ("500KB", 500 * 1024), ("1MB", 1024 ** 2), ("2 gb", 2 * 1024 ** 3), ("10B", 10)])
+def test_sync_max_file_size_accepts_bytes_and_units(tmp_path, value, expected):
+    (tmp_path / "config.yaml").write_text(f"sync:\n  enabled: false\n  max-file-size: {value}\n", encoding="utf-8")
+    loaded = config.load_config(tmp_path).sync
+    assert loaded.enabled is False and loaded.max_file_size == expected
+
+
+@pytest.mark.parametrize("declaration", [
+    "sync: []", "sync: {enabled: maybe}", "sync: {max-file-size: big}", "sync: {max-file-size: -1}",
+    "sync: {max-file-size: 5K}"])
+def test_sync_rejects_invalid_values(tmp_path, declaration):
+    (tmp_path / "config.yaml").write_text(declaration, encoding="utf-8")
+    with pytest.raises(ValueError, match="sync"):
+        config.load_config(tmp_path)

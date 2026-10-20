@@ -149,7 +149,8 @@ Completion: the user has approved the shape.
 
 Write the lesson and its reference following [lesson-format.md](./references/lesson-format.md). If
 `.brain/learning/AGENTS.md` names a learning site, also follow that site's publishing guide and run
-its check. Committing the Brain, and anything outward, waits for the user's go-ahead.
+its check. Home sync records and shares the Brain; publishing, and anything else outward,
+waits for the user's go-ahead.
 
 The lesson is captured when it names a mission topic, links to its reference and back,
 `GLOSSARY.md` and `RESOURCES.md` cover every new term and source it uses, and any named site's check

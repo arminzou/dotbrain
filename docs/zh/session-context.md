@@ -1,7 +1,7 @@
 # 会话上下文
 
 在已连接的仓库里，Agent 会话一开始，dotbrain 约定就已经在上下文里了。本页解释注入了什么、怎么注入的，
-以及 Agent 会自己去读哪些内容。
+Agent 会自己去读哪些内容，以及会话的 hook 怎样同步 dotbrain 主目录。
 
 ## 会话开始时发生了什么 {#what-happens-at-session-start}
 
@@ -19,8 +19,9 @@ sequenceDiagram
   B-->>A: Relevant findings for existing assignments
 ```
 
-插件注册了一个 `SessionStart` hook，它运行 `dotbrain hook session-start`。这个 hook 在启动、恢复会话、
-`/clear` 和上下文压缩时都会触发，所以约定在上下文重置后依然存在。
+插件的 `SessionStart` hook 运行 `dotbrain hook session-start`。这个 hook 在启动、恢复会话、
+`/clear` 和上下文压缩时都会触发，所以约定在上下文重置后依然存在。注入约定之前，它会先运行
+[主目录同步](#home-sync)。
 
 ## 注入了什么 {#what-is-injected}
 
@@ -48,6 +49,47 @@ dotbrain 用 10,000 字节的预算测试会话启动时注入的内容。这个
 `DOTBRAIN.md` 的大小是有上限的，而仓库规则和复盘笔记会随项目增长。只注入约定，就能让内容保持在预算以内。
 :::
 
+## 主目录同步 {#home-sync}
+
+插件注册了三个 hook。每个都会同步 dotbrain 主目录，也就是存放所有 Brainspace 的那个 Git 仓库。这样
+Brain 的改动不用手动提交和推送，就能到达你的其他机器。
+
+| Hook | 运行 | 做什么 |
+| --- | --- | --- |
+| `SessionStart` | `dotbrain hook session-start` | 运行一次完整同步，最多等 10 秒，然后注入约定。超时的同步会在后台继续跑完，会话从本地状态开始。上下文压缩时只记录和推送，因为压缩发生在一轮对话中间。 |
+| `Stop` | `dotbrain hook stop` | 主 Agent 每轮结束后，在后台启动一次只记录和推送、不 fetch 的同步，然后立即返回。文件不会在 Agent 运行时被改动。 |
+| `SessionEnd` | `dotbrain hook session-end` | 在后台启动一次完整同步，然后立即返回。 |
+
+一次完整同步分四步：
+
+1. **记录。** 所有没提交的改动都变成同步提交：每个有改动的 Brainspace 一个，其余改动合成一个
+   `home` 提交。超过大小上限的文件和嵌套的 Git 仓库会被跳过并报告。你自己写的提交保持不变。
+2. **Fetch** 主目录当前分支的上游。
+3. **整合。** 把上游 merge 到当前分支。两台机器都改了同一个文件时，
+   这台机器的版本留在原处，另一台机器的版本存到旁边，成为冲突副本。一边删了文件、另一边改了它时，
+   保留改动。如果传入的改动会覆盖未提交或被忽略的本地文件，Git 会拒绝 merge，同步会报告 Git 的
+   原始诊断信息，不再推送。
+4. **推送。** 如果远程仓库在此期间有了新提交，同步会重新 fetch 再试，最多三次。从不强制推送。
+
+主目录同步不出声，并且失败时放行。它不往 Agent 的上下文里写任何内容，失败也不会阻塞会话。离线的机器和
+没有远程仓库的主目录，会把同步提交留在本地，等之后的同步再推送。hook 只在连接了 Brainspace 的
+checkout 里，或在 dotbrain 主目录本身里同步。同一台机器上有锁，两次同步不会同时运行。会话开始时的
+完整同步会在 10 秒的总等待时间内短暂等待锁释放；上下文压缩后的只记录和推送同步，以及其他入口，
+遇到锁被占用时会立即返回。想手动同步就运行
+`dotbrain sync`；想查看待推送的提交、冲突副本和被跳过的文件，就运行 `dotbrain doctor`。关闭同步见
+[`sync:`](configuration.md#sync)。
+
+主目录同步不会同步 Beads 任务跟踪，它走 `dotbrain beads sync` 自己的路径。
+
+::: warning 已知限制
+- 同步在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、`git rm --cached`、
+  暂存的权限变更）会被工作区内容替换。
+- 主目录里嵌套的 Git 仓库永远不会被记录。
+- hook 正在提交时，你在主目录里运行的 Git 命令可能碰到 Git 的锁错误。重新运行即可。
+- 两台机器改了同样的行时，解决冲突的合并会改写共享主目录里的这些文件。在这一步进行期间，
+  同一台机器上的其他会话可能短暂看到或覆盖它们。如果合并会覆盖尚未提交的改动，同步会拒绝合并。
+:::
+
 ## 失败时放行 {#failing-open}
 
 hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，或者 `PATH` 上没有 `dotbrain` 时，它什么都不输出，
@@ -56,10 +98,13 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 ## 各运行时的说明 {#runtime-notes}
 
-- **Claude Code** 装好插件后就会运行 hook。
-- **Codex** 只在你信任插件 hook 之后才运行它们：在 `codex` 里打开 `/hooks`，信任 dotbrain 的 hook，
-  然后新开一个 thread。
-- 在不支持 hook 的运行时里，调用 `dotbrain` 技能手动加载约定。
+- **Claude Code** 装好插件后就会运行这些 hook。
+- **Codex** 只在你信任插件 hook 之后才运行它们：在 `codex` 里打开 `/hooks`，信任 dotbrain 的几个
+  hook，然后新开一个 thread。在此之前，Codex 会话既不会注入约定，也不会同步。Codex 给会话结束的
+  hook 留的时间很短，所以这个 hook 只负责启动同步，然后立即返回。Codex 是否只在主 thread 上触发
+  `Stop`，以及是否在后台运行 `Stop` hook，目前还没验证。Stop 和会话结束时的同步发现已有同步在运行，
+  都会立即退出；只推送的同步也很快返回。
+- 在不支持 hook 的运行时里，调用 `dotbrain` 技能手动加载约定，并自己运行 `dotbrain sync`。
 
 ## 子 Agent {#subagents}
 

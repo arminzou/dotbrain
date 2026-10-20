@@ -1,14 +1,14 @@
 # DOTBRAIN.md
 
-Shared operating rules for all dotbrain brains. Owned by dotbrain; synced by
-`dotbrain refresh`. Do not edit per project — changes to the packaged dotbrain
-Brain template propagate to every brain.
+Shared rules for every dotbrain Brain, owned by dotbrain and synced by `dotbrain refresh`.
+Do not edit per project; packaged template changes propagate to every Brain.
 
 ## Wiring
 
 - The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
   `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
-  Commit Brain changes in `~/dotbrain`, not the code repo.
+  Home sync records and shares Brain changes; optional descriptive commits go in `~/dotbrain`,
+  not the code repo.
 - `.claude` and `.codex` are real checkout directories: skills/Claude agents are symlinks;
   Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
   commit local wiring or delivered copies.
@@ -28,7 +28,7 @@ Brain template propagate to every brain.
   for task-relevant findings and passes applicable findings through existing assignments.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
   Reuse findings in context. A missing notebook blocks nothing; do not scaffold it.
-- Brain writes are agent-managed (git-tracked in dotbrain, so changes are revertable).
+- Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
   `run-execution` carries out an item or finite batch. While delegated workers run, only the
@@ -54,9 +54,8 @@ Brain template propagate to every brain.
 - Public repo docs must not expose private content; derive standalone guidance. The standard
   `.brain/AGENTS.md` agent pointer is allowed.
 - Never reference private Brain context from code, tests, comments, commit messages, or
-  PR text: no ADR numbers, Brain paths, or decision-record identifiers in anything the
-  public repo carries. State the rationale in plain terms instead; the ADR linkage stays
-  in the Brain.
+  PR text: no ADR numbers, Brain paths, or decision-record identifiers. State the rationale
+  in plain terms; the ADR linkage stays in the Brain.
 
 ## Working in loops
 
@@ -125,7 +124,7 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   design/epic stay active. Closed-unmerged is never shipped.
   Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
   `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc
-  invented fields drift the vocabulary apart; say anything else in prose
+  invented fields drift the vocabulary; say anything else in prose
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
 - `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,
@@ -136,4 +135,4 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
-`project.yaml` (`skills:`). Public instructions route changes and reviews to `RULES.md` if present.
+`project.yaml` (`skills:`).

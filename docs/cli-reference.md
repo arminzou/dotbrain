@@ -40,11 +40,14 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`beads migrate`](#dotbrain-beads-migrate) | Migrate embedded trackers to a server, keeping history and rollback backups. |
 | [`beads list-db`](#dotbrain-beads-list-db) | List remote database identifiers, including databases without a Brainspace. |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | Explicitly delete a remote database; never infer it from the current project. |
+| [`sync`](#dotbrain-sync) | Record uncommitted home changes as sync commits, integrate the upstream, and push. |
 | [`site init`](#dotbrain-site-init) | Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual. |
 | [`site dev`](#dotbrain-site-dev) | Serve the Brain site locally with live reload (127.0.0.1). |
 | [`site build`](#dotbrain-site-build) | Build the Brain site; fails on a nav link to a missing page. |
 | [`site preview`](#dotbrain-site-preview) | Serve the last build locally (127.0.0.1). |
-| [`hook session-start`](#dotbrain-hook-session-start) | Emit a wired repo's Brain context. |
+| [`hook session-start`](#dotbrain-hook-session-start) | Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. |
+| [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
+| [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
 
 ## Setup
 
@@ -313,6 +316,26 @@ dotbrain beads drop-db [OPTIONS] NAME
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 
+## Exchange
+
+Record the dotbrain home's changes and exchange them with its remote.
+
+### `dotbrain sync` {#dotbrain-sync}
+
+Record uncommitted home changes as sync commits, integrate the upstream, and push.
+
+Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. A full sync then fetches and merges the upstream, keeping this machine's version of a file both sides changed and writing the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. If incoming changes would overwrite an uncommitted or ignored local file, Git refuses the merge; sync reports Git's diagnostic, pushes nothing, and fails. Offline, rejected, and remote-less homes exit 0 and keep the commits. Nested Git repositories are never recorded. Recording is refused during a merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. Turn sync off with sync.enabled: false. Known limit: sync unstages everything before recording, so index-only state (partially staged hunks, git rm `--cached`, a staged mode change) is replaced by the working tree.
+
+```text
+dotbrain sync [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--push-only` | — | Record and push without fetching the remote. |
+| `--home` *path* | — | Override the private data root. |
+| `--json` | — | Emit one structured result. |
+
 ## Brain site
 
 Set up and run a Brain's private site. See [Brain site](brain-site.md).
@@ -378,10 +401,34 @@ Run by the plugin's hooks, not by hand. See [Session context](session-context.md
 
 ### `dotbrain hook session-start` {#dotbrain-hook-session-start}
 
-Emit a wired repo's Brain context. Fail-open: silent and exit 0 when there is none.
+Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open.
 
 ```text
 dotbrain hook session-start [ARGS]
+```
+
+| Argument | Description |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook stop` {#dotbrain-hook-stop}
+
+Start a detached push-only home sync and return at once. Fail-open and silent.
+
+```text
+dotbrain hook stop [ARGS]
+```
+
+| Argument | Description |
+| --- | --- |
+| `ARGS` | — |
+
+### `dotbrain hook session-end` {#dotbrain-hook-session-end}
+
+Start a detached full home sync and return at once. Fail-open and silent.
+
+```text
+dotbrain hook session-end [ARGS]
 ```
 
 | Argument | Description |

@@ -389,3 +389,95 @@ def test_all_skips_shared_checkouts_absent_on_this_machine(tmp_path):
     assert statuses == {None: statuses[None], "local": "success", "shared": "skipped", "override": "failure"}
     explicit = doctor.run_doctor(root, home=tmp_path / "user", project="shared", run=recording_run(repo, []))
     assert any("registered checkout missing" in m for m in errors(explicit.projects["shared"]))
+
+
+def git(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, encoding="utf-8").stdout.strip()
+
+
+@pytest.fixture
+def synced_home(tmp_path):
+    """A dotbrain home under Git, pushed to a bare remote and clean."""
+    remote = tmp_path / "remote.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
+    root = tmp_path / "home"
+    root.mkdir()
+    git(root, "init", "-q", "-b", "main")
+    for key, value in (("user.name", "Test"), ("user.email", "test@example.com"), ("core.autocrlf", "false")):
+        git(root, "config", key, value)
+    write(root / "brainspaces/alpha/.brain/CONTEXT.md", "base\n")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "initial")
+    git(root, "remote", "add", "origin", str(remote))
+    git(root, "push", "-q", "-u", "origin", "main")
+    return root
+
+
+def sync_findings(root):
+    return [(f.status, f.message) for f in doctor._check_home_sync(root, doctor._default_run)]
+
+
+def test_clean_synced_home_reports_no_sync_problems(synced_home, tmp_path):
+    before = snapshot(synced_home)
+    assert sync_findings(synced_home) == [("ok", "home sync: nothing waiting for origin/main (as last fetched)")]
+    assert snapshot(synced_home) == before
+    report = doctor.run_doctor(synced_home, home=tmp_path / "user", all_projects=True)
+    assert not [f for f in report.machine if f.message.startswith("home sync") and f.status in {"warn", "error"}]
+
+
+def test_sync_disabled_and_home_outside_git_are_informational(synced_home, tmp_path):
+    assert sync_findings(tmp_path / "plain") == [
+        ("info", "home sync inactive: the dotbrain home is not a Git repository")]
+    write(synced_home / "config.yaml", "sync:\n  enabled: false\n")
+    assert sync_findings(synced_home) == [("info", "home sync disabled (sync.enabled: false)")]
+
+
+def test_no_remote_is_informational(synced_home):
+    git(synced_home, "remote", "remove", "origin")
+    assert sync_findings(synced_home) == [("info", "home sync: no remote configured; sync commits stay local")]
+
+
+def test_waiting_commits_are_counted_against_last_known_upstream(synced_home):
+    for n in (1, 2):
+        write(synced_home / f"brainspaces/alpha/.brain/{n}.md")
+        git(synced_home, "add", "-A")
+        git(synced_home, "commit", "-q", "-m", f"alpha: {n}")
+    git(synced_home, "remote", "set-url", "origin", str(synced_home.parent / "unreachable.git"))  # proves no fetch
+    assert sync_findings(synced_home) == [("info", "home sync: 2 local commits waiting to be pushed to origin/main")]
+
+
+def test_conflict_copies_and_size_limit_skips_are_reported_by_path(synced_home):
+    write(synced_home / "config.yaml", "sync:\n  max-file-size: 100\n")
+    copy = "brainspaces/alpha/.brain/CONTEXT.sync-conflict-2026-10-20-host.md"
+    write(synced_home / copy, "theirs\n")
+    git(synced_home, "add", "-A")
+    git(synced_home, "commit", "-q", "-m", "sync: merge")
+    git(synced_home, "push", "-q")
+    write(synced_home / "brainspaces/alpha/.brain/big bin.dat", "x" * 200)
+    write(synced_home / "brainspaces/alpha/.brain/CONTEXT.md", "y" * 200)  # tracked, now over the limit
+    write(synced_home / "brainspaces/alpha/.brain/small.md")
+    found = sync_findings(synced_home)
+    assert ("warn", f"home sync: open conflict copy {copy}") in found
+    assert [m for s, m in found if s == "warn" and "size limit" in m] == [
+        f"home sync: brainspaces/alpha/.brain/{name} is over the size limit and stays uncommitted"
+        for name in ("CONTEXT.md", "big bin.dat")]
+    assert not [s for s, _ in found if s == "error"]
+
+
+@pytest.mark.parametrize("state, marker", [("merge", "MERGE_HEAD"), ("rebase", "rebase-merge")])
+def test_merge_or_replay_in_progress_fails(synced_home, tmp_path, state, marker):
+    git(synced_home, "switch", "-q", "-c", "other")
+    write(synced_home / "brainspaces/alpha/.brain/CONTEXT.md", "other\n")
+    git(synced_home, "commit", "-q", "-am", "other")
+    git(synced_home, "switch", "-q", "main")
+    write(synced_home / "brainspaces/alpha/.brain/CONTEXT.md", "main\n")
+    git(synced_home, "commit", "-q", "-am", "main")
+    assert subprocess.run(["git", state, "other"], cwd=synced_home, capture_output=True).returncode
+    found = sync_findings(synced_home)
+    assert ("error", f"home sync blocked: {marker} in the dotbrain home") in found
+    report = doctor.run_doctor(synced_home, home=tmp_path / "user", all_projects=True)
+    assert doctor.as_result(report).status == "failure"
+    result = CliRunner().invoke(app, ["doctor", "--home", str(synced_home), "--all", "--json"])
+    assert result.exit_code == 1
+    machine = next(t for t in json.loads(result.stdout)["targets"] if t["scope"] == "machine")
+    assert any(f["severity"] == "error" and f["message"].startswith("home sync blocked") for f in machine["findings"])

@@ -254,8 +254,8 @@ def _pages(brain: Path) -> tuple[list[str], list[str]]:
     """Every Markdown page in the Brain, and the ``srcExclude`` globs for what VitePress must skip.
 
     Skipped: symlinks, which VitePress's scan follows into a duplicate of a Brain page or a folder
-    outside the Brain, where a page cannot import the engine; and names with brackets, which
-    VitePress reads as dynamic routes.
+    outside the Brain, where a page cannot import the engine; names with brackets, which
+    VitePress reads as dynamic routes; and home sync's conflict copies, which would duplicate a page.
     """
     pages: list[str] = []
     exclude: list[str] = []
@@ -269,7 +269,8 @@ def _pages(brain: Path) -> tuple[list[str], list[str]]:
             if not name.endswith(".md"):
                 continue
             rel = (rel_folder / name).as_posix()
-            if (Path(folder) / name).is_symlink() or re.search(r"\[.+\]", name):
+            if ((Path(folder) / name).is_symlink() or re.search(r"\[.+\]", name)
+                    or ".sync-conflict-" in name):
                 exclude.append(_glob_escape(rel))
             else:
                 pages.append(rel)
