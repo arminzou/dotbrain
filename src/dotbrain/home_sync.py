@@ -59,6 +59,7 @@ class SyncReport:
 
 def _kill_tree(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
+        # ponytail: taskkill /T misses descendants whose parent already exited; a Job Object would catch them.
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], check=False,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         proc.kill()  # in case taskkill itself failed
@@ -87,13 +88,14 @@ def run_bounded(args, *, timeout: float | None = None, **kwargs) -> "subprocess.
     proc = subprocess.Popen(args, **kwargs)
     try:
         stdout, stderr = proc.communicate(input, timeout=timeout)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as stalled:
+        stdout, stderr = stalled.output, stalled.stderr
         _kill_tree(proc)
         try:
-            proc.communicate(timeout=_DRAIN_SECONDS)
-        except subprocess.TimeoutExpired:
-            pass  # something outside the tree still holds the pipes; give up on the output
-        raise subprocess.TimeoutExpired(args, timeout) from None
+            stdout, stderr = proc.communicate(timeout=_DRAIN_SECONDS)
+        except subprocess.TimeoutExpired as drained:  # something outside the tree still holds the pipes
+            stdout, stderr = drained.output or stdout, drained.stderr or stderr
+        raise subprocess.TimeoutExpired(args, timeout, output=stdout, stderr=stderr) from None
     result = subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
     if check:
         result.check_returncode()

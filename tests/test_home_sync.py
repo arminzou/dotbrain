@@ -408,10 +408,11 @@ def test_timeout_kills_the_whole_process_tree(tmp_path: Path):
     started, alive = tmp_path / "started", tmp_path / "alive"
     grandchild = (f"import pathlib, time; pathlib.Path({str(started)!r}).touch(); time.sleep(3); "
                   f"pathlib.Path({str(alive)!r}).touch()")
-    child = (f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {grandchild!r}], "
+    child = ("import subprocess, sys, time; print('partial', flush=True); "
+             f"subprocess.Popen([sys.executable, '-c', {grandchild!r}], "
              "stdout=sys.stdout, stderr=sys.stderr); time.sleep(30)")
     begin = time.monotonic()
-    with pytest.raises(subprocess.TimeoutExpired):
+    with pytest.raises(subprocess.TimeoutExpired) as stalled:
         home_sync.run_bounded([sys.executable, "-c", child], capture_output=True, encoding="utf-8",
                               timeout=1.5)
     elapsed = time.monotonic() - begin
@@ -419,6 +420,7 @@ def test_timeout_kills_the_whole_process_tree(tmp_path: Path):
 
     assert elapsed < 1.5 + home_sync._DRAIN_SECONDS
     assert started.exists() and not alive.exists()
+    assert "partial" in stalled.value.stdout  # output collected before the kill is kept, as subprocess.run does
 
 
 # Full sync between two machines: ``home`` is machine W, ``other`` (a second clone) is machine V.
