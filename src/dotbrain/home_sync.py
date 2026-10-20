@@ -276,8 +276,9 @@ def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
     return stages
 
 
-def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
-    """Merge the upstream, settling every conflict without losing either side's content."""
+def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner, copies: list[str]) -> None:
+    """Merge the upstream, settling every conflict without losing either side's content.
+    Each conflict copy is added to ``copies`` as soon as it is written."""
     host = platform.node()
     clean_message = f"sync: merge on {host}, 0 conflict copies"
     merged = _git(run, home, "merge", "--ff", "--no-edit", "--no-autostash", "--no-overwrite-ignore", "--quiet", "-m",
@@ -297,16 +298,15 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
         report.collisions.append(diagnostic)
         return
     report.merged = True
-    copies: list[str] = []
     for path, present in sorted(stages.items()):
         if {"2", "3"} <= present:  # both changed it: this machine's in place, the other's beside it
             copy = _copy_name(home, path)
             _git(run, home, "checkout", "--theirs", "--", path)
             os.replace(home / path, home / copy)
-            _git(run, home, "checkout", "--ours", "--", path)
-            _git(run, home, "add", "--", path, copy)
             copies.append(copy)
             report.conflict_copies.append(copy)
+            _git(run, home, "checkout", "--ours", "--", path)
+            _git(run, home, "add", "-f", "--", path, copy)  # a .gitignore match must not refuse the copy
         elif present & {"2", "3"}:  # deleted on one side, edited on the other: keep the edit
             _git(run, home, "checkout", "--ours" if "2" in present else "--theirs", "--", path)
             _git(run, home, "add", "--", path)
@@ -331,11 +331,14 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
         if report.collisions:
             report.status = "collision"
             return
+    copies: list[str] = []
     try:
-        _merge(home, git_dir, upstream, report, run)
+        _merge(home, git_dir, upstream, report, run, copies)
     except BaseException:
         if (git_dir / "MERGE_HEAD").exists():
             _git(run, home, "merge", "--abort", check=False)
+            for copy in copies:  # left untracked, the next sync would record and push them
+                (home / copy).unlink(missing_ok=True)
         raise
 
 
