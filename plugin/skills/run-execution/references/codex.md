@@ -61,6 +61,9 @@ Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
 
+Apply the shared [completion handling](../SKILL.md#completion-handling) rules when processing
+available results. The process checks below establish completion, not item acceptance.
+
 Wait on the retained process handle. Check process exit, session ID from `thread.started`,
 turn outcomes (`turn.completed`, `turn.failed`), and error events by event type in the JSONL.
 Confirm nested-process termination and required artifacts from their recorded identities and sources.

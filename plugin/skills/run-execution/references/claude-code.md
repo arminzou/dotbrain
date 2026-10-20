@@ -52,6 +52,9 @@ Git as plain, separate commands and set commit identity through the `GIT_AUTHOR_
 
 ## Collect and fix
 
+Apply the shared [completion handling](../SKILL.md#completion-handling) rules when processing
+available results. A native completion notification does not establish item acceptance.
+
 Collect the native task completion notification and the worker's candidate and check evidence.
 Retain the agent ID for follow-up. A completed task can resume with `SendMessage` to that original
 ID in the lead session that spawned it; use this for item-review fixes and conflict rebases.
