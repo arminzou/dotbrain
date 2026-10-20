@@ -20,7 +20,7 @@ Beads context is not injected here, and dotbrain installs no hook that does. Age
 
 The session hooks also run home sync, in a child process so nothing it prints can reach
 stdout. The child is detached (own process group, no inherited stdio) so it outlives the
-hook: a headless run tears the hook down as soon as it returns, and a sync killed mid-replay
+hook: a headless run tears the hook down as soon as it returns, and a sync killed mid-merge
 leaves state every later sync refuses.
 """
 
@@ -144,10 +144,13 @@ def start_sync(*, push_only: bool = False, wait: float = 0) -> None:
         home = sync_home()
         if home is None:
             return
-        child = _launch_detached(_sync_argv(home, push_only), home)
+        argv = _sync_argv(home, push_only)
+        if wait:
+            argv += ["--wait-for-lock", str(wait)]
+        child = _launch_detached(argv, home)
         if wait:
             child.wait(timeout=wait)
     except subprocess.TimeoutExpired:
-        return  # still running: it finishes detached; killing it could strand a replay
+        return  # still running: it finishes detached; killing it could strand a merge
     except Exception:  # noqa: BLE001 - a hook must never break the session
         return

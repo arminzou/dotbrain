@@ -11,12 +11,13 @@ import os
 import subprocess
 import sys
 import time
+import threading
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import hooks, resource_loader
+from dotbrain import home_sync, hooks, resource_loader
 from dotbrain.cli import app
 
 
@@ -247,6 +248,25 @@ def test_session_start_syncs_then_emits_the_same_payload_when_the_remote_is_unre
     assert completed.stdout == expected
     assert elapsed < hooks.SESSION_START_SYNC_SECONDS
     assert _git(home, "log", "-1", "--format=%s").startswith("alpha: sync from")
+
+
+def test_session_start_retries_lock_until_holder_releases(tmp_path: Path):
+    remote = tmp_path / "remote.git"
+    home = _home(tmp_path, remote)
+    (home / "new.md").write_text("new\n", encoding="utf-8")
+    git_dir = Path(_git(home, "rev-parse", "--absolute-git-dir"))
+    holder = home_sync._acquire(git_dir / home_sync.LOCK_NAME)
+    assert holder is not None
+    # Hold longer than child startup, so the child must retry the lock itself.
+    release = threading.Timer(3, home_sync._release, args=(holder,))
+    release.start()
+    try:
+        completed, elapsed = _hook("session-start", home, home)
+        assert completed.returncode == 0
+        assert elapsed < hooks.SESSION_START_SYNC_SECONDS
+        assert "home: sync from" in _git(remote, "log", "-1", "--format=%s", "main")
+    finally:
+        release.join()
 
 
 @pytest.mark.parametrize("stdin, push_only", [

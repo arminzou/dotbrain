@@ -318,7 +318,7 @@ dotbrain beads drop-db [OPTIONS] NAME
 
 把 dotbrain home 里未提交的改动记录为同步提交，整合上游，然后推送。
 
-作用于整个 home：每个有改动的 Brainspace 一个提交，其余改动合成一个 home 提交。完整同步接着 fetch 上游，把还没推送的提交 rebase 上去；如果冲突，就改用 merge：两边都改过的文件，保留这台机器的版本，另一边的版本写到旁边的 NAME.sync-conflict-DATE-HOST.ext（一边编辑、一边删除时，保留编辑）。远程已有新提交导致推送被拒时，最多重试 3 次；sync 从不强制推送。超过 config.yaml 里 sync.max-file-size 的文件（字节数，或 500KB、1MB 这样的大小；默认 1MB）不会提交，会在结果中报告；如果上游改动了这样的文件，完整同步会在整合前停下，不推送任何内容，并以失败退出。离线、推送被拒、没有 remote 时都以 0 退出，提交留在本地。嵌套的 Git 仓库永远不会被记录。在 merge、rebase、cherry-pick 或 revert 进行中，有未合并路径，或处于 detached HEAD 时，拒绝记录。用 sync.enabled: false 关闭同步。已知限制：sync 在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、git rm `--cached`、暂存的权限变更）会被工作区内容替换。
+作用于整个 home：每个有改动的 Brainspace 一个提交，其余改动合成一个 home 提交。完整同步接着 fetch 并 merge 上游：两边都改过的文件，保留这台机器的版本，另一边的版本写到旁边的 NAME.sync-conflict-DATE-HOST.ext（一边编辑、一边删除时，保留编辑）。远程已有新提交导致推送被拒时，最多重试 3 次；sync 从不强制推送。超过 config.yaml 里 sync.max-file-size 的文件（字节数，或 500KB、1MB 这样的大小；默认 1MB）不会提交，会在结果中报告。如果传入的改动会覆盖未提交或被忽略的本地文件，Git 会拒绝 merge；sync 会报告 Git 的原始诊断信息，不推送任何内容，并以失败退出。离线、推送被拒、没有 remote 时都以 0 退出，提交留在本地。嵌套的 Git 仓库永远不会被记录。在 merge、rebase、cherry-pick 或 revert 进行中，有未合并路径，或处于 detached HEAD 时，拒绝记录。用 sync.enabled: false 关闭同步。已知限制：sync 在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、git rm `--cached`、暂存的权限变更）会被工作区内容替换。
 
 ```text
 dotbrain sync [OPTIONS]

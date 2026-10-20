@@ -284,13 +284,14 @@ _SYNC_OUTCOMES = {
 
 
 _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. "
-                "A full sync then fetches the upstream and replays unpushed commits onto it; if that conflicts "
-                "it merges instead, keeping this machine's version of a file both sides changed and writing "
+                "A full sync then fetches and merges the upstream, keeping this machine's version of a file "
+                "both sides changed and writing "
                 "the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). "
                 "A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. "
                 "Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) "
-                "stay uncommitted and are reported; a full sync whose upstream changes such a file stops "
-                "before integrating, pushes nothing, and fails. Offline, rejected, and remote-less homes exit 0 and keep "
+                "stay uncommitted and are reported. If incoming changes would overwrite an uncommitted or ignored "
+                "local file, Git refuses the merge; sync reports Git's diagnostic, pushes nothing, and fails. "
+                "Offline, rejected, and remote-less homes exit 0 and keep "
                 "the commits. Nested Git repositories are never recorded. Recording is refused during a "
                 "merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. "
                 "Turn sync off with sync.enabled: false. Known limit: sync unstages everything before "
@@ -301,13 +302,14 @@ _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then
 @app.command(epilog=_SYNC_EPILOG)
 def sync(
     push_only: bool = typer.Option(False, "--push-only", help="Record and push without fetching the remote."),
+    wait_for_lock: float = typer.Option(0, "--wait-for-lock", hidden=True, min=0),
     home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
     """Record uncommitted home changes as sync commits, integrate the upstream, and push."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         with activity("Syncing home...", enabled=not json_output):
-            report = home_sync.sync(root, push_only=push_only)
+            report = home_sync.sync(root, push_only=push_only, wait_for_lock=wait_for_lock)
     except ValueError as exc:
         render(CommandResult("sync", "failure", errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc
@@ -329,9 +331,8 @@ def sync(
             raise typer.Exit(1)
         target.findings.append({"severity": "warning", "message": message})
     elif report.status == "collision":
-        message = (f"did not integrate {report.upstream}: it changes files that stay uncommitted here: "
-                   f"{', '.join(report.collisions)}; nothing was pushed; commit, move aside, or discard "
-                   "the local copy, then sync again")
+        message = (f"did not integrate {report.upstream}; nothing was pushed. Git reported:\n"
+                   + "\n".join(report.collisions))
         target.status, target.errors = "failure", [message]
         render(CommandResult("sync", "failure", targets=[target]), json_output=json_output)
         raise typer.Exit(1)

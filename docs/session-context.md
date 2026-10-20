@@ -70,18 +70,21 @@ A full sync runs four steps:
    `home` commit for everything else. Files over the size limit and nested Git repositories are
    skipped and reported. Commits you wrote yourself are left alone.
 2. **Fetch** the upstream of the home's current branch.
-3. **Integrate.** Unpushed local commits are replayed onto the upstream. If that conflicts, sync
-   merges instead. When both machines changed a file, this machine's version stays in place and
-   the other machine's version is saved beside it as a conflict copy. When one side deleted a file
-   and the other edited it, the edit wins.
+3. **Integrate.** Merge the upstream into the current branch. When both machines changed a file,
+   this machine's version stays in place and the other machine's version is saved beside it as a
+   conflict copy. When one side deleted a file
+   and the other edited it, the edit wins. If incoming changes would overwrite an uncommitted or
+   ignored local file, Git refuses the merge and sync reports its diagnostic without pushing.
 4. **Push.** If the remote moved in the meantime, sync fetches and tries again, at most three
    times. It never force-pushes.
 
 Home sync is quiet and fails open. It writes nothing to the agent's context, and a failure never
 blocks the session. Offline machines and homes without a remote keep their sync commits locally
 until a later sync can push them. Hooks sync only in a checkout wired to a Brainspace, or in the
-dotbrain home itself. A lock keeps two syncs on one machine apart. Run `dotbrain sync` to sync by
-hand, and `dotbrain doctor` to see waiting commits, conflict copies, and skipped files. To turn sync
+dotbrain home itself. A lock keeps two syncs on one machine apart. Session-start sync briefly waits
+for a busy lock within its 10-second bound; other sync entrypoints return at once if the lock is
+busy. Run `dotbrain sync` to sync by hand, and `dotbrain doctor` to see waiting commits, conflict
+copies, and skipped files. To turn sync
 off, see [`sync:`](configuration.md#sync).
 
 Home sync does not sync the Beads tracker; `dotbrain beads sync` keeps its own path.
@@ -108,8 +111,8 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   dotbrain hooks, and start a new thread. Until then Codex sessions get no injected convention and
   do not sync. Codex runs session-end hooks with a short time limit, so that hook only launches the
   sync and returns. Whether Codex fires `Stop` for the main thread only, and whether it runs the
-  `Stop` hook in the background, is not yet verified. Either way, a sync that finds another one
-  running exits at once, and a push-only sync returns quickly.
+  `Stop` hook in the background, is not yet verified. Stop and session-end syncs exit at once if
+  another sync is running, and a push-only sync returns quickly.
 - In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 

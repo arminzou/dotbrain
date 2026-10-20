@@ -103,12 +103,13 @@ Sync never commits a file larger than `sync.max-file-size` (default 1 MB). Pick 
 
 ### Incoming changes touch an uncommitted file
 
-`dotbrain sync` fails with `did not integrate <upstream>: it changes files that stay uncommitted here: <paths>`.
+`dotbrain sync` fails with `did not integrate <upstream>; nothing was pushed` followed by Git's
+diagnostic.
 
-The other machine changed or added a file that sync leaves uncommitted here, because it is over the
-size limit or is a nested Git repository. Bringing in the upstream would conflict with your local
-copy or overwrite it, so sync stops before integrating and pushes nothing. Your local file is left
-as it was. Pick one for each listed path, then run `dotbrain sync`:
+The other machine changed or added a file whose incoming contents would overwrite an uncommitted
+or ignored local file. This can include files over the size limit and nested Git repositories.
+Git refuses the merge, leaves your local files as they were, and sync pushes nothing. Read Git's
+diagnostic for the affected paths, resolve each one, then run `dotbrain sync`:
 
 - Commit it yourself in `~/dotbrain`, or raise the limit, so sync can merge it.
 - Move your local copy out of the home.
@@ -122,6 +123,7 @@ Sync refuses to record while the home has a merge, rebase, cherry-pick, or rever
 unmerged paths, or is on a detached HEAD. Recording then would commit conflict markers or commit to
 no branch. Finish or abort that operation with Git in `~/dotbrain`, check out the branch, and run
 `dotbrain sync`. Until then, the hooks record nothing.
+Sync leaves a merge you started yourself in place; it never aborts it for you.
 
 ### Commits are waiting to be pushed
 

@@ -94,11 +94,11 @@ doctor 报告 `home sync: <path> is over the size limit and stays uncommitted`�
 
 ### 传入的改动碰到了未提交的文件 {#incoming-changes-touch-an-uncommitted-file}
 
-`dotbrain sync` 失败并报告 `did not integrate <upstream>: it changes files that stay uncommitted here: <paths>`。
+`dotbrain sync` 失败并报告 `did not integrate <upstream>; nothing was pushed`，后面附上 Git 的原始诊断信息。
 
-另一台机器改动或新增了一个在本机不会被同步提交的文件：它超过了大小上限，或者是嵌套的 Git 仓库。
-引入上游会与你的本地副本冲突或覆盖它，所以同步在整合之前停下，什么也不推送。本地文件保持原样。
-对每个列出的路径任选一种处理方式，然后运行 `dotbrain sync`：
+另一台机器改动或新增了文件，传入的内容会覆盖未提交或被忽略的本地文件。这也可能涉及超过大小上限的
+文件或嵌套的 Git 仓库。Git 会拒绝 merge，本地文件保持原样，同步也不会推送。根据 Git 诊断信息中的
+路径，逐一处理后再运行 `dotbrain sync`：
 
 - 自己在 `~/dotbrain` 里提交它，或者调高上限，让同步可以合并它。
 - 把本地副本移出主目录。
@@ -111,6 +111,7 @@ doctor 报告 `home sync blocked: <state> in the dotbrain home`，`dotbrain sync
 主目录有 merge、rebase、cherry-pick 或 revert 正在进行，有未合并的路径，或处于 detached HEAD 时，
 同步拒绝记录。这时记录会把冲突标记提交进去，或者提交到不属于任何分支的位置。在 `~/dotbrain` 里用 Git
 完成或中止那个操作，切回分支，再运行 `dotbrain sync`。在此之前，hook 什么都不会记录。
+你自己发起的 merge 会留在原处，同步不会替你中止它。
 
 ### 有提交等待推送 {#commits-are-waiting-to-be-pushed}
 

@@ -3,10 +3,10 @@
 The home is one Git repository holding every Brainspace. Sync first commits whatever nobody
 committed, one commit per changed Brainspace and one ``home`` commit for the rest, so the working
 tree is clean and one project's drafts never hold back another's. A full sync then fetches the
-upstream of the current branch and replays the unpushed commits onto it; when that conflicts it
-merges instead, keeping this machine's version of each contested file in place and the other
-machine's beside it as a conflict copy, so no edit is lost. Then it pushes. Offline, rejected, and
-remote-less homes are reported, not errors: the commits stay local until a later sync sends them.
+upstream of the current branch and merges it, keeping this machine's version of each contested
+file in place and the other machine's beside it as a conflict copy, so no edit is lost. Then it
+pushes. Offline, rejected, and remote-less homes are reported, not errors: the commits stay local
+until a later sync sends them.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ import os
 import platform
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
@@ -48,10 +49,10 @@ class SyncReport:
     pushed: int = 0
     waiting: int = 0  # local commits not on the upstream after the run
     blocked_by: list[str] = field(default_factory=list)  # why recording was refused
-    merged: bool = False  # the replay conflicted, so the upstream was merged instead
+    merged: bool = False  # the fetched upstream was integrated by merge (including fast-forward)
     conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
     attempts: int = 0  # fetch-integrate-push rounds run
-    collisions: list[str] = field(default_factory=list)  # uncommitted paths the upstream changes; not integrated
+    collisions: list[str] = field(default_factory=list)  # raw Git diagnostics for a refused merge; not integrated
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -91,11 +92,11 @@ def _group(path: str, data_dir: str) -> tuple[str, str]:
     return "home", path
 
 
-def _message(name: str, files: list[str]) -> str:
+def _message(prefix: str, files: list[str]) -> str:
     listed = ", ".join(files[:3])
     if len(files) > 3:
         listed += f" and {len(files) - 3} more"
-    return f"{name}: sync from {platform.node()} ({listed})"
+    return prefix + (f" ({listed})" if files else "")
 
 
 def _too_large(home: Path, path: str, limit: int) -> bool:
@@ -138,7 +139,7 @@ def record(home: Path, max_file_size: int,
              input="\0".join(path for path, _ in files))
         if _git(run, home, "diff", "--cached", "--quiet", check=False).returncode == 0:
             continue  # nothing ended up staged for this group
-        message = _message(name, [shown for _, shown in files])
+        message = _message(f"{name}: sync from {platform.node()}", [shown for _, shown in files])
         _git(run, home, "commit", "--quiet", "-m", message)
         messages.append(message)
     return messages, skipped, nested
@@ -161,23 +162,19 @@ def _ssh_command(home: Path, run: Runner) -> str:
     return f"{base} {_SSH_OPTIONS}"
 
 
-def _remote_env(home: Path, run: Runner) -> dict:
-    return {"GIT_SSH_COMMAND": _ssh_command(home, run)}
-
-
 def _ahead(home: Path, run: Runner) -> int:
     return int(_git(run, home, "rev-list", "--count", "@{upstream}..HEAD").stdout.strip())
 
 
-def _fetch(home: Path, run: Runner) -> bool:
+def _fetch(home: Path, run: Runner, env: dict) -> bool:
     try:
-        return _git(run, home, "fetch", "--quiet", check=False, env=_remote_env(home, run),
+        return _git(run, home, "fetch", "--quiet", check=False, env=env,
                     timeout=PUSH_TIMEOUT_SECONDS).returncode == 0
     except subprocess.TimeoutExpired:
         return False
 
 
-def _push(home: Path, report: SyncReport, run: Runner) -> None:
+def _push(home: Path, report: SyncReport, run: Runner, env: dict) -> None:
     ahead = _ahead(home, run)
     if ahead == 0:
         report.push, report.waiting = "up-to-date", 0
@@ -185,7 +182,7 @@ def _push(home: Path, report: SyncReport, run: Runner) -> None:
     report.waiting = ahead
     try:
         pushed = _git(run, home, "-c", "push.default=upstream", "push", "--quiet", check=False,
-                      env=_remote_env(home, run), timeout=PUSH_TIMEOUT_SECONDS)
+                      env=env, timeout=PUSH_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         report.push = "unreachable"
         return
@@ -221,15 +218,19 @@ def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
 def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
     """Merge the upstream, settling every conflict without losing either side's content."""
     host = platform.node()
-    report.merged = True
-    merged = _git(run, home, "merge", "--no-edit", "--quiet", "-m",
-                  f"sync: merge on {host}, 0 conflict copies", upstream, check=False)
+    clean_message = f"sync: merge on {host}, 0 conflict copies"
+    merged = _git(run, home, "merge", "--no-edit", "--no-autostash", "--no-overwrite-ignore", "--quiet", "-m",
+                  clean_message, upstream, check=False)
     if merged.returncode == 0:
-        report.commits.append(f"sync: merge on {host}, 0 conflict copies")
+        report.merged = True
+        report.commits.append(clean_message)
         return
     stages = _unmerged(home, run)
     if not stages:
-        raise SyncError(f"git merge failed: {(merged.stderr or merged.stdout).strip()}")
+        report.status = "collision"
+        report.collisions.append(merged.stderr or merged.stdout)
+        return
+    report.merged = True
     copies: list[str] = []
     for path, present in sorted(stages.items()):
         if {"2", "3"} <= present:  # both changed it: this machine's in place, the other's beside it
@@ -245,69 +246,23 @@ def _merge(home: Path, upstream: str, report: SyncReport, run: Runner) -> None:
             _git(run, home, "add", "--", path)
         else:  # deleted on both sides
             _git(run, home, "rm", "--quiet", "--cached", "--", path)
-    listed = ", ".join(copies[:3]) + (f" and {len(copies) - 3} more" if len(copies) > 3 else "")
-    message = f"sync: merge on {host}, {len(copies)} conflict copies" + (f" ({listed})" if copies else "")
+    message = _message(f"sync: merge on {host}, {len(copies)} conflict copies", copies)
     _git(run, home, "commit", "--quiet", "-m", message)
     report.commits.append(message)
 
 
-def _collisions(home: Path, upstream: str, left: list[str], run: Runner) -> list[str]:
-    """Paths left uncommitted here that the upstream changes or adds, so integrating would
-    conflict with them or refuse to overwrite them."""
-    if not left:
-        return []
-    incoming = [path for path in _git(run, home, "diff", "--name-only", "--no-renames", "-z",
-                                      f"HEAD...{upstream}").stdout.split("\0") if path]
-    return sorted(path for path in left if any(
-        path == other or other.startswith(path + "/") or path.startswith(other + "/") for other in incoming))
-
-
-def _undo_rebase_with_autostash(home: Path, orig: str, run: Runner) -> None:
-    """Move the branch back to ``orig``, its tip before the rebase, and re-apply the autostash
-    Git kept after its re-apply conflicted, so the upstream stays unintegrated and this machine's
-    uncommitted bytes are back in place. Leaves no unmerged entries and no autostash."""
-    if _git(run, home, "stash", "list", "-1", "--format=%gs", check=False).stdout.strip() != "autostash":
-        raise SyncError("the rebase left conflicts but no autostash to restore")
-    stash = _git(run, home, "rev-parse", "stash@{0}").stdout.strip()
-    _git(run, home, "reset", "--hard", "--quiet", orig)
-    # The autostash was taken on ``orig``, so applying it there cannot conflict.
-    _git(run, home, "stash", "apply", "--quiet", stash)
-    _git(run, home, "reset", "--quiet")
-    _git(run, home, "stash", "drop", "--quiet", "stash@{0}")
-
-
 def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
-    """Bring the fetched upstream into the current branch; never leaves a rebase or merge open.
-
-    Integration is skipped, with ``report.collisions`` set, when the upstream changes a path
-    that sync left uncommitted here."""
+    """Merge the fetched upstream, aborting only a merge started by this sync."""
     if _git(run, home, "merge-base", "--is-ancestor", upstream, "HEAD", check=False).returncode == 0:
         return  # nothing new upstream
-    report.collisions = _collisions(home, upstream, report.skipped + report.nested, run)
-    if report.collisions:
+    if (git_dir / "MERGE_HEAD").exists():
+        report.status, report.blocked_by = "blocked", ["MERGE_HEAD"]
         return
-    orig = _git(run, home, "rev-parse", "HEAD").stdout.strip()
     try:
-        # Replaying only rewrites commits the upstream does not have; --autostash because files
-        # skipped by the size limit leave the tree dirty.
-        rebased = _git(run, home, "rebase", "--autostash", "--quiet", upstream, check=False)
-        if rebased.returncode == 0:
-            # The rebase can succeed while re-applying the autostash conflicts.
-            stages = _unmerged(home, run)
-            if stages:
-                _undo_rebase_with_autostash(home, orig, run)
-                report.collisions = sorted(stages)
-            return
-        conflicted = bool(_unmerged(home, run))
-        _git(run, home, "rebase", "--abort", check=False)
-        if not conflicted:
-            raise SyncError(f"git rebase failed: {(rebased.stderr or rebased.stdout).strip()}")
         _merge(home, upstream, report, run)
     except BaseException:
         if (git_dir / "MERGE_HEAD").exists():
             _git(run, home, "merge", "--abort", check=False)
-        if (git_dir / "rebase-merge").exists() or (git_dir / "rebase-apply").exists():
-            _git(run, home, "rebase", "--abort", check=False)
         raise
 
 
@@ -346,11 +301,11 @@ def _release(handle: BinaryIO) -> None:
     handle.close()  # closing releases a flock
 
 
-def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -> SyncReport:
+def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
+         run: Runner = subprocess.run) -> SyncReport:
     """Record sync commits, integrate the upstream unless ``push_only``, and push.
 
-    Never force-pushes or rewrites commits already on the upstream: only unpushed commits are
-    replayed, and a replay that conflicts becomes a merge.
+    Never force-pushes or rewrites commits. Only waits for the lock when requested.
     """
     settings = config.load_config(home).sync
     report = SyncReport()
@@ -358,15 +313,19 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
         report.status = "disabled"
         return report
     git_dir = _git_dir(home, run)
-    report.blocked_by = _blockers(home, git_dir, run)
-    if report.blocked_by:
-        report.status = "blocked"
-        return report
+    deadline = time.monotonic() + wait_for_lock
     lock = _acquire(git_dir / LOCK_NAME)
+    while lock is None and time.monotonic() < deadline:
+        time.sleep(min(0.1, max(0, deadline - time.monotonic())))
+        lock = _acquire(git_dir / LOCK_NAME)
     if lock is None:
         report.status = "locked"
         return report
     try:
+        report.blocked_by = _blockers(home, git_dir, run)
+        if report.blocked_by:
+            report.status = "blocked"
+            return report
         report.commits, report.skipped, report.nested = record(home, settings.max_file_size, run)
         upstream = _git(run, home, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}",
                         check=False)
@@ -374,17 +333,20 @@ def sync(home: Path, *, push_only: bool = False, run: Runner = subprocess.run) -
             report.push, report.waiting = "no-upstream", len(report.commits)
             return report
         report.upstream = upstream.stdout.strip()
+        remote_env = {"GIT_SSH_COMMAND": _ssh_command(home, run)}
         for attempt in range(1, 2 if push_only else 2 + PUSH_RETRIES):
             report.attempts = attempt
             if not push_only:
-                if not _fetch(home, run):
+                if not _fetch(home, run, remote_env):
                     report.push, report.waiting = "unreachable", _ahead(home, run)
                     break
                 _integrate(home, git_dir, report.upstream, report, run)
+                if report.status == "blocked":
+                    break
                 if report.collisions:
                     report.status, report.push, report.waiting = "collision", "none", _ahead(home, run)
                     break
-            _push(home, report, run)
+            _push(home, report, run, remote_env)
             if report.push != "rejected":
                 break
     finally:

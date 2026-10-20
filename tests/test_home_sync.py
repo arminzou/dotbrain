@@ -442,7 +442,7 @@ def test_uncommitted_project_does_not_block_receiving_another(home: Path, other:
     for repo in (home, other):
         assert (repo / "brainspaces" / "alpha" / ".brain" / "a.md").read_bytes() == b"from W\n"
         assert (repo / "brainspaces" / "beta" / ".brain" / "b.md").read_bytes() == b"from V\n"
-    assert not home_sync.sync(home).merged  # replayed, not merged
+    assert not home_sync.sync(home).merged  # nothing new upstream
 
 
 def test_edits_to_different_paragraphs_merge_without_copies(home: Path, other: Path):
@@ -455,7 +455,7 @@ def test_edits_to_different_paragraphs_merge_without_copies(home: Path, other: P
 
     report = home_sync.sync(home)
 
-    assert not report.merged and report.conflict_copies == []
+    assert report.merged and report.conflict_copies == []
     both_sync(home, other)
     assert (other / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "one by V\n\ntwo\n\nthree by W\n"
     assert not list((home / ALPHA).glob("*.sync-conflict-*"))
@@ -518,7 +518,7 @@ def test_conflict_copy_names_split_on_the_file_name_and_stay_unique(tmp_path: Pa
     assert home_sync._copy_name(tmp_path, "Makefile") == f"Makefile.sync-conflict-{TODAY}-{HOST}"
 
 
-def test_files_skipped_by_the_size_limit_survive_the_replay(home: Path, other: Path):
+def test_files_skipped_by_the_size_limit_survive_the_merge(home: Path, other: Path):
     write(home / "config.yaml", "sync:\n  max-file-size: 100\n")
     home_sync.sync(home)
     home_sync.sync(other)
@@ -529,7 +529,7 @@ def test_files_skipped_by_the_size_limit_survive_the_replay(home: Path, other: P
 
     report = home_sync.sync(home)
 
-    assert report.push == "pushed" and not report.merged
+    assert report.push == "pushed" and report.merged
     assert (home / ALPHA / "CONTEXT.md").read_text(encoding="utf-8") == "y" * 200
     assert (home / "brainspaces" / "beta" / ".brain" / "b.md").exists()
     assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"
@@ -549,7 +549,8 @@ def moving_remote(other: Path, moves: int):
     return run, calls
 
 
-def test_rejected_full_sync_push_is_retried_at_most_three_times(home: Path, other: Path):
+def test_rejected_full_sync_push_is_retried_at_most_three_times(home: Path, other: Path, monkeypatch):
+    monkeypatch.delenv("GIT_SSH_COMMAND", raising=False)
     write(home / ALPHA / "a.md")
     run, calls = moving_remote(other, moves=10)
 
@@ -557,8 +558,12 @@ def test_rejected_full_sync_push_is_retried_at_most_three_times(home: Path, othe
 
     pushes = [call for call in calls if "push" in call]
     assert len(pushes) == 1 + home_sync.PUSH_RETRIES and result.attempts == 4
-    assert result.push == "rejected" and result.waiting == 1
+    assert result.push == "rejected" and result.waiting >= 1
     assert not any(flag in call for call in pushes for flag in ("--force", "-f", "--force-with-lease"))
+    assert not any("rebase" in call for call in calls)
+    merges = [call for call in calls if "merge" in call]
+    assert merges and all("--no-autostash" in call and "--no-overwrite-ignore" in call for call in merges)
+    assert sum("core.sshCommand" in call for call in calls) == 1
     assert no_operation_in_progress(home)
 
 
@@ -650,30 +655,69 @@ def test_uncommitted_over_limit_file_colliding_with_upstream_is_reported(home: P
     assert result.exit_code == 1, result.output
     target = json.loads(result.output)["targets"][0]
     assert target["data"]["status"] == "collision"
-    assert target["data"]["collisions"] == [f"brainspaces/alpha/.brain/{name}"]
+    assert len(target["data"]["collisions"]) == 1
+    assert f"brainspaces/alpha/.brain/{name}" in target["data"]["collisions"][0]
     assert f"brainspaces/alpha/.brain/{name}" in target["errors"][0]
     assert_left_clean(home, name, local)
     assert subprocess.run(["git", "merge-base", "--is-ancestor", "origin/main", "HEAD"], cwd=home).returncode == 1
 
 
-def test_autostash_conflict_after_a_clean_rebase_is_undone_and_reported(home: Path, other: Path):
+def test_configured_merge_autostash_is_not_used(home: Path, other: Path):
     local = over_limit_edit_against_upstream(home, other)
-
-    def run(argv, **kwargs):  # hide the incoming change from the pre-check, so the rebase runs
-        if "diff" in argv and "--name-only" in argv:
-            return subprocess.CompletedProcess(argv, 0, "", "")
-        return subprocess.run(argv, **kwargs)
-
+    git(home, "config", "merge.autoStash", "true")
     tip = git(home, "rev-parse", "HEAD")
+    report = home_sync.sync(home)
+    assert report.status == "collision" and report.collisions
+    assert report.push == "none"
+    assert git(home, "rev-parse", "HEAD") == tip
+    assert_left_clean(home, "CONTEXT.md", local)
+
+
+def test_ignored_file_at_upstream_added_path_is_preserved(home: Path, other: Path):
+    name = "local.tmp"
+    write(other / ALPHA / name, "upstream")
+    git(other, "add", "-f", "--", (ALPHA / name).as_posix())
+    git(other, "commit", "-q", "-m", "add file")
+    git(other, "push", "-q")
+    local = b"local ignored bytes"
+    (home / ALPHA / name).write_bytes(local)
+    tip = git(home, "rev-parse", "HEAD")
+    diagnostics = []
+
+    def run(argv, **kwargs):
+        result = subprocess.run(argv, **kwargs)
+        if "merge" in argv:
+            diagnostics.append(result.stderr or result.stdout)
+        return result
 
     report = home_sync.sync(home, run=run)
 
-    assert report.status == "collision" and report.collisions == ["brainspaces/alpha/.brain/CONTEXT.md"]
-    assert report.push == "none"
-    assert git(home, "rev-parse", "HEAD") == tip  # back at its pre-rebase commit: nothing integrated
-    assert_left_clean(home, "CONTEXT.md", local)
-    assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"
-    again = home_sync.sync(home)
-    assert again.status == "collision" and again.collisions == report.collisions
+    assert report.status == "collision" and report.push == "none"
+    assert report.collisions == diagnostics
+    assert name in report.collisions[0]
     assert git(home, "rev-parse", "HEAD") == tip
-    assert_left_clean(home, "CONTEXT.md", local)
+    assert_left_clean(home, name, local)
+
+
+def test_manual_merge_is_blocked_and_not_aborted(home: Path):
+    conflict_on_alpha(home)
+    assert subprocess.run(["git", "merge", "side"], cwd=home, capture_output=True).returncode != 0
+    git_dir = Path(git(home, "rev-parse", "--absolute-git-dir"))
+    merge_head = (git_dir / "MERGE_HEAD").read_bytes()
+    before = git(home, "ls-files", "--unmerged")
+
+    report = home_sync.sync(home)
+
+    assert report.status == "blocked" and "MERGE_HEAD" in report.blocked_by
+    assert (git_dir / "MERGE_HEAD").read_bytes() == merge_head
+    assert git(home, "ls-files", "--unmerged") == before
+
+
+def test_blockers_are_checked_only_after_acquiring_lock(home: Path, monkeypatch):
+    holder = home_sync._acquire(lock_path(home))
+    assert holder is not None
+    monkeypatch.setattr(home_sync, "_blockers", lambda *_: pytest.fail("checked without lock"))
+    try:
+        assert home_sync.sync(home).status == "locked"
+    finally:
+        home_sync._release(holder)
