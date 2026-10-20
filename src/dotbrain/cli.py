@@ -56,7 +56,11 @@ def main(
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
-    hooks.start_sync(wait=hooks.SESSION_START_SYNC_SECONDS)
+    if hooks.session_source() == "compact":
+        # Compaction fires mid-turn: never change files under the running agent.
+        hooks.start_sync(push_only=True)
+    else:
+        hooks.start_sync(wait=hooks.SESSION_START_SYNC_SECONDS)
     hooks.emit_brain_context()
 
 

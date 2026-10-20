@@ -127,8 +127,8 @@ def _git(cwd: Path, *args: str) -> str:
                           encoding="utf-8").stdout.strip()
 
 
-def _home(tmp_path: Path, remote: Path) -> Path:
-    home = tmp_path / "home"
+def _home(tmp_path: Path, remote: Path, name: str = "home") -> Path:
+    home = tmp_path / name
     home.mkdir()
     for args in (("init", "-q", "-b", "main"), ("config", "user.name", "Test"),
                  ("config", "user.email", "test@example.com"), ("config", "core.autocrlf", "false")):
@@ -145,17 +145,19 @@ def _home(tmp_path: Path, remote: Path) -> Path:
     return home
 
 
-def _wired_checkout(tmp_path: Path, home: Path) -> Path:
-    checkout = _repo(tmp_path, "checkout")
-    for link in (".brain", ".beads"):
+def _wired_checkout(tmp_path: Path, home: Path, name: str = "checkout",
+                    links: tuple[str, ...] = (".brain", ".beads")) -> Path:
+    checkout = _repo(tmp_path, name)
+    for link in links:
         (checkout / link).symlink_to(home / "brainspaces" / "alpha" / link)
     return checkout
 
 
-def _hook(event: str, cwd: Path, home: Path) -> tuple[subprocess.CompletedProcess, float]:
+def _hook(event: str, cwd: Path, home: Path, stdin: bytes = b"") -> tuple[subprocess.CompletedProcess, float]:
+    # -I as the installed `dotbrain` script behaves: the working directory is not on sys.path.
     started = time.monotonic()
-    completed = subprocess.run([sys.executable, "-c", CLI, "hook", event], cwd=cwd, capture_output=True,
-                               env={**os.environ, "DOTBRAIN_HOME": str(home)}, timeout=60)
+    completed = subprocess.run([sys.executable, "-I", "-c", CLI, "hook", event], cwd=cwd, input=stdin,
+                               capture_output=True, env={**os.environ, "DOTBRAIN_HOME": str(home)}, timeout=60)
     return completed, time.monotonic() - started
 
 
@@ -176,8 +178,36 @@ def launches(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
         def wait(self, timeout=None):
             return 0
 
-    monkeypatch.setattr(hooks, "_launch_detached", lambda argv: started.append(argv) or Done())
+    monkeypatch.setattr(hooks, "_launch_detached", lambda argv, cwd: started.append(argv) or Done())
     return started
+
+
+def test_child_is_detached_without_a_visible_console(tmp_path: Path, monkeypatch):
+    seen: dict = {}
+    monkeypatch.setattr(hooks.subprocess, "Popen", lambda argv, **kwargs: seen.update(kwargs))
+
+    hooks._launch_detached(["x"], tmp_path)
+
+    assert seen["cwd"] == tmp_path
+    assert seen["stdin"] == seen["stdout"] == seen["stderr"] == subprocess.DEVNULL
+    if sys.platform == "win32":
+        # DETACHED_PROCESS would leave the child with no console, so each git it runs opens a window.
+        assert seen["creationflags"] == subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        assert seen["start_new_session"] is True
+
+
+def test_sync_ignores_modules_shadowing_imports_in_the_checkout(tmp_path: Path):
+    remote = tmp_path / "remote.git"
+    home = _home(tmp_path, remote)
+    checkout = _wired_checkout(tmp_path, home)
+    (checkout / "typer.py").write_text("raise SystemExit('shadowed')\n", encoding="utf-8")
+    (checkout / ".brain" / "CONTEXT.md").write_text("changed\n", encoding="utf-8")
+
+    completed, _ = _hook("stop", checkout, home)
+
+    assert completed.returncode == 0
+    assert _eventually(lambda: "alpha: sync from" in _git(remote, "log", "--format=%s", "main"))
 
 
 def test_stop_returns_at_once_leaving_a_detached_sync_that_pushes(tmp_path: Path):
@@ -200,7 +230,7 @@ def test_stop_starts_a_push_only_sync_of_the_resolved_home(tmp_path: Path, monke
 
     hooks.start_sync(push_only=True)
 
-    assert launches == [[sys.executable, "-c", CLI, "sync", "--home", str(home.resolve()), "--push-only"]]
+    assert launches == [[sys.executable, "-I", "-c", CLI, "sync", "--home", str(home.resolve()), "--push-only"]]
 
 
 def test_session_start_syncs_then_emits_the_same_payload_when_the_remote_is_unreachable(tmp_path: Path):
@@ -211,12 +241,34 @@ def test_session_start_syncs_then_emits_the_same_payload_when_the_remote_is_unre
     (checkout / ".brain" / "DOTBRAIN.md").write_bytes(b"CONVENTION\r\nBODY\n")
     expected = hooks.brain_context(cwd=checkout)
 
-    completed, elapsed = _hook("session-start", checkout, home)
+    completed, elapsed = _hook("session-start", checkout, home, stdin=b'{"source": "startup"}')
 
     assert completed.returncode == 0
     assert completed.stdout == expected
     assert elapsed < hooks.SESSION_START_SYNC_SECONDS
     assert _git(home, "log", "-1", "--format=%s").startswith("alpha: sync from")
+
+
+@pytest.mark.parametrize("stdin, push_only", [
+    ('{"source": "compact"}', True),  # mid-turn: never fetch and integrate under the agent
+    ('{"source": "startup"}', False),
+    ('{"source": "resume"}', False),
+    ("", False),
+    ("not json", False),
+    ("[1, 2]", False),
+])
+def test_session_start_on_compact_only_pushes(tmp_path: Path, monkeypatch, launches, stdin, push_only):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    checkout = _wired_checkout(tmp_path, home)
+    (checkout / ".brain" / "DOTBRAIN.md").write_bytes(b"BODY\n")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(checkout)
+
+    result = CliRunner().invoke(app, ["hook", "session-start"], input=stdin)
+
+    assert result.exit_code == 0
+    assert result.stdout_bytes == hooks.brain_context(cwd=checkout)
+    assert len(launches) == 1 and ("--push-only" in launches[0]) is push_only
 
 
 def test_session_start_leaves_a_slow_sync_running_at_the_bound(tmp_path: Path, monkeypatch):
@@ -226,7 +278,8 @@ def test_session_start_leaves_a_slow_sync_running_at_the_bound(tmp_path: Path, m
     monkeypatch.setattr(hooks, "_sync_argv", lambda *_: [sys.executable, "-c", "import time; time.sleep(30)"])
     children: list[subprocess.Popen] = []
     launch = hooks._launch_detached
-    monkeypatch.setattr(hooks, "_launch_detached", lambda argv: children.append(launch(argv)) or children[-1])
+    monkeypatch.setattr(hooks, "_launch_detached",
+                        lambda argv, cwd: children.append(launch(argv, cwd)) or children[-1])
 
     started = time.monotonic()
     hooks.start_sync(wait=0.5)
@@ -260,8 +313,11 @@ def test_hooks_sync_only_in_wired_checkouts_or_the_home(tmp_path: Path, monkeypa
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
     unwired = _repo(tmp_path, "unwired")
     _wire(unwired, convention=b"BODY\n")  # a real .brain directory is not Brainspace wiring
+    elsewhere = _wired_checkout(tmp_path, _home(tmp_path, tmp_path / "other.git", "other-home"), "elsewhere")
+    brain_only = _wired_checkout(tmp_path, home, "brain-only", links=(".brain",))
 
-    for cwd, launched in ((unwired, 0), (tmp_path, 0), (_wired_checkout(tmp_path, home), 1), (home, 1)):
+    for cwd, launched in ((unwired, 0), (tmp_path, 0), (elsewhere, 0),
+                          (_wired_checkout(tmp_path, home), 1), (brain_only, 1), (home, 1)):
         launches.clear()
         monkeypatch.chdir(cwd)
         hooks.start_sync()

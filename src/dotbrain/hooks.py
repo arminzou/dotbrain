@@ -26,10 +26,11 @@ leaves state every later sync refuses.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, TextIO
 
 from dotbrain import config, paths
 
@@ -94,24 +95,44 @@ def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) 
         return
 
 
+def session_source(stream: TextIO | None = None) -> str | None:
+    """The ``source`` of the SessionStart payload on stdin (startup, resume, clear, compact)."""
+
+    stream = stream if stream is not None else sys.stdin
+    try:
+        if stream is None or stream.isatty():
+            return None
+        source = json.loads(stream.read() or "{}").get("source")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return source if isinstance(source, str) else None
+
+
 def _sync_argv(home: Path, push_only: bool) -> list[str]:
-    argv = [sys.executable, "-c", "from dotbrain.cli import app; app()", "sync", "--home", str(home)]
+    # -I keeps the checkout's directory off sys.path, so a stray typer.py there cannot shadow imports.
+    argv = [sys.executable, "-I", "-c", "from dotbrain.cli import app; app()", "sync", "--home", str(home)]
     return argv + ["--push-only"] if push_only else argv
 
 
-def _launch_detached(argv: list[str]) -> subprocess.Popen:
-    detach: dict = ({"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
+def _launch_detached(argv: list[str], cwd: Path) -> subprocess.Popen:
+    # CREATE_NO_WINDOW gives the child a hidden console of its own; without any console
+    # (DETACHED_PROCESS) every git it runs would open a visible console window.
+    detach: dict = ({"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
                     if sys.platform == "win32" else {"start_new_session": True})
-    return subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+    return subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL, **detach)
 
 
 def sync_home() -> Path | None:
-    """The home to sync for this session: its checkout is wired or is the home, and sync is on."""
+    """The home to sync: the checkout's ``.brain`` links into it or the checkout is it, and sync is on."""
 
     home = paths.resolve_dotbrain_home().expanduser().resolve()
     root = repo_root()
-    if root is None or not (paths.is_wired(root) or root.resolve() == home):
+    if root is None:
+        return None
+    brain = root / ".brain"
+    linked = brain.is_symlink() and brain.resolve().is_relative_to(home)
+    if not (linked or root.resolve() == home):
         return None
     return home if config.load_config(home).sync.enabled else None
 
@@ -123,7 +144,7 @@ def start_sync(*, push_only: bool = False, wait: float = 0) -> None:
         home = sync_home()
         if home is None:
             return
-        child = _launch_detached(_sync_argv(home, push_only))
+        child = _launch_detached(_sync_argv(home, push_only), home)
         if wait:
             child.wait(timeout=wait)
     except subprocess.TimeoutExpired:
