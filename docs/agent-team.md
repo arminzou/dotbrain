@@ -24,6 +24,14 @@ While delegated workers run, the lead alone maintains the work graph and active 
 return discoveries to it instead of changing the plan themselves. A result coming back is a
 candidate; the lead still needs review and verification evidence before accepting it.
 
+The lead finishes its current integration or record update before processing available worker
+results. Cancellation and safety stops remain immediate. It records results before assigning
+follow-up work and processes available results before refilling slots, starting another integration,
+or reporting status. It does not wait for every worker. It matches each result to the assignment,
+agent session, and revision. Duplicate reports trigger no repeated action. Late reports from
+superseded work retain useful evidence but cannot replace newer state or restart cancelled work.
+The existing issue records hold this history without a separate queue service.
+
 ## Two Independent Choices
 
 Choose the **workflow** according to how you want to stay involved, and the **execution mode**

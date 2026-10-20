@@ -96,6 +96,35 @@ parallelism and `bd swarm status <epic>` shows progress; never run `bd swarm cre
 
 The lead holds live assignments, pending joins, and the next operation in its own session.
 
+### Completion handling
+
+A completion notification means a report is available, not that the item passed. Finish the
+current integration, promotion, or execution-record update before processing available reports.
+Cancellation and safety stops still take effect immediately. Collect available results before
+refilling worker slots, starting another integration, or reporting status or completion. Do not
+wait for every worker to finish.
+
+For each result:
+
+1. Match the item, runtime agent or session ID, dispatch or fix round, and reported revision to
+   the recorded assignment and actual artifacts. Arrival order does not establish which result
+   is current. Missing identity or artifacts hold the affected result pending reconciliation.
+2. Compare the result with the item's execution record. An already processed duplicate changes
+   no phase, claim, attempt count, or acceptance state and triggers no repeated follow-up.
+   If recording stopped partway, reconcile the saved evidence before completing the missing writes.
+3. Classify a result from an older round, superseded revision, replaced worker, cancelled execution,
+   or closed item as stale. Retain new evidence with its source. It cannot overwrite newer state,
+   restore a claim, reopen an item, or resume cancelled work. Route relevant findings through the
+   existing discovered-work and failure rules instead of silently discarding them.
+4. Record a new result and its disposition on the existing item before dispatching follow-up work
+   or integrating its candidate. Use the existing execution-record comments and artifact references,
+   including the source agent or session ID, dispatch or fix round, revision, evidence, and gaps.
+   Confirm the stored record matches the result. A returned candidate retains its claim and leaves dependents held.
+
+After recording results, choose integration groups, review, fixes, and eligible ready work under
+the existing acceptance and capacity rules. Keep pending results in the lead's session and
+recoverable facts on member beads. Use these records without a separate inbox directory or scheduler ledger.
+
 ### Dispatch capacity and isolation
 
 The authorized item count and active writing-worker cap are separate. Unless the human specifies
