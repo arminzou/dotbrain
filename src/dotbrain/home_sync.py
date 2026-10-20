@@ -339,10 +339,14 @@ def _process_alive(pid: int) -> bool:
 
 
 def _lock_is_stale(lock: Path) -> bool:
-    """A lock is stale when its owner is gone or it is older than ``STALE_LOCK_SECONDS``."""
+    """A lock is stale when its owner is gone; a lock that names no owner, when it is older than
+    ``STALE_LOCK_SECONDS``. A live owner's lock is never stale, however old: it may still be pushing."""
+    # ponytail: a dead owner's reused PID keeps the lock held; compare process start times if that bites.
     try:
-        pid, started = lock.read_text(encoding="utf-8").split()
-        return time.time() - float(started) > STALE_LOCK_SECONDS or not _process_alive(int(pid))
+        pid, _ = lock.read_text(encoding="utf-8").split()
+        if int(pid) <= 0:
+            raise ValueError(pid)
+        return not _process_alive(int(pid))
     except FileNotFoundError:
         return False
     except ValueError:  # unreadable or half-written: fall back to the file's age

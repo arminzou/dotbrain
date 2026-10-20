@@ -354,12 +354,15 @@ def test_lock_held_by_a_dead_process_is_broken(home: Path):
     assert home_sync.sync(home).status == "synced"
 
 
-def test_lock_held_by_a_live_process_is_respected_until_stale(home: Path):
+def test_lock_held_by_a_live_process_is_never_taken_over(home: Path):
     lock = Path(git(home, "rev-parse", "--absolute-git-dir")) / home_sync.LOCK_NAME
     lock.write_text(f"{os.getpid()} {time.time()}\n", encoding="utf-8")
     assert home_sync.sync(home).status == "locked"
-    lock.write_text(f"{os.getpid()} {time.time() - home_sync.STALE_LOCK_SECONDS - 1}\n", encoding="utf-8")
-    assert home_sync.sync(home).status == "synced"
+    old = time.time() - home_sync.STALE_LOCK_SECONDS - 10
+    lock.write_text(f"{os.getpid()} {old}\n", encoding="utf-8")
+    os.utime(lock, (old, old))
+    assert home_sync.sync(home).status == "locked"
+    assert lock.exists()
 
 
 def test_push_fails_fast_and_times_out_as_unreachable(home: Path, monkeypatch):
