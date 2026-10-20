@@ -17,7 +17,7 @@ import signal
 import subprocess
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Container
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path, PurePosixPath
@@ -253,15 +253,16 @@ def _push(home: Path, report: SyncReport, run: Runner, env: dict) -> None:
         report.push = "rejected" if "rejected]" in pushed.stderr else "unreachable"
 
 
-def _copy_name(home: Path, path: str) -> str:
-    """``dir/NAME.sync-conflict-YYYY-MM-DD-<host>[-n].ext``, split on the file name only."""
+def _copy_name(home: Path, path: str, tracked: Container[str] = ()) -> str:
+    """``dir/NAME.sync-conflict-YYYY-MM-DD-<host>[-n].ext``, split on the file name only, free in
+    the working tree and not in ``tracked``."""
     pure = PurePosixPath(path)
     base = f"{pure.stem}.sync-conflict-{date.today().isoformat()}-{platform.node()}"
     n = 1
     while True:
         suffix = "" if n == 1 else f"-{n}"
         name = str(pure.with_name(f"{base}{suffix}{pure.suffix}"))
-        if not os.path.lexists(home / name):
+        if not os.path.lexists(home / name) and name not in tracked:
             return name
         n += 1
 
@@ -298,9 +299,11 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
         report.collisions.append(diagnostic)
         return
     report.merged = True
+    # a name HEAD tracks but the upstream deleted is free in the tree, yet an abort must restore it
+    tracked = set(_git(run, home, "ls-tree", "-r", "--name-only", "-z", "HEAD").stdout.split("\0"))
     for path, present in sorted(stages.items()):
         if {"2", "3"} <= present:  # both changed it: this machine's in place, the other's beside it
-            copy = _copy_name(home, path)
+            copy = _copy_name(home, path, tracked)
             _git(run, home, "checkout", "--theirs", "--", path)
             os.replace(home / path, home / copy)
             copies.append(copy)
@@ -336,9 +339,13 @@ def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run
         _merge(home, git_dir, upstream, report, run, copies)
     except BaseException:
         if (git_dir / "MERGE_HEAD").exists():
-            _git(run, home, "merge", "--abort", check=False)
-            for copy in copies:  # left untracked, the next sync would record and push them
-                (home / copy).unlink(missing_ok=True)
+            try:
+                _git(run, home, "merge", "--abort", check=False)
+            finally:
+                for copy in copies:  # left untracked, the next sync would record and push them
+                    # copy names avoid HEAD's files; still, never delete a file HEAD tracks
+                    if _git(run, home, "cat-file", "-e", f"HEAD:{copy}", check=False).returncode != 0:
+                        (home / copy).unlink(missing_ok=True)
         raise
 
 
