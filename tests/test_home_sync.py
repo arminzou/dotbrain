@@ -6,6 +6,7 @@ import json
 import platform
 import subprocess
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -397,7 +398,27 @@ def test_push_fails_fast_and_times_out_as_unreachable(home: Path, monkeypatch):
 
     assert report.push == "unreachable" and report.waiting == 1
     assert calls[0]["timeout"] == home_sync.PUSH_TIMEOUT_SECONDS
-    assert calls[0]["env"]["GIT_SSH_COMMAND"] == "ssh -i key -o ConnectTimeout=3 -o BatchMode=yes"
+    assert calls[0]["env"]["GIT_SSH_COMMAND"] == ("ssh -i key -o ConnectTimeout=3 -o BatchMode=yes"
+                                                  " -o ServerAliveInterval=5 -o ServerAliveCountMax=1")
+    assert home_sync.sync(home, push_only=True, run=run).status != "locked"  # the lock was released
+
+
+def test_timeout_kills_the_whole_process_tree(tmp_path: Path):
+    """A stalled child that started its own child holding the pipes, as git does with ssh."""
+    started, alive = tmp_path / "started", tmp_path / "alive"
+    grandchild = (f"import pathlib, time; pathlib.Path({str(started)!r}).touch(); time.sleep(3); "
+                  f"pathlib.Path({str(alive)!r}).touch()")
+    child = (f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {grandchild!r}], "
+             "stdout=sys.stdout, stderr=sys.stderr); time.sleep(30)")
+    begin = time.monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        home_sync.run_bounded([sys.executable, "-c", child], capture_output=True, encoding="utf-8",
+                              timeout=1.5)
+    elapsed = time.monotonic() - begin
+    time.sleep(max(0, 4.5 - elapsed))  # past the moment a surviving grandchild would write ``alive``
+
+    assert elapsed < 1.5 + home_sync._DRAIN_SECONDS
+    assert started.exists() and not alive.exists()
 
 
 # Full sync between two machines: ``home`` is machine W, ``other`` (a second clone) is machine V.

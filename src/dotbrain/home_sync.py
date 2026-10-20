@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import platform
+import signal
 import subprocess
 import sys
 import time
@@ -30,7 +31,8 @@ Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 LOCK_NAME = "dotbrain-sync.lock"
 PUSH_TIMEOUT_SECONDS = 20
 PUSH_RETRIES = 3  # a full sync re-fetches and re-integrates at most this often after a rejected push
-_SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes"
+_SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=1"
+_DRAIN_SECONDS = 2  # how long to wait for output once a timed-out process tree is killed
 _IN_PROGRESS = ("MERGE_HEAD", "rebase-merge", "rebase-apply", "CHERRY_PICK_HEAD", "REVERT_HEAD", "sequencer")
 
 
@@ -53,6 +55,49 @@ class SyncReport:
     conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
     attempts: int = 0  # fetch-integrate-push rounds run
     collisions: list[str] = field(default_factory=list)  # overlapping nested paths or Git refusal diagnostics
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    if sys.platform == "win32":
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc.kill()  # in case taskkill itself failed
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def run_bounded(args, *, timeout: float | None = None, **kwargs) -> "subprocess.CompletedProcess[str]":
+    """``subprocess.run`` that, on timeout, kills the whole process tree before raising.
+
+    ``subprocess.run`` kills only the direct child and then waits for its pipes, which children
+    such as ssh still hold open on Windows, so a stalled fetch or push could block forever.
+    """
+    if timeout is None:
+        return subprocess.run(args, **kwargs)
+    input, check = kwargs.pop("input", None), kwargs.pop("check", False)
+    if kwargs.pop("capture_output", False):
+        kwargs["stdout"] = kwargs["stderr"] = subprocess.PIPE
+    if input is not None:
+        kwargs["stdin"] = subprocess.PIPE
+    if sys.platform != "win32":
+        kwargs["start_new_session"] = True  # its own process group, so killpg reaches ssh too
+    proc = subprocess.Popen(args, **kwargs)
+    try:
+        stdout, stderr = proc.communicate(input, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_tree(proc)
+        try:
+            proc.communicate(timeout=_DRAIN_SECONDS)
+        except subprocess.TimeoutExpired:
+            pass  # something outside the tree still holds the pipes; give up on the output
+        raise subprocess.TimeoutExpired(args, timeout) from None
+    result = subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
+    if check:
+        result.check_returncode()
+    return result
 
 
 def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: bool = True,
@@ -328,7 +373,7 @@ def _release(handle: BinaryIO) -> None:
 
 
 def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
-         run: Runner = subprocess.run) -> SyncReport:
+         run: Runner = run_bounded) -> SyncReport:
     """Record sync commits, integrate the upstream unless ``push_only``, and push.
 
     Never force-pushes or rewrites commits. Only waits for the lock when requested.
