@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, config, paths, projects, resource_loader, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, config, home_sync, paths, projects, resource_loader, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -153,6 +153,47 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     for runtime in subagents.RUNTIME_SPEC:
         findings.extend(_check_plugin(home, runtime))
     return findings
+
+
+def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
+    """Home sync state from local Git metadata only: no fetch, no writes."""
+    try:
+        settings = config.load_config(root).sync
+        if not settings.enabled:
+            return [Finding("info", "home sync disabled (sync.enabled: false)")]
+        if not (root / ".git").exists():
+            return [Finding("info", "home sync inactive: the dotbrain home is not a Git repository",
+                            "initialize Git in the dotbrain home to sync it")]
+        # Only reads go through here, so the bounded doctor runner fits home sync's Git calls.
+        git = lambda argv, *, cwd=None, env=None, **_: run(argv, cwd=cwd, check=False, timeout=PROBE_TIMEOUT, env=env)
+        blockers = home_sync._blockers(root, home_sync._git_dir(root, git), git)
+        findings = [Finding("error", f"home sync blocked: {blocker} in the dotbrain home",
+                            "finish or abort it with git in the dotbrain home, then run dotbrain sync")
+                    for blocker in blockers]
+        if "detached HEAD" not in blockers:  # a detached HEAD has no upstream to compare
+            upstream = home_sync._git(git, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name",
+                                      "@{upstream}", check=False)
+            ahead = 0 if upstream.returncode else home_sync._ahead(root, git)
+            if upstream.returncode:
+                findings.append(Finding("info", "home sync: no remote configured; sync commits stay local",
+                                        "set an upstream for the dotbrain home's branch to share it"))
+            elif ahead:
+                findings.append(Finding("info", f"home sync: {ahead} local commit{'' if ahead == 1 else 's'} waiting "
+                                        f"to be pushed to {upstream.stdout.strip()}", "run dotbrain sync"))
+            else:
+                findings.append(Finding("ok", f"home sync: nothing waiting for {upstream.stdout.strip()} (as last fetched)"))
+        listed = home_sync._git(git, root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").stdout
+        findings.extend(Finding("warn", f"home sync: open conflict copy {path}",
+                                "reconcile it with the original file, then delete the copy")
+                        for path in sorted(set(listed.split("\0")))
+                        if ".sync-conflict-" in Path(path).name and (root / path).exists())
+        findings.extend(Finding("warn", f"home sync: {path} is over the size limit and stays uncommitted",
+                                "commit it yourself, ignore it, or raise sync.max-file-size")
+                        for path in home_sync._changed_paths(git, root)
+                        if not home_sync._is_nested_repo(root, path) and home_sync._too_large(root, path, settings.max_file_size))
+        return findings
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("warn", f"home sync check unavailable: {exc}", "check Git in the dotbrain home")]
 
 
 def _check_brainspace_links(repo: Path, brainspace: Path) -> list[Finding]:
@@ -303,7 +344,7 @@ def run_doctor(dotbrain_home: Path, home: Path | None = None, *, project: str | 
                 errors[brainspace.name] = [Finding("error", f"project selection failed: {exc}", "correct project registration")]
     else:
         targets = projects.select_projects(root, project=project, cwd=cwd, run=bounded)
-    report = DoctorReport(machine=_check_machine(root, home or Path.home()), projects=errors)
+    report = DoctorReport(machine=_check_machine(root, home or Path.home()) + _check_home_sync(root, run), projects=errors)
     if all_projects and not targets and not errors:
         report.machine.append(Finding("warn", "no registered projects", "create a project with dotbrain wire"))
     for target in targets:
