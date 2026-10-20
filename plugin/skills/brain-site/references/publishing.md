@@ -139,5 +139,5 @@ the Brain's own: add one for the topic if the home page has them.
 Site verification belongs to the `brain-site` workflow. A successful check means every page
 compiles, every lesson and reference names a mission topic, and every nav and internal link resolves.
 
-When the Brain has no `.brain/site/`, write the pages to this format anyway. Committing the Brain, and anything outward,
-waits for the user's go-ahead.
+When the Brain has no `.brain/site/`, write the pages to this format anyway. Home sync records and shares
+the Brain; publishing, and anything else outward, waits for the user's go-ahead.

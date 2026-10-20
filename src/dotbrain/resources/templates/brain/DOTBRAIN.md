@@ -8,7 +8,8 @@ Brain template propagate to every brain.
 
 - The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
   `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
-  Commit Brain changes in `~/dotbrain`, not the code repo.
+  Home sync records and shares Brain changes; a descriptive commit in `~/dotbrain` (never the
+  code repo) is optional.
 - `.claude` and `.codex` are real checkout directories: skills/Claude agents are symlinks;
   Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
   commit local wiring or delivered copies.
