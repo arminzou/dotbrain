@@ -95,6 +95,9 @@ Home sync does not sync the Beads tracker; `dotbrain beads sync` keeps its own p
 - Nested Git repositories inside the home are never recorded.
 - A Git command you run in the home while a hook is committing can hit Git's lock error. Run it
   again.
+- When two machines changed the same lines, the merge that resolves the conflict rewrites those
+  files in the shared home. Another session on the same machine can briefly see or overwrite them
+  during that step. Sync refuses to merge over uncommitted edits that Git would overwrite.
 :::
 
 ## Failing Open
