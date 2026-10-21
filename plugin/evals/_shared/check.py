@@ -19,6 +19,7 @@ Rules:
   verdict-recorded        a verdict on the fixture item or a created review names its exact head
   closed=<id>             the requested item was closed
   retro-recorded          new dated evidence is recorded in the existing finding
+  history-read            the agent read Git history (log, rev-list, merge-base, show, diff)
   branch-unchanged=<b>    local branch <b> still points where the fixture left it
   no-actorless-graph-write  every work-graph change names an actor (--actor or BD_ACTOR)
 
@@ -44,6 +45,7 @@ from pathlib import Path
 
 # Anything else counts as a write, so an unknown command fails safe.
 BD_READS = {"show", "list", "ready", "where", "search", "stats", "status", "info", "blocked", "prime", "help", "version", "human"}
+GIT_HISTORY_READS = {"log", "rev-list", "merge-base", "show", "diff", "shortlog", "whatchanged"}
 # Command groups that write only through one of these second words.
 BD_GROUPS = {"comments", "dep", "label", "config"}
 BD_GROUP_WRITES = {"add", "remove", "rm", "delete", "set", "unset"}
@@ -287,6 +289,9 @@ def check(ws, rule, arg):
         texts.append((ws / ".eval/pushes.log").read_text())
         texts.append(git(ws, "branch", "--all", "--format=%(refname)"))
         return [m.group(0) for t in texts for m in re.finditer(arg, t)]
+    if rule == "history-read":
+        # A retro with nothing new must still look; loading the skill and stopping proves nothing.
+        return [] if any(c.tool == "git" and c.sub in GIT_HISTORY_READS for c in log) else ["no Git history read logged"]
     if rule == "retro-unchanged":
         before, after = retro_marks(ws / ".eval/baseline/RETRO.md"), retro_marks(ws / ".brain/RETRO.md")
         if before is None:
@@ -387,9 +392,9 @@ SCENARIOS = [
 
 # (shell command, the rules it is checked against, rules that must fail).
 OWN_RULE_SCENARIOS = [
-    ("printf '## Unreleased\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], set()),
-    ("printf '## [Unreleased]\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], set()),
-    ("printf '## Released\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], {r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"}),
+    ("printf '## Unreleased\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+.*\bUnreleased\b"], set()),
+    ("printf '## [Unreleased]\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+.*\bUnreleased\b"], set()),
+    ("printf '## Released\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+.*\bUnreleased\b"], {r"delivered=CHANGELOG.md:^#+.*\bUnreleased\b"}),
     ("bd --version && bd --help && bd -h && bd --version --help", ["no-actorless-graph-write"], set()),
     ("bd --unknown", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
     ("bd update demo-2 --version", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
@@ -428,6 +433,10 @@ OWN_RULE_SCENARIOS = [
     ("sed -i '/combined check caught/d' .brain/RETRO.md", ["retro-unchanged"], {"retro-unchanged"}),
     ("printf '\\n- Limits: nothing tested.\\n' >> .brain/RETRO.md", ["retro-unchanged"], {"retro-unchanged"}),
     ("printf '\\n- Accepted: https://example.com/rule\\n  merged yesterday.\\n' >> .brain/RETRO.md", ["retro-unchanged"], set()),
+    (": > .eval/calls.log && bd where", ["history-read"], {"history-read"}),
+    (": > .eval/calls.log && git rev-parse HEAD > /dev/null", ["history-read"], {"history-read"}),
+    (": > .eval/calls.log && git log --oneline -3 > /dev/null", ["history-read"], set()),
+    (": > .eval/calls.log && git merge-base --is-ancestor HEAD HEAD", ["history-read"], set()),
     ("true", ["no-push", "no-close"], set()),
     (": > .eval/calls.log", ["no-push", "no-close"], {"no-push", "no-close"}),
     ("rm .eval/calls.log", ["no-push", "no-close"], {"no-push", "no-close"}),

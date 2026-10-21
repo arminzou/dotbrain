@@ -85,8 +85,10 @@ Native graders alone are never a state-case pass.
 
 The retro cases invoke `/dotbrain:run-retro` directly. Slash invocation loads the
 skill without a `Skill` tool call, so these cases grade state rather than requiring
-a `tool_used: Skill` record. Their fixtures pre-seed the notebook lock and temporary
-file exclusions because the sandbox cannot edit `.brain/.git/info/exclude`.
+a `tool_used: Skill` record; `retro-rerun-changes-nothing` instead requires a logged Git
+history read, so loading the skill and stopping does not pass. Their fixtures pre-seed the notebook lock and temporary
+file exclusions because the sandbox cannot edit `.brain/.git/info/exclude`, so the skill's own
+add-the-exclusions step is not exercised here.
 
 The selftest plants each violation in a fresh workspace and confirms exactly the expected rules
 fail. Kept workspaces were written by the agent under test: the checker runs git there with
