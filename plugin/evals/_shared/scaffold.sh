@@ -107,3 +107,12 @@ chmod +x .eval/remote.git/hooks/pre-receive
 for rc in .bashrc .bash_profile .profile .zshrc .zshenv; do
   printf 'export PATH="%s/.eval/bin:$PATH"\n' "$ws" >> "$HOME/$rc"
 done
+
+# A case fixture calls this last: HEAD, which must contain every fixture
+# commit, becomes the baseline, and the fixture's own calls and pushes are
+# dropped from the logs.
+fixture_done() {
+  git rev-parse HEAD > .eval/base
+  : > .eval/calls.log
+  : > .eval/pushes.log
+}

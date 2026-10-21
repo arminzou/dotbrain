@@ -1,0 +1,5 @@
+no-graph-write-by=worker-a
+no-graph-write-by=worker-b
+committed
+no-push
+no-merge
