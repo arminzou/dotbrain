@@ -47,6 +47,29 @@ def _symlink_to_auto(self: pathlib.Path, target, target_is_directory: bool = Fal
 
 pathlib.Path.symlink_to = _symlink_to_auto
 
+# Beads is an external tool: the suite must behave the same whether or not a developer has `bd`
+# installed. Hide it from discovery, and fail any test that would launch it instead of injecting
+# a fake runner.
+_original_which = shutil.which
+_original_popen_init = subprocess.Popen.__init__
+
+
+def _which_without_beads(cmd, *args, **kwargs):
+    if Path(str(cmd)).stem.lower() == "bd":
+        return None
+    return _original_which(cmd, *args, **kwargs)
+
+
+def _popen_without_beads(self, args, *rest, **kwargs):
+    program = args[0] if isinstance(args, (list, tuple)) else args
+    if Path(str(program)).stem.lower() == "bd":
+        raise AssertionError(f"test launched real Beads: {args!r}; inject a fake runner")
+    _original_popen_init(self, args, *rest, **kwargs)
+
+
+shutil.which = _which_without_beads
+subprocess.Popen.__init__ = _popen_without_beads
+
 
 def set_fake_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
     """Sandbox the home directory for Path.home()/expanduser() across platforms.
