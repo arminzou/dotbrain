@@ -5,10 +5,20 @@
 # temporary HOME.
 set -euo pipefail
 
-case "$HOME" in
-  "${TMPDIR:-/tmp}"* | /tmp/*) ;;
-  *) echo "scaffold: refusing to edit HOME=$HOME; it is not a temporary directory" >&2; exit 1 ;;
+if [ -n "$(ls -A)" ]; then
+  echo "scaffold: refusing to run in a non-empty directory: $PWD" >&2
+  exit 1
+fi
+home=$(cd "$HOME" && pwd -P)
+tmp=$(cd "${TMPDIR:-/tmp}" && pwd -P)
+case "$home" in
+  "$tmp"/?* | /tmp/?*) ;;
+  *) echo "scaffold: refusing to edit HOME=$HOME; it is not inside a temporary directory" >&2; exit 1 ;;
 esac
+if [ "$tmp" = / ]; then
+  echo "scaffold: refusing TMPDIR=/" >&2
+  exit 1
+fi
 
 ws=$PWD
 mkdir -p .eval/bin .eval/fixtures/bd .eval/fixtures/gh
@@ -17,21 +27,38 @@ mkdir -p .eval/bin .eval/fixtures/bd .eval/fixtures/gh
 
 cat > .eval/bin/bd <<'EOF'
 #!/usr/bin/env bash
-# Records the call, then answers from .eval/fixtures/<tool>/<sub>_<sub2>.out or <sub>.out.
+# Logs one line per call: tool, BD_ACTOR, then each argument, tab-separated,
+# with backslash, tab, CR and newline escaped. A body read from --file,
+# --body-file or -F (a path, or - for stdin) follows as a "#body" line.
+# Answers from .eval/fixtures/<tool>/<sub>_<sub2>.out or <sub>.out.
+esc() {
+  local s=${1//\\/\\\\}
+  s=${s//$'\t'/\\t}
+  s=${s//$'\r'/\\r}
+  s=${s//$'\n'/\\n}
+  printf '%s' "$s"
+}
 tool=$(basename "$0")
 ws=$(cd "$(dirname "$0")/../.." && pwd)
 log="$ws/.eval/calls.log"
-printf '%s\t%s\t%s\n' "$tool" "${BD_ACTOR:-}" "$*" >> "$log"
+line="$tool	$(esc "${BD_ACTOR:-}")"
+bodies=()
 prev=
 for arg in "$@"; do
-  case "$prev" in
-    --file | --body-file | -F)
-      if [ -f "$arg" ]; then
-        while IFS= read -r body || [ -n "$body" ]; do printf '\t\t> %s\n' "$body"; done < "$arg" >> "$log"
-      fi
-      ;;
-  esac
+  line="$line	$(esc "$arg")"
+  file=
+  case "$prev" in --file | --body-file | -F) file=$arg ;; esac
+  case "$arg" in --file=* | --body-file=*) file=${arg#*=} ;; esac
+  if [ "$file" = - ]; then
+    bodies+=("$(cat)")
+  elif [ -n "$file" ] && [ -f "$file" ]; then
+    bodies+=("$(cat "$file")")
+  fi
   prev=$arg
+done
+printf '%s\n' "$line" >> "$log"
+for body in ${bodies[@]+"${bodies[@]}"}; do
+  printf '#body\t%s\n' "$(esc "$body")" >> "$log"
 done
 for f in "$ws/.eval/fixtures/$tool/${1:-}_${2:-}.out" "$ws/.eval/fixtures/$tool/${1:-}.out"; do
   if [ -f "$f" ]; then cat "$f"; exit 0; fi
@@ -40,7 +67,8 @@ EOF
 cp .eval/bin/bd .eval/bin/gh
 chmod +x .eval/bin/bd .eval/bin/gh
 
-git init -q -b main .
+git init -q .
+git symbolic-ref HEAD refs/heads/main
 git config user.name "Eval User"
 git config user.email eval@example.com
 git config core.autocrlf false
