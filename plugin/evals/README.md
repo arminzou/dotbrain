@@ -13,7 +13,7 @@ rule-bearing skill. They do not run in CI.
 | `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Nothing beyond Claude Code |
 | `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval` | `--scaffold`, a shell grant, a sandbox |
 | `no-subagents` | `review-gate-blocks-without-reviewer` | As `phase-2`, plus `--disallow-tools Agent` |
-| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing` | As `phase-2` |
+| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that

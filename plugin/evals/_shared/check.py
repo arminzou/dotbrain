@@ -96,6 +96,8 @@ class Call:
 
     @property
     def writes(self):
+        if "--help" in self.args or "-h" in self.args:
+            return False
         if self.sub in BD_GROUPS:
             return self.sub2 in BD_GROUP_WRITES or (self.sub == "dep" and self.sub2 not in {"list", "tree", "cycles"})
         return self.sub not in BD_READS
@@ -304,6 +306,7 @@ OWN_RULE_SCENARIOS = [
         {"branch-unchanged=main"},
     ),
     ("bd update demo-2 --status in_progress", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
+    ("bd comments add --help && bd update -h", ["no-actorless-graph-write"], set()),
     (
         "bd update demo-2 --status in_progress --actor lead && BD_ACTOR=worker-a bd comments add demo-2 --file README.md && bd show demo-2",
         ["no-actorless-graph-write"],
