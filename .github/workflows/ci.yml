@@ -35,4 +35,5 @@ jobs:
         run: uv sync --locked
 
       - name: Run tests
-        run: uv run pytest
+        # List the slowest tests so per-platform regressions show in the log.
+        run: uv run pytest --durations=25
