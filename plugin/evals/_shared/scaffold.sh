@@ -20,17 +20,22 @@ if [ "$tmp" = / ]; then
   exit 1
 fi
 # The account's home from the system, not from HOME: passwd (Linux), the
-# directory service (macOS), or USERPROFILE (Git Bash on Windows).
+# directory service (macOS), or the profiles folder (Git Bash on Windows).
 user=$(id -un)
 account_home=$(getent passwd "$user" 2>/dev/null | cut -d: -f6 || true)
 if [ -z "$account_home" ] && command -v dscl >/dev/null; then
   account_home=$(dscl . -read "/Users/$user" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)
 fi
-if [ -z "$account_home" ] && [ -n "${USERPROFILE:-}" ] && command -v cygpath >/dev/null; then
-  account_home=$(cygpath -u "$USERPROFILE")
+if [ -z "$account_home" ] && command -v cygpath >/dev/null; then
+  account_home="$(cygpath -H)/$user"
 fi
 if [ -n "$account_home" ] && [ -d "$account_home" ] && [ "$home" = "$(cd "$account_home" && pwd -P)" ]; then
   echo "scaffold: refusing to edit the account's own home: $HOME" >&2
+  exit 1
+fi
+# A run's fresh home holds no SSH keys or git identity; a real home usually does.
+if [ -e "$HOME/.ssh" ] || [ -e "$HOME/.gitconfig" ]; then
+  echo "scaffold: refusing to edit HOME=$HOME; it looks like a real home" >&2
   exit 1
 fi
 
@@ -45,7 +50,8 @@ cat > .eval/bin/bd <<'EOF'
 # with backslash, tab, CR and newline escaped. A body read from --file,
 # --body-file or -F (a path, or - for stdin), or from a gh api field given
 # as key=@path, follows as a "#body" line.
-# Answers from .eval/fixtures/<tool>/<sub>_<sub2>.out or <sub>.out.
+# Answers from .eval/fixtures/<tool>/<word1>_<word2>.out or <word1>.out,
+# where the words are the first two arguments that are not flags.
 esc() {
   local s=${1//\\/\\\\}
   s=${s//$'\t'/\\t}
@@ -58,9 +64,11 @@ ws=$(cd "$(dirname "$0")/../.." && pwd)
 log="$ws/.eval/calls.log"
 line="$tool	$(esc "${BD_ACTOR:-}")"
 bodies=()
+words=()
 prev=
 for arg in "$@"; do
   line="$line	$(esc "$arg")"
+  case "$arg" in -*) ;; *) words+=("$arg") ;; esac
   file=
   case "$prev" in --file | --body-file | -F | --field | -f | --raw-field) file=$arg ;; esac
   case "$file" in *=@*) file=${file#*=@} ;; *=*) file= ;; esac
@@ -76,7 +84,8 @@ printf '%s\n' "$line" >> "$log"
 for body in ${bodies[@]+"${bodies[@]}"}; do
   printf '#body\t%s\n' "$(esc "$body")" >> "$log"
 done
-for f in "$ws/.eval/fixtures/$tool/${1:-}_${2:-}.out" "$ws/.eval/fixtures/$tool/${1:-}.out"; do
+w1=${words[0]:-} w2=${words[1]:-}
+for f in "$ws/.eval/fixtures/$tool/${w1}_${w2}.out" "$ws/.eval/fixtures/$tool/${w1}.out"; do
   if [ -f "$f" ]; then cat "$f"; exit 0; fi
 done
 EOF
@@ -113,6 +122,7 @@ done
 # dropped from the logs.
 fixture_done() {
   git rev-parse HEAD > .eval/base
+  git for-each-ref --format='%(refname) %(objectname)' refs/heads > .eval/base-refs
   : > .eval/calls.log
   : > .eval/pushes.log
 }
