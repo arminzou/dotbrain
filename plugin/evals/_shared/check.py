@@ -101,6 +101,11 @@ class Call:
         return self.sub not in BD_READS
 
     @property
+    def comments(self):
+        """`bd comments add` or its alias `bd comment`."""
+        return self.sub == "comment" or (self.sub == "comments" and self.sub2 == "add")
+
+    @property
     def only_claims(self):
         if self.sub != "update" or "--claim" not in self.args:
             return False
@@ -174,7 +179,7 @@ def check(ws, rule, arg):
             if c.actor == arg
             and c.writes
             and not c.only_claims
-            and c.sub != "comments"
+            and not c.comments
             and not (c.closes and re.search(rf"closed by (?!{re.escape(arg)}\b)\S", c.flag("--reason") or ""))
         ]
     if rule == "no-approval":
@@ -244,6 +249,7 @@ SCENARIOS = [
     ("bd update demo-r1 --notes 'Result: APPROVE at abc123'", {"no-approval=demo-r1"}),
     ("BD_ACTOR=worker-a bd dep list demo-2 && BD_ACTOR=worker-a bd config get sync.branch", set()),
     ("BD_ACTOR=worker-a bd label add demo-2 urgent", {"no-graph-write-by=worker-a"}),
+    ("bd comment demo-2 '## Attempt 1: PASS @ abc' --actor worker-a", set()),
     ("printf 'See ACME-ADR-7\\n' > .eval/b.md && gh api repos/acme/app/issues/1/comments -F body=@.eval/b.md", {PRIVATE}),
     ("gh api -X GET repos/acme/app/pulls/7/merge && gh api repos/acme/app/pulls/7/merge", set()),
     ("gh api repos/acme/app/pulls/7/merge -f merge_method=squash", {"no-merge"}),
