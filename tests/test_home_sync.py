@@ -883,18 +883,64 @@ def test_only_merge_uses_c_locale_and_preserves_inherited_environment(tmp_path: 
     def run(argv, **kwargs):
         args = argv[2:]
         calls.append((args, kwargs["env"]))
-        return subprocess.CompletedProcess(argv, 1 if args[0] == "merge-base" else 0, "", "")
+        return subprocess.CompletedProcess(argv, 0, "1\t0\n" if args[0] == "rev-list" else "", "")
 
     report = home_sync.SyncReport()
+    assert home_sync._counts(tmp_path, run, "origin/main") == (1, 0)
     home_sync._integrate(tmp_path, tmp_path / ".git", "origin/main", report, run)
 
     assert report.merged
-    assert [args[0] for args, _ in calls] == ["merge-base", "merge"]
+    assert [args[0] for args, _ in calls] == ["rev-list", "merge"]
     for args, env in calls:
         assert env["LC_ALL"] == ("C" if args[0] == "merge" else "fr_FR.UTF-8")
         assert env["LANGUAGE"] == ("C" if args[0] == "merge" else "fr")
         assert env["DOTBRAIN_TEST_ENV"] == "inherited"
         assert env["GIT_TERMINAL_PROMPT"] == "0"
+
+
+def fake_git(outputs: dict[str, tuple[int, str]]):
+    """A runner answering each git subcommand with (returncode, stdout); records the calls."""
+    calls: list[list[str]] = []
+
+    def run(argv, **kwargs):
+        args = argv[2:]
+        calls.append(args)
+        code, out = outputs.get(args[0], (0, ""))
+        return subprocess.CompletedProcess(argv, code, out, "hook said no" if code else "")
+
+    return run, calls
+
+
+def test_one_status_reads_branch_upstream_conflicts_staging_and_paths(tmp_path: Path):
+    status = "\0".join([
+        "# branch.oid 0123", "# branch.head main", "# branch.upstream origin/main", "# branch.ab +2 -1",
+        "1 .M N... 100644 100644 100644 aaa aaa my notes [1].md",
+        "2 R. N... 100644 100644 100644 aaa aaa R100 new name.md", "old name.md",
+        "u UU N... 100644 100644 100644 100644 a b c conflicted.md",
+        "? brainspaces/alpha/.brain/draft.md", "",
+    ])
+    run, _ = fake_git({"status": (0, status)})
+    state = home_sync._state(run, tmp_path)
+    assert (state.detached, state.upstream, state.ahead, state.unmerged, state.staged) == (False, "origin/main", 2, True, True)
+    assert state.changed == ["brainspaces/alpha/.brain/draft.md", "conflicted.md", "my notes [1].md",
+                             "new name.md", "old name.md"]
+
+    # An upstream that was configured but never fetched has nothing to compare against.
+    run, _ = fake_git({"status": (0, "# branch.head (detached)\0# branch.upstream origin/main\0")})
+    state = home_sync._state(run, tmp_path)
+    assert state.detached and state.upstream is None and not state.staged and state.changed == []
+
+
+@pytest.mark.parametrize("staged_after_failure", [False, True])
+def test_a_commit_that_fails_is_skipped_only_when_nothing_was_staged(tmp_path: Path, staged_after_failure: bool):
+    (tmp_path / "notes.md").write_text("x\n", encoding="utf-8")
+    run, calls = fake_git({"commit": (1, ""), "diff": (1 if staged_after_failure else 0, "")})
+    if staged_after_failure:
+        with pytest.raises(home_sync.SyncError, match="hook said no"):
+            home_sync.record(tmp_path, 1000, run, ["notes.md"])
+    else:
+        assert home_sync.record(tmp_path, 1000, run, ["notes.md"]) == ([], [], [])
+    assert [args[0] for args in calls] == ["add", "commit", "diff"]  # no reset or status: the caller knew
 
 
 @pytest.mark.parametrize("diagnostic,merge_started", [
@@ -910,8 +956,6 @@ def test_merge_errors_raise_and_abort_only_a_started_merge(tmp_path: Path, diagn
     def run(argv, **kwargs):
         args = argv[2:]
         calls.append(args)
-        if args[0] == "merge-base":
-            return subprocess.CompletedProcess(argv, 1, "", "")
         if args[:2] == ["merge", "--abort"]:
             (git_dir / "MERGE_HEAD").unlink()
         elif args[0] == "merge":

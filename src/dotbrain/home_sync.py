@@ -112,6 +112,53 @@ def _git(run: Runner, home: Path, *args: str, input: str | None = None, check: b
     return result
 
 
+@dataclass
+class _State:
+    """What one ``git status`` reports about the home before sync changes anything."""
+    detached: bool = False
+    upstream: str | None = None  # set only when the upstream branch has been fetched at least once
+    ahead: int = 0  # local commits not on the upstream, as last fetched
+    unmerged: bool = False
+    staged: bool = False  # the index differs from HEAD
+    changed: list[str] = field(default_factory=list)  # as _changed_paths lists them
+
+
+def _state(run: Runner, home: Path) -> _State:
+    """Branch, upstream, conflicts, staging and changed paths from a single Git call.
+
+    Each Git process costs about 0.1 s on Windows, and sync runs on every session start.
+    """
+    out = _git(run, home, "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all").stdout
+    state, upstream, counted = _State(), None, False
+    changed: set[str] = set()
+    entries = iter(out.split("\0"))
+    for entry in entries:
+        kind = entry[:1]
+        if entry.startswith("# branch.head "):
+            state.detached = entry.endswith(" (detached)")
+        elif entry.startswith("# branch.upstream "):
+            upstream = entry.split(" ", 2)[2]
+        elif entry.startswith("# branch.ab "):
+            counted, state.ahead = True, int(entry.split()[2].lstrip("+"))
+        elif kind == "1":  # 1 XY sub mH mI mW hH hI path
+            fields = entry.split(" ", 8)
+            state.staged |= fields[1][0] != "."
+            changed.add(fields[8])
+        elif kind == "2":  # a rename or copy: ... X<score> path, then its source as the next entry
+            state.staged = True
+            changed.add(entry.split(" ", 9)[9])
+            changed.add(next(entries, ""))
+        elif kind == "u":
+            state.unmerged = True
+            changed.add(entry.split(" ", 10)[10])
+        elif kind == "?":
+            changed.add(entry[2:])
+    # Without a fetched upstream branch there is nothing to compare or merge, as for no upstream.
+    state.upstream = upstream if counted else None
+    state.changed = sorted(changed - {""})
+    return state
+
+
 def _changed_paths(run: Runner, home: Path) -> list[str]:
     """Every uncommitted path the home's ignore rules allow, relative to the home."""
     out = _git(run, home, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout
@@ -171,17 +218,22 @@ def _nested_repo_path(home: Path, path: str) -> str | None:
     return None
 
 
-def record(home: Path, max_file_size: int,
-           run: Runner = subprocess.run) -> tuple[list[str], list[str], list[str]]:
-    """Commit uncommitted changes as sync commits. Returns (messages, over-limit paths, nested repos)."""
-    # Unstage everything first, so each commit holds exactly the files staged for it. Committing
-    # with a pathspec would take working-tree content and could bring back an over-limit file.
-    _git(run, home, "reset", "--quiet")
+def record(home: Path, max_file_size: int, run: Runner = subprocess.run,
+           unstaged: list[str] | None = None) -> tuple[list[str], list[str], list[str]]:
+    """Commit uncommitted changes as sync commits. Returns (messages, over-limit paths, nested repos).
+
+    ``unstaged`` is the changed-path list when the caller already knows nothing is staged.
+    """
+    if unstaged is None:
+        # Unstage everything first, so each commit holds exactly the files staged for it. Committing
+        # with a pathspec would take working-tree content and could bring back an over-limit file.
+        _git(run, home, "reset", "--quiet")
+        unstaged = _changed_paths(run, home)
     data_dir = paths.data_dir(home).name
     groups: dict[str, list[tuple[str, str]]] = {}
     skipped: list[str] = []
     nested: list[str] = []
-    for path in _changed_paths(run, home):
+    for path in unstaged:
         repository = _nested_repo_path(home, path)
         if repository is not None:
             if repository not in nested:
@@ -198,20 +250,22 @@ def record(home: Path, max_file_size: int,
         files = groups[name]
         _git(run, home, "add", "--all", "--pathspec-from-file=-", "--pathspec-file-nul",
              input="\0".join(path for path, _ in files))
-        if _git(run, home, "diff", "--cached", "--quiet", check=False).returncode == 0:
-            continue  # nothing ended up staged for this group
         message = _message(f"{name}: sync from {platform.node()}", [shown for _, shown in files])
-        _git(run, home, "commit", "--quiet", "-m", message)
+        committed = _git(run, home, "commit", "--quiet", "-m", message, check=False)
+        if committed.returncode != 0:
+            if _git(run, home, "diff", "--cached", "--quiet", check=False).returncode == 0:
+                continue  # nothing ended up staged for this group
+            raise SyncError(f"git commit failed: {(committed.stderr or committed.stdout).strip()}")
         messages.append(message)
     return messages, skipped, nested
 
 
-def _blockers(home: Path, git_dir: Path, run: Runner) -> list[str]:
+def _blockers(git_dir: Path, state: _State) -> list[str]:
     """States in which recording would commit conflict markers or commit onto no branch."""
     blockers = [name for name in _IN_PROGRESS if (git_dir / name).exists()]
-    if _git(run, home, "ls-files", "--unmerged").stdout.strip():
+    if state.unmerged:
         blockers.append("unmerged paths")
-    if _git(run, home, "symbolic-ref", "--quiet", "HEAD", check=False).returncode != 0:
+    if state.detached:
         blockers.append("detached HEAD")
     return blockers
 
@@ -235,8 +289,15 @@ def _fetch(home: Path, run: Runner, env: dict) -> bool:
         return False
 
 
-def _push(home: Path, report: SyncReport, run: Runner, env: dict) -> None:
-    ahead = _ahead(home, run)
+def _counts(home: Path, run: Runner, upstream: str) -> tuple[int, int]:
+    """(behind, ahead): upstream commits HEAD lacks, and local commits the upstream lacks."""
+    behind, ahead = _git(run, home, "rev-list", "--left-right", "--count", f"{upstream}...HEAD").stdout.split()
+    return int(behind), int(ahead)
+
+
+def _push(home: Path, report: SyncReport, run: Runner, env: dict, ahead: int | None = None) -> None:
+    if ahead is None:
+        ahead = _ahead(home, run)
     if ahead == 0:
         report.push, report.waiting = "up-to-date", 0
         return
@@ -326,9 +387,7 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
 
 
 def _integrate(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner) -> None:
-    """Merge the fetched upstream, aborting only a merge started by this sync."""
-    if _git(run, home, "merge-base", "--is-ancestor", upstream, "HEAD", check=False).returncode == 0:
-        return  # nothing new upstream
+    """Merge the fetched upstream, which has commits HEAD lacks, aborting only a merge started by this sync."""
     if (git_dir / "MERGE_HEAD").exists():
         report.status, report.blocked_by = "blocked", ["MERGE_HEAD"]
         return
@@ -412,31 +471,35 @@ def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
         report.status = "locked"
         return report
     try:
-        report.blocked_by = _blockers(home, git_dir, run)
+        state = _state(run, home)
+        report.blocked_by = _blockers(git_dir, state)
         if report.blocked_by:
             report.status = "blocked"
             return report
-        report.commits, report.skipped, report.nested = record(home, settings.max_file_size, run)
-        upstream = _git(run, home, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}",
-                        check=False)
-        if upstream.returncode != 0:
+        report.commits, report.skipped, report.nested = record(
+            home, settings.max_file_size, run, None if state.staged else state.changed)
+        if state.upstream is None:
             report.push, report.waiting = "no-upstream", len(report.commits)
             return report
-        report.upstream = upstream.stdout.strip()
+        report.upstream = state.upstream
         remote_env = {"GIT_SSH_COMMAND": _ssh_command(home, run)}
         for attempt in range(1, 2 if push_only else 2 + PUSH_RETRIES):
             report.attempts = attempt
+            ahead = None
             if not push_only:
                 if not _fetch(home, run, remote_env):
                     report.push, report.waiting = "unreachable", _ahead(home, run)
                     break
-                _integrate(home, git_dir, report.upstream, report, run)
+                behind, ahead = _counts(home, run, report.upstream)
+                if behind:
+                    ahead = None  # integrating changes it
+                    _integrate(home, git_dir, report.upstream, report, run)
                 if report.status == "blocked":
                     break
                 if report.collisions:
                     report.status, report.push, report.waiting = "collision", "none", _ahead(home, run)
                     break
-            _push(home, report, run, remote_env)
+            _push(home, report, run, remote_env, ahead)
             if report.push != "rejected":
                 break
     finally:
