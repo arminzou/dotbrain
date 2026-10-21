@@ -17,6 +17,7 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | Rule | What to check |
 | --- | --- |
 | Modules that run `bd` or `git` take an injected `run` callable shaped like `subprocess.run`. | New subprocess calls go through the injected `run`; tests that assert on commands pass a fake runner and check the recorded argv. |
+| Code that runs at every session (home sync and the hooks) gets what it needs from as few `git` calls as possible; each costs about 0.1 s on Windows. | A new `git` call in `home_sync.py` or `hooks.py` asks for something no existing call already returns, such as the branch, upstream, conflicts or changes from `git status --porcelain=v2 --branch`, or the PR says why it must. |
 
 ## User data and filesystem changes
 
@@ -32,6 +33,8 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | Tests use `tmp_path` and never touch a real `$HOME` or the live data root. | New tests set paths under `tmp_path`; nothing reads `~` or `~/dotbrain`. |
 | Add a regression test for a behavior fix where practical. | The fix PR includes a test that fails without the fix, or explains why not. |
 | The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior is checked by agent evaluations such as `claude plugin eval`. | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
+| Tests are safe to run in parallel: the suite runs under `pytest -n auto`. | A test touches only its own `tmp_path`, binds port 0 rather than a fixed port, and changes environment variables or the working directory only through `monkeypatch`. |
+| Fixtures that need initialized Git repositories build them once per session and copy them into each test. | A fixture or helper used by many tests creates its repositories with `tmp_path_factory` and `shutil.copytree`, not with `git init`, `commit` or `push` per test. |
 | Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |
 | Run `uv run pytest` before submitting code changes; CI must pass on Linux, macOS, and Windows. | PR checks are green on all three platforms. |
 
