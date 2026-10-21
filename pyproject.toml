@@ -34,6 +34,7 @@ dotbrain = "dotbrain.cli:app"
 [dependency-groups]
 dev = [
     "pytest>=8",
+    "pytest-xdist>=3.8.0",
 ]
 
 [build-system]
@@ -54,3 +55,5 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Most of the suite's time is spent waiting on real git processes; spread it across cores.
+addopts = "-n auto"

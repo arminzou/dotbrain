@@ -98,12 +98,20 @@ def fake_home(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def dotbrain_home(tmp_path: Path) -> Path:
+def dotbrain_home(_dotbrain_home_seed: Path, tmp_path: Path) -> Path:
     """A minimal dotbrain checkout skeleton: brainspaces/, skills/, a git repo.
 
     Seeds packaged skill text plus one operator-owned skill for linking tests.
     """
     root = tmp_path / "dotbrain"
+    shutil.copytree(_dotbrain_home_seed, root, symlinks=True)
+    return root
+
+
+@pytest.fixture(scope="session")
+def _dotbrain_home_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Built once per session: git calls cost about 0.1 s each on Windows."""
+    root = tmp_path_factory.mktemp("seed") / "dotbrain"
     for sub in ("brainspaces", "skills"):
         (root / sub).mkdir(parents=True)
     plugin_skills_root = _REPO_ROOT / "plugin" / "skills"

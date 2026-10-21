@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -45,24 +46,52 @@ def make_repo(path: Path) -> Path:
     return path
 
 
-@pytest.fixture
-def remote(tmp_path: Path) -> Path:
-    bare = tmp_path / "remote.git"
-    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(bare))
-    return bare
+@pytest.fixture(scope="session")
+def seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The pushed home, its bare remote and a second clone, built once per session.
 
-
-@pytest.fixture
-def home(tmp_path: Path, remote: Path) -> Path:
-    root = make_repo(tmp_path / "home")
-    write(root / ".gitignore", "*.tmp\n")
-    write(root / "brainspaces" / "alpha" / ".brain" / "CONTEXT.md")
-    write(root / "brainspaces" / "beta" / ".brain" / "CONTEXT.md")
-    git(root, "add", "-A")
-    git(root, "commit", "-q", "-m", "initial")
-    git(root, "remote", "add", "origin", str(remote))
-    git(root, "push", "-q", "-u", "origin", "main")
+    Each git call costs about 0.1 s on Windows, so tests copy these instead of rebuilding them.
+    """
+    root = tmp_path_factory.mktemp("seed")
+    bare = root / "remote.git"
+    git(root, "init", "-q", "--bare", "-b", "main", str(bare))
+    home = make_repo(root / "home")
+    write(home / ".gitignore", "*.tmp\n")
+    write(home / "brainspaces" / "alpha" / ".brain" / "CONTEXT.md")
+    write(home / "brainspaces" / "beta" / ".brain" / "CONTEXT.md")
+    git(home, "add", "-A")
+    git(home, "commit", "-q", "-m", "initial")
+    # Forward slashes: git writes them to config unescaped, so a copy can retarget the URL.
+    git(home, "remote", "add", "origin", bare.as_posix())
+    git(home, "push", "-q", "-u", "origin", "main")
+    other = root / "other"
+    git(root, "clone", "-q", "-c", "core.autocrlf=false", bare.as_posix(), str(other))
+    git(other, "config", "user.name", "Other")
+    git(other, "config", "user.email", "other@example.com")
     return root
+
+
+def copy_seed(seed: Path, name: str, tmp_path: Path) -> Path:
+    dest = tmp_path / name
+    shutil.copytree(seed / name, dest, symlinks=True)
+    config = dest / ".git" / "config"
+    if config.exists():
+        text = config.read_text(encoding="utf-8")
+        old, new = (seed / "remote.git").as_posix(), (tmp_path / "remote.git").as_posix()
+        assert old in text
+        config.write_text(text.replace(old, new), encoding="utf-8")
+    return dest
+
+
+@pytest.fixture
+def remote(seed: Path, tmp_path: Path) -> Path:
+    """The bare remote, already holding the home's initial commit."""
+    return copy_seed(seed, "remote.git", tmp_path)
+
+
+@pytest.fixture
+def home(seed: Path, tmp_path: Path, remote: Path) -> Path:
+    return copy_seed(seed, "home", tmp_path)
 
 
 def subjects(repo: Path, rev: str = "HEAD") -> list[str]:
@@ -430,12 +459,8 @@ TODAY = date.today().isoformat()
 
 
 @pytest.fixture
-def other(tmp_path: Path, remote: Path, home: Path) -> Path:
-    clone = tmp_path / "other"
-    git(tmp_path, "clone", "-q", "-c", "core.autocrlf=false", str(remote), str(clone))
-    git(clone, "config", "user.name", "Other")
-    git(clone, "config", "user.email", "other@example.com")
-    return clone
+def other(seed: Path, tmp_path: Path, remote: Path, home: Path) -> Path:
+    return copy_seed(seed, "other", tmp_path)
 
 
 def tree(repo: Path) -> dict[str, bytes]:
