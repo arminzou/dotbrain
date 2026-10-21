@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The release workflow runs the same matrix at the tag before it publishes.
+  workflow_call:
 
 env:
   # Typer force-enables Rich terminal rendering under GITHUB_ACTIONS, which reformats --help/error
