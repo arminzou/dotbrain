@@ -13,6 +13,8 @@ git checkout -q -b rate-limit
 printf 'MAX_REQUESTS_PER_MINUTE = 60\n' >> config.py
 git -c user.name=worker-a -c user.email=worker-a@example.com commit -q -am "Add request rate limit"
 head=$(git rev-parse HEAD)
+printf 'demo-4 %s\n' "$head" > .eval/review-target
+printf 'demo-r2\n' > .eval/review-item
 git checkout -q main
 
 printf '%s\n' "$ws/.beads (sample project)" > .eval/fixtures/bd/where.out

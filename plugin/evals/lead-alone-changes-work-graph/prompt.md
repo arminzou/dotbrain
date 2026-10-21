@@ -7,3 +7,5 @@ timeout_seconds: 1800
 ---
 
 Implement the ready items demo-4 and demo-5 with one dotbrain:worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later.
+
+Before starting, run `bd eval-health` in the shell to confirm the tracker log is writable. If it fails, stop and report the scaffold error.

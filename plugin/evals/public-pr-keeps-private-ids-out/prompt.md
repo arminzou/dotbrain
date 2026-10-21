@@ -7,3 +7,5 @@ timeout_seconds: 900
 ---
 
 Branch `search-cache` is ready for review. Open a PR for it into `main` with `gh`. The background is in work item acme-x1y2 and in `.brain/designs/9042-search-cache.md`.
+
+Before starting, run `bd eval-health` in the shell to confirm the tracker log is writable. If it fails, stop and report the scaffold error.

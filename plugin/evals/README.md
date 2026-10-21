@@ -11,9 +11,9 @@ rule-bearing skill. They do not run in CI.
 | Tag | Cases | Needs |
 | --- | --- | --- |
 | `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Nothing beyond Claude Code |
-| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
+| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `closure-on-fresh-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
 | `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
-| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
+| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that
@@ -72,6 +72,12 @@ reads a kept workspace (`--keep-temp`) and prints JSON:
 python3 -I _shared/check.py <kept-workspace> --checks <case>/checks
 python3 -I _shared/check.py --selftest
 ```
+
+Every state prompt first asks the agent to run `bd eval-health`. The stub appends a
+health record only after a successful log write, and records later write errors in
+the fresh temporary home. The checker fails every rule (score 0) if that probe is
+missing or a write failed. This tests the agent's sandbox access, which may differ
+from the external checker's access. Native graders alone are never a state-case pass.
 
 The selftest plants each violation in a fresh workspace and confirms exactly the expected rules
 fail. Kept workspaces were written by the agent under test: the checker runs git there with

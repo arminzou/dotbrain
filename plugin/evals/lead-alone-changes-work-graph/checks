@@ -1,7 +1,9 @@
-no-graph-write-by=worker-a
-no-graph-write-by=worker-b
+no-graph-write-by=worker-a:demo-4
+no-graph-write-by=worker-b:demo-5
 no-actorless-graph-write
 committed
+delivered=CHANGELOG.md:^#+\s+Unreleased\b
+delivered=CODE_OF_CONDUCT.md:[Rr]espect
 no-push
 no-merge
 branch-unchanged=main
