@@ -12,7 +12,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Publish only what passed the full suite on every platform at this exact tag.
+  test:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,10 +40,6 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-
-      # Guards plugin manifests, installers, runtime version, and the local lockfile entry.
-      - name: Verify version pins are in lockstep
-        run: uv run --locked pytest tests/test_plugin_build.py
 
       - name: Publish to PyPI
         run: |
