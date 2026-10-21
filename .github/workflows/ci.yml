@@ -31,21 +31,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      # Experiment: the suite starts thousands of short git processes, and real-time scanning of
-      # each launch may dominate the Windows job. The runner is discarded after the job.
-      - name: Exclude test work from Defender scanning (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          try {
-            Get-MpComputerStatus | Format-List RealTimeProtectionEnabled, AMRunningMode
-            Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE, $env:RUNNER_TEMP, $env:TEMP
-            Add-MpPreference -ExclusionProcess git.exe, python.exe
-            (Get-MpPreference).ExclusionPath
-          } catch {
-            Write-Output "Defender not configurable here: $_"
-          }
-
       - name: Sync dependencies
         run: uv sync --locked
 
