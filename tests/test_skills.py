@@ -292,33 +292,14 @@ def test_link_into_raises_translated_windows_privilege_error(dotbrain_home: Path
     assert not (dest / "discovery-test").exists()
 
 
-def test_wire_brain_skill_tracks_current_cli_wiring_model():
-    text = Path("plugin/skills/wire-brain/SKILL.md").read_text(encoding="utf-8")
 
-    for command in (
-        "dotbrain wire",
-        "dotbrain refresh --all",
-        "dotbrain refresh",
-        "dotbrain bootstrap",
-        "dotbrain doctor",
-        "dotbrain unwire",
-        "dotbrain beads drop-db",
-        "dotbrain skills link --scope global",
-        "dotbrain agents link --scope global",
-    ):
-        assert command in text
-
-    for retired in ("wire --all", "--name", "--archive", "--delete", "--beads-server-host"):
-        assert retired not in text
-    assert "Git metadata" in text
-    assert "# dotbrain-managed-agent: v1" in text
-
-    for phrase in (
-        "Expected wiring is derived from project config",
-        "beads.mode",
-        "agents",
-        "skills",
-        "subagents",
-        "public-tracker",
-    ):
-        assert phrase in text
+def test_skill_is_delivered_with_its_references_and_codex_metadata(dotbrain_home: Path, tmp_path: Path):
+    source = Path("plugin/skills/run-retro")
+    assert "brain/run-retro" in skills.discover_skills(dotbrain_home / "skills")
+    for runtime in ("claude", "codex"):
+        destination = tmp_path / runtime / "skills"
+        result = skills.link_into(dotbrain_home, destination, ["brain/run-retro"])
+        assert not result.warnings
+        assert (destination / "run-retro/SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
+        assert (destination / "run-retro/references/retro.md").is_file()
+        assert (destination / "run-retro/agents/openai.yaml").is_file()

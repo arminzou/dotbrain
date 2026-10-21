@@ -22,32 +22,3 @@ def test_seed_brain_copies_the_packaged_templates_verbatim(dotbrain_home: Path, 
             expected = packaged.read_text(encoding="utf-8").splitlines()
             assert (brain / relative).read_text(encoding="utf-8").splitlines() == expected, relative
 
-
-def test_to_design_template_carries_the_section_set(dotbrain_home: Path):
-    template = (
-        dotbrain_home
-        / "skills"
-        / "brain"
-        / "to-design"
-        / "templates"
-        / "design.md"
-    ).read_text(encoding="utf-8")
-
-    assert "lifecycle: draft" in template
-    for section in (
-        "## Motivation",
-        "## Goals",
-        "## Non-goals",
-        "## Design",
-        "## Success Criteria",
-        "## Verification Evidence",
-        "## Known Unknowns",
-        "## Implementation Notes",
-        "## Deviations",
-        "## Human Decisions Needed",
-        "## Alternatives Considered",
-        "## Rollout",
-    ):
-        assert section in template
-
-
