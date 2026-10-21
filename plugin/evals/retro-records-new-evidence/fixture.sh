@@ -37,6 +37,8 @@ Two commits changed cart totals without running the cart tests.
 EOF
 cp .brain/RETRO.md .eval/baseline/RETRO.md
 git -C .brain init -q
+# The sandbox cannot edit Git internals; prepare the skill's private save exclusions.
+printf 'RETRO.md.lock\nRETRO.md.tmp.*\n' >> .brain/.git/info/exclude
 git -C .brain add RETRO.md
 git -C .brain -c user.name="Eval User" -c user.email=eval@example.com commit -q -m "Retrospective"
 # A genuinely new event after the notebook boundary, dated on a third day.

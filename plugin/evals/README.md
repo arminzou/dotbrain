@@ -83,6 +83,11 @@ neither they nor Git rely on writing the sandboxed home. The external checker
 disables tracing for its own Git reads, so it cannot supply this evidence.
 Native graders alone are never a state-case pass.
 
+The retro cases invoke `/dotbrain:run-retro` directly. Slash invocation loads the
+skill without a `Skill` tool call, so these cases grade state rather than requiring
+a `tool_used: Skill` record. Their fixtures pre-seed the notebook lock and temporary
+file exclusions because the sandbox cannot edit `.brain/.git/info/exclude`.
+
 The selftest plants each violation in a fresh workspace and confirms exactly the expected rules
 fail. Kept workspaces were written by the agent under test: the checker runs git there with
 attributes from the scaffold's base commit and hooks disabled, and you should not run other

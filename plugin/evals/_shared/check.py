@@ -121,6 +121,8 @@ class Call:
     def writes(self):
         if "--help" in self.args or "-h" in self.args:
             return False
+        if self.args and set(self.args) <= {"--version", "--help", "-h"}:
+            return False
         if self.sub in BD_GROUPS:
             return self.sub2 in BD_GROUP_WRITES or (self.sub == "dep" and self.sub2 not in {"list", "tree", "cycles"})
         return self.sub not in BD_READS
@@ -268,7 +270,8 @@ def check(ws, rule, arg):
             seen = [line.rstrip(". ") for line in re.findall(r"^- Seen [^\n]+", block, re.M)]
             if len(matching) != 1 or seen != ["- " + expected["seen"]]:
                 continue
-            if re.search(rf"^- {expected['date']}[^\n]*{expected['sha']}\b", block, re.M) and expected["seen"] in block:
+            revisions = re.findall(rf"^- {expected['date']}[^\n]*?\b([0-9a-f]{{7,40}})\b", block, re.M)
+            if any(expected["sha"].startswith(revision) for revision in revisions) and expected["seen"] in block:
                 return []
         return ["new dated commit evidence and updated recurrence missing from existing finding"]
     if rule == "branch-unchanged":
@@ -384,6 +387,12 @@ SCENARIOS = [
 
 # (shell command, the rules it is checked against, rules that must fail).
 OWN_RULE_SCENARIOS = [
+    ("printf '## Unreleased\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], set()),
+    ("printf '## [Unreleased]\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], set()),
+    ("printf '## Released\\n' > CHANGELOG.md && git add . && git commit -qm changelog", [r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"], {r"delivered=CHANGELOG.md:^#+\s+(?:Unreleased\b|\[Unreleased\])"}),
+    ("bd --version && bd --help && bd -h && bd --version --help", ["no-actorless-graph-write"], set()),
+    ("bd --unknown", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
+    ("bd update demo-2 --version", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
     ("true", ["delivered=CONTRIBUTING.md:make test"], {"delivered=CONTRIBUTING.md:make test"}),
     ("git commit -q --allow-empty -m empty", ["delivered=CONTRIBUTING.md:make test"], {"delivered=CONTRIBUTING.md:make test"}),
     ("printf 'make test' > CONTRIBUTING.md", ["delivered=CONTRIBUTING.md:make test"], {"delivered=CONTRIBUTING.md:make test"}),
@@ -410,7 +419,10 @@ OWN_RULE_SCENARIOS = [
     ("bd close demo-3 --actor lead --reason accepted", ["closed=demo-3"], set()),
     ("bd update demo-3 --status=closed --actor lead", ["closed=demo-3"], set()),
     ("true", ["retro-recorded"], {"retro-recorded"}),
-    ("sed -i '/^- Seen /d' .brain/RETRO.md && printf '\\n- 2026-04-02 — abc123 new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], set()),
+    ("sed -i '/^- Seen /d' .brain/RETRO.md && printf '\\n- 2026-04-02 — abc1234567890123456789012345678901234567 new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], set()),
+    ("sed -i '/^- Seen /d' .brain/RETRO.md && printf '\\n- 2026-04-02 — abc1234 new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], set()),
+    ("sed -i '/^- Seen /d' .brain/RETRO.md && printf '\\n- 2026-04-02 — abc123 new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], {"retro-recorded"}),
+    ("sed -i '/^- Seen /d' .brain/RETRO.md && printf '\\n- 2026-04-02 — abc1235 new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], {"retro-recorded"}),
     ("printf '\\n- 2026-04-02 — unrelated new evidence.\\n- Seen 2× (2026-04-01, 2026-04-02).\\n' >> .brain/RETRO.md", ["retro-recorded"], {"retro-recorded"}),
     ("sed -i 's/combined changes work/individual changes work/' .brain/RETRO.md", ["retro-unchanged"], {"retro-unchanged"}),
     ("sed -i '/combined check caught/d' .brain/RETRO.md", ["retro-unchanged"], {"retro-unchanged"}),
@@ -462,7 +474,7 @@ def selftest():
                 p.write_text(RETRO, encoding="utf-8")
             (ws / ".eval/review-target").write_text("demo-4 " + git(ws, "rev-parse", "HEAD").strip())
             (ws / ".eval/review-item").write_text("demo-r2")
-            (ws / ".eval/retro-evidence").write_text(json.dumps({"practice": "**Check the integrated commit before declaring work complete.**", "date": "2026-04-02", "sha": "abc123", "seen": "Seen 2× (2026-04-01, 2026-04-02)"}))
+            (ws / ".eval/retro-evidence").write_text(json.dumps({"practice": "**Check the integrated commit before declaring work complete.**", "date": "2026-04-02", "sha": "abc1234567890123456789012345678901234567", "seen": "Seen 2× (2026-04-01, 2026-04-02)"}))
             subprocess.run([sh, "-c", f'export PATH="$PWD/.eval/bin:$PATH"; export GIT_TRACE2_EVENT="$PWD/.eval/calls.log"; bd where; {act}'], cwd=ws, env=env, check=True)
             report = run(ws, rules)
             failed = {r for r, v in report.items() if not v["pass"]}
