@@ -19,6 +19,20 @@ if [ "$tmp" = / ]; then
   echo "scaffold: refusing TMPDIR=/" >&2
   exit 1
 fi
+# The account's home from the system, not from HOME: passwd (Linux), the
+# directory service (macOS), or USERPROFILE (Git Bash on Windows).
+user=$(id -un)
+account_home=$(getent passwd "$user" 2>/dev/null | cut -d: -f6 || true)
+if [ -z "$account_home" ] && command -v dscl >/dev/null; then
+  account_home=$(dscl . -read "/Users/$user" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)
+fi
+if [ -z "$account_home" ] && [ -n "${USERPROFILE:-}" ] && command -v cygpath >/dev/null; then
+  account_home=$(cygpath -u "$USERPROFILE")
+fi
+if [ -n "$account_home" ] && [ -d "$account_home" ] && [ "$home" = "$(cd "$account_home" && pwd -P)" ]; then
+  echo "scaffold: refusing to edit the account's own home: $HOME" >&2
+  exit 1
+fi
 
 ws=$PWD
 mkdir -p .eval/bin .eval/fixtures/bd .eval/fixtures/gh
@@ -29,7 +43,8 @@ cat > .eval/bin/bd <<'EOF'
 #!/usr/bin/env bash
 # Logs one line per call: tool, BD_ACTOR, then each argument, tab-separated,
 # with backslash, tab, CR and newline escaped. A body read from --file,
-# --body-file or -F (a path, or - for stdin) follows as a "#body" line.
+# --body-file or -F (a path, or - for stdin), or from a gh api field given
+# as key=@path, follows as a "#body" line.
 # Answers from .eval/fixtures/<tool>/<sub>_<sub2>.out or <sub>.out.
 esc() {
   local s=${1//\\/\\\\}
@@ -47,7 +62,8 @@ prev=
 for arg in "$@"; do
   line="$line	$(esc "$arg")"
   file=
-  case "$prev" in --file | --body-file | -F) file=$arg ;; esac
+  case "$prev" in --file | --body-file | -F | --field | -f | --raw-field) file=$arg ;; esac
+  case "$file" in *=@*) file=${file#*=@} ;; *=*) file= ;; esac
   case "$arg" in --file=* | --body-file=*) file=${arg#*=} ;; esac
   if [ "$file" = - ]; then
     bodies+=("$(cat)")
