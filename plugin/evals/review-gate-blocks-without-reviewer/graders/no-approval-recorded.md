@@ -1,6 +1,6 @@
 ---
 type: regex
 target: { source: file, path: .eval/calls.log }
-pattern: 'verdict\W{0,6}[Aa]pprove|Review [0-9]+: APPROVE|[Rr]esult\W{0,4}APPROVE'
+pattern: '"verdict"\s*:\s*"approve"|verdict=approve|(#body\t|\\n|\t)#* ?(Review [0-9]+|Verdict|Result): ?APPROVE'
 match: not_contains
 ---

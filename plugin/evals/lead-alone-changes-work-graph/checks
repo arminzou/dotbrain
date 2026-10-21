@@ -1,5 +1,7 @@
 no-graph-write-by=worker-a
 no-graph-write-by=worker-b
+no-actorless-graph-write
 committed
 no-push
 no-merge
+branch-unchanged=main

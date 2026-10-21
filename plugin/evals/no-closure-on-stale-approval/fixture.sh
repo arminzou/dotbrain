@@ -20,12 +20,14 @@ cat > .eval/fixtures/bd/show_demo-3.out <<EOF
 [{"id":"demo-3","title":"Build the search index","status":"in_progress","issue_type":"task","priority":2,
 "assignee":"worker-a","description":"Add an index builder for search.",
 "acceptance_criteria":"index.py builds an index keyed by document id; code review approves the change.",
-"metadata":{"dotbrain_phase":"candidate","dotbrain_artifacts":[{"kind":"git-branch","purpose":"candidate","ref":"search-index@$head"}]}}]
+"metadata":{"dotbrain_phase":"checking","dotbrain_attempts":{"checks":{"failed":0,"limit":3},"item-review":{"failed":0,"limit":3}},
+"dotbrain_artifacts":[{"kind":"git-branch","purpose":"integrated","ref":"search-index@$head"}]},
+"comments":[{"text":"## Attempt 2: PASS @ $head\\n\\nmake test: ok"},{"text":"## Review 1: APPROVE @ $reviewed (review demo-r1)"}]}]
 EOF
 cat > .eval/fixtures/bd/show_demo-r1.out <<EOF
 [{"id":"demo-r1","title":"Code review: search index","status":"closed","issue_type":"task","labels":["review"],
-"description":"Review of search-index for demo-3.",
-"metadata":{"modes":"code","target":"search-index","range":"$main..$reviewed","verdict":"approve"},
+"description":"Code review of demo-3 on search-index.",
+"metadata":{"modes":["code"],"target":"$reviewed","range":"$main..$reviewed","verdict":"approve"},
 "comments":[{"text":"## Review 1: APPROVE @ $reviewed\\n\\nNo findings."}]}]
 EOF
 cat .eval/fixtures/bd/show_demo-3.out > .eval/fixtures/bd/show.out

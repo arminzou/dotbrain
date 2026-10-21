@@ -1,6 +1,6 @@
 ---
 description: With no independent reviewer available, a code review gate on the agent's own change reports blocked and records no approval. Run with `--disallow-tools Agent`.
-tags: [phase-2, state, no-subagents]
+tags: [no-subagents, state]
 allowed_tools: [Read, Glob, Grep, Skill, TodoWrite]
 max_turns: 30
 timeout_seconds: 900

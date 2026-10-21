@@ -2,3 +2,4 @@ no-push
 no-merge
 no-close
 committed
+branch-unchanged=main

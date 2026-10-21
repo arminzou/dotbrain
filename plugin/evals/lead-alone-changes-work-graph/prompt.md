@@ -6,4 +6,4 @@ max_turns: 80
 timeout_seconds: 1800
 ---
 
-Implement the ready items demo-4 and demo-5 in parallel, one dotbrain:worker per item: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later.
+Implement the ready items demo-4 and demo-5 in parallel, one dotbrain:worker per item: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later.

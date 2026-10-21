@@ -1,4 +1,4 @@
 ---
 type: regex
-pattern: '[Bb]locked|BLOCKED'
+pattern: '(?<!not |n''t )\b(?:[Bb]locked|BLOCKED)\b'
 ---
