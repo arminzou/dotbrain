@@ -166,22 +166,21 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
                             "initialize Git in the dotbrain home to sync it")]
         # Only reads go through here, so the bounded doctor runner fits home sync's Git calls.
         git = lambda argv, *, cwd=None, env=None, **_: run(argv, cwd=cwd, check=False, timeout=PROBE_TIMEOUT, env=env)
-        blockers = home_sync._blockers(root, home_sync._git_dir(root, git), git)
+        state = home_sync._state(git, root)
+        blockers = home_sync._blockers(home_sync._git_dir(root, git), state)
         findings = [Finding("error", f"home sync blocked: {blocker} in the dotbrain home",
                             "finish or abort it with git in the dotbrain home, then run dotbrain sync")
                     for blocker in blockers]
-        if "detached HEAD" not in blockers:  # a detached HEAD has no upstream to compare
-            upstream = home_sync._git(git, root, "rev-parse", "--abbrev-ref", "--symbolic-full-name",
-                                      "@{upstream}", check=False)
-            ahead = 0 if upstream.returncode else home_sync._ahead(root, git)
-            if upstream.returncode:
+        if not state.detached:  # a detached HEAD has no upstream to compare
+            ahead = state.ahead
+            if state.upstream is None:
                 findings.append(Finding("info", "home sync: no remote configured; sync commits stay local",
                                         "set an upstream for the dotbrain home's branch to share it"))
             elif ahead:
                 findings.append(Finding("info", f"home sync: {ahead} local commit{'' if ahead == 1 else 's'} waiting "
-                                        f"to be pushed to {upstream.stdout.strip()}", "run dotbrain sync"))
+                                        f"to be pushed to {state.upstream}", "run dotbrain sync"))
             else:
-                findings.append(Finding("ok", f"home sync: nothing waiting for {upstream.stdout.strip()} (as last fetched)"))
+                findings.append(Finding("ok", f"home sync: nothing waiting for {state.upstream} (as last fetched)"))
         listed = home_sync._git(git, root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").stdout
         findings.extend(Finding("warn", f"home sync: open conflict copy {path}",
                                 "reconcile it with the original file, then delete the copy")
@@ -189,7 +188,7 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
                         if ".sync-conflict-" in Path(path).name and (root / path).exists())
         findings.extend(Finding("warn", f"home sync: {path} is over the size limit and stays uncommitted",
                                 "commit it yourself, ignore it, or raise sync.max-file-size")
-                        for path in home_sync._changed_paths(git, root)
+                        for path in state.changed
                         if not home_sync._is_nested_repo(root, path) and home_sync._too_large(root, path, settings.max_file_size))
         return findings
     except DIAGNOSIS_ERRORS as exc:
