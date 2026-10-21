@@ -11,8 +11,8 @@ rule-bearing skill. They do not run in CI.
 | Tag | Cases | Needs |
 | --- | --- | --- |
 | `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Nothing beyond Claude Code |
-| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval` | `--scaffold`, a shell grant, a sandbox |
-| `no-subagents` | `review-gate-blocks-without-reviewer` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
+| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
+| `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
@@ -39,11 +39,18 @@ claude plugin eval . --ablation none --runs 3 --no-publish --scaffold --keep-tem
   --allow-tools Bash Write Edit --disallow-tools Agent --tag no-subagents
 ```
 
-The state cases have been run with Claude Code 2.1.283 under WSL2; phase 1 with 2.1.305 on
-Windows. Version matters here:
+On Windows, run every case under WSL2: it is the only setup there that can run them all, and
+running the suite twice on one machine shows no OS difference. The state cases have been run
+with Claude Code 2.1.283 under WSL2.
+
+The runner refuses every Bash-granting run when `~/.docker` holds a symbolic link, as Docker
+Desktop's WSL integration creates. Setting `DOCKER_CONFIG` does not avoid this. Move
+`~/.docker` aside for the run and restore it after.
+
+Version matters here:
 
 - **2.1.283:** has no `--disallow-tools`, and leaving `Agent` out of a case's `allowed_tools`
-  does not remove it. So `review-gate-blocks-without-reviewer` cannot run there in its intended
+  does not remove it. So `review-gate-blocks-self-review` cannot run there in its intended
   mode: the agent can still dispatch an independent reviewer.
 - **2.1.306 (WSL2):** has the flag, but its sandbox made the whole eval workspace read-only for
   shell commands, so no state case can run. That case stays unverified until a version offers
