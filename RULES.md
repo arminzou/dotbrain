@@ -31,6 +31,8 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | --- | --- |
 | Tests use `tmp_path` and never touch a real `$HOME` or the live data root. | New tests set paths under `tmp_path`; nothing reads `~` or `~/dotbrain`. |
 | Add a regression test for a behavior fix where practical. | The fix PR includes a test that fails without the fix, or explains why not. |
+| The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior is checked by agent evaluations such as `claude plugin eval`. | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
+| Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |
 | Run `uv run pytest` before submitting code changes; CI must pass on Linux, macOS, and Windows. | PR checks are green on all three platforms. |
 
 ## Public/private boundary
