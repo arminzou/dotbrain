@@ -25,6 +25,10 @@ def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
     """Help and error assertions match plain text; a forced-color terminal would inject ANSI codes."""
     for name in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
         monkeypatch.delenv(name, raising=False)
+    # Output carries tmp paths and host names whose length varies by machine and worker, so at the
+    # default 80 columns a phrase could wrap differently on each runner. Tests that check wrapping
+    # set their own width.
+    monkeypatch.setenv("COLUMNS", "1000")
 
 # Test fixtures across the suite create symlinks via bare `path.symlink_to(target)`, correct on
 # POSIX (target_is_directory is a no-op there) but wrong on Windows when the target is a directory:
