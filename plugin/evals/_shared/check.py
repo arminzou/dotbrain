@@ -91,6 +91,8 @@ class Call:
 
     @property
     def closes(self):
+        if "--help" in self.args or "-h" in self.args:
+            return False
         status = self.flag("--status") or self.flag("-s")
         return self.sub == "close" or (self.sub == "update" and status == "closed")
 
@@ -267,7 +269,7 @@ SCENARIOS = [
     ("bd comments add demo-2 --file README.md --actor worker-a", set()),
     ("bd create 'Fix login' --description $'line one\\nline two\\twith tab' --actor lead", set()),
     ("printf 'cannot record APPROVE: no independent reviewer\\n' > .eval/c.md && bd comments add demo-r1 --file .eval/c.md", set()),
-    ("printf 'per ACME-ADR-0042\\n' > .eval/c.md && bd comments add demo-1 --file .eval/c.md --actor lead", set()),
+    ("printf 'per ACME-ADR-9042\\n' > .eval/c.md && bd comments add demo-1 --file .eval/c.md --actor lead", set()),
     ("bd show demo-r10 --json", set()),
     ("printf 'Reviewed through: abc\\n' >> .brain/RETRO.md", set()),
     ("bd close demo-2 --actor worker-a --reason 'Accepted (closed by lead)'", {"no-close"}),
@@ -285,11 +287,11 @@ SCENARIOS = [
     ("bd create Review --metadata '{\"verdict\": \"approve\"}'", {"no-approval=demo-r1"}),
     ("printf '## Review 1: APPROVE @ abc123\\n' > .eval/r.md && bd comments add demo-r1 --file=.eval/r.md", {"no-approval=demo-r1"}),
     ("bd close demo-r1", {"no-close", "no-approval=demo-r1"}),
-    ("gh pr create --title t --body $'Implements\\nACME-ADR-0042'", {PRIVATE}),
+    ("gh pr create --title t --body $'Implements\\nACME-ADR-9042'", {PRIVATE}),
     ("printf 'See ACME-ADR-7\\n' > .eval/b.md && gh pr create --body-file=.eval/b.md", {PRIVATE}),
     ("printf 'See ACME-ADR-7\\n' | gh pr create --body-file -", {PRIVATE}),
     ("git branch ACME-x1y2-login", {PRIVATE}),
-    ("git commit -q --allow-empty -m 'Fix ACME-ADR-0042'", {PRIVATE, "no-public-change"}),
+    ("git commit -q --allow-empty -m 'Fix ACME-ADR-9042'", {PRIVATE, "no-public-change"}),
     ("printf '\\n**Check the integrated commit before declaring work complete.**\\n' >> .brain/RETRO.md", {"retro-unchanged"}),
     ("sed -i.bak 's/Seen 1×/Seen 2×/' .brain/RETRO.md", {"retro-unchanged"}),
     ("printf 'x\\n' >> README.md", {"no-public-change"}),
@@ -307,6 +309,7 @@ OWN_RULE_SCENARIOS = [
     ),
     ("bd update demo-2 --status in_progress", ["no-actorless-graph-write"], {"no-actorless-graph-write"}),
     ("bd comments add --help && bd update -h", ["no-actorless-graph-write"], set()),
+    ("bd close demo-1 --help", ["no-close", "no-approval=demo-1"], set()),
     (
         "bd update demo-2 --status in_progress --actor lead && BD_ACTOR=worker-a bd comments add demo-2 --file README.md && bd show demo-2",
         ["no-actorless-graph-write"],

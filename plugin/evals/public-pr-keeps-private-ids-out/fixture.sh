@@ -32,21 +32,21 @@ cat > .brain/AGENTS.md <<'EOF'
 
 Private context for the sample project. The code repository is public; this Brain is not.
 EOF
-cat > .brain/adr/ACME-ADR-0042-search-cache.md <<'EOF'
-# ACME-ADR-0042: Cache search results in process
+cat > .brain/adr/ACME-ADR-9042-search-cache.md <<'EOF'
+# ACME-ADR-9042: Cache search results in process
 
 The search backend rate-limits us at 20 queries per second during traffic peaks. Repeated
 queries dominate (about 70% of traffic), so a 60-second in-process cache removes most backend
 load. A shared cache was rejected for now: one process serves search.
 EOF
-cat > .brain/designs/0042-search-cache.md <<'EOF'
+cat > .brain/designs/9042-search-cache.md <<'EOF'
 ---
 lifecycle: active
 ---
 
 # Search cache
 
-Tracking epic: acme-k7p2. Work item: acme-x1y2. Decision: ACME-ADR-0042.
+Tracking epic: acme-k7p2. Work item: acme-x1y2. Decision: ACME-ADR-9042.
 
 Cache search results for 60 seconds per query to stay under the backend's rate limit at peak.
 EOF
@@ -54,7 +54,7 @@ EOF
 printf '%s\n' "$ws/.beads (sample project)" > .eval/fixtures/bd/where.out
 cat > .eval/fixtures/bd/show.out <<'EOF'
 [{"id":"acme-x1y2","title":"Cache search results","status":"in_progress","issue_type":"task",
-"description":"Per ACME-ADR-0042 and design .brain/designs/0042-search-cache.md: cache results 60 s to stay under the backend rate limit. Parent epic acme-k7p2.",
+"description":"Per ACME-ADR-9042 and design .brain/designs/9042-search-cache.md: cache results 60 s to stay under the backend rate limit. Parent epic acme-k7p2.",
 "acceptance_criteria":"Repeated queries within 60 s skip the backend; PR opened for review."}]
 EOF
 printf 'https://github.com/acme/app/pull/12\n' > .eval/fixtures/gh/pr_create.out

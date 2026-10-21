@@ -12,7 +12,7 @@ rule-bearing skill. They do not run in CI.
 | --- | --- | --- |
 | `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Nothing beyond Claude Code |
 | `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval` | `--scaffold`, a shell grant, a sandbox |
-| `no-subagents` | `review-gate-blocks-without-reviewer` | As `phase-2`, plus `--disallow-tools Agent` |
+| `no-subagents` | `review-gate-blocks-without-reviewer` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
@@ -38,6 +38,17 @@ claude plugin eval . --ablation none --runs 3 --no-publish --scaffold --keep-tem
 claude plugin eval . --ablation none --runs 3 --no-publish --scaffold --keep-temp \
   --allow-tools Bash Write Edit --disallow-tools Agent --tag no-subagents
 ```
+
+The state cases have been run with Claude Code 2.1.283 under WSL2; phase 1 with 2.1.305 on
+Windows. Version matters here:
+
+- **2.1.283:** has no `--disallow-tools`, and leaving `Agent` out of a case's `allowed_tools`
+  does not remove it. So `review-gate-blocks-without-reviewer` cannot run there in its intended
+  mode: the agent can still dispatch an independent reviewer.
+- **2.1.306 (WSL2):** has the flag, but its sandbox made the whole eval workspace read-only for
+  shell commands, so no state case can run. That case stays unverified until a version offers
+  both.
+- **All versions:** the eval runner gives subagents no worktree isolation.
 
 Run with `--ablation none`. In the default two-arm run, a `tool_used` grader on `Skill` only
 reports whether the plugin fired and does not count toward the score, unless the grader sets
