@@ -262,7 +262,8 @@ def test_the_cli_reports_a_brain_without_a_site(home: Path, monkeypatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
     result = CliRunner().invoke(app, ["site", "build", "--project", "demo"])
     assert result.exit_code == 1
-    assert "dotbrain site init" in result.output
+    # The message carries a tmp path, so where it wraps depends on the path's length.
+    assert "dotbrain site init" in " ".join(result.output.split())
 
 
 def test_cli_named_brain_only_init_is_repeatable_json(home: Path, brain: Path):
