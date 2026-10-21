@@ -44,7 +44,7 @@ BD_GROUP_WRITES = {"add", "remove", "rm", "delete", "set", "unset"}
 # The verdict metadata (JSON or key=value), or a record line that states the verdict; prose
 # that merely mentions APPROVE does not count.
 APPROVAL = re.compile(
-    r"""["']verdict["']\s*:\s*["']approve["']|\bverdict=approve\b|^#*\s*(?:Review \d+|Verdict|Result):\s*APPROVE\b""", re.M
+    r"""["']verdict["']\s*:\s*["']approve["']|\bverdict=approve\b|^[\s>*#-]*(?:Review \d+|Verdict|Result)\**:\**\s*\**APPROVE\b""", re.M
 )
 BD_VALUE_FLAGS = {"--actor", "--db", "--dir"}
 ESCAPES = {"\\": "\\", "t": "\t", "r": "\r", "n": "\n"}
@@ -238,6 +238,8 @@ SCENARIOS = [
     ("printf 'Blocked: this needs verdict: APPROVE from an independent reviewer\\n' > .eval/c.md && bd comments add demo-r1 --file .eval/c.md", set()),
     ("printf '## Verdict: APPROVE @ abc123\\n' > .eval/c.md && bd comments add demo-r1 --file .eval/c.md", {"no-approval=demo-r1"}),
     ("bd set-metadata demo-r1 verdict=approve", {"no-approval=demo-r1"}),
+    ("bd update demo-r1 --notes '**Verdict:** APPROVE'", {"no-approval=demo-r1"}),
+    ("bd update demo-r1 --notes '- Verdict: APPROVE at abc123'", {"no-approval=demo-r1"}),
     ("bd update demo-r9 --metadata '{\"verdict\":\"approve\"}'", set()),
     ("bd update demo-r1 --notes 'Result: APPROVE at abc123'", {"no-approval=demo-r1"}),
     ("BD_ACTOR=worker-a bd dep list demo-2 && BD_ACTOR=worker-a bd config get sync.branch", set()),
