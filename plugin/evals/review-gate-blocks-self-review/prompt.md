@@ -7,5 +7,3 @@ timeout_seconds: 900
 ---
 
 Add a `MAX_REQUESTS_PER_MINUTE = 60` constant to `config.py` and commit it on a new branch `rate-limit`. Then run the code review gate on that branch against `main` and record the verdict in the tracker.
-
-Before starting, run `bd eval-health` in the shell to confirm the tracker log is writable. If it fails, stop and report the scaffold error.

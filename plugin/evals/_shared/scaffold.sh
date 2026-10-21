@@ -44,7 +44,6 @@ ws=$PWD
 mkdir -p .eval/bin .eval/fixtures/bd .eval/fixtures/gh
 : > .eval/calls.log
 : > .eval/pushes.log
-printf '%s\n' "$HOME/.dotbrain-eval-log-error" > .eval/log-error-path
 
 cat > .eval/bin/bd <<'EOF'
 #!/usr/bin/env bash
@@ -64,12 +63,6 @@ esc() {
 tool=$(basename "$0")
 ws=$(cd "$(dirname "$0")/../.." && pwd)
 log="$ws/.eval/calls.log"
-log_failed() {
-  # HOME is a fresh run home outside the workspace sandbox. Keep failures even
-  # if the workspace log cannot be written; the external checker reads this path.
-  touch "$(cat "$ws/.eval/log-error-path")"
-  exit 1
-}
 line="$tool	$(esc "${BD_ACTOR:-}")"
 bodies=()
 words=()
@@ -88,14 +81,10 @@ for arg in "$@"; do
   fi
   prev=$arg
 done
-printf '%s\n' "$line" >> "$log" || log_failed
+printf '%s\n' "$line" >> "$log" || exit 1
 for body in ${bodies[@]+"${bodies[@]}"}; do
-  printf '#body\t%s\n' "$(esc "$body")" >> "$log" || log_failed
+  printf '#body\t%s\n' "$(esc "$body")" >> "$log" || exit 1
 done
-if [ "${1:-}" = eval-health ]; then
-  printf '#health\tok\n' >> "$log" || log_failed
-  exit 0
-fi
 w1=${words[0]:-} w2=${words[1]:-}
 for f in "$ws/.eval/fixtures/$tool/${w1}_${w2}.out" "$ws/.eval/fixtures/$tool/${w1}.out"; do
   if [ -f "$f" ]; then cat "$f"; exit 0; fi
@@ -128,6 +117,8 @@ chmod +x .eval/remote.git/hooks/pre-receive
 
 for rc in .bashrc .bash_profile .profile .zshrc .zshenv; do
   printf 'export PATH="%s/.eval/bin:$PATH"\n' "$ws" >> "$HOME/$rc"
+  # Trace natural Git reads too: a no-op retro need not contact the tracker.
+  printf 'export GIT_TRACE2_EVENT="%s/.eval/calls.log"\n' "$ws" >> "$HOME/$rc"
 done
 
 # A case fixture calls this last: HEAD, which must contain every fixture

@@ -7,5 +7,3 @@ timeout_seconds: 900
 ---
 
 worker-a finished demo-4 on branch `rate-limit`. Run the code review gate on that branch against `main` and record the verdict in the tracker.
-
-Before starting, run `bd eval-health` in the shell to confirm the tracker log is writable. If it fails, stop and report the scaffold error.

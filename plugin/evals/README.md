@@ -73,11 +73,15 @@ python3 -I _shared/check.py <kept-workspace> --checks <case>/checks
 python3 -I _shared/check.py --selftest
 ```
 
-Every state prompt first asks the agent to run `bd eval-health`. The stub appends a
-health record only after a successful log write, and records later write errors in
-the fresh temporary home. The checker fails every rule (score 0) if that probe is
-missing or a write failed. This tests the agent's sandbox access, which may differ
-from the external checker's access. Native graders alone are never a state-case pass.
+The checker requires a logged agent call before grading state: an ordinary `bd` or
+`gh` call, or a Git command recorded by Git's built-in Trace2 logging to the same
+`.eval/calls.log`. Shell initialization enables tracing alongside the stub PATH;
+prompts need no harness instructions. This also covers a retrospective that only
+reads Git. With no logged call, every rule fails (score 0): an empty log in a
+read-only sandbox proves no must-not result. Stubs exit on log-write failure;
+neither they nor Git rely on writing the sandboxed home. The external checker
+disables tracing for its own Git reads, so it cannot supply this evidence.
+Native graders alone are never a state-case pass.
 
 The selftest plants each violation in a fresh workspace and confirms exactly the expected rules
 fail. Kept workspaces were written by the agent under test: the checker runs git there with
