@@ -425,6 +425,7 @@ def test_preview_serves_the_last_build_on_localhost_only(home: Path, brain: Path
     server = site.preview_server(out, port=0)
     try:
         assert server.server_address[0] == "127.0.0.1"
+        assert server.server_name == "127.0.0.1"  # no reverse-DNS lookup at startup
         with pytest.raises(site.SiteError, match="another preview"):
             site.preview_server(out, port=server.server_address[1])
     finally:

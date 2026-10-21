@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import socketserver
 import subprocess
 import sys
 from functools import partial
@@ -540,6 +541,12 @@ class _PreviewServer(ThreadingHTTPServer):
     # On Windows SO_REUSEADDR lets a second server bind a port already in use, and requests then
     # reach either one; elsewhere it only lets a restart reuse a port still in TIME_WAIT.
     allow_reuse_address = os.name != "nt"
+
+    def server_bind(self) -> None:
+        # HTTPServer names itself with socket.getfqdn(), a reverse-DNS lookup that can stall for
+        # tens of seconds on some networks. The address is already known; nothing needs a name.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 class _QuietHandler(SimpleHTTPRequestHandler):
