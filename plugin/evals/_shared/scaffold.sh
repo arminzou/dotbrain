@@ -33,8 +33,9 @@ if [ -n "$account_home" ] && [ -d "$account_home" ] && [ "$home" = "$(cd "$accou
   echo "scaffold: refusing to edit the account's own home: $HOME" >&2
   exit 1
 fi
-# A run's fresh home holds no SSH keys or git identity; a real home usually does.
-if [ -e "$HOME/.ssh" ] || [ -e "$HOME/.gitconfig" ]; then
+# A run's fresh home holds no SSH keys; a real home usually does. (The eval
+# runner writes its own .gitconfig there, so that file proves nothing.)
+if [ -e "$HOME/.ssh" ]; then
   echo "scaffold: refusing to edit HOME=$HOME; it looks like a real home" >&2
   exit 1
 fi
@@ -97,7 +98,8 @@ git symbolic-ref HEAD refs/heads/main
 git config user.name "Eval User"
 git config user.email eval@example.com
 git config core.autocrlf false
-printf '.eval/\n.brain/\n.beads/\n' >> .git/info/exclude
+# .claude/ is Claude Code's own bookkeeping in the workspace, not the agent's change.
+printf '.eval/\n.brain/\n.beads/\n.claude/\n' >> .git/info/exclude
 printf '# Sample project\n' > README.md
 git add README.md
 git commit -q -m "Initial commit"
