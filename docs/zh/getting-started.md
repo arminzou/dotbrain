@@ -644,7 +644,8 @@ dotbrain doctor
 ```
 
 如果项目也声明了 `claude`，Cursor 通常会通过 `.claude/skills/` 找到技能，`.cursor/skills/` 会是空的。打包的技能用自己的
-名字出现，比如 `wire-brain`。只能手动调用的技能（比如 `run-retro`）只有你输入 `/<name>` 时才会运行。
+名字出现，比如 `wire-brain`。只能手动调用的技能（比如 `run-retro`）不会出现在 Cursor 的技能列表里，
+需要你输入 `/<name>` 按名称调用。Cursor 不会阻止模型读取这些技能的 `SKILL.md` 文件。
 
 ### Cursor 会话里会发生什么 {#cursor-sessions}
 
