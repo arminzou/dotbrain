@@ -1,6 +1,7 @@
 """Pi delivery: the packaged extension's own logic and the CLI's owned copy in the Pi agent directory."""
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -39,7 +40,8 @@ def test_extension_hands_pi_the_skills_beside_it(dotbrain_home, tmp_path):
     )
     out = subprocess.run(["node", "-e", script, str(entry)], check=True, capture_output=True, text=True).stdout
     reported = json.loads(out)
-    assert reported["events"] == ["resources_discover"]
+    assert reported["events"] == ["resources_discover", "session_start", "before_agent_start", "agent_settled",
+                                  "session_shutdown"]
     assert [Path(p) for p in reported["result"]["skillPaths"]] == [entry.parent / "skills"]
     assert reported["version"] == __version__
 
@@ -176,3 +178,135 @@ def test_trust_follows_the_nearest_decision(tmp_path, entries, trusted):
     names = {"{checkout}": str(checkout), "{parent}": str(checkout.parent), "{other}": str(tmp_path / "other")}
     (tmp_path / "trust.json").write_text(json.dumps({names[k]: v for k, v in entries.items()}), encoding="utf-8")
     assert pi.trusted(tmp_path, checkout) is trusted
+
+
+# Session hooks: the extension maps Pi events onto `dotbrain hook run`. A stand-in `pi` drives the
+# handlers; spawn is redirected to a fake CLI, and timers are capped so timeouts fire quickly.
+FAKE_CLI = r"""
+const [event] = process.argv.slice(5);
+const mode = process.env.FAKE_MODE;
+if (mode === "hang") setTimeout(() => {}, 5000);
+else if (mode !== "unwired" && !["turn-end", "session-end"].includes(event)) {
+  process.stdout.write(`## dotbrain convention\n\nBODY ${event}\n`);
+}
+if (mode === "fail") process.exitCode = 1;
+"""
+PI_DRIVER = r"""
+const cp = require("node:child_process");
+const { syncBuiltinESMExports } = require("node:module");
+const { pathToFileURL } = require("node:url");
+const [entry, fakeCli, stepsJson] = process.argv.slice(1);
+const mode = process.env.FAKE_MODE;
+const realSpawn = cp.spawn;
+const spawns = [];
+cp.spawn = (cmd, args, opts) => {
+  spawns.push({ cmd, args, detached: !!opts.detached, stdio: opts.stdio, windowsHide: opts.windowsHide });
+  if (mode === "throw") throw new Error("spawn failed");
+  return realSpawn(mode === "missing" ? "dotbrain-test-missing" : process.execPath,
+                   mode === "missing" ? args : [fakeCli, ...args], opts);
+};
+syncBuiltinESMExports();
+const timeouts = [];
+const realSetTimeout = setTimeout;
+globalThis.setTimeout = (fn, ms, ...rest) => { timeouts.push(ms); return realSetTimeout(fn, Math.min(ms, 500), ...rest); };
+import(pathToFileURL(entry).href).then(async (mod) => {
+  const handlers = {};
+  mod.default({ on: (name, handler) => { handlers[name] = handler; } });
+  const results = [];
+  for (const [name, fields, cwd] of JSON.parse(stepsJson)) {
+    const event = { type: name, ...fields };
+    if (name === "before_agent_start") event.systemPromptOptions = { sections: {} };
+    const start = Date.now();
+    let returned = null, threw = false;
+    try { returned = handlers[name] ? (await handlers[name](event, { cwd })) ?? null : null; } catch { threw = true; }
+    results.push({ returned, threw, sections: event.systemPromptOptions?.sections ?? null, ms: Date.now() - start });
+  }
+  console.log(JSON.stringify({ results, spawns, timeouts }));
+});
+"""
+
+
+def _drive(tmp_path, steps, mode="wired"):
+    """Run ``steps`` (``(event, fields)`` pairs) through the extension with checkout ``tmp_path``."""
+    fake = tmp_path / "fake-dotbrain.js"
+    fake.write_text(FAKE_CLI, encoding="utf-8")
+    plan = json.dumps([[name, fields, str(tmp_path)] for name, fields in steps])
+    out = subprocess.run(["node", "-e", PI_DRIVER, str(PLUGIN_ROOT / "index.js"), str(fake), plan],
+                         env={**os.environ, "FAKE_MODE": mode}, check=True, capture_output=True, text=True).stdout
+    report = json.loads(out)
+    assert not any(r["threw"] for r in report["results"])
+    for spawn in report["spawns"]:
+        assert spawn["cmd"] == "dotbrain" and spawn["args"][:3] == ["hook", "run", "--event"]
+        assert spawn["args"][4:] == ["--checkout", str(tmp_path)]
+    return report
+
+
+def _events(report):
+    return [(s["args"][3], s["detached"]) for s in report["spawns"]]
+
+
+def _section(event):
+    return {"dotbrain": f"## dotbrain convention\n\nBODY {event}"}
+
+
+START = ("before_agent_start", {"messageType": "user", "prompt": "hi"})
+needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+
+
+@needs_node
+def test_each_session_start_reason_runs_its_event_and_refreshes_the_section(tmp_path):
+    mapping = {"startup": "startup", "resume": "resume", "new": "clear", "reload": "compaction", "fork": "compaction"}
+    steps = [step for reason in mapping for step in (("session_start", {"reason": reason}), START)]
+    report = _drive(tmp_path, steps)
+    assert _events(report) == [(event, False) for event in mapping.values()]
+    assert [r["sections"] for r in report["results"][1::2]] == [_section(e) for e in mapping.values()]
+    assert set(report["timeouts"]) == {15_000}
+
+
+@needs_node
+def test_every_run_adds_the_cached_section_without_calling_the_cli_again(tmp_path):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START, START, START,
+                               ("session_compact", {"reason": "threshold"}), START])
+    assert _events(report) == [("startup", False)]
+    runs = [r for r in report["results"] if r["sections"] is not None]
+    assert [r["sections"] for r in runs] == [_section("startup")] * 4
+    assert all(r["returned"] is None for r in runs)  # no message: nothing lands in the history
+
+
+@needs_node
+def test_unwired_checkout_gets_no_section_but_still_reaches_sync(tmp_path):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START, START,
+                               ("agent_settled", {"aborted": False}), ("session_shutdown", {"reason": "quit"})],
+                    mode="unwired")
+    assert [r["sections"] for r in report["results"][1:3]] == [{}, {}]
+    assert _events(report) == [("startup", False), ("turn-end", True), ("session-end", False)]
+
+
+@needs_node
+def test_turn_settlement_pushes_in_the_background_and_never_runs_a_full_sync(tmp_path):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), ("agent_end", {"messages": []}),
+                               ("agent_settled", {"aborted": False}), ("session_compact", {"reason": "manual"}),
+                               ("agent_settled", {"aborted": True})])
+    assert _events(report) == [("startup", False), ("turn-end", True), ("turn-end", True)]
+    for spawn in report["spawns"][1:]:
+        assert spawn["stdio"] == "ignore" and spawn["windowsHide"] is True
+
+
+@needs_node
+@pytest.mark.parametrize("reason", ["quit", "reload", "new", "resume", "fork"])
+def test_only_quit_schedules_a_full_sync(tmp_path, reason):
+    report = _drive(tmp_path, [("session_shutdown", {"reason": reason})])
+    if reason == "quit":
+        assert _events(report) == [("session-end", False)] and report["timeouts"] == [5_000]
+    else:
+        assert report["spawns"] == []
+
+
+@needs_node
+@pytest.mark.parametrize("mode", ["fail", "hang", "missing", "throw"])
+def test_cli_failures_fail_open(tmp_path, mode):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START, ("agent_settled", {"aborted": False}),
+                               ("session_shutdown", {"reason": "quit"})], mode=mode)
+    assert report["results"][1]["sections"] == {}
+    assert [event for event, _ in _events(report)] == ["startup", "turn-end", "session-end"]
+    assert report["results"][0]["ms"] < 4000  # bounded: the hung CLI is abandoned
