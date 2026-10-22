@@ -1,10 +1,10 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, hermes, opencode, paths, pi, projects, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, runtimes, skills, subagents
 
 # The owned plugin delivery of each runtime that has no marketplace install.
-HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi}
+HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi, "cursor": cursor}
 
 
 def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str) -> tuple[str, ...]:
@@ -37,8 +37,15 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     if kind == "skills" and legacy.exists():
         raise ValueError(f"{legacy}: legacy selection; move skills into .brain/project.yaml")
     if kind == "skills":
-        result = skills.link_project(home, target.brainspace, workspaces,
+        other_workspaces = tuple(ws for ws in workspaces if ws != ".cursor")
+        result = skills.link_project(home, target.brainspace, other_workspaces,
                                      config.load_project_skills(home, target.project), workspace_dirs=workspace_dirs)
+        if ".cursor" in workspaces:
+            cursor_result = cursor.deliver(home, workspace_dirs[".cursor"] / "skills",
+                                           config.load_project_skills(home, target.project),
+                                           scopes=(target.checkout, Path.home()))
+            for field in ("linked", "pruned", "warnings"):
+                getattr(result, field).extend(getattr(cursor_result, field))
     else:
         names = subagents.project_link_set(config.load_project_subagents(home, target.project))
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names, workspace_dirs=workspace_dirs)
@@ -47,7 +54,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
         directory = workspace_dirs[workspace] / ("skills" if kind == "skills" else "agents")
         if directory.is_dir():
             for entry in directory.iterdir():
-                roots = (home / "skills", home / ".cache/skills") if kind == "skills" else (home / "agents", home / ".cache/agents")
+                roots = (home / "skills", home / ".cache/skills", cursor.plugin_dir(home)) if kind == "skills" else (home / "agents", home / ".cache/agents")
                 if (entry.is_symlink() and any(skills._points_into(entry, root) for root in roots)) or (kind == "agents" and subagents.is_managed_copy(entry)):
                     linked_entries.append(f"{workspace}/{kind}/{entry.name}")
     if linked_entries or result.pruned:
@@ -92,6 +99,8 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
            else subagents.load_global_config(home))
     user_home = user_home or Path.home()
     targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all")
+    if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
+        targets.setdefault("cursor", str(user_home / ".cursor/skills"))
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known
@@ -118,7 +127,8 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     for k in keys:
         dest = destinations[k]
         if kind == "skills":
-            linked = skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True)
+            linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
+                      skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
         else:
             linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
                                                label=k, preserve_collisions=True, runtime=k)

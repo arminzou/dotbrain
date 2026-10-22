@@ -532,7 +532,7 @@ class UnwireResult:
 
 def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home).resolve()
-    source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents")]
+    source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents", ".cache/cursor")]
     links: list[Path] = []
     for name in (rt.workspace for rt in runtimes.RUNTIMES.values()):
         workspace = Path(repo) / name

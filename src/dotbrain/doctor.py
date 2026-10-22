@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, config, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -145,6 +145,8 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
             configured.update(cfg.targets)
             targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False)
+            if kind == "skills" and cursor.global_delivery(root):
+                targets.setdefault("cursor", str(home / ".cursor/skills"))
             for runtime, destination in targets.items():
                 recognized = runtimes.find(runtime)
                 if recognized is None or recognized.key != runtime or (kind == "agents" and not recognized.subagents):
@@ -153,7 +155,10 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                                             "correct global asset targets or upgrade dotbrain"))
                     continue
                 receiver = adopter_repos.expand_path(destination, home=home)
-                findings.extend(_check_assets(root, receiver, selected, kind, runtime))
+                if runtime == "cursor" and kind == "skills":
+                    findings.extend(_check_cursor_skills(root, cfg.global_extra, (home,)))
+                else:
+                    findings.extend(_check_assets(root, receiver, selected, kind, runtime))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
@@ -165,6 +170,24 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             directory = runtimes.user_dir(rt, home)
             findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
                             else _check_home_plugin(rt, directory))
+    if "cursor" in configured or cursor.owned(root):
+        findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
+    return findings
+
+
+def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> list[Finding]:
+    visible = cursor.discovered(*scopes)
+    findings = []
+    for name, source in cursor.sources(root, selection).items():
+        seen = visible.get(name, set())
+        if not seen:
+            findings.append(Finding("error", f"cursor: skill {name} delivery is missing", "run dotbrain skills link --runtime cursor in this scope"))
+        elif source.resolve() not in seen:
+            findings.append(Finding("warn", f"cursor: foreign skill {name} shadows delivery", "inspect Cursor skill discovery roots"))
+    for name, seen in visible.items():
+        if len(seen) > 1:
+            findings.append(Finding("warn", f"cursor: duplicate skill {name}: {', '.join(map(str, sorted(seen)))}",
+                                    "retain one skill source across Cursor discovery roots"))
     return findings
 
 
@@ -399,8 +422,14 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 continue
             rt = runtimes.for_workspace(workspace)
             runtime = rt.key
-            findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
-            entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)
+            if runtime == "cursor":
+                findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home())))
+                entries.extend(f"/{workspace}/skills/{entry.name}" for entry in (directory / "skills").glob("*")
+                               if entry.is_symlink() and any(skills._points_into(entry, source)
+                                   for source in (root / "skills", cursor.plugin_dir(root))))
+            else:
+                findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
+                entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
@@ -422,6 +451,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
         elif rt.home_env:
             findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
+        if rt.name == "cursor":
+            findings.extend(_check_home_plugin(rt, root))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings

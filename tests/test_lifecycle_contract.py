@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, assets, beads, doctor, hermes, opencode, pi, runtimes, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, cursor, doctor, hermes, opencode, pi, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -417,6 +417,60 @@ def test_pi_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         if sibling is not None:
             assert linked(sibling) == ['one', 'two']
         assert pi.state(agent_dir) == 'current'
+
+
+@pytest.mark.parametrize('other_runtime', [False, True])
+def test_cursor_project_lifecycle(lifecycle, monkeypatch, tmp_path, other_runtime):
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    user = tmp_path / 'user'
+    monkeypatch.setattr(Path, 'home', lambda: user)
+    home, brainspace, main, worktree = lifecycle
+    for name in ('one', 'two'):
+        source = home / 'skills' / name
+        source.mkdir(parents=True)
+        (source / 'SKILL.md').write_text(f'---\nname: {name}\n---\nBody\n', encoding='utf-8')
+        (source / 'support.md').write_text('support', encoding='utf-8')
+
+    def declare(selection):
+        agents = '[cursor, codex]' if other_runtime else '[cursor]'
+        (brainspace / '.brain/project.yaml').write_text(
+            f'agents: {agents}\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+
+    def selected(checkout):
+        return set(cursor.discovered(checkout)) & {'one', 'two'}
+
+    declare('[one]')
+    for checkout in (main, worktree):
+        foreign = checkout / '.cursor/skills/mine'
+        foreign.mkdir(parents=True)
+        (foreign / 'SKILL.md').write_text('mine', encoding='utf-8')
+        assert not workflows.wire_project(dotbrain_home=home, repo=checkout).errors
+        assert selected(checkout) == {'one'}
+        assert not (checkout / '.cursor/agents').exists()
+        assert (checkout / '.cursor/skills/one').exists() is not other_runtime
+        assert all(len(found) == 1 for found in cursor.discovered(checkout).values())
+        report = doctor.run_doctor(home, home=user, cwd=checkout)
+        assert not [f for f in report.projects['custom'] if f.status in ('error', 'warn')], report.projects['custom']
+
+    for selection, expected in (('[two]', {'two'}), ('[]', set())):
+        declare(selection)
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            before = selected(sibling)
+            assert not workflows.refresh_projects(home, cwd=checkout).errors
+            assert selected(checkout) == expected
+            assert selected(sibling) == before
+            assert (checkout / '.cursor/skills/mine/SKILL.md').read_text() == 'mine'
+
+    declare('[one, two]')
+    for checkout in (main, worktree):
+        assert not workflows.refresh_projects(home, cwd=checkout).errors
+    for checkout, sibling in ((worktree, main), (main, None)):
+        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+        assert selected(checkout) == set()
+        assert cursor.discovered(checkout) == {'mine': {(checkout / '.cursor/skills/mine').resolve()}}
+        if sibling:
+            assert selected(sibling) == {'one', 'two'}
+        assert cursor.state(home) == 'current'
 
 
 def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
