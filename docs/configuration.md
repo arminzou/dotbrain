@@ -111,7 +111,7 @@ skills:                       # extra skills for this project's workspaces
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `execution-engine` | `beads` | The private execution backend |
-| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, `hermes` ([Linux only](getting-started.md#hermes)), `opencode` ([native Windows only](getting-started.md#opencode)), or `pi` |
+| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), or [`pi`](getting-started.md#pi) |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |

@@ -124,7 +124,7 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   sync and returns. Whether Codex fires `Stop` for the main thread only, and whether it runs the
   `Stop` hook in the background, is not yet verified. Stop and session-end syncs exit at once if
   another sync is running, and a push-only sync returns quickly.
-- **Hermes** (Linux only; see [Hermes on Linux](getting-started.md#hermes)) runs the hooks once
+- **Hermes** (see [Hermes](getting-started.md#hermes)) runs the hooks once
   the plugin is enabled. Before the first model request of a session, the plugin runs
   `dotbrain hook run --event startup` and adds the convention to that first user message, not to
   the system prompt. Hermes keeps it in the session history, so a resumed session runs `resume` for
@@ -133,7 +133,7 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   must stay below that size. Hermes fires its own session-end hook after every turn, so that hook
   starts the `turn-end` push in the background. A real exit runs `session-end`. Delegated child
   agents get no convention and no sync.
-- **OpenCode** (native Windows only; see [OpenCode on Windows](getting-started.md#opencode)) runs
+- **OpenCode** (see [OpenCode](getting-started.md#opencode)) runs
   the hooks once the plugin file is in its config directory. Before the first model request of a
   session, the plugin runs `dotbrain hook run --event startup` and adds the convention to the
   system prompt of every request in that session; a session this OpenCode process did not create,
@@ -143,7 +143,7 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   each idle session. Killing OpenCode or closing its window skips that step; the next session
   start syncs what was left. A config reload also shuts the plugin down, but while a session is
   still running it only pushes. Task subagents get no convention and no sync.
-- **Pi** (native Windows only; see [Pi on Windows](getting-started.md#pi)) runs the hooks once the
+- **Pi** (see [Pi](getting-started.md#pi)) runs the hooks once the
   extension is in its agent directory. At each session start, the extension runs
   `dotbrain hook run` (`startup`, `resume`, `clear` for `/new`, and `compaction` for a reload or
   fork) and adds the convention as a system prompt section on every run of that session. After

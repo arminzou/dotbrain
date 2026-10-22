@@ -107,7 +107,7 @@ skills:                       # extra skills for this project's workspaces
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
 | `execution-engine` | `beads` | 私有的执行后端 |
-| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、`hermes`（[只限 Linux](getting-started.md#hermes)）`opencode`（[只限原生 Windows](getting-started.md#opencode)）或 `pi` |
+| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode) 或 [`pi`](getting-started.md#pi) |
 | `public-tracker` | `none` | 公开的任务入口：`none`、`gh` 或 `linear` |
 | `public-tracker-id` | — | 任务跟踪的标识，比如 GitHub 的 `owner/repo` |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |

@@ -11,7 +11,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes). So do OpenCode and Pi, on native Windows only: see [OpenCode on Windows](#opencode) and [Pi on Windows](#pi) |
+| Claude Code or Codex | Either runtime, or both. Hermes, OpenCode, and Pi work too: see [Hermes](#hermes), [OpenCode](#opencode), and [Pi](#pi) |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -331,13 +331,12 @@ JSON finding severity `advisory` is now `warning`, matching the existing warning
 Update scripts that match the old value; it is no longer emitted. Other result fields and exit
 codes are unchanged, and warnings alone still exit successfully. See [CLI Reference](cli-reference.md).
 
-## Hermes on Linux {#hermes}
+## Hermes {#hermes}
 
 Dotbrain also delivers to the [Hermes Agent](https://github.com/NousResearch/hermes-agent) CLI.
 
 ::: warning Limits
-- Hermes support is tested on Linux only: the Hermes CLI on Ubuntu 24.04. It is not supported on
-  Windows, and not tested on macOS or with the Hermes messaging gateway.
+- Hermes support is tested with the Hermes CLI. The Hermes messaging gateway is not tested.
 - Dotbrain ships no subagents for Hermes, so Hermes has no native dotbrain workers. In
   `run-execution` it works only as the lead.
 - Hermes loads project skills only from a checkout you trust. Trust each checkout, including each
@@ -424,14 +423,13 @@ Also delete dotbrain's global skill links under `~/.hermes/skills/`, if you sele
 plugin copy, `dotbrain bootstrap` no longer delivers to Hermes, unless you run it with
 `--runtime hermes` or `skills/skills.yaml` names a `hermes` target.
 
-## OpenCode on Windows {#opencode}
+## OpenCode {#opencode}
 
 Dotbrain also delivers to the [OpenCode](https://opencode.ai) CLI.
 
 ::: warning Limits
-- OpenCode support is tested on native Windows only: Windows 11 with OpenCode 1.18.35, through
-  `opencode run`. Other operating systems, other OpenCode releases, and the OpenCode TUI, desktop
-  app, and server are not tested.
+- OpenCode support is tested with OpenCode 1.18.35, through `opencode run` and the TUI. Other
+  OpenCode releases, and the OpenCode desktop app and server, are not tested.
 - Dotbrain ships no subagents for OpenCode, so OpenCode has no native dotbrain workers. In
   `run-execution` it works only as the lead.
 - Remove any links to dotbrain's skills or copies of them that you made yourself, such as a
@@ -541,13 +539,12 @@ Delete both before you run `dotbrain bootstrap` again: while one of them is stil
 unfiltered bootstrap puts the other one back. Once both are gone, `dotbrain bootstrap` no longer
 delivers to OpenCode, unless you run it with `--runtime opencode`. Restart OpenCode afterwards.
 
-## Pi on Windows {#pi}
+## Pi {#pi}
 
 Dotbrain also delivers to the [Pi](https://github.com/earendil-works/pi) coding agent CLI.
 
 ::: warning Limits
-- Pi support is tested on native Windows only: Windows 11 with Pi 1.4.0. Other operating systems
-  and other Pi releases are not tested.
+- Pi support is tested with Pi 1.4.0. Other Pi releases are not tested.
 - Dotbrain ships no subagents for Pi, so Pi has no native dotbrain workers. In `run-execution` it
   works only as the lead.
 - Manual-only skills, such as `run-retro`, are hidden from the model and run only when you type
