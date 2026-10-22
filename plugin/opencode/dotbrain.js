@@ -17,13 +17,15 @@
  * wiring, assembles the convention and syncs; this file only maps events and caches what the CLI
  * printed, and only in git projects:
  *
- * - the first `chat.message` of a root session runs `startup` (`resume` for a session this instance
- *   did not see created) and caches the convention; `experimental.chat.system.transform` adds it to
- *   every request of that session, since OpenCode rebuilds the system prompt each time;
+ * - the first `chat.message` of a confirmed root session runs `startup` (`resume` for a session this
+ *   instance did not see created) and caches the convention; `experimental.chat.system.transform`
+ *   adds it to every request of that session, since OpenCode rebuilds the system prompt each time;
  * - `session.compacted` runs `compaction` and refreshes the cached convention;
  * - `session.idle` ends every run loop: `turn-end` pushes in the background;
- * - `dispose` tears the instance down, as on exit: `session-end` schedules a full sync;
- * - child sessions (task subagents, which have a `parentID`) get no convention and no sync.
+ * - `dispose` tears the instance down: `session-end` schedules a full sync for each idle session,
+ *   and a session still running only pushes, since config reload disposes mid-run too;
+ * - child sessions (task subagents, which have a `parentID`) and sessions OpenCode cannot classify
+ *   get no convention and no sync.
  *
  * Every hook fails open: OpenCode gives hooks no timeout and a throwing hook fails the prompt, so a
  * missing, failing or slow `dotbrain` leaves the agent untouched.
@@ -123,10 +125,8 @@ function denyLast(permission, names) {
   return rules
 }
 
-// The CLI's session start waits at most 10 s for sync.
+// The CLI's session start waits at most 10 s for sync; this caps the session lookup and the CLI call.
 const START_TIMEOUT_MS = 12_000
-// First line of every convention `dotbrain hook run` prints.
-const HEADING = "## dotbrain convention"
 
 function isExecutable(target) {
   try {
@@ -165,7 +165,7 @@ function spawnCli(event, checkout, options) {
 }
 
 /** What `dotbrain hook run` printed for this event; "" when it is absent, fails or overruns. */
-function hookRun(event, checkout) {
+function hookRun(event, checkout, ms = START_TIMEOUT_MS) {
   return new Promise((resolve) => {
     let out = ""
     let child
@@ -173,7 +173,7 @@ function hookRun(event, checkout) {
     const timer = setTimeout(() => {
       child?.kill()
       resolve("")
-    }, START_TIMEOUT_MS)
+    }, Math.max(ms, 0))
     const done = (text) => {
       clearTimeout(timer)
       resolve(text)
@@ -191,6 +191,13 @@ function launch(event, checkout) {
   spawnCli(event, checkout, { detached: true, stdio: "ignore" })?.unref()
 }
 
+/** `promise`, or undefined once `ms` pass first. */
+function within(promise, ms) {
+  let timer
+  const late = new Promise((resolve) => (timer = setTimeout(resolve, ms)))
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer))
+}
+
 /** `hook`, made never to throw or reject. */
 function failOpen(hook) {
   return async (...args) => {
@@ -205,15 +212,25 @@ function failOpen(hook) {
 function sessionHooks(client, checkout) {
   const created = new Set() // sessions this instance saw created
   const children = new Set() // child sessions: no convention, no sync
+  const roots = new Set() // sessions confirmed as roots: the only ones that sync
+  const busy = new Set() // root sessions between a message and the end of their run loop
   const conventions = new Map() // root session id -> Promise of its convention ("" when unwired)
 
-  async function isChild(id) {
-    if (children.has(id)) return true
-    if (created.has(id)) return false
+  function forget(id) {
+    roots.delete(id)
+    busy.delete(id)
+    conventions.delete(id)
+  }
+
+  /** "root", "child", or undefined when OpenCode cannot say within `ms`. */
+  async function role(id, ms) {
+    if (children.has(id)) return "child"
+    if (created.has(id)) return "root"
     try {
-      return Boolean((await client.session.get({ path: { id } }))?.data?.parentID)
+      const info = (await within(client.session.get({ path: { id } }), ms))?.data
+      return info?.id ? (info.parentID ? "child" : "root") : undefined
     } catch {
-      return false // an unknown session counts as a root: missing the convention costs more
+      return undefined
     }
   }
 
@@ -222,36 +239,47 @@ function sessionHooks(client, checkout) {
       if (!sessionID || children.has(sessionID)) return
       if (!conventions.has(sessionID)) {
         const event = created.has(sessionID) ? "startup" : "resume"
-        conventions.set(sessionID, isChild(sessionID).then((child) => {
-          if (!child) return hookRun(event, checkout)
-          children.add(sessionID)
-          conventions.delete(sessionID)
+        const deadline = Date.now() + START_TIMEOUT_MS // one cap for the lookup and the CLI
+        conventions.set(sessionID, role(sessionID, START_TIMEOUT_MS).then((found) => {
+          if (found === "root" && !children.has(sessionID)) {
+            roots.add(sessionID)
+            return hookRun(event, checkout, deadline - Date.now())
+          }
+          // A child, or unknown until a later message: a missed convention beats a child's sync.
+          if (found === "child") children.add(sessionID)
+          forget(sessionID)
           return ""
         }))
       }
+      busy.add(sessionID)
       await conventions.get(sessionID)
     }),
     "experimental.chat.system.transform": failOpen(async ({ sessionID } = {}, output) => {
       if (!sessionID || !conventions.has(sessionID)) return
       const text = await conventions.get(sessionID)
-      if (text && !output.system.some((part) => part.includes(HEADING))) output.system.push(text)
+      if (text && !output.system.some((part) => part.includes(text))) output.system.push(text)
     }),
     event: failOpen(async ({ event } = {}) => {
       const props = event?.properties ?? {}
       if (event?.type === "session.created" && props.info?.id) {
         created.add(props.info.id)
-        if (props.info.parentID) children.add(props.info.id)
-      } else if (event?.type === "session.compacted" && conventions.has(props.sessionID)) {
+        if (props.info.parentID) {
+          children.add(props.info.id)
+          forget(props.info.id)
+        }
+      } else if (event?.type === "session.compacted" && roots.has(props.sessionID)) {
         const old = conventions.get(props.sessionID)
         conventions.set(props.sessionID, hookRun("compaction", checkout).then(async (text) => text || (await old)))
-      } else if (event?.type === "session.idle" && conventions.has(props.sessionID)) {
+      } else if (event?.type === "session.idle" && roots.has(props.sessionID)) {
+        busy.delete(props.sessionID)
         launch("turn-end", checkout)
       }
     }),
-    // Awaited at instance teardown (exit, quit, config reload); a killed process skips it.
+    // Awaited at instance teardown: exit and quit, but also config reload and worktree removal,
+    // while runs may still be cancelling; a running session only pushes. A killed process skips it.
     dispose: failOpen(() => {
-      for (const _ of conventions.keys()) launch("session-end", checkout)
-      conventions.clear()
+      for (const id of roots) launch(busy.has(id) ? "turn-end" : "session-end", checkout)
+      for (const id of [...roots]) forget(id)
     }),
   }
 }

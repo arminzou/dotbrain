@@ -25,13 +25,15 @@ HARNESS = r"""
 import { pathToFileURL } from "node:url"
 let raw = ""
 for await (const chunk of process.stdin) raw += chunk
-const { plugin, input, parents, getFails, fastTimers, steps } = JSON.parse(raw)
+const { plugin, input, parents, lookup, fastTimers, steps } = JSON.parse(raw)
 if (fastTimers) {
   const real = globalThis.setTimeout
   globalThis.setTimeout = (fn, ms, ...rest) => real(fn, Math.min(ms, 300), ...rest)
 }
 input.client = { session: { get: async ({ path }) => {
-  if (getFails) throw new Error("no server")
+  if (lookup === "fails") throw new Error("no server")
+  if (lookup === "hangs") return new Promise(() => {})
+  if (lookup === "empty") return { error: "not found" }
   return { data: { id: path.id, ...(parents[path.id] ? { parentID: parents[path.id] } : {}) } }
 } } }
 const hooks = await (await import(pathToFileURL(plugin).href)).default.server(input)
@@ -91,7 +93,7 @@ class OpenCode:
         shutil.copyfile(PLUGIN, tmp_path / "plugins" / "dotbrain.js")
         (tmp_path / "package.json").write_text('{"type": "module"}\n', encoding="utf-8")
         (tmp_path / "harness.mjs").write_text(HARNESS, encoding="utf-8")
-        self.vcs, self.parents, self.get_fails, self.fast_timers = "git", {}, False, False
+        self.vcs, self.parents, self.lookup, self.fast_timers = "git", {}, "ok", False
 
     def behave(self, **events):
         (self.bin / "behavior.json").write_text(json.dumps(events), encoding="utf-8")
@@ -99,7 +101,7 @@ class OpenCode:
     def play(self, *steps, path=None) -> dict:
         env = {**os.environ, "PATH": str(self.bin) if path is None else path}
         payload = {"plugin": str(self.tmp / "plugins" / "dotbrain.js"), "parents": self.parents,
-                   "getFails": self.get_fails, "fastTimers": self.fast_timers, "steps": list(steps),
+                   "lookup": self.lookup, "fastTimers": self.fast_timers, "steps": list(steps),
                    "input": {"directory": str(self.checkout), "worktree": str(self.checkout),
                              "project": {"vcs": self.vcs} if self.vcs else {}}}
         done = subprocess.run([self.node, str(self.tmp / "harness.mjs")], input=json.dumps(payload),
@@ -148,15 +150,18 @@ def event(kind, session):
     return {"op": "event", "type": kind, "properties": {"sessionID": session}}
 
 
-def test_heading_matches_the_cli():
-    assert f'const HEADING = "{hooks_mod.CONVENTION_HEADING}"' in PLUGIN.read_text(encoding="utf-8")
-
-
 def test_startup_runs_once_and_every_request_gets_the_convention(opencode):
     out = opencode.play(created("s1"), message("s1"), request("s1"), request("s1"), message("s1"), request("s1"),
                         request(), request("s1", system=f"{BASE}\n{CONVENTION}"))
     assert out["requests"] == [[CONVENTION], [CONVENTION], [CONVENTION], [], []]
     assert opencode.calls(1) == ["startup"]
+
+
+@pytest.mark.parametrize("system", [f"Instructions mention {hooks_mod.CONVENTION_HEADING} here.",
+                                    f"{BASE}\n{CONVENTION[:-2]}"])
+def test_only_the_complete_convention_counts_as_present(opencode, system):
+    out = opencode.play(created("s1"), message("s1"), request("s1", system=system))
+    assert out["requests"] == [[CONVENTION]]
 
 
 def test_a_session_not_seen_created_resumes(opencode):
@@ -179,19 +184,27 @@ def test_failed_compaction_keeps_the_cached_convention(opencode):
 
 
 def test_idle_pushes_in_the_background_and_dispose_ends_each_root_session_once(opencode):
-    opencode.play(created("s1"), message("s1"), message("s2"), event("session.idle", "s1"),
+    opencode.play(created("s1"), message("s1"), message("s2"), event("session.idle", "s1"), event("session.idle", "s2"),
                   event("session.idle", "s1"), event("session.idle", "unseen"), {"op": "dispose"}, {"op": "dispose"})
-    # Never a waiting full sync after the start: turn ends push, exit schedules one sync per session.
-    assert opencode.calls(6) == ["resume", "session-end", "session-end", "startup", "turn-end", "turn-end"]
+    # Never a waiting full sync after the start: turn ends push, teardown schedules one sync per session.
+    assert opencode.calls(7) == ["resume", "session-end", "session-end", "startup", "turn-end", "turn-end", "turn-end"]
+
+
+def test_dispose_only_pushes_for_a_session_still_running(opencode):
+    # Config reload disposes the instance mid-run: a full sync then could merge under running work.
+    opencode.play(created("idle"), message("idle"), event("session.idle", "idle"), created("running"),
+                  message("running"), created("again"), message("again"), event("session.idle", "again"),
+                  message("again"), {"op": "dispose"})
+    assert opencode.calls(8) == ["session-end", *["startup"] * 3, *["turn-end"] * 4]
 
 
 def test_children_get_no_convention_and_no_sync(opencode):
     opencode.parents = {"unseen-child": "s1"}
     out = opencode.play(created("s1"), message("s1"), created("c1", parent="s1"), message("c1"), request("c1"),
                         message("unseen-child"), request("unseen-child"), event("session.idle", "c1"),
-                        event("session.compacted", "unseen-child"), {"op": "dispose"})
+                        event("session.compacted", "unseen-child"), event("session.idle", "s1"), {"op": "dispose"})
     assert out["requests"] == [[], []]
-    assert opencode.calls(2) == ["session-end", "startup"]
+    assert opencode.calls(3) == ["session-end", "startup", "turn-end"]
 
 
 def test_unwired_checkout_stays_silent(opencode):
@@ -225,8 +238,25 @@ def test_cli_failures_fail_open(opencode, startup):
     assert opencode.calls(1) == ["startup"]  # a failed start is not retried every request
 
 
-def test_session_lookup_failure_counts_as_a_root_session(opencode):
-    opencode.get_fails = True
-    out = opencode.play(message("s1"), request("s1"))
-    assert out["requests"] == [[CONVENTION]]
+@pytest.mark.parametrize("lookup", ["fails", "empty", "hangs"])
+def test_unclassified_session_gets_no_convention_and_no_sync(opencode, lookup):
+    opencode.lookup, opencode.fast_timers = lookup, True  # a hung lookup ends at the shortened cap
+    # Also when it later turns out to be a child.
+    out = opencode.play(message("x"), request("x"), event("session.idle", "x"), event("session.compacted", "x"),
+                        created("x", parent="s1"), message("x"), request("x"), event("session.idle", "x"),
+                        {"op": "dispose"})
+    assert out["requests"] == [[], []]
+    assert opencode.calls() == []
+
+
+def test_unclassified_session_is_retried_on_its_next_message(opencode):
+    opencode.lookup = "empty"
+    opencode.play(message("x"), created("x"), message("x"))
+    assert opencode.calls(1) == ["startup"]
+
+
+def test_late_child_notice_drops_a_confirmed_root(opencode):
+    out = opencode.play(message("x"), created("x", parent="s1"), request("x"), event("session.idle", "x"),
+                        event("session.compacted", "x"), {"op": "dispose"})
+    assert out["requests"] == [[]]
     assert opencode.calls(1) == ["resume"]
