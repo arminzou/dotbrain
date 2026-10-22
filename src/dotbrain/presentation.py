@@ -258,6 +258,8 @@ def render_catalog(result) -> None:
         table(output, columns, rendered)
     noun = kind[:-1] if len(rows) == 1 else kind
     line(output, " · ".join([f"{len(rows)} {noun} available", *footer]) if rows else f"No {kind} found", "dim")
+    for finding in target.findings:
+        line(output, finding["message"], "yellow")
 
 
 def _wiring(record) -> str:

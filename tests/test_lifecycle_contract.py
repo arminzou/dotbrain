@@ -266,3 +266,14 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
         findings = report.projects['custom']
         assert not [f.message for f in findings if f.status == 'error']
         assert any(f.status == 'warn' and f.message.endswith(': later') for f in findings)
+
+    for kind in ('skills', 'agents'):
+        for json_flag in (['--json'], []):
+            listed = runner.invoke(app, [kind, 'list', '--project', 'custom', '--home', str(home), *json_flag])
+            assert listed.exit_code == 0, listed.output
+            assert 'ignored unknown agent workspace' in listed.output and ': later' in listed.output, listed.output
+    unwired = runner.invoke(app, ['unwire', '--repo', str(worktree), '--home', str(home), '--json'])
+    assert unwired.exit_code == 0, unwired.output
+    assert any(f['message'].endswith(': later') for f in json.loads(unwired.stdout)['targets'][0]['findings'])
+    assert not (worktree / '.skillsonly' / 'skills' / 'one').exists()
+    assert (worktree / '.skillsonly' / 'skills' / 'mine' / 'SKILL.md').is_file()

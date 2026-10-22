@@ -252,13 +252,13 @@ def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
-        return tuple(rt.name for rt in runtimes.RUNTIMES.values() if rt.default)
+        return runtimes.default_names()
 
     data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
 
     raw_agents = data.get("agents")
     if raw_agents is None:
-        return tuple(rt.name for rt in runtimes.RUNTIMES.values() if rt.default)
+        return runtimes.default_names()
 
     entries = raw_agents if isinstance(raw_agents, list) else [raw_agents]
     cleaned: list[str] = []

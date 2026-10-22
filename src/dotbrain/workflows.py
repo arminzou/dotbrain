@@ -392,4 +392,5 @@ def unwire_project(
     adopter_repos.ensure_wiring_matches(target.checkout, dotbrain_home, target.project)
     result = unwire_repo(target.checkout, dotbrain_home=dotbrain_home, run=run)
     result.project = target.project
+    result.warnings += brainspaces.unknown_agent_warnings(target.brainspace, dotbrain_home)
     return result

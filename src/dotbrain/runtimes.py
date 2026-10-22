@@ -53,6 +53,10 @@ def select(runtime: str) -> tuple[Runtime, ...]:
     return (found,)
 
 
+def default_names() -> tuple[str, ...]:
+    return tuple(rt.name for rt in RUNTIMES.values() if rt.default)
+
+
 def global_targets(kind: str) -> dict[str, str]:
     """Default global destinations for ``skills`` or ``agents``, keyed by global target key."""
     return {rt.key: f"~/{rt.workspace}/{kind}" for rt in RUNTIMES.values()

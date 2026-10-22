@@ -16,7 +16,9 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
         runtimes.select(runtime)
         if operation == "list":
             rows = assets.catalog(root, kind, runtime, project)
-            result.targets.append(TargetResult(project=project, scope="catalog", data={"assets": rows}))
+            warnings = [] if project is None else brainspaces.unknown_agent_warnings(paths.brainspace(root, project), root)
+            result.targets.append(TargetResult(project=project, scope="catalog", data={"assets": rows},
+                                               findings=[{"severity": "warning", "message": m} for m in warnings]))
         else:
             if scope not in {"project", "global"}:
                 raise ValueError("--scope must be project or global")

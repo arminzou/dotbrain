@@ -13,6 +13,7 @@ It depends only on ``paths``. It is intentionally not split into ``brain_seed.py
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from dotbrain import config, paths, resource_loader, runtimes
@@ -21,6 +22,15 @@ from dotbrain import config, paths, resource_loader, runtimes
 
 
 MANAGED_BRAIN_PATHS = {"DOTBRAIN.md", "adr/README.md", "designs/README.md", "docs/README.md"}
+
+
+def _seed_default_agents(template: str) -> str:
+    """List the default runtimes as the seeded project's ``agents:`` declaration."""
+    listed = "agents:\n" + "".join(f"  - {name}\n" for name in runtimes.default_names())
+    seeded, count = re.subn(r"^agents:\n(?:  - .*\n)*", lambda _: listed, template, flags=re.M)
+    if count != 1:
+        raise ValueError("package resource templates/brain/project.yaml: expected one agents list")
+    return seeded
 
 
 def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = True) -> list[str]:
@@ -55,7 +65,10 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
                 ancestor = ancestor.parent
         if not managed and dest.exists():
             continue
-        files.append((relative, dest, src.read_text(encoding="utf-8")))
+        content = src.read_text(encoding="utf-8")
+        if relative == "project.yaml":
+            content = _seed_default_agents(content)
+        files.append((relative, dest, content))
     if not (brain / "CLAUDE.md").is_symlink():
         paths.confined_path(brain, "CLAUDE.md")
     changed = []
