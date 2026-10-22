@@ -217,6 +217,8 @@ def _check_opencode_plugin(config_dir: Path, home: Path) -> list[Finding]:
                                  "run dotbrain bootstrap --runtime opencode")]
         # Harmless unless the copies differ; shown with --verbose for when a skill misbehaves.
         findings.extend(Finding("info", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
+                                f"remove {name} from your claude.ai account so Claude Code stops syncing it"
+                                if other.is_relative_to(home / ".claude/skills/synced") else
                                 f"remove {other}, or move it out of OpenCode's skill directories")
                         for name, other in opencode.duplicate_skills(config_dir, home))
         return findings
