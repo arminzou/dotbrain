@@ -45,6 +45,7 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
                     linked = assets.link_global(root, kind, runtime) if target is None else assets.link_project(root, target, kind, runtime)
                     item.changes = [f"delivered {name}" for name in linked.linked] + [f"pruned {name}" for name in linked.pruned]
                     item.errors.extend(linked.warnings)
+                    item.findings += [{"severity": "warning", "message": m} for m in linked.notices]
                     if item.errors:
                         item.status = "failure"
                 except (ValueError, RuntimeError, OSError, yaml.YAMLError, subprocess.SubprocessError) as exc:

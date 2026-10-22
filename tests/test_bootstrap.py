@@ -149,7 +149,9 @@ def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_
     (dotbrain_home / "skills" / "skills.yaml").write_text(
         f"targets:\n  skillsonly: {dest}\n  later: {later}\nglobal_extra:\n  - misc/discovery-test\n")
     for runtime in ("all", "skillsonly"):
-        assert bootstrap_mod.link_global_skills(dotbrain_home, runtime, home=tmp_path).warnings == []
+        linked = bootstrap_mod.link_global_skills(dotbrain_home, runtime, home=tmp_path)
+        assert linked.warnings == []
+        assert linked.notices == (["unsupported global skills runtime skipped: later"] if runtime == "all" else [])
         assert bootstrap_mod.link_global_subagents(dotbrain_home, runtime, home=tmp_path).warnings == []
     assert (dest / "discovery-test").is_symlink()
     assert not later.exists()

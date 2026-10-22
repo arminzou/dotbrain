@@ -81,16 +81,19 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     keys = [k for k in targets if k in known] if runtime == "all" else known
     if any(k not in targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
-    result = skills.LinkResult()
+    result = skills.LinkResult(notices=[f"unsupported global {kind} runtime skipped: {k}"
+                                        for k in targets if runtime == "all" and k not in keys])
     destinations = {k: adopter_repos.expand_path(targets[k], home=user_home) for k in keys}
     for dest in destinations.values():
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
-            return skills.LinkResult(warnings=[f"{dest}: foreign asset directory conflicts with delivery"])
+            result.warnings.append(f"{dest}: foreign asset directory conflicts with delivery")
+            return result
     resolved = {}
     if kind == "agents":
         errors = subagents.validate_selection(home, cfg.global_names, keys)
         if errors:
-            return skills.LinkResult(warnings=errors)
+            result.warnings.extend(errors)
+            return result
         resolved = {name: subagents._resolve_subagent_files(home, name) for name in cfg.global_names}
     for k in keys:
         dest = destinations[k]

@@ -30,6 +30,7 @@ class LinkResult:
     pruned: list[str] = field(default_factory=list)
     stashed: list[Path] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    notices: list[str] = field(default_factory=list)  # non-fatal: reported, but the command still succeeds
 
 
 def _clean(values: object, *, exclude: Iterable[str] = ()) -> tuple[str, ...]:

@@ -159,6 +159,7 @@ def bootstrap(
             linked = linker(root, runtime)
             target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
             target.errors.extend(linked.warnings)
+            target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
         target.errors.append(str(exc))
     if target.errors:

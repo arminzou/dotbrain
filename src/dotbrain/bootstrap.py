@@ -140,6 +140,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
 class GlobalSkillBootstrapResult:
     logs: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    notices: list[str] = field(default_factory=list)  # non-fatal warnings
 
 
 def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | None) -> GlobalSkillBootstrapResult:
@@ -150,6 +151,7 @@ def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | Non
     return GlobalSkillBootstrapResult(
         logs=[f"delivered global {name}" for name in linked.linked] + [f"pruned stale {name}" for name in linked.pruned],
         warnings=linked.warnings,
+        notices=linked.notices,
     )
 
 
