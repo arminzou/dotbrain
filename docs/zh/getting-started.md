@@ -11,7 +11,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用 |
+| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes) |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -311,6 +311,89 @@ CLI 现在使用统一的选择参数。旧的调用方式会直接报错，不�
 JSON 结果中的严重级别 `advisory` 现在改为 `warning`，与已有的 warning 结果一致。匹配旧值的脚本
 需要更新，因为旧值不会再输出。其他结果字段和退出码不变，只有 warning 时仍然以成功退出。
 详见 [CLI 参考](cli-reference.md)。
+
+## 在 Linux 上使用 Hermes {#hermes}
+
+Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 的 CLI。
+
+::: warning 限制
+- Hermes 只在 Linux 上测过：Ubuntu 24.04 上的 Hermes CLI。不支持 Windows，macOS 和 Hermes 的消息
+  gateway 也没有测过。
+- Dotbrain 不为 Hermes 提供子 Agent，所以 Hermes 没有原生的 dotbrain worker。在 `run-execution`
+  里它只能当 lead。
+- Hermes 只从你信任过的 checkout 加载项目技能。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
+- 只能手动调用的技能（比如 `dotbrain:run-retro`）会出现在 Hermes 的技能列表里，但模型加载不了。
+  要用时自己输入 `/dotbrain:<skill>`。
+- 从 Hermes 里卸载插件需要手动操作，见[卸载](#hermes-remove)。
+:::
+
+### 安装 {#hermes-setup}
+
+Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目录。先安装 CLI（见[第 2 步](#_2-get-the-cli)），
+然后运行：
+
+```bash
+dotbrain bootstrap --runtime hermes
+```
+
+这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
+`hermes plugins enable dotbrain`。如果 `PATH` 里找不到 `hermes`，或者这条命令失败了，就自己运行
+`hermes plugins enable dotbrain`。全新的 Hermes 主目录第一次运行 `hermes` 时要先准备运行环境，可能超过
+一分钟，所以启用这一步可能会超时。
+
+然后在需要 Hermes 的项目里声明它，链接技能，并信任这个 checkout：
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - hermes
+```
+
+```bash
+dotbrain refresh                   # 把选中的技能链接到 .hermes/skills/
+hermes skills trust ~/repos/my-app
+dotbrain doctor
+```
+
+插件副本缺失、过期或被禁用时，doctor 会报告；选了技能但没被信任的 checkout，doctor 也会报告。
+装好后，在 checkout 里新开一个 Hermes 会话。打包的技能显示为 `dotbrain:<skill>`，你选的私有技能用它们自己的名字。
+
+### Hermes 会话里会发生什么 {#hermes-sessions}
+
+插件通过 Hermes 的 hook 执行同样的[主目录同步](session-context.md#home-sync)，并注入约定。详见
+[Hermes 的运行时说明](session-context.md#runtime-notes)。
+
+### 更新 {#hermes-update}
+
+按[保持更新](#staying-current)升级 CLI，然后运行：
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+插件副本存在之后，不带参数的 `dotbrain bootstrap` 就会让它保持最新。Dotbrain 只替换它自己的副本，
+不会动不是它创建的目录。新的 Hermes 会话会加载更新后的插件。
+
+### 卸载 {#hermes-remove}
+
+对单个 checkout，`dotbrain unwire` 会删掉它的 Hermes 技能链接。如果想保留连接、只去掉 Hermes，就从
+`agents:` 里删掉 `hermes`，再手动删除 checkout 里 `.hermes/skills/` 下 dotbrain 创建的链接；
+`dotbrain refresh` 不会删它们。然后撤销信任：
+
+```bash
+hermes skills untrust ~/repos/my-app
+```
+
+要从 Hermes 里卸载插件，先禁用，再删除副本。插件目录删掉之后，Hermes 就没法再禁用它了。
+
+```bash
+hermes plugins disable dotbrain
+rm -rf ~/.hermes/plugins/dotbrain   # 或 $HERMES_HOME/plugins/dotbrain
+```
+
+如果你选过全局技能，也要删掉 `~/.hermes/skills/` 下 dotbrain 的链接。没有插件副本之后，`dotbrain bootstrap`
+就不会再给 Hermes 交付，除非你再用 `--runtime hermes` 运行它，或者 `skills/skills.yaml` 里写了 `hermes` 目标。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

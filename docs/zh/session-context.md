@@ -111,6 +111,13 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   hook 留的时间很短，所以这个 hook 只负责启动同步，然后立即返回。Codex 是否只在主 thread 上触发
   `Stop`，以及是否在后台运行 `Stop` hook，目前还没验证。Stop 和会话结束时的同步发现已有同步在运行，
   都会立即退出；只推送的同步也很快返回。
+- **Hermes**（只限 Linux，见[在 Linux 上使用 Hermes](getting-started.md#hermes)）在插件启用后就会运行
+  这些 hook。每个会话第一次请求模型之前，插件会运行 `dotbrain hook run --event startup`，把约定附在第一条
+  用户消息里，而不是放进 system prompt。Hermes 会把它留在会话历史里，所以恢复的会话会为同步运行 `resume`，
+  但不会再加一份。压缩把它从历史里去掉之后，下一轮会运行 `compaction`，再把它加回来。Hermes 默认会把超过
+  10,000 个字符的 hook 内容转存到文件里，所以约定必须比这个小。Hermes 每轮结束都会触发它自己的会话结束
+  hook，所以这个 hook 只在后台启动 `turn-end` 推送；真正退出时才运行 `session-end`。委派出去的子 Agent
+  不注入约定，也不同步。
 - 在不支持 hook 的运行时里，调用 `dotbrain` 技能手动加载约定，并自己运行 `dotbrain sync`。
 
 ## 子 Agent {#subagents}
@@ -119,7 +126,7 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
 Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
-比如 `dotbrain-worker`。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
+比如 `dotbrain-worker`。Hermes 没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
 不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
 
 | 子 Agent | 做什么 |

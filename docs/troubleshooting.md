@@ -195,5 +195,6 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 
 ### Which agents are supported?
 
-Claude Code and Codex. Choose which workspaces a project gets with `agents:` in
+Claude Code and Codex, and Hermes on Linux only (see [Hermes on Linux](getting-started.md#hermes)).
+Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).

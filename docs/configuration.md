@@ -33,6 +33,7 @@ asset changes use `dotbrain skills link --scope global` or `dotbrain agents link
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DOTBRAIN_HOME` | `~/dotbrain` (`%USERPROFILE%\dotbrain` on Windows) | Where Brainspaces and config live |
+| `HERMES_HOME` | `~/.hermes` | Hermes's own home; dotbrain puts its Hermes plugin copy and global Hermes skills there |
 
 ## `config.yaml`
 
@@ -108,7 +109,7 @@ skills:                       # extra skills for this project's workspaces
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `execution-engine` | `beads` | The private execution backend |
-| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo |
+| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, or `hermes` ([Linux only](getting-started.md#hermes)) |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
@@ -191,6 +192,7 @@ the private `agents/` root, not delivered copies. Dotbrain migrates owned Codex 
 overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
 filename is reported instead of replaced.
 
-Runtime flags use `--runtime claude|codex|all`. YAML target keys retain `claude-code` and `codex`.
+Runtime flags use `--runtime claude|codex|hermes|all`. YAML target keys are `claude-code`, `codex`,
+and `hermes`. Hermes has no subagent target.
 Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
 with project selectors or `--all`.
