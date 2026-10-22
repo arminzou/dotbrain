@@ -87,22 +87,37 @@ def skills():
         yield skill_md.parent.name, skill_md, _frontmatter(skill_md.read_text(encoding="utf-8"))
 
 
-def _supporting_file(file_path):
+def _supporting_file(skill_md, file_path):
     """Whether ``file_path``, which Hermes resolves against the skill directory, names a file other
-    than the SKILL.md inside it; a supporting-file read belongs to a skill the user already invoked."""
-    path = posixpath.normpath(str(file_path or "").strip().replace("\\", "/"))
-    escapes = path == ".." or path.startswith(("../", "/")) or ":" in path
-    return not (escapes or path == "." or path.casefold() == "skill.md")
+    than the skill's SKILL.md inside it; a supporting-file read belongs to a skill the user already invoked."""
+    text = str(file_path or "").strip()
+    path = posixpath.normpath(text.replace("\\", "/"))
+    if path in (".", "..") or path.startswith(("../", "/")) or ":" in path or path.casefold() == "skill.md":
+        return False
+    # The host may resolve aliases the text hides: Windows drops trailing dots, so SKILL.md. is SKILL.md.
+    root = os.path.normcase(os.path.realpath(skill_md.parent))
+    target = os.path.normcase(os.path.realpath(os.path.join(root, text)))
+    try:
+        if os.path.commonpath([root, target]) != root or target == root:
+            return False
+    except ValueError:  # another drive
+        return False
+    if target == os.path.normcase(os.path.realpath(skill_md)):
+        return False
+    return not (os.path.exists(target) and os.path.samefile(target, skill_md))
 
 
 def manual_only_veto(manual):
-    """A ``pre_tool_call`` hook that blocks the model from loading a manual-only skill."""
+    """A ``pre_tool_call`` hook that blocks the model from loading a manual-only skill.
+
+    ``manual`` maps each manual-only skill name to its SKILL.md path.
+    """
 
     def veto(tool_name="", args=None, **_):
         if tool_name != "skill_view" or not isinstance(args, dict):
             return None
         namespace, _, name = str(args.get("name") or "").strip().lstrip("/").rpartition(":")
-        if namespace == NAMESPACE and name in manual and not _supporting_file(args.get("file_path")):
+        if namespace == NAMESPACE and name in manual and not _supporting_file(manual[name], args.get("file_path")):
             return {"action": "block",
                     "message": f"{NAMESPACE}:{name} runs only when the user invokes /{NAMESPACE}:{name}."}
         return None
@@ -111,11 +126,11 @@ def manual_only_veto(manual):
 
 
 def register(ctx):
-    manual = set()
+    manual = {}
     for name, skill_md, fields in skills():
         ctx.register_skill(name, skill_md, description=fields.get("description", ""), frontmatter=fields)
         if fields.get("disable-model-invocation", "").lower() == "true":
-            manual.add(name)
+            manual[name] = skill_md
     if manual:
         ctx.register_hook("pre_tool_call", manual_only_veto(manual))
     for name, hook in HOOKS.items():

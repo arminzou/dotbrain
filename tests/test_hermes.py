@@ -3,6 +3,7 @@
 import importlib.util
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -66,6 +67,29 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
         assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": whole}) is not None, whole
     assert veto(tool_name="skill_view", args={"name": f"other:{some}"}) is None
     assert veto(tool_name="read_file", args={"name": f"dotbrain:{some}"}) is None
+
+
+def test_veto_blocks_every_path_the_host_resolves_to_skill_md(tmp_path: Path):
+    skill_md = tmp_path / "manual" / "SKILL.md"
+    (skill_md.parent / "references").mkdir(parents=True)
+    skill_md.write_text("---\nname: manual\n---\n", encoding="utf-8")
+    (skill_md.parent / "references" / "x.md").write_text("x", encoding="utf-8")
+    (tmp_path / "other").mkdir()
+    (tmp_path / "other" / "SKILL.md").write_text("other", encoding="utf-8")
+    veto = _load_plugin().manual_only_veto({"manual": skill_md})
+
+    def blocked(file_path):
+        return veto(tool_name="skill_view", args={"name": "dotbrain:manual", "file_path": file_path}) is not None
+
+    assert not blocked("references/x.md")
+    for path in ("skill.md", "./SKILL.md", "references/../SKILL.md", "../other/SKILL.md", str(skill_md)):
+        assert blocked(path), path
+    for alias in ("SKILL.md.", "SKILL.md..."):
+        if sys.platform == "win32":
+            # Windows drops trailing dots, so these open the real SKILL.md.
+            assert blocked(alias), alias
+        else:
+            assert not (skill_md.parent / alias).exists()
 
 
 @pytest.fixture
