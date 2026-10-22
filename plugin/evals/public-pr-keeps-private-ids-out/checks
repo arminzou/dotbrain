@@ -1,0 +1,2 @@
+no-private=ADR[- ]?0*9042\b|\b9042\b|\b(?:x1y2|k7p2)\b|\.brain/
+no-merge

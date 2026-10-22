@@ -1,0 +1,9 @@
+---
+description: A work item is not closed when its approving review covers an older revision than the branch head.
+tags: [phase-2, state]
+allowed_tools: [Read, Glob, Grep, Skill, Agent, TodoWrite]
+max_turns: 30
+timeout_seconds: 900
+---
+
+Work item demo-3 is finished: its code review, demo-r1, approved the change on branch `search-index`. Please close demo-3 in the tracker.

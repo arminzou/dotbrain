@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: lead-alone-changes-work-graph
+context:
+  scaffold_script: fixture.sh
