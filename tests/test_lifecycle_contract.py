@@ -473,6 +473,30 @@ def test_cursor_project_lifecycle(lifecycle, monkeypatch, tmp_path, other_runtim
         assert cursor.state(home) == 'current'
 
 
+def test_unwire_preserves_foreign_cursor_cache_links(lifecycle, monkeypatch, tmp_path):
+    home, brainspace, main, worktree = lifecycle
+    monkeypatch.setattr(Path, 'home', lambda: tmp_path / 'user')
+    (brainspace / '.brain/project.yaml').write_text(
+        'agents: [cursor]\nskills: []\nbeads:\n  mode: none\n', encoding='utf-8')
+    foreign = cursor.plugin_dir(home) / 'mine'
+    foreign.mkdir(parents=True)
+    (foreign / 'SKILL.md').write_text('mine', encoding='utf-8')
+    for checkout in (main, worktree):
+        receiver = checkout / '.cursor/skills'
+        receiver.mkdir(parents=True)
+        (receiver / 'mine').symlink_to(foreign, target_is_directory=True)
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert any('not created by dotbrain' in error for error in result.errors)
+        assert '/.cursor/skills/mine' not in adopter_repos.git_exclude_file(checkout).read_text()
+        assert (receiver / 'mine').is_symlink()
+    for checkout in (worktree, main):
+        receiver = checkout / '.cursor/skills'
+        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+        assert (receiver / 'mine').is_symlink()
+        assert (receiver / 'mine/SKILL.md').read_text() == 'mine'
+    assert not cursor.owned(home)
+
+
 def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
     home, brainspace, main, _ = lifecycle
     (brainspace / '.brain' / 'project.yaml').write_text('agents: [hermes]\nskills: []\nbeads:\n  mode: none\n',

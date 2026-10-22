@@ -1,4 +1,5 @@
 """Isolated Cursor discovery-path and owned-delivery contracts; no native sessions."""
+import json
 import shutil
 from pathlib import Path
 
@@ -103,6 +104,70 @@ def test_foreign_bundle_is_preserved_and_diagnosed(dotbrain_home, tmp_path):
     assert not (tmp_path / "user/.cursor/skills/run-execution").exists()
     findings = doctor._check_home_plugin(assets.runtimes.find("cursor"), dotbrain_home)
     assert any("not dotbrain's" in f.message for f in findings)
+
+
+def test_reconciliation_preserves_links_into_an_unowned_cursor_cache(dotbrain_home, tmp_path):
+    user = tmp_path / "user"
+    foreign = skill(cursor.plugin_dir(dotbrain_home), "mine")
+    receiver = user / ".cursor/skills"
+    receiver.mkdir(parents=True)
+    link = receiver / "mine"
+    link.symlink_to(foreign, target_is_directory=True)
+    result = cursor.deliver(dotbrain_home, receiver, (), scopes=(user,))
+    assert not result.pruned
+    assert link.is_symlink() and link.resolve() == foreign.resolve()
+    assert (link / "reference.md").read_text() == "Supporting file"
+    assert not cursor.owned(dotbrain_home)
+
+
+@pytest.mark.parametrize("project_scope", [False, True])
+@pytest.mark.parametrize("already_delivered", [False, True])
+def test_enabled_claude_plugin_supplies_packaged_skills(dotbrain_home, tmp_path, project_scope, already_delivered):
+    user = tmp_path / "user"
+    checkout = tmp_path / "checkout"
+    scopes = (checkout, user) if project_scope else (user,)
+    receiver = (checkout if project_scope else user) / ".cursor/skills"
+    if already_delivered:
+        cursor.deliver(dotbrain_home, receiver, (), scopes=scopes)
+        assert (receiver / "run-execution").is_symlink()
+    installation = user / ".claude/plugins/cache/dotbrain"
+    with resource_loader.plugin_tree() as source:
+        shutil.copytree(source / "skills", installation / "skills")
+    registry = user / ".claude/plugins/installed_plugins.json"
+    registry.write_text(json.dumps({"plugins": {"dotbrain@dotbrain": [
+        {"scope": "user", "installPath": str(installation)}]}}), encoding="utf-8")
+    settings = user / ".claude/settings.json"
+    settings.write_text(json.dumps({"enabledPlugins": {"dotbrain@dotbrain": True}}), encoding="utf-8")
+
+    result = cursor.deliver(dotbrain_home, receiver, (), scopes=scopes)
+    assert not result.warnings
+    assert not list(receiver.iterdir())
+    visible = cursor.discovered(*scopes)
+    for name in cursor.sources(dotbrain_home, ()):
+        assert visible[name] == {(installation / "skills" / name).resolve()}
+    assert not doctor._check_cursor_skills(dotbrain_home, (), scopes)
+    assert (installation / "skills/run-execution/references/cursor.md").is_file()
+
+    # A separate copy is a native duplicate even when it came from the same plugin source.
+    shutil.copytree(installation / "skills/run-execution", receiver / "run-execution")
+    findings = doctor._check_cursor_skills(dotbrain_home, (), scopes)
+    assert any("duplicate skill run-execution" in f.message for f in findings)
+    assert not cursor.deliver(dotbrain_home, receiver, (), scopes=scopes).pruned
+    assert (receiver / "run-execution").is_dir()
+
+
+@pytest.mark.parametrize("enabled", [False, None])
+def test_disabled_or_unselected_claude_plugin_is_not_discovered(dotbrain_home, tmp_path, enabled):
+    user = tmp_path / "user"
+    installation = user / ".claude/plugins/cache/example"
+    skill(installation / "skills")
+    (user / ".claude/plugins/installed_plugins.json").write_text(json.dumps({"plugins": {
+        "example@market": {"installPath": str(installation)}}}), encoding="utf-8")
+    (user / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {
+        "example@market": enabled}}), encoding="utf-8")
+    assert "example" not in cursor.discovered(user)
+    assert not cursor.deliver(dotbrain_home, user / ".cursor/skills", (), scopes=(user,)).warnings
+    assert (user / ".cursor/skills/run-execution").is_symlink()
 
 
 def test_missing_delivery_and_no_agents(dotbrain_home, tmp_path):

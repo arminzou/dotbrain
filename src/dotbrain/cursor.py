@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import owned_copy, resource_loader, skills
+from dotbrain import claude_plugins, owned_copy, resource_loader, skills
 
 KIND = "skill bundle"
 ROOTS = (".cursor/skills", ".claude/skills", ".codex/skills", ".grok/skills", ".agents/skills")
@@ -36,11 +36,16 @@ def _identity(directory: Path) -> str:
     return name if isinstance(name, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name) else directory.name
 
 
-def sources(home: Path, selection) -> dict[str, Path]:
+def sources(home: Path, selection, *, scopes: tuple[Path, ...] = ()) -> dict[str, Path]:
     selected = skills.resolve_selection(home, selection)
     with resource_loader.plugin_tree() as source:
         packaged = skills.discover_skills(source / "skills")
     result = {Path(name).name: plugin_dir(home) / "skills" / name for name in packaged}
+    for identifier, installation in claude_plugins.enabled_installs(scopes):
+        if identifier == "dotbrain@dotbrain":
+            for name in packaged:
+                if (installation / "skills" / name / "SKILL.md").is_file():
+                    result[Path(name).name] = installation / "skills" / name
     for name in selected:
         leaf = _identity(home / "skills" / name)
         if leaf in result:
@@ -70,11 +75,14 @@ def discovered(*scopes: Path, exclude: Path | None = None) -> dict[str, set[Path
             root = scope / relative
             for directory in directories(root):
                 found.setdefault(_identity(directory), set()).add(directory.resolve())
+    for _, installation in claude_plugins.enabled_installs(scopes):
+        for directory in directories(installation / "skills"):
+            found.setdefault(_identity(directory), set()).add(directory.resolve())
     return found
 
 
 def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], global_scope: bool = False) -> skills.LinkResult:
-    desired = sources(home, selection)  # validate before mutation
+    desired = sources(home, selection, scopes=scopes)  # validate before mutation
     result = skills.LinkResult()
     current = state(home)
     opted_in = global_delivery(home)
@@ -89,7 +97,7 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         result.warnings.append(f"{receiver}: foreign asset directory conflicts with delivery")
         return result
     receiver.mkdir(parents=True, exist_ok=True)
-    roots = (home / "skills", plugin_dir(home))
+    roots = (home / "skills",) + ((plugin_dir(home),) if owned(home) else ())
     elsewhere = discovered(*scopes, exclude=receiver)
     # Remove only obsolete owned links, including ones another discovery root now supplies.
     for entry in receiver.iterdir():

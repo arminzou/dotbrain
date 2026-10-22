@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -107,14 +107,8 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
     if not registry.is_file():
         return [Finding("info", f"{runtime}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
     try:
-        data = json.loads(registry.read_text(encoding="utf-8"))
-        entries = (data.get("plugins") or {}).get("dotbrain@dotbrain", [])
-        if isinstance(entries, dict):
-            entries = [entries]
-        for entry in entries:
-            location = entry.get("installPath") if isinstance(entry, dict) else None
-            if not isinstance(location, str):
-                continue
+        for entry in claude_plugins.installed(runtime_home).get("dotbrain@dotbrain", []):
+            location = entry["installPath"]
             hook_file = Path(location).expanduser() / "hooks/hooks.json"
             if not hook_file.is_file():
                 continue
@@ -178,7 +172,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
 def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> list[Finding]:
     visible = cursor.discovered(*scopes)
     findings = []
-    for name, source in cursor.sources(root, selection).items():
+    for name, source in cursor.sources(root, selection, scopes=scopes).items():
         seen = visible.get(name, set())
         if not seen:
             findings.append(Finding("error", f"cursor: skill {name} delivery is missing", "run dotbrain skills link --runtime cursor in this scope"))
@@ -424,9 +418,9 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             runtime = rt.key
             if runtime == "cursor":
                 findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home())))
+                sources = (root / "skills",) + ((cursor.plugin_dir(root),) if cursor.owned(root) else ())
                 entries.extend(f"/{workspace}/skills/{entry.name}" for entry in (directory / "skills").glob("*")
-                               if entry.is_symlink() and any(skills._points_into(entry, source)
-                                   for source in (root / "skills", cursor.plugin_dir(root))))
+                               if entry.is_symlink() and any(skills._points_into(entry, source) for source in sources))
             else:
                 findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
                 entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)

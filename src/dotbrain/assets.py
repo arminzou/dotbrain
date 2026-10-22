@@ -54,7 +54,9 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
         directory = workspace_dirs[workspace] / ("skills" if kind == "skills" else "agents")
         if directory.is_dir():
             for entry in directory.iterdir():
-                roots = (home / "skills", home / ".cache/skills", cursor.plugin_dir(home)) if kind == "skills" else (home / "agents", home / ".cache/agents")
+                roots = (home / "skills", home / ".cache/skills") if kind == "skills" else (home / "agents", home / ".cache/agents")
+                if kind == "skills" and cursor.owned(home):
+                    roots += (cursor.plugin_dir(home),)
                 if (entry.is_symlink() and any(skills._points_into(entry, root) for root in roots)) or (kind == "agents" and subagents.is_managed_copy(entry)):
                     linked_entries.append(f"{workspace}/{kind}/{entry.name}")
     if linked_entries or result.pruned:
