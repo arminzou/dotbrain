@@ -11,7 +11,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用。Hermes、OpenCode 和 Pi 也可以用，见 [Hermes](#hermes)、[OpenCode](#opencode) 和 [Pi](#pi) |
+| Claude Code 或 Codex | 任选其一，或两个都用。Hermes、OpenCode、Pi 和 Cursor 也可以用，见 [Hermes](#hermes)、[OpenCode](#opencode)、[Pi](#pi) 和 [Cursor](#cursor) |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -409,7 +409,7 @@ Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
   里它只能当 lead。
 - 如果你自己给 dotbrain 的技能建过链接或副本，先删掉。比如指向 dotbrain plugin 的
   `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
-  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor` 会对每个重复的技能发出警告。
+  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的技能。
 - OpenCode 不限制只能手动调用的技能（比如 `run-retro`）：它们照样出现在技能列表里，模型也可以自己调用。
 - 从 OpenCode 里卸载 dotbrain 需要手动操作，见[卸载](#opencode-remove)。
 :::
@@ -597,6 +597,100 @@ find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
 :::
 
 扩展删掉、`pi` 目标也没有了之后，`dotbrain bootstrap` 就不会再给 Pi 交付，除非你用 `--runtime pi` 运行它。最后重启 Pi。
+
+## Cursor {#cursor}
+
+Dotbrain 也支持 [Cursor](https://cursor.com) 的 CLI。
+
+::: warning 限制
+- Cursor 用 Cursor CLI 2026.10.19 测过。其他 Cursor 版本和 Cursor 编辑器都没有测过。
+- Dotbrain 不为 Cursor 提供子 Agent，所以 Cursor 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
+- Cursor 也会读取 checkout 和主目录里的 `.claude/skills`、`.codex/skills`、`.agents/skills` 和 `.grok/skills`。
+  遇到两份同名但各自独立的技能时，它只用其中一份。`dotbrain doctor --verbose` 会列出 dotbrain 技能的每个重复。
+- 恢复会话后，Cursor 保留会话开始时的约定，但不会运行启动同步。
+- 直接关掉控制台窗口很可能会跳过 Cursor 的会话结束 hook，也就跳过了退出时的完整同步。每轮之后的推送照常进行，
+  下次会话启动时的同步会补上剩下的部分。
+- 从 Cursor 里卸载 dotbrain 需要手动操作，见[卸载](#cursor-remove)。
+:::
+
+### 安装 {#cursor-setup}
+
+Cursor 没有 dotbrain 的 marketplace。先安装 CLI（见[第 2 步](#_2-get-the-cli)），然后运行：
+
+```bash
+dotbrain bootstrap --runtime cursor
+```
+
+这会在 `~/.cursor/hooks.json` 里加入三个 dotbrain hook；文件不存在时会创建它，你自己的 hook 会保留。在 Windows 上，
+`~` 指 `%USERPROFILE%`。如果你的 dotbrain Claude Code plugin 已安装、已启用且是最新的，Cursor 从它那里获取 dotbrain
+打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `skills/skills.yaml` 里选的全局技能会
+链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。和 Hermes、
+OpenCode、Pi 不同，第一次运行 `dotbrain bootstrap` 不会自动设置 Cursor；需要用 `--runtime cursor` 运行一次。
+
+hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了
+dotbrain Claude Code plugin 时，Cursor 也会加载它的 hook；dotbrain 让这些 hook 在 Cursor 下什么都不做，所以每个事件只运行一次。
+
+然后为每个需要 Cursor 的项目声明它，并链接技能：
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - cursor
+```
+
+```bash
+dotbrain refresh                   # 把 Cursor 找不到的选中技能链接到 .cursor/skills/
+dotbrain doctor
+```
+
+如果项目也声明了 `claude`，Cursor 通常会通过 `.claude/skills/` 找到技能，`.cursor/skills/` 会是空的。打包的技能用自己的
+名字出现，比如 `wire-brain`。只能手动调用的技能（比如 `run-retro`）只有你输入 `/<name>` 时才会运行。
+
+### Cursor 会话里会发生什么 {#cursor-sessions}
+
+hook 执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进会话。详见
+[Cursor 的运行时说明](session-context.md#runtime-notes)。
+
+### 更新 {#cursor-update}
+
+按[保持更新](#staying-current)升级 CLI，然后运行：
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+设置好 Cursor 之后，不带参数的 `dotbrain bootstrap` 就会让 hook 和打包技能的副本保持最新。Dotbrain 只替换它自己的 hook
+条目和它自己的副本。开一个新的 Cursor 会话就能用上更新。
+
+### 卸载 {#cursor-remove}
+
+先退出 Cursor，让退出时的同步跑完。
+
+对单个 checkout，`dotbrain unwire` 会删掉它的 Cursor 技能链接。如果想保留连接、只去掉 Cursor，就从 `agents:` 里删掉
+`cursor`，再手动删除 checkout 里 `.cursor/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
+
+要在所有地方把 dotbrain 从 Cursor 里卸载，先从 `skills/skills.yaml` 里删掉 `cursor` 目标（如果有的话），然后：
+
+1. 打开 `~/.cursor/hooks.json`，删掉命令以 `dotbrain hook run` 开头的三个条目。如果文件里没有别的内容了，就删掉整个文件。
+2. 删除 `~/.cursor/skills/` 里 dotbrain 创建的链接，以及 `~/dotbrain/.cache/cursor/` 里的副本：
+
+::: code-group
+
+```powershell [PowerShell 7]
+Get-ChildItem "$env:USERPROFILE\.cursor\skills" -ErrorAction SilentlyContinue |
+  Where-Object { $_.LinkTarget -like '*dotbrain*' } | Remove-Item
+Remove-Item -Recurse "$env:USERPROFILE\dotbrain\.cache\cursor"
+```
+
+```bash [Git Bash]
+find "$HOME/.cursor/skills" -maxdepth 1 -type l -lname '*dotbrain*' -delete
+rm -rf "$HOME/dotbrain/.cache/cursor"
+```
+
+:::
+
+副本删掉、`cursor` 目标也没有了之后，`dotbrain bootstrap` 就不会再给 Cursor 交付，除非你用 `--runtime cursor` 运行它。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

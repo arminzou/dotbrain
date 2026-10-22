@@ -181,7 +181,7 @@ def test_trust_follows_the_nearest_decision(tmp_path, entries, trusted):
 
 
 # Session hooks: the extension maps Pi events onto `dotbrain hook run`. A stand-in `pi` drives the
-# handlers; spawn is redirected to a fake CLI, and timers are capped so timeouts fire quickly.
+# handlers; spawn is redirected to a fake CLI, and deliberately hung calls time out quickly.
 FAKE_CLI = r"""
 const [event] = process.argv.slice(5);
 const mode = process.env.FAKE_MODE;
@@ -208,7 +208,11 @@ cp.spawn = (cmd, args, opts) => {
 syncBuiltinESMExports();
 const timeouts = [];
 const realSetTimeout = setTimeout;
-globalThis.setTimeout = (fn, ms, ...rest) => { timeouts.push(ms); return realSetTimeout(fn, Math.min(ms, 500), ...rest); };
+globalThis.setTimeout = (fn, ms, ...rest) => {
+  timeouts.push(ms);
+  // Normal Node startup can exceed 500 ms on a busy parallel test runner.
+  return realSetTimeout(fn, process.env.FAKE_MODE === "hang" ? Math.min(ms, 500) : ms, ...rest);
+};
 import(pathToFileURL(entry).href).then(async (mod) => {
   const handlers = {};
   mod.default({ on: (name, handler) => { handlers[name] = handler; } });

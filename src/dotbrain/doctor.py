@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, config, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -107,14 +107,8 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
     if not registry.is_file():
         return [Finding("info", f"{runtime}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
     try:
-        data = json.loads(registry.read_text(encoding="utf-8"))
-        entries = (data.get("plugins") or {}).get("dotbrain@dotbrain", [])
-        if isinstance(entries, dict):
-            entries = [entries]
-        for entry in entries:
-            location = entry.get("installPath") if isinstance(entry, dict) else None
-            if not isinstance(location, str):
-                continue
+        for entry in claude_plugins.installed(runtime_home).get("dotbrain@dotbrain", []):
+            location = entry["installPath"]
             hook_file = Path(location).expanduser() / "hooks/hooks.json"
             if not hook_file.is_file():
                 continue
@@ -145,6 +139,8 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
             configured.update(cfg.targets)
             targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False)
+            if kind == "skills" and cursor.global_delivery(root):
+                targets.setdefault("cursor", str(home / ".cursor/skills"))
             for runtime, destination in targets.items():
                 recognized = runtimes.find(runtime)
                 if recognized is None or recognized.key != runtime or (kind == "agents" and not recognized.subagents):
@@ -153,11 +149,14 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                                             "correct global asset targets or upgrade dotbrain"))
                     continue
                 receiver = adopter_repos.expand_path(destination, home=home)
-                findings.extend(_check_assets(root, receiver, selected, kind, runtime))
+                if runtime == "cursor" and kind == "skills":
+                    findings.extend(_check_cursor_skills(root, cfg.global_extra, (home,)))
+                else:
+                    findings.extend(_check_assets(root, receiver, selected, kind, runtime))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
-        if rt.hooks and not rt.home_env:
+        if rt.hooks and not rt.home_env and rt.name != "cursor":
             findings.extend(_check_plugin(home, rt.key))
         # An owned copy or a configured global target both mean this machine expects the plugin;
         # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.
@@ -165,6 +164,43 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             directory = runtimes.user_dir(rt, home)
             findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
                             else _check_home_plugin(rt, directory))
+    if "cursor" in configured or cursor.owned(root):
+        findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
+        findings.extend(_check_cursor_hooks(home))
+    return findings
+
+
+def _check_cursor_hooks(home: Path) -> list[Finding]:
+    state = cursor.hook_state(home)
+    if state != "current":
+        return [Finding("warn", f"cursor: Dotbrain hook entries are {state}",
+                        "run dotbrain skills link --scope global --runtime cursor")]
+    return [Finding("info", "cursor: hook entries are current; native consumption is not verified")]
+
+
+def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...], *, selected_only: bool = False) -> list[Finding]:
+    """Delivery of dotbrain's skills to Cursor; ``selected_only`` leaves packaged-skill duplicates to the machine check."""
+    visible = cursor.discovered(*scopes)
+    findings = []
+    current = claude_plugins.enabled_installs(scopes, include_stale=False)
+    for identifier, installation in claude_plugins.enabled_installs(scopes):
+        if identifier == "dotbrain@dotbrain" and (identifier, installation) not in current:
+            findings.append(Finding("warn", f"cursor: imported dotbrain plugin is stale at {installation}",
+                                    "update the Claude plugin and run dotbrain skills link --runtime cursor"))
+    wanted = cursor.sources(root, selection, scopes=scopes)
+    packaged = set(cursor.sources(root, (), scopes=scopes))
+    reported = set(wanted) - packaged if selected_only else set(wanted)
+    for name, source in wanted.items():
+        seen = visible.get(name, set())
+        if not seen:
+            findings.append(Finding("error", f"cursor: skill {name} delivery is missing", "run dotbrain skills link --runtime cursor in this scope"))
+        elif source.resolve() not in seen:
+            findings.append(Finding("warn", f"cursor: foreign skill {name} shadows delivery", "inspect Cursor skill discovery roots"))
+    # Only dotbrain's skills, and only with --verbose: a duplicate is harmless unless the copies differ.
+    for name, seen in visible.items():
+        if name in reported and len(seen) > 1:
+            findings.append(Finding("info", f"cursor: duplicate skill {name}: {', '.join(map(str, sorted(seen)))}",
+                                    "remove the copies dotbrain did not deliver" + ("" if name in packaged else f", or drop {name} from the dotbrain skill selection")))
     return findings
 
 
@@ -179,7 +215,8 @@ def _check_opencode_plugin(config_dir: Path, home: Path) -> list[Finding]:
         findings = [Finding("ok", f"opencode: dotbrain plugin, with its session hooks, and skills current at {target}") if state == "current"
                     else Finding("warn", f"opencode: dotbrain delivery is stale at {config_dir}",
                                  "run dotbrain bootstrap --runtime opencode")]
-        findings.extend(Finding("warn", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
+        # Harmless unless the copies differ; shown with --verbose for when a skill misbehaves.
+        findings.extend(Finding("info", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
                                 f"remove {other}, or move it out of OpenCode's skill directories")
                         for name, other in opencode.duplicate_skills(config_dir, home))
         return findings
@@ -204,7 +241,7 @@ def _check_home_plugin(rt: runtimes.Runtime, directory: Path) -> list[Finding]:
         state = adapter.state(directory)
         if state in ("missing", "foreign"):
             return _plugin_absent(rt, directory, state)
-        hooks = ", with its session hooks," if rt.hooks else ""
+        hooks = ", with its session hooks," if rt.hooks and rt.name != "cursor" else ""
         findings = [Finding("ok", f"{rt.name}: dotbrain {adapter.KIND} copy{hooks} current at {target}") if state == "current"
                     else Finding("warn", f"{rt.name}: dotbrain {adapter.KIND} copy is stale at {target}", "run dotbrain bootstrap")]
         if adapter is hermes and (activation := hermes.activation(directory)) != "enabled":
@@ -399,8 +436,14 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 continue
             rt = runtimes.for_workspace(workspace)
             runtime = rt.key
-            findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
-            entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)
+            if runtime == "cursor":
+                findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home()), selected_only=True))
+                sources = (root / "skills",) + ((cursor.plugin_dir(root),) if cursor.owned(root) else ())
+                entries.extend(f"/{workspace}/skills/{entry.name}" for entry in (directory / "skills").glob("*")
+                               if entry.is_symlink() and any(skills._points_into(entry, source) for source in sources))
+            else:
+                findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
+                entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
@@ -422,6 +465,9 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
         elif rt.home_env:
             findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
+        if rt.name == "cursor":
+            findings.extend(_check_home_plugin(rt, root))
+            findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings

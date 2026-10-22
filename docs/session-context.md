@@ -151,6 +151,13 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   had. When a run settles, it starts the `turn-end` push in the background. `/quit` runs
   `session-end`. Closing the console window probably skips that step; the next session start syncs
   what was left.
+- **Cursor** (see [Cursor](getting-started.md#cursor)) runs the hooks dotbrain adds to
+  `~/.cursor/hooks.json`. At `sessionStart` it runs `dotbrain hook run --event startup` with Cursor's
+  project folder as the checkout, and returns the convention as context that accompanies every
+  request of the session, so compaction does not drop it. A resumed session keeps the convention it
+  started with; Cursor runs no `sessionStart` for it, so no startup sync either. Each `stop` starts
+  the `turn-end` push in the background, and `sessionEnd` runs `session-end`. Closing the console
+  window probably skips that step; the next session start syncs what was left.
 - In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
@@ -162,7 +169,7 @@ example prompts, and how the lead coordinates their results.
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
-Hermes, OpenCode, and Pi get no dotbrain subagents.
+Hermes, OpenCode, Pi, and Cursor get no dotbrain subagents.
 Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
 without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 

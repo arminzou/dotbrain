@@ -62,7 +62,7 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 ### OpenCode 加载了另一份技能 {#opencode-loads-a-different-copy-of-a-skill}
 
 如果 OpenCode 会找到同一个 dotbrain 技能的两份：一份来自 dotbrain，一份来自你自己的目录（比如
-`~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor` 会警告
+`~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor --verbose` 会报告
 `OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的技能目录，然后重启 OpenCode。
 详见[OpenCode](getting-started.md#opencode)。
 
@@ -190,4 +190,4 @@ dotbrain unwire             # disconnect, keep the Brainspace
 
 ### 支持哪些 Agent？ {#which-agents-are-supported}
 
-Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode) 和 [Pi](getting-started.md#pi)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode)、[Pi](getting-started.md#pi) 和 [Cursor](getting-started.md#cursor)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。

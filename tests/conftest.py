@@ -33,6 +33,7 @@ def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("dotbrain.runtimes.installed", lambda rt: False)
     # And PI_CODING_AGENT_DIR for Pi delivery.
     monkeypatch.delenv("PI_CODING_AGENT_DIR", raising=False)
+    monkeypatch.delenv("CURSOR_VERSION", raising=False)
     # Output carries tmp paths and host names whose length varies by machine and worker, so at the
     # default 80 columns a phrase could wrap differently on each runner. Tests that check wrapping
     # set their own width.

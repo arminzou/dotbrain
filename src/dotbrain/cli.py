@@ -57,23 +57,21 @@ def main(
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
-    hooks.handle_event("compaction" if hooks.payload_field("source") == "compact" else "startup")
+    hooks.handle_claude_event("startup")
 
 
 @hook_app.command("stop")
 def hook_stop(args: list[str] = typer.Argument(None)) -> None:
     """Start a detached push-only home sync and return at once. Fail-open and silent."""
 
-    hooks.handle_event("turn-end")
+    hooks.handle_claude_event("turn-end")
 
 
 @hook_app.command("session-end")
 def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
     """Start a detached full home sync and return at once. Fail-open and silent."""
 
-    if hooks.payload_field("reason") == "clear":
-        return  # the SessionStart that follows /clear syncs; a second sync would only race it
-    hooks.handle_event("session-end")
+    hooks.handle_claude_event("session-end")
 
 
 # str enums, not Literal: Typer before 0.16 cannot resolve Literal and then fails every command.

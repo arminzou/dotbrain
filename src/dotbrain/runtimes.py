@@ -40,6 +40,7 @@ RUNTIMES: dict[str, Runtime] = {
     "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", hooks=True, home_env="XDG_CONFIG_HOME",
                         home_default=".config", home_subdir="opencode"),
     "pi": Runtime("pi", "pi", "Pi", ".pi", hooks=True, home_env="PI_CODING_AGENT_DIR", home_default=".pi/agent"),
+    "cursor": Runtime("cursor", "cursor", "Cursor", ".cursor", hooks=True),
 }
 
 

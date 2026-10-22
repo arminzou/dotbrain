@@ -107,7 +107,7 @@ skills:                       # extra skills for this project's workspaces
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
 | `execution-engine` | `beads` | 私有的执行后端 |
-| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode) 或 [`pi`](getting-started.md#pi) |
+| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi) 或 [`cursor`](getting-started.md#cursor) |
 | `public-tracker` | `none` | 公开的任务入口：`none`、`gh` 或 `linear` |
 | `public-tracker-id` | — | 任务跟踪的标识，比如 GitHub 的 `owner/repo` |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |
@@ -182,5 +182,5 @@ global:
 自己的 Codex 符号链接，覆盖带标记的副本，保留没有标记的文件和其他来源的链接。如果和用户自己的文件重名，
 会报告冲突，而不是替换。
 
-运行时参数用 `--runtime claude|codex|hermes|opencode|pi|all`。YAML 里的目标键是 `claude-code`、`codex`、`hermes`、`opencode` 和 `pi`；Hermes、OpenCode 和 Pi 都没有子 Agent 目标。项目链接默认作用于
+运行时参数用 `--runtime claude|codex|hermes|opencode|pi|cursor|all`。YAML 里的目标键是 `claude-code`、`codex`、`hermes`、`opencode`、`pi` 和 `cursor`；Hermes、OpenCode、Pi 和 Cursor 都没有子 Agent 目标。项目链接默认作用于
 当前已连接的 checkout；`--scope global` 需要显式指定，并且不能和项目选择参数或 `--all` 一起用。

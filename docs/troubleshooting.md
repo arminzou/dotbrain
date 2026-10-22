@@ -66,7 +66,7 @@ checkout. Start `pi` in the checkout and accept the trust prompt. See [Pi](getti
 
 ### OpenCode loads a different copy of a skill
 
-`dotbrain doctor` warns `OpenCode loads one of the two at random` when OpenCode would find a
+`dotbrain doctor --verbose` reports `OpenCode loads one of the two at random` when OpenCode would find a
 dotbrain skill twice: once from dotbrain and once from a folder you keep, such as a
 `~/.config/opencode/skills` link or `~/.claude/skills`. Remove the other copy, or move it out of
 OpenCode's skill folders, then restart OpenCode. See [OpenCode](getting-started.md#opencode).
@@ -208,6 +208,6 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 ### Which agents are supported?
 
 Claude Code and Codex, plus [Hermes](getting-started.md#hermes), [OpenCode](getting-started.md#opencode),
-and [Pi](getting-started.md#pi).
+[Pi](getting-started.md#pi), and [Cursor](getting-started.md#cursor).
 Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).

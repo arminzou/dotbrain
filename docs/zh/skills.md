@@ -130,4 +130,8 @@ Pi 的技能来自 `dotbrain bootstrap --runtime pi` 放进 Pi Agent 目录的�
 受信任 checkout 里的 `.pi/skills/`。只能手动调用的技能对模型隐藏，用 `/skill:<name>` 调用。详见
 [Pi](getting-started.md#pi)。
 
+Cursor 的打包技能来自你的 dotbrain Claude Code plugin；这个 plugin 缺失、被禁用或过时时，来自 dotbrain 保存的副本。
+Cursor 也会读取 `.claude/skills`、`.codex/skills` 和 `.agents/skills`，所以 dotbrain 只把 Cursor 找不到的技能链接到
+`.cursor/skills/`。只能手动调用的技能只能用 `/<name>` 运行。详见 [Cursor](getting-started.md#cursor)。
+
 内置技能直接在 [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills) 里编辑。
