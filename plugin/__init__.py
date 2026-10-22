@@ -118,6 +118,8 @@ def register(ctx):
 START_TIMEOUT = 25
 # Hermes time-boxes finalize (10 s in the gateway); session-end only launches a sync and returns.
 END_TIMEOUT = 5
+# First line of every convention `dotbrain hook run` prints.
+HEADING = "## dotbrain convention"
 
 _conventions = {}  # session id -> convention the CLI printed for it ("" when unwired)
 _children = set()  # delegated child session ids: no convention, no sync
@@ -159,9 +161,13 @@ def _launch(event):
     subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **detach)
 
 
-def _in_history(text, history):
-    """Whether a message already carries ``text``; Hermes replays injected context as ``api_content``."""
-    return any(isinstance(message, dict) and any(isinstance(message.get(key), str) and text in message[key]
+def _in_history(history):
+    """Whether a message already carries a convention; Hermes replays injected context as ``api_content``.
+
+    Matched by the heading the CLI prints, not the body: a restored history may hold an older
+    convention, which Hermes cannot remove, so a newer one must not be added beside it.
+    """
+    return any(isinstance(message, dict) and any(isinstance(message.get(key), str) and HEADING in message[key]
                                                  for key in ("api_content", "content"))
                for message in history or ())
 
@@ -173,11 +179,11 @@ def _pre_llm_call(session_id=None, conversation_history=None, is_first_turn=Fals
         return None
     if session_id not in _conventions:
         _conventions[session_id] = _hook_run("startup" if is_first_turn else "resume", START_TIMEOUT)
-    elif _conventions[session_id] and not _in_history(_conventions[session_id], conversation_history):
+    elif _conventions[session_id] and not _in_history(conversation_history):
         # Compaction dropped it from the history: refresh it and inject it again.
         _conventions[session_id] = _hook_run("compaction", START_TIMEOUT)
     text = _conventions[session_id]
-    return {"context": text} if text and not _in_history(text, conversation_history) else None
+    return {"context": text} if text and not _in_history(conversation_history) else None
 
 
 def _subagent_start(child_session_id=None, **_):

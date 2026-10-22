@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import hooks, resource_loader
+from dotbrain import hooks as hooks_mod, resource_loader
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent / "plugin"
 CONVENTION = "## dotbrain convention\n\nBODY"
@@ -81,6 +81,16 @@ def test_resumed_session_runs_resume_and_skips_context_it_already_has(hermes):
     assert _turn(hooks, session="old", first=False) == {"context": CONVENTION}
     assert _turn(hooks, session="replayed", history=_injected(CONVENTION), first=False) is None
     assert [c[0] for c in cli.calls] == ["resume", "resume"]
+
+
+def test_resume_never_adds_a_newer_convention_beside_an_older_one(hermes):
+    plugin, hooks, cli = hermes
+    assert plugin.HEADING == hooks_mod.CONVENTION_HEADING
+    cli.output = CONVENTION + " NEW BODY\n"
+    old = _injected(CONVENTION.replace("BODY", "OLD BODY"))
+    assert _turn(hooks, history=old, first=False) is None
+    assert _turn(hooks, history=old, first=False) is None
+    assert [c[0] for c in cli.calls] == ["resume"]
 
 
 def test_compaction_refreshes_and_reinjects(hermes):
@@ -202,4 +212,4 @@ def test_packaged_convention_fits_hermes_context_limit():
     with resource_loader.resource_file("templates/brain/DOTBRAIN.md") as path:
         body = path.read_text(encoding="utf-8")
     # What the plugin injects: the CLI payload, stripped.
-    assert len(f"{hooks.CONVENTION_HEADING}\n\n{body}".strip()) < HERMES_CONTEXT_LIMIT
+    assert len(f"{hooks_mod.CONVENTION_HEADING}\n\n{body}".strip()) < HERMES_CONTEXT_LIMIT
