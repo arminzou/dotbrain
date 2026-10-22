@@ -44,7 +44,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
             cursor_result = cursor.deliver(home, workspace_dirs[".cursor"] / "skills",
                                            config.load_project_skills(home, target.project),
                                            scopes=(target.checkout, Path.home()))
-            for field in ("linked", "pruned", "warnings"):
+            for field in ("linked", "pruned", "warnings", "notices"):
                 getattr(result, field).extend(getattr(cursor_result, field))
     else:
         names = subagents.project_link_set(config.load_project_subagents(home, target.project))
@@ -134,7 +134,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         else:
             linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
                                                label=k, preserve_collisions=True, runtime=k)
-        for field in ("linked", "pruned", "stashed", "warnings"):
+        for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
         if kind == "skills" and k == "cursor":
             delivered_hooks = cursor.reconcile_hooks(user_home)

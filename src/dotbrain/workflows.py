@@ -188,6 +188,7 @@ def wire_project(
         for kind in ("skills", "agents"):
             linked = assets.link_project(dotbrain_home, target, kind, run=run)
             result.errors += linked.warnings
+            result.warnings += linked.notices
             result.logs += [f"linked {entry}" for entry in linked.linked]
             result.logs += [f"pruned {entry}" for entry in linked.pruned]
     if existing and run_beads and parent is None:
@@ -340,6 +341,7 @@ def refresh_projects(
                 for kind in kinds:
                     linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
                     target.errors += linked.warnings
+                    target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
                     target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
                     target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
                 before = {name: (repo / name).is_symlink() for name in paths.BRAINSPACE_LINKS}

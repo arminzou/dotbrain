@@ -185,7 +185,8 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         seen = visible.get(name, set())
         if seen:
             if seen != {source.resolve()}:
-                result.warnings.append(f"cursor: foreign or duplicate skill {name}; preserving existing discovery")
+                # Cursor already finds another copy; leaving it is the intended outcome, not a failure.
+                result.notices.append(f"cursor: foreign or duplicate skill {name}; preserving existing discovery")
             continue
         dest = receiver / name
         if dest.exists() or dest.is_symlink():

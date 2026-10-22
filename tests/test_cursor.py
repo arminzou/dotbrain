@@ -84,7 +84,8 @@ def test_foreign_collision_and_duplicate_diagnosis(dotbrain_home, tmp_path):
     first = skill(user / ".claude/skills")
     second = skill(user / ".codex/skills")
     result = cursor.deliver(dotbrain_home, user / ".cursor/skills", ("example",), scopes=(user,))
-    assert any("foreign or duplicate skill example" in warning for warning in result.warnings)
+    assert result.warnings == []
+    assert any("foreign or duplicate skill example" in notice for notice in result.notices)
     assert not (user / ".cursor/skills/example").exists()
     messages = [f.message for f in doctor._check_cursor_skills(dotbrain_home, ("example",), (user,))]
     assert any("duplicate skill example" in message for message in messages)
@@ -372,3 +373,19 @@ def test_packaged_name_collision_fails_before_writes(dotbrain_home, tmp_path):
         cursor.deliver(dotbrain_home, tmp_path / "receiver", ("run-execution",), scopes=(tmp_path,))
     assert not cursor.owned(dotbrain_home)
     assert not (tmp_path / "receiver").exists()
+
+
+def test_bootstrap_completes_when_cursor_already_finds_a_copy(dotbrain_home, tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+    from conftest import set_fake_home
+    from dotbrain.cli import app
+
+    user = tmp_path / "user"
+    set_fake_home(monkeypatch, user)
+    skill(dotbrain_home / "skills")
+    skill(user / ".claude/skills/synced/account")  # a copy Cursor already discovers, not dotbrain's
+    (dotbrain_home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra:\n  - example\n")
+    out = json.loads(CliRunner().invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "cursor", "--json"]).stdout)
+    assert out["status"] == "success"
+    assert any("duplicate skill example" in f["message"] for t in out["targets"] for f in t["findings"])
+    assert not (user / ".cursor/skills/example").exists()
