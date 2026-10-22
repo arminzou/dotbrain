@@ -44,11 +44,13 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/dotbrain"]
 
-# The Hermes plugin is delivered by the CLI, so the wheel carries it from the shared plugin tree.
+# The Hermes and OpenCode plugins are delivered by the CLI, so the wheel carries them from the
+# shared plugin tree; the OpenCode delivery reuses the Hermes copy of the skills.
 [tool.hatch.build.targets.wheel.force-include]
 "plugin/plugin.yaml" = "dotbrain/resources/hermes/plugin.yaml"
 "plugin/__init__.py" = "dotbrain/resources/hermes/__init__.py"
 "plugin/skills" = "dotbrain/resources/hermes/skills"
+"plugin/opencode/dotbrain.js" = "dotbrain/resources/opencode/dotbrain.js"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -56,6 +58,7 @@ include = [
   "/docs",
   "/plugin/plugin.yaml",
   "/plugin/__init__.py",
+  "/plugin/opencode",
   "/plugin/skills",
   "/src",
   "/README.md",

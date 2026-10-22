@@ -162,7 +162,7 @@ def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_
     assert any(f.status == "warn" and f.message.endswith(": later") for f in findings)
     result = runner.invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "later", "--json"])
     assert result.exit_code == 2
-    assert "--runtime must be claude, codex, hermes, skillsonly, or all" in result.stdout
+    assert "--runtime must be claude, codex, hermes, opencode, skillsonly, or all" in result.stdout
 
 
 def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
@@ -328,3 +328,22 @@ def test_ensure_data_root_reports_a_missing_git_binary(tmp_path: Path):
 
     with pytest.raises(RuntimeError, match="git is required"):
         bootstrap_mod.ensure_data_root(tmp_path / "dr", run=_no_git)
+
+
+def test_installed_runtimes_are_seeded_on_first_run_and_named_afterwards(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "opencode")
+    home, user = tmp_path / "dr", tmp_path / "user"
+    bootstrap_mod.ensure_data_root(home, user_home=user)
+    targets = skills.load_global_config(home / "skills/skills.yaml").targets
+    assert targets["opencode"] == "~/.config/opencode/dotbrain/skills"
+    assert "hermes" not in targets
+    linked = bootstrap_mod.link_global_skills(home, "all", home=user)
+    assert linked.warnings == []
+    assert (user / ".config/opencode/plugins/dotbrain.js").is_file()
+
+    # An existing config gains no target: bootstrap names the command instead of delivering unasked.
+    (home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra: []\n")
+    other = tmp_path / "other"
+    linked = bootstrap_mod.link_global_skills(home, "all", home=other)
+    assert linked.notices == ["OpenCode is installed; run `dotbrain bootstrap --runtime opencode` to deliver dotbrain to it"]
+    assert not (other / ".config/opencode").exists()

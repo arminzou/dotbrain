@@ -1,7 +1,10 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, hermes, paths, projects, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, hermes, opencode, paths, projects, runtimes, skills, subagents
+
+# The owned plugin delivery of each runtime that has no marketplace install.
+HOME_DELIVERY = {"hermes": hermes, "opencode": opencode}
 
 
 def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str) -> tuple[str, ...]:
@@ -52,18 +55,31 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
+def detected_targets(user_home: Path) -> dict[str, str]:
+    """Global skill targets of the installed runtimes that opt in by plugin copy, as seeded config lines."""
+    targets = {}
+    for rt in runtimes.RUNTIMES.values():
+        if rt.home_env and runtimes.installed(rt):
+            directory = HOME_DELIVERY[rt.name].skills_dir(runtimes.user_dir(rt, user_home))
+            try:
+                targets[rt.key] = "~/" + directory.relative_to(user_home).as_posix()
+            except ValueError:  # relocated outside the home
+                targets[rt.key] = str(directory)
+    return targets
+
+
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool) -> dict[str, str]:
     """Configured global targets, plus the home target of each opted-in relocatable runtime.
 
-    Such a runtime (Hermes) is opted in by an explicit --runtime request or by an existing owned
-    plugin copy, so later unfiltered runs keep its delivery current.
+    Such a runtime (Hermes, OpenCode) is opted in by an explicit --runtime request or by an
+    existing owned plugin copy, so later unfiltered runs keep its delivery current.
     """
     targets = dict(configured)
     for rt in selected:
         directory = runtimes.user_dir(rt, user_home)
-        if (rt.home_env and rt.key not in targets and (kind == "skills" or rt.subagents)
-                and (explicit or hermes.owned(directory))):
-            targets[rt.key] = str(directory / kind)
+        if (rt.home_env and rt.key not in targets and kind == "skills"
+                and (explicit or HOME_DELIVERY[rt.name].owned(directory))):
+            targets[rt.key] = str(HOME_DELIVERY[rt.name].skills_dir(directory))
     return targets
 
 
@@ -83,6 +99,10 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         raise ValueError(f"runtime '{runtime}' has no configured global target")
     result = skills.LinkResult(notices=[f"unsupported global {kind} runtime skipped: {k}"
                                         for k in targets if runtime == "all" and k not in keys])
+    if kind == "skills" and runtime == "all":
+        # Installed but never set up: say how, rather than deliver unasked and undo a removal.
+        result.notices += [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"
+                           for rt in selected if rt.home_env and rt.key not in targets and runtimes.installed(rt)]
     destinations = {k: adopter_repos.expand_path(targets[k], home=user_home) for k in keys}
     for dest in destinations.values():
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
@@ -107,7 +127,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         rt = runtimes.find(k)
         if kind == "skills" and rt.home_env:
             # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.
-            delivered = hermes.deliver(runtimes.user_dir(rt, user_home), run=run)
+            delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
             result.linked += delivered.linked
             result.warnings += delivered.warnings
     return result

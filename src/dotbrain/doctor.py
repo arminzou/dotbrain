@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, config, hermes, home_sync, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, config, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -160,10 +160,40 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         if rt.hooks and not rt.home_env:
             findings.extend(_check_plugin(home, rt.key))
         # An owned copy or a configured global target both mean this machine expects the plugin;
-        # that copy, current and enabled, is also what delivers the Hermes session hooks.
-        if rt.home_env and (rt.key in configured or hermes.owned(runtimes.user_dir(rt, home))):
-            findings.extend(_check_hermes_plugin(runtimes.user_dir(rt, home)))
+        # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.
+        if rt.home_env and (rt.key in configured or assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home))):
+            directory = runtimes.user_dir(rt, home)
+            findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
+                            else _check_hermes_plugin(directory))
     return findings
+
+
+def _check_opencode_plugin(config_dir: Path, home: Path) -> list[Finding]:
+    """Presence and freshness of dotbrain's own delivery in the OpenCode config, and skill copies
+    OpenCode would also find in directories the user keeps."""
+    try:
+        state = opencode.state(config_dir)
+        if state in ("missing", "foreign"):
+            return _opencode_absent(config_dir, state)
+        target = opencode.plugin_file(config_dir)
+        findings = [Finding("ok", f"opencode: dotbrain plugin, with its session hooks, and skills current at {target}") if state == "current"
+                    else Finding("warn", f"opencode: dotbrain delivery is stale at {config_dir}",
+                                 "run dotbrain bootstrap --runtime opencode")]
+        findings.extend(Finding("warn", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
+                                f"remove {other}, or move it out of OpenCode's skill directories")
+                        for name, other in opencode.duplicate_skills(config_dir, home))
+        return findings
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("warn", f"opencode: plugin check unavailable: {exc}", "inspect the OpenCode config directory")]
+
+
+def _opencode_absent(config_dir: Path, state: str) -> list[Finding]:
+    if state == "missing":
+        return [Finding("warn", "opencode: dotbrain plugin is not delivered", "run dotbrain bootstrap --runtime opencode")]
+    if state == "foreign":
+        return [Finding("warn", f"opencode: {opencode.foreign_entry(config_dir)} is not dotbrain's",
+                        "move it aside, then run dotbrain bootstrap --runtime opencode")]
+    return []
 
 
 def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
@@ -381,7 +411,13 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_agent_pointer(repo))
     for workspace in workspaces:
         rt = runtimes.for_workspace(workspace)
-        if rt.home_env:
+        if rt.name == "opencode":
+            config_dir = runtimes.user_dir(rt, home or Path.home())
+            try:
+                findings.extend(_opencode_absent(config_dir, opencode.state(config_dir)))
+            except DIAGNOSIS_ERRORS as exc:
+                findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
+        elif rt.home_env:
             findings.extend(_check_hermes_project(runtimes.user_dir(rt, home or Path.home()), repo, selected))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))

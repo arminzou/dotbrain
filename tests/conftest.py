@@ -27,6 +27,10 @@ def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
     # A developer's HERMES_HOME would aim Hermes delivery at their real Hermes home.
     monkeypatch.delenv("HERMES_HOME", raising=False)
+    # Likewise XDG_CONFIG_HOME for OpenCode delivery, which lands in $XDG_CONFIG_HOME/opencode.
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    # A developer's installed Hermes or OpenCode would change what bootstrap seeds and reports.
+    monkeypatch.setattr("dotbrain.runtimes.installed", lambda rt: False)
     # Output carries tmp paths and host names whose length varies by machine and worker, so at the
     # default 80 columns a phrase could wrap differently on each runner. Tests that check wrapping
     # set their own width.

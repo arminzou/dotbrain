@@ -62,6 +62,21 @@ HERMES_PLUGIN_FILES = ("plugin.yaml", "__init__.py", "skills")
 
 
 @contextmanager
+def opencode_plugin() -> Iterator[Path]:
+    """The OpenCode plugin file: packaged in a wheel, or in the shared ``plugin/`` tree of a source checkout."""
+
+    packaged = resource("opencode/dotbrain.js")
+    if packaged.is_file():
+        with as_file(packaged) as resolved:
+            yield resolved
+        return
+    source = Path(__file__).resolve().parents[2] / "plugin" / "opencode" / "dotbrain.js"
+    if not source.is_file():
+        raise FileNotFoundError("package resource opencode/dotbrain.js is missing")
+    yield source
+
+
+@contextmanager
 def resource_file(path: str) -> Iterator[Path]:
     """Materialize a packaged resource as a real filesystem path if needed."""
 

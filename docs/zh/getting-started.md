@@ -11,7 +11,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes) |
+| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes)。OpenCode 也行，但只限原生 Windows，见[在 Windows 上使用 OpenCode](#opencode) |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -336,6 +336,10 @@ Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目�
 dotbrain bootstrap --runtime hermes
 ```
 
+如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `hermes`，bootstrap 会自动设置 Hermes，
+并把 `hermes` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
+`hermes` 但还没设置时，它只会提示这条命令。
+
 这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
 `hermes plugins enable dotbrain`。如果 `PATH` 里找不到 `hermes`，或者这条命令失败了，就自己运行
 `hermes plugins enable dotbrain`。全新的 Hermes 主目录第一次运行 `hermes` 时要先准备运行环境，可能超过
@@ -394,6 +398,111 @@ rm -rf ~/.hermes/plugins/dotbrain   # 或 $HERMES_HOME/plugins/dotbrain
 
 如果你选过全局技能，也要删掉 `~/.hermes/skills/` 下 dotbrain 的链接。没有插件副本之后，`dotbrain bootstrap`
 就不会再给 Hermes 交付，除非你再用 `--runtime hermes` 运行它，或者 `skills/skills.yaml` 里写了 `hermes` 目标。
+
+## 在 Windows 上使用 OpenCode {#opencode}
+
+Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
+
+::: warning 限制
+- OpenCode 只在原生 Windows 上测过：Windows 11 上的 OpenCode 1.18.35，通过 `opencode run` 测试。
+  其他操作系统、其他 OpenCode 版本，以及 OpenCode 的 TUI、桌面应用和 server 都没有测过。
+- Dotbrain 不为 OpenCode 提供子 Agent，所以 OpenCode 没有原生的 dotbrain worker。在 `run-execution`
+  里它只能当 lead。
+- 如果你自己给 dotbrain 的技能建过链接或副本，先删掉。比如指向 dotbrain plugin 的
+  `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
+  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor` 会对每个重复的技能发出警告。
+- OpenCode 不限制只能手动调用的技能（比如 `run-retro`）：它们照样出现在技能列表里，模型也可以自己调用。
+- 从 OpenCode 里卸载 dotbrain 需要手动操作，见[卸载](#opencode-remove)。
+:::
+
+### 安装 {#opencode-setup}
+
+OpenCode 没有 dotbrain 的 marketplace，plugin 由 CLI 复制到 OpenCode 的配置目录。先安装 CLI（见[第 2 步](#_2-get-the-cli)），
+然后运行：
+
+```bash
+dotbrain bootstrap --runtime opencode
+```
+
+如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `opencode`，bootstrap 会自动设置 OpenCode，
+并把 `opencode` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
+`opencode` 但还没设置时，它只会提示这条命令。
+
+这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
+`~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了
+`XDG_CONFIG_HOME` 时，目录改为 `$XDG_CONFIG_HOME/opencode`。你在 `skills/skills.yaml` 里选的全局技能会链接到
+`~/.config/opencode/dotbrain/skills/`。Dotbrain 不改你的 OpenCode 配置文件：OpenCode 加载配置时，由 plugin 把这两个技能目录加进去。
+
+plugin 运行的是 OpenCode 启动时 `PATH` 里的 `dotbrain`。找不到的话，会话照常可用，但没有约定，也不会同步。
+
+然后在需要 OpenCode 的项目里声明它，并链接技能：
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - opencode
+```
+
+```bash
+dotbrain refresh                   # 把选中的技能链接到 .opencode/skills/
+dotbrain doctor
+```
+
+plugin 缺失、过期或不是 dotbrain 的，doctor 会报告；OpenCode 会找到两份的技能，doctor 也会报告。
+装好后，在 checkout 里新开一个 OpenCode 会话。打包的技能用它们自己的名字，比如 `wire-brain`，不带
+`dotbrain:` 前缀。你选的私有技能也用它们自己的名字。
+
+链接技能会在 checkout 里创建 `.opencode/`。OpenCode 随后会在里面自己运行 `npm install`，生成
+`package.json`、`node_modules/`，以及一个忽略这些文件的 `.gitignore`。Dotbrain 通过 `.git/info/exclude`
+忽略它的技能链接，所以 `git status` 保持干净。
+
+### OpenCode 会话里会发生什么 {#opencode-sessions}
+
+plugin 通过 OpenCode 的 hook 执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进 system prompt。详见
+[OpenCode 的运行时说明](session-context.md#runtime-notes)。
+
+### 更新 {#opencode-update}
+
+按[保持更新](#staying-current)升级 CLI，然后运行：
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+plugin 文件存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的技能保持最新。Dotbrain 只替换它自己标记过的文件。
+OpenCode 在启动时加载 plugin，所以要重启 OpenCode 才能用上更新。
+
+### 卸载 {#opencode-remove}
+
+先退出 OpenCode，让退出时的同步跑完。
+
+对单个 checkout，`dotbrain unwire` 会删掉它的 OpenCode 技能链接。如果想保留连接、只去掉 OpenCode，就从
+`agents:` 里删掉 `opencode`，再手动删除 checkout 里 `.opencode/skills/` 下 dotbrain 创建的链接；
+`dotbrain refresh` 不会删它们。`.opencode/` 里的其他文件属于 OpenCode，如果里面没有你
+自己的东西，可以整个删掉。
+
+要卸载 plugin，先从 `skills/skills.yaml` 里删掉 `opencode` 目标（如果有的话），再从 OpenCode 配置目录里删除 plugin 文件和
+dotbrain 的目录。设置了 `XDG_CONFIG_HOME` 时，下面的命令会用它：
+
+::: code-group
+
+```powershell [PowerShell 7]
+$oc = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\opencode" } else { "$env:USERPROFILE\.config\opencode" }
+Remove-Item "$oc\plugins\dotbrain.js"
+Remove-Item -Recurse "$oc\dotbrain"
+```
+
+```bash [Git Bash]
+oc="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+rm "$oc/plugins/dotbrain.js"
+rm -rf "$oc/dotbrain"
+```
+
+:::
+
+两样都删完再运行 `dotbrain bootstrap`：只要还剩一样，不带参数的 bootstrap 就会把另一样装回来。两样都删掉之后，
+`dotbrain bootstrap` 就不会再给 OpenCode 交付，除非你用 `--runtime opencode` 运行它。最后重启 OpenCode。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

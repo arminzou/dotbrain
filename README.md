@@ -76,6 +76,8 @@ codex plugin add dotbrain@dotbrain
 In Codex, open `/hooks`, trust the dotbrain hook, then start a new thread.
 Hermes is supported on Linux only, through the CLI rather than a marketplace; see
 [Hermes on Linux](https://arminzou.github.io/dotbrain/getting-started#hermes).
+OpenCode is supported on native Windows only, also through the CLI; see
+[OpenCode on Windows](https://arminzou.github.io/dotbrain/getting-started#opencode).
 On Windows, enable
 [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
 before wiring so Dotbrain can create directory symlinks without Administrator privileges.

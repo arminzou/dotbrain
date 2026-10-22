@@ -11,7 +11,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes) |
+| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes). So does OpenCode, on native Windows only: see [OpenCode on Windows](#opencode) |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -356,6 +356,11 @@ Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 dotbrain bootstrap --runtime hermes
 ```
 
+If `hermes` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
+Hermes on its own and adds `hermes` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
+does not add a runtime unasked: when it finds `hermes` installed but not set up, it prints this
+command instead.
+
 This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins/dotbrain`) and runs
 `hermes plugins enable dotbrain`. If `hermes` is not on `PATH`, or the command fails, run
 `hermes plugins enable dotbrain` yourself. On a new Hermes home, the first `hermes` command can take
@@ -418,6 +423,123 @@ rm -rf ~/.hermes/plugins/dotbrain   # or $HERMES_HOME/plugins/dotbrain
 Also delete dotbrain's global skill links under `~/.hermes/skills/`, if you selected any. Without the
 plugin copy, `dotbrain bootstrap` no longer delivers to Hermes, unless you run it with
 `--runtime hermes` or `skills/skills.yaml` names a `hermes` target.
+
+## OpenCode on Windows {#opencode}
+
+Dotbrain also delivers to the [OpenCode](https://opencode.ai) CLI.
+
+::: warning Limits
+- OpenCode support is tested on native Windows only: Windows 11 with OpenCode 1.18.35, through
+  `opencode run`. Other operating systems, other OpenCode releases, and the OpenCode TUI, desktop
+  app, and server are not tested.
+- Dotbrain ships no subagents for OpenCode, so OpenCode has no native dotbrain workers. In
+  `run-execution` it works only as the lead.
+- Remove any links to dotbrain's skills or copies of them that you made yourself, such as a
+  `~/.config/opencode/skills` link to the dotbrain plugin, or copies under `~/.claude/skills` or
+  `~/.agents/skills`. OpenCode reads those folders too, and when it finds two skills with the same
+  name, it loads one of them at random. `dotbrain doctor` warns about each duplicate.
+- Manual-only skills, such as `run-retro`, are not enforced in OpenCode. OpenCode lists them,
+  and the model can invoke them on its own.
+- Removing dotbrain from OpenCode is manual. See [Remove](#opencode-remove).
+:::
+
+### Set up {#opencode-setup}
+
+OpenCode has no dotbrain marketplace install. The CLI copies the plugin into the OpenCode config
+directory instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
+
+```bash
+dotbrain bootstrap --runtime opencode
+```
+
+If `opencode` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
+OpenCode on its own and adds `opencode` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
+does not add a runtime unasked: when it finds `opencode` installed but not set up, it prints this
+command instead.
+
+This copies the plugin to `~/.config/opencode/plugins/dotbrain.js` and the packaged skills to
+`~/.config/opencode/dotbrain/packaged/skills/`. On Windows, `~` is `%USERPROFILE%`; when
+`XDG_CONFIG_HOME` is set, the folder is `$XDG_CONFIG_HOME/opencode` instead. Global skills you
+select in `skills/skills.yaml` are linked into `~/.config/opencode/dotbrain/skills/`. Dotbrain does
+not edit your OpenCode config files: the plugin adds both skill folders when OpenCode loads its
+configuration.
+
+The plugin runs the `dotbrain` it finds on the `PATH` that OpenCode started with. Without one,
+sessions still work, but they get no convention and no sync.
+
+Then declare OpenCode for each project that should get it, and link its skills:
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - opencode
+```
+
+```bash
+dotbrain refresh                   # links selected skills into .opencode/skills/
+dotbrain doctor
+```
+
+Doctor reports a missing, stale, or foreign plugin, and skills that OpenCode would find twice.
+Start a new OpenCode session in the checkout after setup. Packaged skills appear under their own
+names, such as `wire-brain`, without the `dotbrain:` prefix. Your selected private skills appear
+under their names too.
+
+Linking skills creates `.opencode/` in the checkout. OpenCode then runs its own `npm install`
+there and writes `package.json`, `node_modules/`, and a `.gitignore` that ignores them. Dotbrain
+ignores its skill links through `.git/info/exclude`, so `git status` stays clean.
+
+### What happens in an OpenCode session {#opencode-sessions}
+
+The plugin uses OpenCode's hooks to run the same [home sync](session-context.md#home-sync) and to
+add the convention to the system prompt. See the
+[OpenCode runtime notes](session-context.md#runtime-notes).
+
+### Update {#opencode-update}
+
+Upgrade the CLI as in [Staying Current](#staying-current), then run:
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+Once the plugin file exists, an unfiltered `dotbrain bootstrap` keeps it and the packaged skills
+current. Dotbrain replaces only files it marked as its own. OpenCode loads plugins when it starts,
+so restart OpenCode to use the update.
+
+### Remove {#opencode-remove}
+
+Quit OpenCode first, so the sync at exit can finish.
+
+For one checkout, `dotbrain unwire` removes its OpenCode skill links. To keep the checkout wired
+but drop OpenCode, remove `opencode` from `agents:` and delete dotbrain's links under the
+checkout's `.opencode/skills/`; `dotbrain refresh` does not remove them. The other files in
+`.opencode/` belong to OpenCode. Delete the folder if nothing of yours is in it.
+
+To remove the plugin, first remove any `opencode` target from `skills/skills.yaml`. Then delete
+the plugin file and dotbrain's folder from the OpenCode config directory. These commands use
+`XDG_CONFIG_HOME` when it is set:
+
+::: code-group
+
+```powershell [PowerShell 7]
+$oc = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\opencode" } else { "$env:USERPROFILE\.config\opencode" }
+Remove-Item "$oc\plugins\dotbrain.js"
+Remove-Item -Recurse "$oc\dotbrain"
+```
+
+```bash [Git Bash]
+oc="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+rm "$oc/plugins/dotbrain.js"
+rm -rf "$oc/dotbrain"
+```
+
+:::
+
+Delete both before you run `dotbrain bootstrap` again: while one of them is still there, an
+unfiltered bootstrap puts the other one back. Once both are gone, `dotbrain bootstrap` no longer
+delivers to OpenCode, unless you run it with `--runtime opencode`. Restart OpenCode afterwards.
 
 ## Edit Config Only When Needed
 

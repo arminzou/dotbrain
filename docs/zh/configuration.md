@@ -33,6 +33,7 @@ treeView-beta
 | --- | --- | --- |
 | `DOTBRAIN_HOME` | `~/dotbrain`（Windows 上是 `%USERPROFILE%\dotbrain`） | Brainspace 和配置存放的位置 |
 | `HERMES_HOME` | `~/.hermes` | Hermes 自己的主目录；dotbrain 把 Hermes 插件副本和 Hermes 全局技能放在这里 |
+| `XDG_CONFIG_HOME` | `~/.config` | OpenCode 配置目录的上一级；dotbrain 把 OpenCode plugin 文件、打包的技能和 OpenCode 全局技能放在 `$XDG_CONFIG_HOME/opencode` 下 |
 
 ## `config.yaml`
 
@@ -105,7 +106,7 @@ skills:                       # extra skills for this project's workspaces
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
 | `execution-engine` | `beads` | 私有的执行后端 |
-| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex` 或 `hermes`（[只限 Linux](getting-started.md#hermes)） |
+| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、`hermes`（[只限 Linux](getting-started.md#hermes)）或 `opencode`（[只限原生 Windows](getting-started.md#opencode)） |
 | `public-tracker` | `none` | 公开的任务入口：`none`、`gh` 或 `linear` |
 | `public-tracker-id` | — | 任务跟踪的标识，比如 GitHub 的 `owner/repo` |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |
@@ -180,5 +181,5 @@ global:
 自己的 Codex 符号链接，覆盖带标记的副本，保留没有标记的文件和其他来源的链接。如果和用户自己的文件重名，
 会报告冲突，而不是替换。
 
-运行时参数用 `--runtime claude|codex|hermes|all`。YAML 里的目标键是 `claude-code`、`codex` 和 `hermes`；Hermes 没有子 Agent 目标。项目链接默认作用于
+运行时参数用 `--runtime claude|codex|hermes|opencode|all`。YAML 里的目标键是 `claude-code`、`codex`、`hermes` 和 `opencode`；Hermes 和 OpenCode 都没有子 Agent 目标。项目链接默认作用于
 当前已连接的 checkout；`--scope global` 需要显式指定，并且不能和项目选择参数或 `--all` 一起用。

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from dotbrain import paths, resource_loader, runtimes, skills, subagents
+from dotbrain import assets, paths, resource_loader, runtimes, skills, subagents
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -51,7 +51,7 @@ def ensure_root_gitignore(dotbrain_home: Path) -> bool:
     return True
 
 
-def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> DataRootResult:
+def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_home: Path | None = None) -> DataRootResult:
     """Create the data root and seed ``config.yaml`` from the packaged template.
 
     Idempotent — if ``config.yaml`` already exists it is left untouched.
@@ -107,7 +107,8 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
     if not skills_dest.exists():
         skills_dest.parent.mkdir(parents=True, exist_ok=True)
         skills_dest.write_text(
-            skills.render_global_config(runtimes.global_targets("skills"), ()),
+            skills.render_global_config({**runtimes.global_targets("skills"),
+                                         **assets.detected_targets(user_home or Path.home())}, ()),
             encoding="utf-8",
             newline="\n",
         )
