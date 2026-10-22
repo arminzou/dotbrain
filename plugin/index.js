@@ -11,7 +11,8 @@
 // - `session_start` runs the CLI once per session (startup, resume, `new` as clear, reload and
 //   fork as compaction: push only, never a second full sync) and caches the convention;
 // - `before_agent_start` adds the cached convention as a system prompt section on every run,
-//   since Pi drops a section a run omits; compaction needs no call, the section survives it;
+//   since Pi drops a section a run omits;
+// - `session_compact` refreshes the cache with `compaction`: push only, never a full sync;
 // - `agent_settled` ends each run: `turn-end` pushes in the background;
 // - `session_shutdown` for `quit` runs `session-end`, which schedules a full sync; other reasons
 //   replace the session, and the next `session_start` covers them.
@@ -36,14 +37,15 @@ const START_EVENTS = { startup: "startup", resume: "resume", new: "clear", reloa
 
 const argv = (event, checkout) => ["hook", "run", "--event", event, "--checkout", checkout];
 
-// What `dotbrain hook run` printed for this event; "" when it is missing, fails or overruns.
+// What `dotbrain hook run` printed for this event ("" when unwired); null when it is missing,
+// fails or overruns.
 function run(event, checkout, timeoutMs) {
   return new Promise((resolve) => {
     let out = "";
     let child;
     const timer = setTimeout(() => {
       child?.kill();
-      resolve("");
+      resolve(null);
     }, timeoutMs);
     const done = (text) => {
       clearTimeout(timer);
@@ -53,10 +55,10 @@ function run(event, checkout, timeoutMs) {
       child = spawn("dotbrain", argv(event, checkout), { stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (chunk) => { out += chunk; });
-      child.on("error", () => done(""));
-      child.on("close", (code) => done(code === 0 ? out.trim() : ""));
+      child.on("error", () => done(null));
+      child.on("close", (code) => done(code === 0 ? out.trim() : null));
     } catch {
-      done("");
+      done(null);
     }
   });
 }
@@ -83,7 +85,11 @@ export default function (pi) {
   pi.on("resources_discover", () => ({ skillPaths: [SKILLS] }));
   pi.on("session_start", failOpen(async (event, ctx) => {
     // An unknown reason still gets the convention, without a full sync.
-    convention = await run(START_EVENTS[event.reason] ?? "compaction", ctx.cwd, START_TIMEOUT_MS);
+    convention = (await run(START_EVENTS[event.reason] ?? "compaction", ctx.cwd, START_TIMEOUT_MS)) ?? "";
+  }));
+  // Refresh after compaction; a failed refresh keeps the convention the session already has.
+  pi.on("session_compact", failOpen(async (event, ctx) => {
+    convention = (await run("compaction", ctx.cwd, START_TIMEOUT_MS)) ?? convention;
   }));
   pi.on("before_agent_start", failOpen((event) => {
     if (convention) event.systemPromptOptions.sections.dotbrain = convention;

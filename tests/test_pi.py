@@ -40,8 +40,8 @@ def test_extension_hands_pi_the_skills_beside_it(dotbrain_home, tmp_path):
     )
     out = subprocess.run(["node", "-e", script, str(entry)], check=True, capture_output=True, text=True).stdout
     reported = json.loads(out)
-    assert reported["events"] == ["resources_discover", "session_start", "before_agent_start", "agent_settled",
-                                  "session_shutdown"]
+    assert reported["events"] == ["resources_discover", "session_start", "session_compact", "before_agent_start",
+                                  "agent_settled", "session_shutdown"]
     assert [Path(p) for p in reported["result"]["skillPaths"]] == [entry.parent / "skills"]
     assert reported["version"] == __version__
 
@@ -196,10 +196,10 @@ const cp = require("node:child_process");
 const { syncBuiltinESMExports } = require("node:module");
 const { pathToFileURL } = require("node:url");
 const [entry, fakeCli, stepsJson] = process.argv.slice(1);
-const mode = process.env.FAKE_MODE;
 const realSpawn = cp.spawn;
 const spawns = [];
 cp.spawn = (cmd, args, opts) => {
+  const mode = process.env.FAKE_MODE;
   spawns.push({ cmd, args, detached: !!opts.detached, stdio: opts.stdio, windowsHide: opts.windowsHide });
   if (mode === "throw") throw new Error("spawn failed");
   return realSpawn(mode === "missing" ? "dotbrain-test-missing" : process.execPath,
@@ -213,7 +213,8 @@ import(pathToFileURL(entry).href).then(async (mod) => {
   const handlers = {};
   mod.default({ on: (name, handler) => { handlers[name] = handler; } });
   const results = [];
-  for (const [name, fields, cwd] of JSON.parse(stepsJson)) {
+  for (const [name, fields, cwd, stepMode] of JSON.parse(stepsJson)) {
+    process.env.FAKE_MODE = stepMode;  // the fake CLI inherits it
     const event = { type: name, ...fields };
     if (name === "before_agent_start") event.systemPromptOptions = { sections: {} };
     const start = Date.now();
@@ -227,10 +228,11 @@ import(pathToFileURL(entry).href).then(async (mod) => {
 
 
 def _drive(tmp_path, steps, mode="wired"):
-    """Run ``steps`` (``(event, fields)`` pairs) through the extension with checkout ``tmp_path``."""
+    """Run ``steps`` (``(event, fields[, mode])``) through the extension with checkout ``tmp_path``;
+    a step's own mode overrides ``mode`` for the CLI calls it makes."""
     fake = tmp_path / "fake-dotbrain.js"
     fake.write_text(FAKE_CLI, encoding="utf-8")
-    plan = json.dumps([[name, fields, str(tmp_path)] for name, fields in steps])
+    plan = json.dumps([[step[0], step[1], str(tmp_path), step[2] if len(step) > 2 else mode] for step in steps])
     out = subprocess.run(["node", "-e", PI_DRIVER, str(PLUGIN_ROOT / "index.js"), str(fake), plan],
                          env={**os.environ, "FAKE_MODE": mode}, check=True, capture_output=True, text=True).stdout
     report = json.loads(out)
@@ -265,12 +267,35 @@ def test_each_session_start_reason_runs_its_event_and_refreshes_the_section(tmp_
 
 @needs_node
 def test_every_run_adds_the_cached_section_without_calling_the_cli_again(tmp_path):
-    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START, START, START,
-                               ("session_compact", {"reason": "threshold"}), START])
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START, START, START])
     assert _events(report) == [("startup", False)]
-    runs = [r for r in report["results"] if r["sections"] is not None]
-    assert [r["sections"] for r in runs] == [_section("startup")] * 4
+    runs = report["results"][1:]
+    assert [r["sections"] for r in runs] == [_section("startup")] * 3
     assert all(r["returned"] is None for r in runs)  # no message: nothing lands in the history
+
+
+@needs_node
+def test_compaction_refreshes_the_section_without_a_full_sync(tmp_path):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}), START,
+                               ("session_compact", {"reason": "threshold"}), START, START])
+    assert _events(report) == [("startup", False), ("compaction", False)]
+    assert [r["sections"] for r in report["results"][3:]] == [_section("compaction")] * 2
+
+
+@needs_node
+@pytest.mark.parametrize("mode", ["fail", "hang", "missing", "throw"])
+def test_failed_compaction_refresh_keeps_the_convention(tmp_path, mode):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}),
+                               ("session_compact", {"reason": "overflow"}, mode), START])
+    assert report["results"][2]["sections"] == _section("startup")
+    assert [event for event, _ in _events(report)] == ["startup", "compaction"]
+
+
+@needs_node
+def test_compaction_that_finds_the_checkout_unwired_clears_the_convention(tmp_path):
+    report = _drive(tmp_path, [("session_start", {"reason": "startup"}),
+                               ("session_compact", {"reason": "manual"}, "unwired"), START])
+    assert report["results"][2]["sections"] == {}
 
 
 @needs_node
@@ -287,8 +312,8 @@ def test_turn_settlement_pushes_in_the_background_and_never_runs_a_full_sync(tmp
     report = _drive(tmp_path, [("session_start", {"reason": "startup"}), ("agent_end", {"messages": []}),
                                ("agent_settled", {"aborted": False}), ("session_compact", {"reason": "manual"}),
                                ("agent_settled", {"aborted": True})])
-    assert _events(report) == [("startup", False), ("turn-end", True), ("turn-end", True)]
-    for spawn in report["spawns"][1:]:
+    assert _events(report) == [("startup", False), ("turn-end", True), ("compaction", False), ("turn-end", True)]
+    for spawn in report["spawns"][1::2]:
         assert spawn["stdio"] == "ignore" and spawn["windowsHide"] is True
 
 
