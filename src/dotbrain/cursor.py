@@ -34,7 +34,7 @@ def _owned_hook(entry: dict) -> bool:
 
 
 def _read_hooks(path: Path) -> dict:
-    data = json.loads(path.read_text(encoding="utf-8-sig")) if path.exists() else {}
+    data = json.loads(path.read_text(encoding="utf-8").removeprefix("\ufeff")) if path.exists() else {}
     if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
         raise ValueError("expected an object with a hooks object")
     for entries in data.get("hooks", {}).values():
@@ -68,7 +68,7 @@ def reconcile_hooks(user_home: Path, *, remove: bool = False) -> skills.LinkResu
             path.unlink()
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         (result.pruned if remove else result.linked).append("cursor/hooks.json")
     except (OSError, ValueError) as exc:
         result.warnings.append(f"{path}: cannot reconcile Cursor hooks: {exc}")

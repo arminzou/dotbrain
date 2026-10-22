@@ -425,6 +425,8 @@ def test_cursor_project_lifecycle(lifecycle, monkeypatch, tmp_path, other_runtim
     user = tmp_path / 'user'
     monkeypatch.setattr(Path, 'home', lambda: user)
     home, brainspace, main, worktree = lifecycle
+    # User-level hooks are installed separately from checkout-local skill delivery.
+    assert not cursor.reconcile_hooks(user).warnings
     for name in ('one', 'two'):
         source = home / 'skills' / name
         source.mkdir(parents=True)

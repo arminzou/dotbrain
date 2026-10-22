@@ -235,7 +235,7 @@ def _check_home_plugin(rt: runtimes.Runtime, directory: Path) -> list[Finding]:
         state = adapter.state(directory)
         if state in ("missing", "foreign"):
             return _plugin_absent(rt, directory, state)
-        hooks = ", with its session hooks," if rt.hooks else ""
+        hooks = ", with its session hooks," if rt.hooks and rt.name != "cursor" else ""
         findings = [Finding("ok", f"{rt.name}: dotbrain {adapter.KIND} copy{hooks} current at {target}") if state == "current"
                     else Finding("warn", f"{rt.name}: dotbrain {adapter.KIND} copy is stale at {target}", "run dotbrain bootstrap")]
         if adapter is hermes and (activation := hermes.activation(directory)) != "enabled":
