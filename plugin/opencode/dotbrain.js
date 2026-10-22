@@ -121,10 +121,17 @@ function isExecutable(target) {
   }
 }
 
+/** An environment variable by any case: the TUI's worker gets Windows' `Path` as a plain, case-sensitive key. */
+function env(name) {
+  if (process.platform !== "win32") return process.env[name]
+  const key = Object.keys(process.env).find((k) => k.toUpperCase() === name)
+  return key === undefined ? undefined : process.env[key]
+}
+
 /** `dotbrain` on PATH, as a shell would find it; undefined when absent. */
 function findCli() {
-  const exts = process.platform === "win32" ? (process.env.PATHEXT || ".COM;.EXE;.BAT;.CMD").split(";") : [""]
-  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
+  const exts = process.platform === "win32" ? (env("PATHEXT") || ".COM;.EXE;.BAT;.CMD").split(";") : [""]
+  for (const dir of (env("PATH") || "").split(path.delimiter)) {
     if (!dir) continue
     for (const ext of exts) {
       const file = path.join(dir, "dotbrain" + ext)
@@ -141,7 +148,7 @@ function spawnCli(event, checkout, options) {
   // Node runs .cmd and .bat files only through cmd.exe.
   // ponytail: cmd.exe still expands %VAR% inside a quoted path; an .exe has no such issue.
   const child = /\.(cmd|bat)$/i.test(exe)
-    ? spawn(`"${exe}"`, args.map((arg) => `"${arg}"`), { ...opts, shell: true })
+    ? spawn(`"${exe}"`, args.map((arg) => `"${arg}"`), { ...opts, shell: env("COMSPEC") || true })
     : spawn(exe, args, opts)
   child.on("error", () => {}) // an unhandled spawn error would crash OpenCode
   return child

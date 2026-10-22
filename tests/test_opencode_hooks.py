@@ -25,7 +25,9 @@ HARNESS = r"""
 import { pathToFileURL } from "node:url"
 let raw = ""
 for await (const chunk of process.stdin) raw += chunk
-const { plugin, input, parents, lookup, fastTimers, steps } = JSON.parse(raw)
+const { plugin, input, parents, lookup, fastTimers, steps, plainEnv } = JSON.parse(raw)
+// OpenCode's TUI worker sees a plain, case-sensitive environment that names PATH as Windows does.
+if (plainEnv) process.env = Object.fromEntries(Object.entries(process.env).map(([k, v]) => [/^path$/i.test(k) ? "Path" : k, v]))
 if (fastTimers) {
   const real = globalThis.setTimeout
   // Long enough for a fake CLI started through cmd.exe to log its call on a loaded machine.
@@ -99,10 +101,10 @@ class OpenCode:
     def behave(self, **events):
         (self.bin / "behavior.json").write_text(json.dumps(events), encoding="utf-8")
 
-    def play(self, *steps, path=None) -> dict:
+    def play(self, *steps, path=None, plain_env=False) -> dict:
         env = {**os.environ, "PATH": str(self.bin) if path is None else path}
         payload = {"plugin": str(self.tmp / "plugins" / "dotbrain.js"), "parents": self.parents,
-                   "lookup": self.lookup, "fastTimers": self.fast_timers, "steps": list(steps),
+                   "lookup": self.lookup, "fastTimers": self.fast_timers, "steps": list(steps), "plainEnv": plain_env,
                    "input": {"directory": str(self.checkout), "worktree": str(self.checkout),
                              "project": {"vcs": self.vcs} if self.vcs else {}}}
         done = subprocess.run([self.node, str(self.tmp / "harness.mjs")], input=json.dumps(payload),
@@ -221,6 +223,13 @@ def test_non_git_project_gets_no_session_hooks(opencode):
     out = opencode.play(created("s1"), message("s1"), request("s1"), {"op": "dispose"})
     assert out["hooks"] == ["config"]
     assert opencode.calls() == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="only Windows names PATH as Path")
+def test_cli_is_found_through_a_plain_windows_environment(opencode):
+    out = opencode.play(created("s1"), message("s1"), request("s1"), plain_env=True)
+    assert out["requests"] == [[CONVENTION]]
+    assert opencode.calls(1) == ["startup"]
 
 
 def test_missing_cli_is_a_silent_no_op(opencode, tmp_path):
