@@ -190,4 +190,4 @@ dotbrain unwire             # disconnect, keep the Brainspace
 
 ### 支持哪些 Agent？ {#which-agents-are-supported}
 
-Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode) 和 [Pi](getting-started.md#pi)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode)、[Pi](getting-started.md#pi) 和 [Cursor](getting-started.md#cursor)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。

@@ -208,6 +208,6 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 ### Which agents are supported?
 
 Claude Code and Codex, plus [Hermes](getting-started.md#hermes), [OpenCode](getting-started.md#opencode),
-and [Pi](getting-started.md#pi).
+[Pi](getting-started.md#pi), and [Cursor](getting-started.md#cursor).
 Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).

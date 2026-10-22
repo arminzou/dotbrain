@@ -157,4 +157,10 @@ Pi gets the skills from the extension that
 from `.pi/skills/` in a trusted checkout. Manual-only skills are hidden from the model; invoke them
 with `/skill:<name>`. See [Pi](getting-started.md#pi).
 
+Cursor gets the packaged skills from your dotbrain Claude Code plugin, or from a copy dotbrain
+keeps when that plugin is missing, disabled, or outdated. It also reads `.claude/skills`,
+`.codex/skills`, and `.agents/skills`, so dotbrain links into `.cursor/skills/` only the skills
+Cursor would not otherwise find. Manual-only skills run only as `/<name>`. See
+[Cursor](getting-started.md#cursor).
+
 Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).

@@ -111,7 +111,7 @@ skills:                       # extra skills for this project's workspaces
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `execution-engine` | `beads` | The private execution backend |
-| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), or [`pi`](getting-started.md#pi) |
+| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), or [`cursor`](getting-started.md#cursor) |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
@@ -194,7 +194,8 @@ the private `agents/` root, not delivered copies. Dotbrain migrates owned Codex 
 overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
 filename is reported instead of replaced.
 
-Runtime flags use `--runtime claude|codex|hermes|opencode|pi|all`. YAML target keys are
-`claude-code`, `codex`, `hermes`, `opencode`, and `pi`. Hermes, OpenCode, and Pi have no subagent target.
+Runtime flags use `--runtime claude|codex|hermes|opencode|pi|cursor|all`. YAML target keys are
+`claude-code`, `codex`, `hermes`, `opencode`, `pi`, and `cursor`. Hermes, OpenCode, Pi, and Cursor have no
+subagent target.
 Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
 with project selectors or `--all`.

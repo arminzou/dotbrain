@@ -11,7 +11,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both. Hermes, OpenCode, and Pi work too: see [Hermes](#hermes), [OpenCode](#opencode), and [Pi](#pi) |
+| Claude Code or Codex | Either runtime, or both. Hermes, OpenCode, Pi, and Cursor work too: see [Hermes](#hermes), [OpenCode](#opencode), [Pi](#pi), and [Cursor](#cursor) |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -642,6 +642,114 @@ find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
 
 Once the extension is gone and no `pi` target is left, `dotbrain bootstrap` no longer delivers to
 Pi, unless you run it with `--runtime pi`. Restart Pi afterwards.
+
+## Cursor {#cursor}
+
+Dotbrain also delivers to the [Cursor](https://cursor.com) CLI.
+
+::: warning Limits
+- Cursor support is tested with Cursor CLI 2026.10.19. Other Cursor releases and the Cursor editor
+  are not tested.
+- Dotbrain ships no subagents for Cursor, so Cursor has no native dotbrain workers. In
+  `run-execution` it works only as the lead.
+- Cursor also reads `.claude/skills`, `.codex/skills`, `.agents/skills`, and `.grok/skills`, in the
+  checkout and your home folder. When it finds two separate copies of a skill with the same name,
+  it uses one of them. `dotbrain doctor --verbose` lists each duplicate of a dotbrain skill.
+- After a resume, Cursor keeps the convention the session started with but runs no startup sync.
+- Closing the console window probably skips Cursor's session-end hook, and with it the full sync
+  at exit. The push after each turn still happens, and the next session start syncs what was left.
+- Removing dotbrain from Cursor is manual. See [Remove](#cursor-remove).
+:::
+
+### Set up {#cursor-setup}
+
+Cursor has no dotbrain marketplace install. Install the CLI first (see
+[step 2](#_2-get-the-cli)), then run:
+
+```bash
+dotbrain bootstrap --runtime cursor
+```
+
+This adds three dotbrain hooks to `~/.cursor/hooks.json`, creating the file when it is missing and
+keeping any hooks of your own. On Windows, `~` is `%USERPROFILE%`. Cursor gets dotbrain's packaged
+skills from your dotbrain Claude Code plugin when that plugin is installed, enabled, and current;
+otherwise from a copy dotbrain keeps in `~/dotbrain/.cache/cursor/`. Global skills you select in
+`skills/skills.yaml` are linked into `~/.cursor/skills/`, except those Cursor already finds in
+another folder it reads, such as `~/.claude/skills`. Unlike Hermes, OpenCode, and Pi, a first
+`dotbrain bootstrap` does not set up Cursor on its own; run it with `--runtime cursor` once.
+
+The hooks run the `dotbrain` they find on the `PATH` that Cursor started with. Without one,
+sessions still work, but they get no convention and no sync. When your dotbrain Claude Code plugin
+is enabled, Cursor also loads its hooks; dotbrain makes those do nothing under Cursor, so each event
+runs once.
+
+Then declare Cursor for each project that should get it, and link its skills:
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - cursor
+```
+
+```bash
+dotbrain refresh                   # links selected skills Cursor cannot already find into .cursor/skills/
+dotbrain doctor
+```
+
+When the project also declares `claude`, Cursor usually finds its skills through `.claude/skills/`,
+and `.cursor/skills/` stays empty. Packaged skills appear under their own names, such as
+`wire-brain`. Manual-only skills, such as `run-retro`, run only when you type `/<name>`.
+
+### What happens in a Cursor session {#cursor-sessions}
+
+The hooks run the same [home sync](session-context.md#home-sync) and add the convention to the
+session. See the [Cursor runtime notes](session-context.md#runtime-notes).
+
+### Update {#cursor-update}
+
+Upgrade the CLI as in [Staying Current](#staying-current), then run:
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+Once Cursor is set up, an unfiltered `dotbrain bootstrap` keeps the hooks and the packaged-skill
+copy current. Dotbrain replaces only its own hook entries and its own copy. Start a new Cursor
+session to use the update.
+
+### Remove {#cursor-remove}
+
+Quit Cursor first, so the sync at exit can finish.
+
+For one checkout, `dotbrain unwire` removes its Cursor skill links. To keep the checkout wired but
+drop Cursor, remove `cursor` from `agents:` and delete dotbrain's links under the checkout's
+`.cursor/skills/`; `dotbrain refresh` does not remove them.
+
+To remove dotbrain from Cursor everywhere, first remove any `cursor` target from
+`skills/skills.yaml`. Then:
+
+1. Open `~/.cursor/hooks.json` and delete the three entries whose command starts with
+   `dotbrain hook run`. Delete the file if nothing else is left in it.
+2. Delete dotbrain's links in `~/.cursor/skills/` and its copy in `~/dotbrain/.cache/cursor/`:
+
+::: code-group
+
+```powershell [PowerShell 7]
+Get-ChildItem "$env:USERPROFILE\.cursor\skills" -ErrorAction SilentlyContinue |
+  Where-Object { $_.LinkTarget -like '*dotbrain*' } | Remove-Item
+Remove-Item -Recurse "$env:USERPROFILE\dotbrain\.cache\cursor"
+```
+
+```bash [Git Bash]
+find "$HOME/.cursor/skills" -maxdepth 1 -type l -lname '*dotbrain*' -delete
+rm -rf "$HOME/dotbrain/.cache/cursor"
+```
+
+:::
+
+Once the copy is gone and no `cursor` target is left, `dotbrain bootstrap` no longer delivers to
+Cursor, unless you run it with `--runtime cursor`.
 
 ## Edit Config Only When Needed
 

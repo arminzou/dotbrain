@@ -130,6 +130,11 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   fork 对应 `compaction`），并在这个会话的每次运行里把约定作为 system prompt 的一节加上。压缩之后运行
   `compaction`，约定照样会加上；刷新失败时保留原来的约定。一次运行结束时，在后台启动 `turn-end` 推送。`/quit`
   运行 `session-end`。直接关掉控制台窗口很可能会跳过这一步，下次会话启动时的同步会补上。
+- **Cursor**（见 [Cursor](getting-started.md#cursor)）运行 dotbrain 加进 `~/.cursor/hooks.json` 的 hook。在 `sessionStart`
+  时，它以 Cursor 的项目目录作为 checkout 运行 `dotbrain hook run --event startup`，并把约定作为上下文返回；这个上下文会随
+  会话的每次请求发送，所以压缩不会丢掉它。恢复的会话保留开始时的约定；Cursor 不会为它运行 `sessionStart`，所以也没有启动同步。
+  每次 `stop` 在后台启动 `turn-end` 推送，`sessionEnd` 运行 `session-end`。直接关掉控制台窗口很可能会跳过这一步，
+  下次会话启动时的同步会补上。
 - 在不支持 hook 的运行时里，调用 `dotbrain` 技能手动加载约定，并自己运行 `dotbrain sync`。
 
 ## 子 Agent {#subagents}
@@ -138,7 +143,7 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
 Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
-比如 `dotbrain-worker`。Hermes、OpenCode 和 Pi 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
+比如 `dotbrain-worker`。Hermes、OpenCode、Pi 和 Cursor 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
 不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
 
 | 子 Agent | 做什么 |
