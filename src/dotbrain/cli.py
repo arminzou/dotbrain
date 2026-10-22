@@ -5,7 +5,8 @@ from __future__ import annotations
 import dataclasses
 import subprocess
 from pathlib import Path
-from typing import Literal, Optional
+from enum import Enum
+from typing import Optional
 
 import typer
 import yaml
@@ -75,18 +76,23 @@ def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
     hooks.handle_event("session-end")
 
 
+# str enums, not Literal: Typer before 0.16 cannot resolve Literal and then fails every command.
+HookEvent = Enum("HookEvent", {event: event for event in hooks.EVENTS}, type=str)
+HookFormat = Enum("HookFormat", {"text": "text", "json": "json"}, type=str)
+
+
 @hook_app.command("run")
 def hook_run(
-    event: Literal[hooks.EVENTS] = typer.Option(
+    event: HookEvent = typer.Option(
         ..., "--event", metavar="<event>", help="Session event: startup, resume, clear, compaction, turn-end, or session-end."),
     checkout: Optional[Path] = typer.Option(None, "--checkout",
                                             help="Checkout the event belongs to. Default: the working directory."),
-    output: Literal["text", "json"] = typer.Option("text", "--format",
+    output: HookFormat = typer.Option("text", "--format",
                                                    help="Context output: text (raw) or json (an additional_context object)."),
 ) -> None:
     """Handle a session event for any runtime adapter, without reading a hook payload. Fail-open."""
 
-    hooks.handle_event(event, checkout, output)
+    hooks.handle_event(event.value, checkout, output.value)
 
 
 def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:
