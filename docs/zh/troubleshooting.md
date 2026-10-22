@@ -57,14 +57,14 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 ### Pi 看不到项目的技能 {#pi-does-not-see-project-skills}
 
 在 Pi 信任这个 checkout 之前，`dotbrain doctor` 会警告 `project skills load only from a trusted checkout`。
-在 checkout 里启动 `pi` 并接受信任提示即可。详见[在 Windows 上使用 Pi](getting-started.md#pi)。
+在 checkout 里启动 `pi` 并接受信任提示即可。详见[Pi](getting-started.md#pi)。
 
 ### OpenCode 加载了另一份技能 {#opencode-loads-a-different-copy-of-a-skill}
 
 如果 OpenCode 会找到同一个 dotbrain 技能的两份：一份来自 dotbrain，一份来自你自己的目录（比如
 `~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor` 会警告
 `OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的技能目录，然后重启 OpenCode。
-详见[在 Windows 上使用 OpenCode](getting-started.md#opencode)。
+详见[OpenCode](getting-started.md#opencode)。
 
 ### `dotbrain site` 失败 {#dotbrain-site-fails}
 
@@ -190,4 +190,4 @@ dotbrain unwire             # disconnect, keep the Brainspace
 
 ### 支持哪些 Agent？ {#which-agents-are-supported}
 
-Claude Code 和 Codex；Hermes 也可以，但只限 Linux（见[在 Linux 上使用 Hermes](getting-started.md#hermes)）；OpenCode 和 Pi 也可以，但只限原生 Windows（见[在 Windows 上使用 OpenCode](getting-started.md#opencode)和[在 Windows 上使用 Pi](getting-started.md#pi)）。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode) 和 [Pi](getting-started.md#pi)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。

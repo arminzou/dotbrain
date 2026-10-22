@@ -111,21 +111,21 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   hook 留的时间很短，所以这个 hook 只负责启动同步，然后立即返回。Codex 是否只在主 thread 上触发
   `Stop`，以及是否在后台运行 `Stop` hook，目前还没验证。Stop 和会话结束时的同步发现已有同步在运行，
   都会立即退出；只推送的同步也很快返回。
-- **Hermes**（只限 Linux，见[在 Linux 上使用 Hermes](getting-started.md#hermes)）在插件启用后就会运行
+- **Hermes**（见 [Hermes](getting-started.md#hermes)）在插件启用后就会运行
   这些 hook。每个会话第一次请求模型之前，插件会运行 `dotbrain hook run --event startup`，把约定附在第一条
   用户消息里，而不是放进 system prompt。Hermes 会把它留在会话历史里，所以恢复的会话会为同步运行 `resume`，
   但不会再加一份。压缩把它从历史里去掉之后，下一轮会运行 `compaction`，再把它加回来。Hermes 默认会把超过
   10,000 个字符的 hook 内容转存到文件里，所以约定必须比这个小。Hermes 每轮结束都会触发它自己的会话结束
   hook，所以这个 hook 只在后台启动 `turn-end` 推送；真正退出时才运行 `session-end`。委派出去的子 Agent
   不注入约定，也不同步。
-- **OpenCode**（只限原生 Windows，见[在 Windows 上使用 OpenCode](getting-started.md#opencode)）在 plugin 文件放进
+- **OpenCode**（见 [OpenCode](getting-started.md#opencode)）在 plugin 文件放进
   它的配置目录后就会运行这些 hook。每个会话第一次请求模型之前，plugin 会运行 `dotbrain hook run --event startup`，
   并把约定加进这个会话每次请求的 system prompt。不是当前 OpenCode 进程创建的会话（比如用 `opencode run -c`
   继续的会话）会改为运行 `resume`。压缩之后运行 `compaction`，约定照样会加上。一次运行结束、会话进入空闲时，
   plugin 在后台启动 `turn-end` 推送。OpenCode 退出时，为每个空闲会话启动 `session-end`。强制结束 OpenCode 或者
   直接关掉窗口会跳过这一步，下次会话启动时的同步会补上。重新加载配置也会关闭 plugin，但对还在运行的会话只推送。
   task 子 Agent 不注入约定，也不同步。
-- **Pi**（只限原生 Windows，见[在 Windows 上使用 Pi](getting-started.md#pi)）在扩展放进它的 Agent 目录后就会运行
+- **Pi**（见 [Pi](getting-started.md#pi)）在扩展放进它的 Agent 目录后就会运行
   这些 hook。每次会话启动时，扩展运行 `dotbrain hook run`（`startup`、`resume`，`/new` 对应 `clear`，重新加载或
   fork 对应 `compaction`），并在这个会话的每次运行里把约定作为 system prompt 的一节加上。压缩之后运行
   `compaction`，约定照样会加上；刷新失败时保留原来的约定。一次运行结束时，在后台启动 `turn-end` 推送。`/quit`

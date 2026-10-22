@@ -11,7 +11,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes)。OpenCode 和 Pi 也行，但只限原生 Windows，见[在 Windows 上使用 OpenCode](#opencode)和[在 Windows 上使用 Pi](#pi) |
+| Claude Code 或 Codex | 任选其一，或两个都用。Hermes、OpenCode 和 Pi 也可以用，见 [Hermes](#hermes)、[OpenCode](#opencode) 和 [Pi](#pi) |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -312,13 +312,12 @@ JSON 结果中的严重级别 `advisory` 现在改为 `warning`，与已有的 w
 需要更新，因为旧值不会再输出。其他结果字段和退出码不变，只有 warning 时仍然以成功退出。
 详见 [CLI 参考](cli-reference.md)。
 
-## 在 Linux 上使用 Hermes {#hermes}
+## Hermes {#hermes}
 
 Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 的 CLI。
 
 ::: warning 限制
-- Hermes 只在 Linux 上测过：Ubuntu 24.04 上的 Hermes CLI。不支持 Windows，macOS 和 Hermes 的消息
-  gateway 也没有测过。
+- Hermes 用 Hermes CLI 测过。Hermes 的消息 gateway 没有测过。
 - Dotbrain 不为 Hermes 提供子 Agent，所以 Hermes 没有原生的 dotbrain worker。在 `run-execution`
   里它只能当 lead。
 - Hermes 只从你信任过的 checkout 加载项目技能。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
@@ -399,13 +398,13 @@ rm -rf ~/.hermes/plugins/dotbrain   # 或 $HERMES_HOME/plugins/dotbrain
 如果你选过全局技能，也要删掉 `~/.hermes/skills/` 下 dotbrain 的链接。没有插件副本之后，`dotbrain bootstrap`
 就不会再给 Hermes 交付，除非你再用 `--runtime hermes` 运行它，或者 `skills/skills.yaml` 里写了 `hermes` 目标。
 
-## 在 Windows 上使用 OpenCode {#opencode}
+## OpenCode {#opencode}
 
 Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
 
 ::: warning 限制
-- OpenCode 只在原生 Windows 上测过：Windows 11 上的 OpenCode 1.18.35，通过 `opencode run` 测试。
-  其他操作系统、其他 OpenCode 版本，以及 OpenCode 的 TUI、桌面应用和 server 都没有测过。
+- OpenCode 用 OpenCode 1.18.35 测过，通过 `opencode run` 和 TUI。其他 OpenCode 版本，以及 OpenCode
+  的桌面应用和 server 都没有测过。
 - Dotbrain 不为 OpenCode 提供子 Agent，所以 OpenCode 没有原生的 dotbrain worker。在 `run-execution`
   里它只能当 lead。
 - 如果你自己给 dotbrain 的技能建过链接或副本，先删掉。比如指向 dotbrain plugin 的
@@ -504,12 +503,12 @@ rm -rf "$oc/dotbrain"
 两样都删完再运行 `dotbrain bootstrap`：只要还剩一样，不带参数的 bootstrap 就会把另一样装回来。两样都删掉之后，
 `dotbrain bootstrap` 就不会再给 OpenCode 交付，除非你用 `--runtime opencode` 运行它。最后重启 OpenCode。
 
-## 在 Windows 上使用 Pi {#pi}
+## Pi {#pi}
 
 Dotbrain 也支持 [Pi](https://github.com/earendil-works/pi) coding agent 的 CLI。
 
 ::: warning 限制
-- Pi 只在原生 Windows 上测过：Windows 11 上的 Pi 1.4.0。其他操作系统和其他 Pi 版本都没有测过。
+- Pi 用 Pi 1.4.0 测过。其他 Pi 版本都没有测过。
 - Dotbrain 不为 Pi 提供子 Agent，所以 Pi 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
 - 只能手动调用的技能（比如 `run-retro`）对模型隐藏，只有你输入 `/skill:<name>` 时才会运行。但 Pi
   不会阻止模型直接读取这类技能的文件。

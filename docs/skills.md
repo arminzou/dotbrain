@@ -141,20 +141,20 @@ The skills arrive with the plugin, installed once per agent runtime rather than 
 [getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
 user scope, its skills are available in every session, including repos that are not wired yet.
 
-Hermes, on Linux only, gets the skills from a plugin copy that `dotbrain bootstrap --runtime hermes`
+Hermes gets the skills from a plugin copy that `dotbrain bootstrap --runtime hermes`
 places in the Hermes home, and a project's selected skills from `.hermes/skills/` in a trusted
 checkout. Hermes lists manual-only skills, but the model cannot load them; invoke them yourself.
-See [Hermes on Linux](getting-started.md#hermes).
+See [Hermes](getting-started.md#hermes).
 
-OpenCode, on native Windows only, gets the skills from the packaged copy that
+OpenCode gets the skills from the packaged copy that
 `dotbrain bootstrap --runtime opencode` places in the OpenCode config directory, and a project's
 selected skills from `.opencode/skills/` in the checkout. Skills keep their own names, without the
 `dotbrain:` prefix. Manual-only skills are not enforced: OpenCode lists them and the model can
-invoke them. See [OpenCode on Windows](getting-started.md#opencode).
+invoke them. See [OpenCode](getting-started.md#opencode).
 
-Pi, on native Windows only, gets the skills from the extension that
+Pi gets the skills from the extension that
 `dotbrain bootstrap --runtime pi` places in the Pi agent directory, and a project's selected skills
 from `.pi/skills/` in a trusted checkout. Manual-only skills are hidden from the model; invoke them
-with `/skill:<name>`. See [Pi on Windows](getting-started.md#pi).
+with `/skill:<name>`. See [Pi](getting-started.md#pi).
 
 Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).

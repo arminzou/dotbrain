@@ -118,16 +118,16 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 技能随插件一起提供，每个 Agent 运行时装一次，而不是每个仓库装一次。安装命令见[快速开始](getting-started.md)。
 插件装在用户级别，所以它的技能在每个会话里都可用，包括还没连接的仓库。
 
-Hermes 只限 Linux。它的技能来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，
+Hermes 的技能来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，
 项目选中的技能来自已信任 checkout 里的 `.hermes/skills/`。只能手动调用的技能会出现在 Hermes 的列表里，
-但模型加载不了，要你自己调用。详见[在 Linux 上使用 Hermes](getting-started.md#hermes)。
+但模型加载不了，要你自己调用。详见[Hermes](getting-started.md#hermes)。
 
-OpenCode 只限原生 Windows。它的技能来自 `dotbrain bootstrap --runtime opencode` 放进 OpenCode 配置目录的打包副本，
+OpenCode 的技能来自 `dotbrain bootstrap --runtime opencode` 放进 OpenCode 配置目录的打包副本，
 项目选中的技能来自 checkout 里的 `.opencode/skills/`。技能用自己的名字，不带 `dotbrain:` 前缀。只能手动调用的技能
-在 OpenCode 里不受限制：它们照样出现在列表里，模型也可以调用。详见[在 Windows 上使用 OpenCode](getting-started.md#opencode)。
+在 OpenCode 里不受限制：它们照样出现在列表里，模型也可以调用。详见[OpenCode](getting-started.md#opencode)。
 
-Pi 只限原生 Windows。它的技能来自 `dotbrain bootstrap --runtime pi` 放进 Pi Agent 目录的扩展，项目选中的技能来自
+Pi 的技能来自 `dotbrain bootstrap --runtime pi` 放进 Pi Agent 目录的扩展，项目选中的技能来自
 受信任 checkout 里的 `.pi/skills/`。只能手动调用的技能对模型隐藏，用 `/skill:<name>` 调用。详见
-[在 Windows 上使用 Pi](getting-started.md#pi)。
+[Pi](getting-started.md#pi)。
 
 内置技能直接在 [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills) 里编辑。
