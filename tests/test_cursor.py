@@ -389,3 +389,21 @@ def test_bootstrap_completes_when_cursor_already_finds_a_copy(dotbrain_home, tmp
     assert out["status"] == "success"
     assert any("duplicate skill example" in f["message"] for t in out["targets"] for f in t["findings"])
     assert not (user / ".cursor/skills/example").exists()
+
+
+def test_doctor_reports_only_dotbrain_duplicates_and_each_once(dotbrain_home, tmp_path):
+    user, repo = tmp_path / "user", tmp_path / "repo"
+    skill(dotbrain_home / "skills")
+    skill(dotbrain_home / "skills", "chosen")
+    for account in ("a", "b"):
+        skill(user / f".claude/skills/synced/{account}", "pdf")  # the user's own duplicates
+        skill(user / f".claude/skills/synced/{account}")  # competes with a selected dotbrain skill
+    skill(user / ".claude/skills/synced/a", "chosen")
+    (repo / ".cursor/skills").mkdir(parents=True)
+    (repo / ".cursor/skills/chosen").symlink_to(dotbrain_home / "skills/chosen", target_is_directory=True)
+    machine = [f.message for f in doctor._check_cursor_skills(dotbrain_home, ("example",), (user,))]
+    assert not any("duplicate skill pdf" in m for m in machine)
+    assert any("duplicate skill example" in m for m in machine)
+    project = [f.message for f in doctor._check_cursor_skills(dotbrain_home, ("chosen",), (repo, user), selected_only=True)]
+    assert any("duplicate skill chosen" in m for m in project)
+    assert not any("duplicate skill example" in m or "duplicate skill pdf" in m for m in project)

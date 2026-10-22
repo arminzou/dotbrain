@@ -178,7 +178,8 @@ def _check_cursor_hooks(home: Path) -> list[Finding]:
     return [Finding("info", "cursor: hook entries are current; native consumption is not verified")]
 
 
-def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> list[Finding]:
+def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...], *, selected_only: bool = False) -> list[Finding]:
+    """Delivery of dotbrain's skills to Cursor; ``selected_only`` leaves packaged-skill duplicates to the machine check."""
     visible = cursor.discovered(*scopes)
     findings = []
     current = claude_plugins.enabled_installs(scopes, include_stale=False)
@@ -186,16 +187,20 @@ def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> lis
         if identifier == "dotbrain@dotbrain" and (identifier, installation) not in current:
             findings.append(Finding("warn", f"cursor: imported dotbrain plugin is stale at {installation}",
                                     "update the Claude plugin and run dotbrain skills link --runtime cursor"))
-    for name, source in cursor.sources(root, selection, scopes=scopes).items():
+    wanted = cursor.sources(root, selection, scopes=scopes)
+    packaged = set(cursor.sources(root, (), scopes=scopes))
+    reported = set(wanted) - packaged if selected_only else set(wanted)
+    for name, source in wanted.items():
         seen = visible.get(name, set())
         if not seen:
             findings.append(Finding("error", f"cursor: skill {name} delivery is missing", "run dotbrain skills link --runtime cursor in this scope"))
         elif source.resolve() not in seen:
             findings.append(Finding("warn", f"cursor: foreign skill {name} shadows delivery", "inspect Cursor skill discovery roots"))
+    # Only dotbrain's skills: duplicates among the user's other skills are not dotbrain's to fix.
     for name, seen in visible.items():
-        if len(seen) > 1:
+        if name in reported and len(seen) > 1:
             findings.append(Finding("warn", f"cursor: duplicate skill {name}: {', '.join(map(str, sorted(seen)))}",
-                                    "retain one skill source across Cursor discovery roots"))
+                                    "remove the copies dotbrain did not deliver" + ("" if name in packaged else f", or drop {name} from the dotbrain skill selection")))
     return findings
 
 
@@ -431,7 +436,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             rt = runtimes.for_workspace(workspace)
             runtime = rt.key
             if runtime == "cursor":
-                findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home())))
+                findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home()), selected_only=True))
                 sources = (root / "skills",) + ((cursor.plugin_dir(root),) if cursor.owned(root) else ())
                 entries.extend(f"/{workspace}/skills/{entry.name}" for entry in (directory / "skills").glob("*")
                                if entry.is_symlink() and any(skills._points_into(entry, source) for source in sources))
