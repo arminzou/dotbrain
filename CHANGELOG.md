@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.12.0](https://github.com/arminzou/dotbrain/compare/v0.11.0...v0.12.0) (2026-10-22)
+
+
+### Features
+
+* **skills:** define lead completion handling for worker results ([0060c98](https://github.com/arminzou/dotbrain/commit/0060c98f25906c7229c8a9340bee6e4b3fe473cb))
+
+
+### Bug Fixes
+
+* **hooks:** label sync hooks and respect Codex timeout limit ([ff67d82](https://github.com/arminzou/dotbrain/commit/ff67d82e606c5829b1ddabb15c7a5886678af767))
+* **hooks:** skip the session-end sync on /clear ([134bf31](https://github.com/arminzou/dotbrain/commit/134bf3159a52ea493468a733d55b831f6798c5d7))
+* **site:** start the preview server without a reverse-DNS lookup ([7b9357b](https://github.com/arminzou/dotbrain/commit/7b9357b114b7239302e89192ce0a0962ad44e6ac))
+* **sync:** compare conflict copy names with HEAD case-insensitively ([220733f](https://github.com/arminzou/dotbrain/commit/220733f00991bc48049d5eddaa0e914de364d8c5))
+* **sync:** keep tracked files and clean up when a merge abort fails ([545bc64](https://github.com/arminzou/dotbrain/commit/545bc640c962985a88f14e06fed6898637a9b996))
+* **sync:** remove conflict copies left by a failed merge ([86fc2a5](https://github.com/arminzou/dotbrain/commit/86fc2a51729e07a0c3d2a01fe8e8b7c9c5c896f9))
+
+
+### Performance Improvements
+
+* **sync:** read the home's state with one git status ([bd4c0f2](https://github.com/arminzou/dotbrain/commit/bd4c0f2a30b29a38178f74def00c0e42ac4bd3ef))
+
+
+### Documentation
+
+* **convention:** say when agents commit Brain changes by hand ([cfed120](https://github.com/arminzou/dotbrain/commit/cfed1207ca5fc9a0ecfba2603a39e6ed719667ef))
+* **rules:** keep tests parallel-safe and Git work off hot paths ([a9f3529](https://github.com/arminzou/dotbrain/commit/a9f3529fc00fd187f8440e63289844a2f4caa015))
+* **skills:** stack a branch only on work it depends on ([f24169b](https://github.com/arminzou/dotbrain/commit/f24169b7dd73366439023343b174cd869e2cd9ac))
+
 ## [0.11.0](https://github.com/arminzou/dotbrain/compare/v0.10.0...v0.11.0) (2026-10-20)
 
 
