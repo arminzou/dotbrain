@@ -5,9 +5,26 @@ and keeps explicit-only skills manual: Hermes ignores ``disable-model-invocation
 ``pre_tool_call`` veto refuses the model's own ``skill_view`` of them while the user's
 ``/dotbrain:<skill>`` command, which loads the skill without a tool call, still works.
 
+Session hooks hand each Hermes event to ``dotbrain hook run``, which decides wiring, assembles the
+convention and syncs; this file only maps events and caches what the CLI printed:
+
+- the first ``pre_llm_call`` of a session runs ``startup`` (``resume`` when Hermes restored an
+  existing session) and injects the convention;
+- a later turn whose history no longer holds the convention (compaction) runs ``compaction`` and
+  injects it again; Hermes keeps injected context in its history, so it is never added twice;
+- ``on_session_end`` ends every turn: ``turn-end`` pushes in the background;
+- ``on_session_finalize`` is a real exit: ``session-end`` schedules a full sync;
+- delegated children get no convention and no sync.
+
+Every hook fails open: a missing or failing ``dotbrain`` leaves the agent untouched.
+
 Hermes runs this in its own environment: standard library only.
 """
 
+import os
+import shutil
+import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
@@ -93,4 +110,111 @@ def register(ctx):
             manual.add(name)
     if manual:
         ctx.register_hook("pre_tool_call", manual_only_veto(manual))
-    # Session hooks are not registered yet; they belong here, beside the skills.
+    for name, hook in HOOKS.items():
+        ctx.register_hook(name, _fail_open(hook))
+
+
+# The CLI's session start waits at most 10 s for sync; Hermes allows a hook 30 s.
+START_TIMEOUT = 25
+# Hermes time-boxes finalize (10 s in the gateway); session-end only launches a sync and returns.
+END_TIMEOUT = 5
+
+_conventions = {}  # session id -> convention the CLI printed for it ("" when unwired)
+_children = set()  # delegated child session ids: no convention, no sync
+
+
+def _checkout():
+    try:
+        from agent.runtime_cwd import resolve_agent_cwd  # not public Hermes API; may move
+        return str(resolve_agent_cwd())
+    except Exception:  # noqa: BLE001
+        return os.getcwd()
+
+
+def _argv(event):
+    exe = shutil.which("dotbrain")
+    return [exe, "hook", "run", "--event", event, "--checkout", _checkout()] if exe else None
+
+
+def _hook_run(event, timeout):
+    """What ``dotbrain hook run`` printed for this event; "" when it is absent or fails."""
+    argv = _argv(event)
+    if argv is None:
+        return ""
+    try:
+        done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
+                              stdin=subprocess.DEVNULL, timeout=timeout, check=False)
+    except Exception:  # noqa: BLE001 - cached as "", so a broken CLI is not retried every turn
+        return ""
+    return done.stdout.strip() if done.returncode == 0 and done.stdout else ""
+
+
+def _launch(event):
+    """Start ``dotbrain hook run`` without waiting; the CLI starts its own detached sync."""
+    argv = _argv(event)
+    if argv is None:
+        return
+    detach = ({"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
+              if sys.platform == "win32" else {"start_new_session": True})
+    subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **detach)
+
+
+def _in_history(text, history):
+    """Whether a message already carries ``text``; Hermes replays injected context as ``api_content``."""
+    return any(isinstance(message, dict) and any(isinstance(message.get(key), str) and text in message[key]
+                                                 for key in ("api_content", "content"))
+               for message in history or ())
+
+
+def _pre_llm_call(session_id=None, conversation_history=None, is_first_turn=False, parent_session_id=None, **_):
+    if parent_session_id:
+        _children.add(session_id)
+    if not session_id or session_id in _children:
+        return None
+    if session_id not in _conventions:
+        _conventions[session_id] = _hook_run("startup" if is_first_turn else "resume", START_TIMEOUT)
+    elif _conventions[session_id] and not _in_history(_conventions[session_id], conversation_history):
+        # Compaction dropped it from the history: refresh it and inject it again.
+        _conventions[session_id] = _hook_run("compaction", START_TIMEOUT)
+    text = _conventions[session_id]
+    return {"context": text} if text and not _in_history(text, conversation_history) else None
+
+
+def _subagent_start(child_session_id=None, **_):
+    if child_session_id:
+        _children.add(child_session_id)
+
+
+def _on_session_end(session_id=None, **_):
+    # Hermes fires this at the end of every turn, not at exit.
+    if session_id in _conventions:
+        _launch("turn-end")
+
+
+def _on_session_finalize(session_id=None, **_):
+    if _conventions.pop(session_id, None) is not None:
+        _hook_run("session-end", END_TIMEOUT)
+
+
+def _on_session_reset(session_id=None, **_):
+    _conventions.pop(session_id, None)
+    _children.discard(session_id)
+
+
+HOOKS = {
+    "pre_llm_call": _pre_llm_call,
+    "subagent_start": _subagent_start,
+    "on_session_end": _on_session_end,
+    "on_session_finalize": _on_session_finalize,
+    "on_session_reset": _on_session_reset,
+}
+
+
+def _fail_open(hook):
+    def run(**kwargs):
+        try:
+            return hook(**kwargs)
+        except Exception:  # noqa: BLE001 - a hook must never break the agent
+            return None
+
+    return run

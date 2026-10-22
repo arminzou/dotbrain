@@ -31,8 +31,7 @@ class Runtime:
 RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
     "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True),
-    # Session hooks for Hermes are not delivered yet; its plugin registers skills only.
-    "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", home_env="HERMES_HOME"),
+    "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", hooks=True, home_env="HERMES_HOME"),
 }
 
 

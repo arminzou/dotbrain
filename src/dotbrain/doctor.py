@@ -157,9 +157,10 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
-        if rt.hooks:
+        if rt.hooks and not rt.home_env:
             findings.extend(_check_plugin(home, rt.key))
-        # An owned copy or a configured global target both mean this machine expects the plugin.
+        # An owned copy or a configured global target both mean this machine expects the plugin;
+        # that copy, current and enabled, is also what delivers the Hermes session hooks.
         if rt.home_env and (rt.key in configured or hermes.owned(runtimes.user_dir(rt, home))):
             findings.extend(_check_hermes_plugin(runtimes.user_dir(rt, home)))
     return findings
@@ -172,7 +173,7 @@ def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
         state = hermes.state(hermes_home)
         if state in ("missing", "foreign"):
             return _plugin_absent(hermes_home, state)
-        findings = [Finding("ok", f"hermes: dotbrain plugin copy current at {target}") if state == "current"
+        findings = [Finding("ok", f"hermes: dotbrain plugin copy, with its session hooks, current at {target}") if state == "current"
                     else Finding("warn", f"hermes: dotbrain plugin copy is stale at {target}", "run dotbrain bootstrap")]
         activation = hermes.activation(hermes_home)
         if activation != "enabled":
