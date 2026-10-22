@@ -65,7 +65,10 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
     for whole in ("", " ", ".", "SKILL.md", "skill.md", "./SKILL.md", " .\\SKILL.md ", "references/../SKILL.md",
                   "../other/SKILL.md", "..", "/etc/x", "C:/x/SKILL.md", None):
         assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": whole}) is not None, whole
-    assert veto(tool_name="skill_view", args={"name": f"other:{some}"}) is None
+    # Without Hermes's lookup, any name ending in a manual-only skill's name fails closed.
+    for alias in (f"other:{some}", f"./{some}", f"{some}/", f"dotbrain:./{some}/", f"cat/{some}"):
+        assert veto(tool_name="skill_view", args={"name": alias}) is not None, alias
+    assert veto(tool_name="skill_view", args={"name": f"dotbrain:../{some}"}) is None  # Hermes refuses it
     assert veto(tool_name="read_file", args={"name": f"dotbrain:{some}"}) is None
 
 
@@ -133,7 +136,10 @@ def test_veto_keeps_linked_private_manual_skills_manual(tmp_path: Path, monkeypa
     for name in ("global-manual", "commented", "bom", "bad-byte"):
         assert view(name) is not None, name
     assert view("private-manual", "notes.md") is None
-    for name in ("auto", "both", "missing", "../hermes/skills/global-manual", "other:global-manual"):
+    # Outside Hermes the veto cannot tell which copy Hermes picks, so it fails closed.
+    for name in ("./private-manual", "private-manual/", "./private-manual/", "both", "other:global-manual"):
+        assert view(name) is not None, name
+    for name in ("auto", "missing", "../hermes/skills/global-manual"):
         assert view(name) is None, name
 
     # A policy that cannot be read blocks that skill rather than allowing it.
@@ -143,6 +149,75 @@ def test_veto_keeps_linked_private_manual_skills_manual(tmp_path: Path, monkeypa
     monkeypatch.setattr(plugin, "_policy", unreadable)
     assert view("auto") is not None
     assert view("missing") is None
+
+
+def test_veto_decides_on_the_file_hermes_would_serve(tmp_path: Path, monkeypatch):
+    def skill(name, manual):
+        directory = tmp_path / "skills" / name
+        (directory / "references").mkdir(parents=True)
+        flag = "disable-model-invocation: true\n" if manual else ""
+        (directory / "SKILL.md").write_text(f"---\nname: {name}\n{flag}---\n", encoding="utf-8")
+        (directory / "references" / "x.md").write_text("x", encoding="utf-8")
+        return directory
+
+    manual, auto = skill("manual-skill", True), skill("auto-skill", False)
+    nested = manual / "references" / "inner"
+    nested.mkdir()
+    (nested / "SKILL.md").write_text("---\nname: inner\n---\n", encoding="utf-8")
+    (auto / "references" / "SKILL.md").write_text("---\ndisable-model-invocation: true\n---\n", encoding="utf-8")
+    # Stands in for Hermes's skill_view lookup: every alias Hermes accepts reaches the same skill.
+    skills = {"manual-skill": manual, "./manual-skill": manual, "manual-skill/": manual,
+              "./manual-skill/": manual, "dotbrain:close-design": manual, "auto-skill": auto}
+    calls = []
+
+    def served(name, file_path):
+        calls.append(name)
+        if name == "broken":
+            raise RuntimeError("lookup failed")
+        directory = skills.get(name)
+        if directory is None:
+            return None
+        target = directory / file_path if file_path else directory / "SKILL.md"
+        return (directory / "SKILL.md", target) if target.is_file() else None
+
+    plugin = _load_plugin()
+    monkeypatch.setattr(plugin, "_hermes_served", served)
+    veto = plugin.manual_only_veto({})
+
+    def blocked(name, file_path=None):
+        return veto(tool_name="skill_view", args={"name": name, "file_path": file_path}) is not None
+
+    for name in ("manual-skill", "./manual-skill", "manual-skill/", "./manual-skill/", "dotbrain:close-design"):
+        assert blocked(name), name
+    for file_path in ("SKILL.md", "./SKILL.md", ""):
+        assert blocked("manual-skill", file_path), file_path
+    assert not blocked("manual-skill", "references/x.md")
+    assert not blocked("manual-skill", "references/inner/SKILL.md")  # a nested skill that is not manual
+    assert blocked("auto-skill", "references/SKILL.md")  # a nested skill that is manual
+    assert not blocked("auto-skill")
+    assert not blocked("auto-skill", "references/x.md")
+    assert not blocked("../manual-skill")  # Hermes serves nothing for it
+    assert "broken" not in calls
+    # A lookup that fails falls back, which blocks a name that matches a manual-only skill.
+    fallback = plugin.manual_only_veto({"broken": manual / "SKILL.md"})
+    assert fallback(tool_name="skill_view", args={"name": "broken"}) is not None
+    assert "broken" in calls
+
+
+def test_policy_uses_hermes_own_frontmatter_parser(tmp_path: Path, monkeypatch):
+    import sys
+    import types
+
+    skill_md = tmp_path / "SKILL.md"
+    skill_md.write_text("---\nname: x\n---\n", encoding="utf-8")
+    plugin = _load_plugin()
+    assert not plugin._is_manual(skill_md)
+    hermes_agent = types.ModuleType("agent")
+    skill_utils = types.ModuleType("agent.skill_utils")
+    skill_utils.parse_frontmatter = lambda text: ({"disable-model-invocation": True}, "")
+    monkeypatch.setitem(sys.modules, "agent", hermes_agent)
+    monkeypatch.setitem(sys.modules, "agent.skill_utils", skill_utils)
+    assert plugin._is_manual(skill_md)
 
 
 def test_stdlib_frontmatter_parser_drops_inline_comments():
