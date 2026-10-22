@@ -198,6 +198,15 @@ def test_global_delivery_copies_the_plugin_and_links_skills(dotbrain_home, tmp_p
     assert foreign_skill.is_dir()
 
 
+def test_enable_timeout_is_reported_readably(tmp_path, fake_hermes):
+    def run(argv, *, env=None):
+        raise subprocess.TimeoutExpired(argv, 60, stderr=b"preparing \xe2\x80\xa6")
+
+    result = hermes.deliver(tmp_path / "hermes", run=run)
+    assert result.warnings == ["hermes: `hermes plugins enable dotbrain` failed: "
+                               "Command '['hermes', 'plugins', 'enable', 'dotbrain']' timed out after 60 seconds"]
+
+
 def test_unfiltered_delivery_reaches_hermes_only_once_opted_in(dotbrain_home, tmp_path, monkeypatch):
     user = tmp_path / "user"
     hermes_home = tmp_path / "relocated"

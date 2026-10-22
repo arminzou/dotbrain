@@ -137,6 +137,7 @@ def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
                 run(["hermes", "plugins", "enable", PLUGIN], env={**os.environ, "HERMES_HOME": str(hermes_home)})
                 result.linked.append(f"hermes: enabled plugin {PLUGIN}")
             except (OSError, subprocess.SubprocessError) as exc:
-                detail = getattr(exc, "stderr", None) or str(exc)
+                # A timeout carries raw bytes; a fresh Hermes home can outlast it preparing its runtime.
+                detail = str(exc) if isinstance(exc, subprocess.TimeoutExpired) else getattr(exc, "stderr", None) or str(exc)
                 result.warnings.append(f"hermes: `{ENABLE}` failed: {detail.strip()}")
     return result
