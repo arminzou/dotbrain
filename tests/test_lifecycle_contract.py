@@ -279,6 +279,42 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
     assert (worktree / '.skillsonly' / 'skills' / 'mine' / 'SKILL.md').is_file()
 
 
+@pytest.mark.parametrize('runtime', runtimes.RUNTIMES)
+def test_refresh_prunes_removed_runtime_skills(lifecycle, monkeypatch, tmp_path, runtime):
+    home, brainspace, main, worktree = lifecycle
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    monkeypatch.setattr(Path, 'home', lambda: tmp_path / 'user')
+    source = home / 'skills' / 'one'
+    source.mkdir(parents=True)
+    (source / 'SKILL.md').write_text('# one\n', encoding='utf-8')
+    declaration = brainspace / '.brain/project.yaml'
+    declaration.write_text(f'agents: [{runtime}]\nskills: [one]\nbeads: {{mode: none}}\n', encoding='utf-8')
+    workspace = runtimes.find(runtime).workspace
+    foreign = tmp_path / 'foreign'
+    foreign.mkdir()
+    for checkout in (main, worktree):
+        assert not workflows.wire_project(dotbrain_home=home, repo=checkout).errors
+        receiver = checkout / workspace / 'skills'
+        assert (receiver / 'one').is_symlink()
+        (receiver / 'mine').mkdir()
+        (receiver / 'foreign').symlink_to(foreign, target_is_directory=True)
+        (checkout / workspace / 'settings.json').write_text('{}', encoding='utf-8')
+
+    declaration.write_text('agents: []\nskills: [one]\nbeads: {mode: none}\n', encoding='utf-8')
+    for checkout, sibling in ((worktree, main), (main, None)):
+        result = workflows.refresh_projects(home, cwd=checkout)
+        assert not result.errors
+        receiver = checkout / workspace / 'skills'
+        assert not (receiver / 'one').is_symlink()
+        assert sorted(p.name for p in receiver.iterdir()) == ['foreign', 'mine']
+        assert (receiver / 'foreign').resolve() == foreign.resolve()
+        assert (checkout / workspace / 'settings.json').read_text() == '{}'
+        assert f'pruned {workspace}/skills/one' in result.targets[0].data['checkout_changes']
+        if sibling:
+            assert (sibling / workspace / 'skills/one').is_symlink()
+    assert f'/{workspace}/skills/one' not in adopter_repos.git_exclude_file(main).read_text().splitlines()
+
+
 def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
     # Hermes reads project skills from <checkout>/.hermes/skills once the checkout is trusted;
     # dotbrain links only its selection there and leaves everything else in that directory alone.
