@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, assets, beads, cursor, doctor, hermes, opencode, pi, runtimes, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, cursor, doctor, hermes, opencode, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -315,6 +315,36 @@ def test_refresh_prunes_removed_runtime_skills(lifecycle, monkeypatch, tmp_path,
     assert f'/{workspace}/skills/one' not in adopter_repos.git_exclude_file(main).read_text().splitlines()
 
 
+def _refresh_prune_unwire_skills(lifecycle, runtime, delivery_home):
+    home, brainspace, main, worktree = lifecycle
+    workspace = runtimes.find(runtime).workspace
+
+    def declare(selection):
+        (brainspace / '.brain/project.yaml').write_text(
+            f'agents: [{runtime}]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+
+    def linked(checkout):
+        return sorted(p.name for p in (checkout / workspace / 'skills').iterdir() if p.is_symlink())
+
+    for selection, expected in (('[two]', ['two']), ('[]', []), ('[one, two]', ['one', 'two'])):
+        declare(selection)
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            before = linked(sibling)
+            assert not workflows.refresh_projects(home, cwd=checkout, runtime=runtime).errors
+            assert linked(checkout) == expected and linked(sibling) == before
+            for name in expected:
+                assert (checkout / workspace / 'skills' / name).resolve() == (home / 'skills' / name).resolve()
+            assert (checkout / workspace / 'skills/mine/SKILL.md').read_text(encoding='utf-8') == 'mine'
+
+    for checkout, sibling in ((worktree, main), (main, None)):
+        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+        assert linked(checkout) == []
+        assert (checkout / workspace / 'skills/mine/SKILL.md').read_text(encoding='utf-8') == 'mine'
+        if sibling is not None:
+            assert linked(sibling) == ['one', 'two']
+        assert assets.HOME_DELIVERY[runtime].state(delivery_home) == 'current'
+
+
 def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
     # Hermes reads project skills from <checkout>/.hermes/skills once the checkout is trusted;
     # dotbrain links only its selection there and leaves everything else in that directory alone.
@@ -363,38 +393,7 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
     two.mkdir(parents=True)
     (two / 'SKILL.md').write_text('# two\n', encoding='utf-8')
 
-    def linked(checkout):
-        directory = checkout / '.hermes' / 'skills'
-        return sorted(p.name for p in directory.iterdir() if p.is_symlink())
-
-    for selection, expected in (('[two]', ['two']), ('[]', [])):
-        (brainspace / '.brain' / 'project.yaml').write_text(
-            f'agents: [hermes]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
-        before = {checkout: linked(checkout) for checkout in (main, worktree)}
-        for checkout, sibling in ((main, worktree), (worktree, main)):
-            assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
-            assert linked(checkout) == expected
-            for name in expected:
-                assert (checkout / '.hermes' / 'skills' / name).resolve() == (home / 'skills' / name).resolve()
-            assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
-            if checkout is main:
-                assert linked(sibling) == before[sibling]
-
-    # Removal: deliver a selection to both checkouts, then unwire one at a time.
-    (brainspace / '.brain' / 'project.yaml').write_text(
-        'agents: [hermes]\nskills: [one, two]\nbeads:\n  mode: none\n', encoding='utf-8')
-    for checkout in (main, worktree):
-        assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
-        assert linked(checkout) == ['one', 'two']
-    for checkout, sibling in ((worktree, main), (main, None)):
-        unwired = workflows.unwire_project(dotbrain_home=home, repo=checkout)
-        assert not unwired.errors
-        assert linked(checkout) == []
-        assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
-        if sibling is not None:
-            assert linked(sibling) == ['one', 'two']
-        # Project removal never touches the machine-wide plugin copy.
-        assert hermes.state(hermes_home) == 'current'
+    _refresh_prune_unwire_skills(lifecycle, 'hermes', hermes_home)
 
 
 def test_pi_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
@@ -433,26 +432,7 @@ def test_pi_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         (agent_dir / 'trust.json').write_text(json.dumps({str(checkout): True}), encoding='utf-8')
         assert pi_warnings(checkout) == set()
 
-    # Update, then prune, the shared selection; each refresh touches only its own checkout.
-    for selection, expected in (('[two]', ['two']), ('[]', [])):
-        declare(selection)
-        for checkout, sibling in ((main, worktree), (worktree, main)):
-            before = linked(sibling)
-            assert not workflows.refresh_projects(home, cwd=checkout, runtime='pi').errors
-            assert linked(checkout) == expected and linked(sibling) == before
-            assert (checkout / '.pi' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
-
-    # Removal: unwire one checkout at a time; the machine-wide extension copy stays.
-    declare('[one, two]')
-    for checkout in (main, worktree):
-        assert not workflows.refresh_projects(home, cwd=checkout, runtime='pi').errors
-    for checkout, sibling in ((worktree, main), (main, None)):
-        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
-        assert linked(checkout) == []
-        assert (checkout / '.pi' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
-        if sibling is not None:
-            assert linked(sibling) == ['one', 'two']
-        assert pi.state(agent_dir) == 'current'
+    _refresh_prune_unwire_skills(lifecycle, 'pi', agent_dir)
 
 
 @pytest.mark.parametrize('other_runtime', [False, True])

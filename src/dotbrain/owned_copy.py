@@ -1,7 +1,6 @@
 """Owned copies of files from the shared plugin tree in a runtime's user home.
 
-A copy carries a marker holding the digest of what was delivered; its presence marks the directory
-as dotbrain's. Dotbrain replaces only a directory it marked, and never one it did not create.
+A marker identifies dotbrain's copy. Dotbrain replaces only a directory it marked.
 """
 
 from __future__ import annotations
@@ -63,7 +62,7 @@ def install(target: Path, names: Sequence[str]) -> None:
                     shutil.copytree(source / name, staging / name, ignore=shutil.ignore_patterns("__pycache__"))
                 else:
                     shutil.copy2(source / name, staging / name)
-            (staging / MARKER).write_text(digest(source, names) + "\n", encoding="utf-8", newline="\n")
+            (staging / MARKER).write_text("dotbrain\n", encoding="utf-8", newline="\n")
         if target.exists():
             shutil.rmtree(target)
         staging.rename(target)
