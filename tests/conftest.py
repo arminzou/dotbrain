@@ -25,12 +25,14 @@ def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
     """Help and error assertions match plain text; a forced-color terminal would inject ANSI codes."""
     for name in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
         monkeypatch.delenv(name, raising=False)
-    # A developer's HERMES_HOME would aim Hermes delivery at their real Hermes home.
+    # A developer's HERMES_HOME or PI_CODING_AGENT_DIR would aim delivery at their real runtime home.
     monkeypatch.delenv("HERMES_HOME", raising=False)
     # Likewise XDG_CONFIG_HOME for OpenCode delivery, which lands in $XDG_CONFIG_HOME/opencode.
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     # A developer's installed Hermes or OpenCode would change what bootstrap seeds and reports.
     monkeypatch.setattr("dotbrain.runtimes.installed", lambda rt: False)
+    # And PI_CODING_AGENT_DIR for Pi delivery.
+    monkeypatch.delenv("PI_CODING_AGENT_DIR", raising=False)
     # Output carries tmp paths and host names whose length varies by machine and worker, so at the
     # default 80 columns a phrase could wrap differently on each runner. Tests that check wrapping
     # set their own width.
@@ -57,10 +59,10 @@ def _symlink_to_auto(self: pathlib.Path, target, target_is_directory: bool = Fal
 
 pathlib.Path.symlink_to = _symlink_to_auto
 
-# Beads and Hermes are external tools: the suite must behave the same whether or not a developer
-# has `bd` or `hermes` installed. Hide them from discovery, and fail any test that would launch one
-# instead of injecting a fake runner.
-_EXTERNAL_TOOLS = ("bd", "hermes")
+# Beads, Hermes and Pi are external tools: the suite must behave the same whether or not a developer
+# has `bd`, `hermes` or `pi` installed. Hide them from discovery, and fail any test that would launch
+# one instead of injecting a fake runner.
+_EXTERNAL_TOOLS = ("bd", "hermes", "pi")
 _original_which = shutil.which
 _original_popen_init = subprocess.Popen.__init__
 

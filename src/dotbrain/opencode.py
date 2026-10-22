@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import hermes, resource_loader
+from dotbrain import owned_copy, resource_loader
 from dotbrain.skills import LinkResult
 
 PLUGIN_FILE = "dotbrain.js"
@@ -149,7 +149,7 @@ def _file_owned(config_dir: Path) -> bool:
 
 def owned(config_dir: Path) -> bool:
     """Whether any of dotbrain's delivery is present, so later runs keep it current."""
-    return _file_owned(config_dir) or hermes.tree_owned(packaged_dir(config_dir))
+    return _file_owned(config_dir) or owned_copy.owned(packaged_dir(config_dir))
 
 
 def _file_state(config_dir: Path, source: Path) -> str:
@@ -164,8 +164,8 @@ def _file_state(config_dir: Path, source: Path) -> str:
 def state(config_dir: Path) -> str:
     """``missing``, ``foreign`` (not dotbrain's), ``stale``, or ``current``, for the plugin file
     and the packaged skills together."""
-    with resource_loader.opencode_plugin() as source, resource_loader.hermes_plugin() as tree:
-        states = {_file_state(config_dir, source), hermes.tree_state(packaged_dir(config_dir), tree, SKILL_FILES)}
+    with resource_loader.opencode_plugin() as source:
+        states = {_file_state(config_dir, source), owned_copy.state(packaged_dir(config_dir), SKILL_FILES)}
     if "foreign" in states:
         return "foreign"
     return states.pop() if len(states) == 1 else "stale"
@@ -173,10 +173,10 @@ def state(config_dir: Path) -> str:
 
 def foreign_entry(config_dir: Path) -> Path | None:
     """The delivery path held by something dotbrain did not create, if any."""
-    with resource_loader.opencode_plugin() as source, resource_loader.hermes_plugin() as tree:
+    with resource_loader.opencode_plugin() as source:
         if _file_state(config_dir, source) == "foreign":
             return plugin_file(config_dir)
-        if hermes.tree_state(packaged_dir(config_dir), tree, SKILL_FILES) == "foreign":
+        if owned_copy.state(packaged_dir(config_dir), SKILL_FILES) == "foreign":
             return packaged_dir(config_dir)
     return None
 
@@ -188,9 +188,9 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
     if foreign is not None:
         result.warnings.append(f"{foreign} exists and was not created by dotbrain; skipping")
         return result
-    with resource_loader.opencode_plugin() as source, resource_loader.hermes_plugin() as tree:
-        if hermes.tree_state(packaged_dir(config_dir), tree, SKILL_FILES) != "current":
-            hermes.replace_tree(packaged_dir(config_dir), tree, SKILL_FILES)
+    with resource_loader.opencode_plugin() as source:
+        if owned_copy.state(packaged_dir(config_dir), SKILL_FILES) != "current":
+            owned_copy.install(packaged_dir(config_dir), SKILL_FILES)
             result.linked.append("opencode/dotbrain/packaged")
         if _file_state(config_dir, source) != "current":
             _write_atomic(plugin_file(config_dir), source.read_bytes())

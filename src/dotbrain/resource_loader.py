@@ -40,25 +40,27 @@ def iter_resource_files(path: str) -> Iterator[tuple[Path, Traversable]]:
 
 
 @contextmanager
-def hermes_plugin() -> Iterator[Path]:
-    """The Hermes plugin tree: packaged in a wheel, or the shared ``plugin/`` tree of a source checkout.
+def plugin_tree() -> Iterator[Path]:
+    """The shared plugin tree: packaged in a wheel, or the ``plugin/`` tree of a source checkout.
 
-    Only ``HERMES_PLUGIN_FILES`` below this root belong to the plugin.
+    Each runtime copies only its own files from this root: ``HERMES_PLUGIN_FILES`` or
+    ``PI_EXTENSION_FILES``.
     """
 
-    packaged = resource("hermes")
+    packaged = resource("plugin")
     if packaged.is_dir():
         with as_file(packaged) as resolved:
             yield resolved
         return
     source = Path(__file__).resolve().parents[2] / "plugin"
     if not (source / "plugin.yaml").is_file():
-        raise FileNotFoundError("package resource hermes is missing")
+        raise FileNotFoundError("package resource plugin is missing")
     yield source
 
 
 # The wheel force-includes these from the shared plugin tree; keep pyproject.toml in step.
 HERMES_PLUGIN_FILES = ("plugin.yaml", "__init__.py", "skills")
+PI_EXTENSION_FILES = ("index.js", "skills")
 
 
 @contextmanager

@@ -59,7 +59,7 @@ dotbrain bootstrap [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
@@ -116,7 +116,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--all` | — | 刷新所有已注册的项目。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -176,7 +176,7 @@ dotbrain skills list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -191,7 +191,7 @@ dotbrain skills link [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -209,7 +209,7 @@ dotbrain agents list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -224,7 +224,7 @@ dotbrain agents link [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |

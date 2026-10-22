@@ -8,22 +8,19 @@ the Hermes configuration itself.
 
 from __future__ import annotations
 
-import hashlib
 import os
 import shutil
 import subprocess
-import tempfile
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import yaml
 
-from dotbrain import resource_loader
+from dotbrain import owned_copy, resource_loader
 from dotbrain.skills import LinkResult
 
 PLUGIN = "dotbrain"
-# Holds the digest of the delivered plugin tree; its presence marks the copy as dotbrain's.
-MARKER = ".dotbrain-managed"
+KIND = "plugin"
 ENABLE = f"hermes plugins enable {PLUGIN}"
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -38,62 +35,8 @@ def plugin_dir(hermes_home: Path) -> Path:
     return Path(hermes_home) / "plugins" / PLUGIN
 
 
-def _files(root: Path, names: Sequence[str]) -> Iterator[Path]:
-    for name in names:
-        path = root / name
-        if path.is_dir():
-            yield from sorted(p for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
-        else:
-            yield path
-
-
-def digest(root: Path, names: Sequence[str] = resource_loader.HERMES_PLUGIN_FILES) -> str:
-    """Content digest of the named plugin files below ``root``; the marker is not part of it."""
-    h = hashlib.sha256()
-    for path in _files(root, names):
-        body = path.read_bytes() + b"\0" if path.is_file() else b"\1missing"
-        h.update(path.relative_to(root).as_posix().encode() + b"\0" + body)
-    return h.hexdigest()
-
-
-def tree_owned(target: Path) -> bool:
-    return not target.is_symlink() and (target / MARKER).is_file()
-
-
-def tree_state(target: Path, source: Path, names: Sequence[str]) -> str:
-    """``missing``, ``foreign`` (not dotbrain's), ``stale``, or ``current`` for an owned copy of
-    the named files of ``source`` at ``target``."""
-    if not (target.exists() or target.is_symlink()):
-        return "missing"
-    if not tree_owned(target):
-        return "foreign"
-    # Compare the delivered files themselves, so a damaged copy is repaired despite its marker.
-    return "current" if digest(target, names) == digest(source, names) else "stale"
-
-
-def replace_tree(target: Path, source: Path, names: Sequence[str]) -> None:
-    """Copy the named files of ``source`` to ``target`` with an ownership marker; the caller has
-    checked that ``target`` is missing or dotbrain's own copy."""
-    target.parent.mkdir(parents=True, exist_ok=True)
-    # A fresh staging directory of our own: nothing already beside the target is touched.
-    staging = Path(tempfile.mkdtemp(dir=target.parent, prefix=f".{target.name}-staging-"))
-    try:
-        for name in names:
-            if (source / name).is_dir():
-                shutil.copytree(source / name, staging / name, ignore=shutil.ignore_patterns("__pycache__"))
-            else:
-                shutil.copy2(source / name, staging / name)
-        (staging / MARKER).write_text(digest(source, names) + "\n", encoding="utf-8", newline="\n")
-        if target.exists():
-            shutil.rmtree(target)  # owned: the caller saw it stale, not foreign
-        staging.rename(target)
-    finally:
-        if staging.exists():
-            shutil.rmtree(staging)
-
-
 def owned(hermes_home: Path) -> bool:
-    return tree_owned(plugin_dir(hermes_home))
+    return owned_copy.owned(plugin_dir(hermes_home))
 
 
 def skills_dir(hermes_home: Path) -> Path:
@@ -103,8 +46,7 @@ def skills_dir(hermes_home: Path) -> Path:
 
 def state(hermes_home: Path) -> str:
     """``missing``, ``foreign`` (not dotbrain's), ``stale``, or ``current``."""
-    with resource_loader.hermes_plugin() as source:
-        return tree_state(plugin_dir(hermes_home), source, resource_loader.HERMES_PLUGIN_FILES)
+    return owned_copy.state(plugin_dir(hermes_home), resource_loader.HERMES_PLUGIN_FILES)
 
 
 def activation(hermes_home: Path) -> str:
@@ -135,6 +77,10 @@ def trusted(hermes_home: Path, checkout: Path) -> bool:
     return Path(checkout).resolve() in {root.resolve() for root in roots if root.is_absolute()}
 
 
+def trust_hint(checkout: Path) -> str:
+    return f"run hermes skills trust {checkout}"
+
+
 def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
     """Install or update dotbrain's plugin copy, then enable it when the Hermes CLI is available."""
     result = LinkResult()
@@ -144,8 +90,7 @@ def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
         result.warnings.append(f"{target} exists and was not created by dotbrain; skipping")
         return result
     if current != "current":
-        with resource_loader.hermes_plugin() as source:
-            replace_tree(target, source, resource_loader.HERMES_PLUGIN_FILES)
+        owned_copy.install(target, resource_loader.HERMES_PLUGIN_FILES)
         result.linked.append(f"hermes/plugins/{PLUGIN}")
     if activation(hermes_home) == "not enabled":
         if shutil.which("hermes") is None:

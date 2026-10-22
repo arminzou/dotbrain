@@ -10,6 +10,7 @@
         {"type": "json", "path": "plugin/.codex-plugin/plugin.json", "jsonpath": "$.version"},
         {"type": "yaml", "path": "plugin/plugin.yaml", "jsonpath": "$.version"},
         "plugin/opencode/dotbrain.js",
+        "plugin/index.js",
         "plugin/scripts/install.sh",
         "plugin/scripts/install.ps1",
         {"type": "toml", "path": "uv.lock", "jsonpath": "$.package[?(@.name.value==\"dotbrain\")].version"}

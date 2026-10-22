@@ -19,7 +19,7 @@ in a project rule they wrote; the lead may suggest one but never switches on its
 
 Before worker preparation or dispatch, read the runtime reference of the lead and of each worker
 runtime: [Claude Code](references/claude-code.md), [Codex](references/codex.md), or, as a lead
-only, [Hermes](references/hermes.md) or [OpenCode](references/opencode.md). Read the
+only, [Hermes](references/hermes.md), [OpenCode](references/opencode.md), or [Pi](references/pi.md). Read the
 worker's again before its fix rounds, cancellation, or recovery. These references supply
 mechanisms; the shared contract below governs every runtime. Prefer native subagents when the
 runtimes match. Where no reference covers an operation, choose a mechanism by judgment and record
