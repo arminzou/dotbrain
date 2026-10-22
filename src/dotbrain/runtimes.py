@@ -8,6 +8,7 @@ machine may know it, and only an explicit ``--runtime`` request for it fails.
 from __future__ import annotations
 
 import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -73,6 +74,11 @@ def global_targets(kind: str) -> dict[str, str]:
     """Default global destinations for ``skills`` or ``agents``, keyed by global target key."""
     return {rt.key: f"~/{rt.workspace}/{kind}" for rt in RUNTIMES.values()
             if rt.default and (kind == "skills" or rt.subagents)}
+
+
+def installed(rt: Runtime) -> bool:
+    """The runtime's CLI is on PATH."""
+    return shutil.which(rt.name) is not None
 
 
 def user_dir(rt: Runtime, user_home: Path) -> Path:

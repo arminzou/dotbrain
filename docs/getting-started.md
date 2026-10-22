@@ -356,6 +356,11 @@ Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 dotbrain bootstrap --runtime hermes
 ```
 
+If `hermes` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
+Hermes on its own and adds `hermes` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
+does not add a runtime unasked: when it finds `hermes` installed but not set up, it prints this
+command instead.
+
 This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins/dotbrain`) and runs
 `hermes plugins enable dotbrain`. If `hermes` is not on `PATH`, or the command fails, run
 `hermes plugins enable dotbrain` yourself. On a new Hermes home, the first `hermes` command can take
@@ -446,6 +451,11 @@ directory instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then r
 ```bash
 dotbrain bootstrap --runtime opencode
 ```
+
+If `opencode` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
+OpenCode on its own and adds `opencode` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
+does not add a runtime unasked: when it finds `opencode` installed but not set up, it prints this
+command instead.
 
 This copies the plugin to `~/.config/opencode/plugins/dotbrain.js` and the packaged skills to
 `~/.config/opencode/dotbrain/packaged/skills/`. On Windows, `~` is `%USERPROFILE%`; when

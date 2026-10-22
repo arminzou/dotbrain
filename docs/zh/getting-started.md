@@ -336,6 +336,10 @@ Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目�
 dotbrain bootstrap --runtime hermes
 ```
 
+如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `hermes`，bootstrap 会自动设置 Hermes，
+并把 `hermes` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
+`hermes` 但还没设置时，它只会提示这条命令。
+
 这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
 `hermes plugins enable dotbrain`。如果 `PATH` 里找不到 `hermes`，或者这条命令失败了，就自己运行
 `hermes plugins enable dotbrain`。全新的 Hermes 主目录第一次运行 `hermes` 时要先准备运行环境，可能超过
@@ -419,6 +423,10 @@ OpenCode 没有 dotbrain 的 marketplace，plugin 由 CLI 复制到 OpenCode 的
 ```bash
 dotbrain bootstrap --runtime opencode
 ```
+
+如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `opencode`，bootstrap 会自动设置 OpenCode，
+并把 `opencode` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
+`opencode` 但还没设置时，它只会提示这条命令。
 
 这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
 `~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了

@@ -55,6 +55,19 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
+def detected_targets(user_home: Path) -> dict[str, str]:
+    """Global skill targets of the installed runtimes that opt in by plugin copy, as seeded config lines."""
+    targets = {}
+    for rt in runtimes.RUNTIMES.values():
+        if rt.home_env and runtimes.installed(rt):
+            directory = HOME_DELIVERY[rt.name].skills_dir(runtimes.user_dir(rt, user_home))
+            try:
+                targets[rt.key] = "~/" + directory.relative_to(user_home).as_posix()
+            except ValueError:  # relocated outside the home
+                targets[rt.key] = str(directory)
+    return targets
+
+
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool) -> dict[str, str]:
     """Configured global targets, plus the home target of each opted-in relocatable runtime.
 
@@ -86,6 +99,10 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         raise ValueError(f"runtime '{runtime}' has no configured global target")
     result = skills.LinkResult(notices=[f"unsupported global {kind} runtime skipped: {k}"
                                         for k in targets if runtime == "all" and k not in keys])
+    if kind == "skills" and runtime == "all":
+        # Installed but never set up: say how, rather than deliver unasked and undo a removal.
+        result.notices += [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"
+                           for rt in selected if rt.home_env and rt.key not in targets and runtimes.installed(rt)]
     destinations = {k: adopter_repos.expand_path(targets[k], home=user_home) for k in keys}
     for dest in destinations.values():
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
