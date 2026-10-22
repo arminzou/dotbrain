@@ -1,31 +1,25 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, paths, projects, skills, subagents
-
-
-def runtime_key(runtime: str) -> str:
-    if runtime not in {"claude", "codex", "all"}:
-        raise ValueError("--runtime must be claude, codex, or all")
-    return "claude-code" if runtime == "claude" else runtime
+from dotbrain import adopter_repos, config, paths, projects, runtimes, skills, subagents
 
 
 def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str) -> tuple[str, ...]:
-    key = runtime_key(runtime)
-    declared = config.load_project_agents(home, target.project)
-    supported = {"claude": ".claude", "claude-code": ".claude", "codex": ".codex"}
-    unknown = set(declared) - set(supported)
-    if unknown:
-        raise ValueError(f"unsupported declared runtimes: {', '.join(sorted(unknown))}")
-    workspaces = tuple(dict.fromkeys(supported[item] for item in declared))
-    wanted = ".claude" if key == "claude-code" else ".codex"
-    if key != "all" and wanted not in workspaces:
+    """Workspaces of the recognized declared runtimes; unrecognized declarations are skipped."""
+    wanted = runtimes.select(runtime)
+    declared = runtimes.recognized(config.load_project_agents(home, target.project))
+    if runtime != "all" and wanted[0] not in declared:
         raise ValueError(f"runtime '{runtime}' is not declared for project '{target.project}'")
-    return workspaces if key == "all" else (wanted,)
+    return tuple(rt.workspace for rt in (declared if runtime == "all" else wanted))
 
 
 def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run) -> skills.LinkResult:
     workspaces = project_workspaces(home, target, runtime)
+    if kind == "agents":
+        # Only runtimes with native subagent delivery receive agents; skills go to every runtime.
+        workspaces = tuple(ws for ws in workspaces if runtimes.for_workspace(ws).subagents)
+        if runtime != "all" and not workspaces:
+            raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
     if target.checkout is None or not target.checkout.is_dir():
         raise ValueError(f"project '{target.project}' has no available checkout")
     adopter_repos.ensure_wiring_matches(target.checkout, home, target.project)
@@ -59,10 +53,14 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
 
 
 def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path | None = None) -> skills.LinkResult:
-    key = runtime_key(runtime)
+    selected = runtimes.select(runtime)
+    if kind == "agents" and runtime != "all" and not selected[0].subagents:
+        raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
     cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
            else subagents.load_global_config(home))
-    keys = [k for k in cfg.targets if k in subagents.RUNTIME_SPEC] if key == "all" else [key]
+    known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
+    # Targets for runtimes this version does not recognize are skipped, not failed.
+    keys = [k for k in cfg.targets if k in known] if runtime == "all" else known
     if any(k not in cfg.targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
     result = skills.LinkResult()
@@ -89,7 +87,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
 
 
 def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = None) -> list[dict]:
-    key = runtime_key(runtime)
+    wanted = runtimes.select(runtime)
     selected: set[str] = set()
     if project is not None:
         target = projects.select_projects(home, project=project)[0]
@@ -101,11 +99,11 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
         for name in available:
             paths.confined_path(skill_root, str(Path(name) / "SKILL.md"))
         return [{"name": name, "source": str(paths.confined_path(skill_root, name)),
-                 "selected": name in selected, "runtimes": ["claude", "codex"] if key == "all" else [runtime]}
+                 "selected": name in selected, "runtimes": [rt.name for rt in wanted]}
                 for name in available]
     entries: dict[str, dict] = {}
-    for k, (directory, suffix) in subagents.RUNTIME_SPEC.items():
-        if key != "all" and key != k:
+    for k, (directory, suffix) in subagents.runtime_spec().items():
+        if runtimes.find(k) not in wanted:
             continue
         names = {p.stem for p in (home / "agents" / directory).glob(f"*{suffix}") if p.is_file()}
         names.update(subagents.PROJECT_BASELINE)
@@ -118,5 +116,5 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
             else:
                 source = str(private)
             entry = entries.setdefault(name, {"name": name, "selected": name in selected, "sources": {}})
-            entry["sources"]["claude" if k == "claude-code" else k] = source
+            entry["sources"][runtimes.find(k).name] = source
     return [entries[name] for name in sorted(entries)]

@@ -11,17 +11,14 @@ from typing import Iterable, Mapping, Sequence
 
 import yaml
 
-from dotbrain import paths
+from dotbrain import paths, runtimes
 
-DEFAULT_TARGETS: dict[str, str] = {
-    "claude-code": "~/.claude/skills",
-    "codex": "~/.codex/skills",
-}
+
 @dataclass
 class GlobalConfig:
     """Operator-configurable skill-link settings."""
 
-    targets: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_TARGETS))
+    targets: dict[str, str] = field(default_factory=lambda: runtimes.global_targets("skills"))
     global_extra: tuple[str, ...] = ()
 
 
@@ -93,7 +90,7 @@ def load_global_config(path: Path) -> GlobalConfig:
     ):
         raise ValueError(f"{path}: targets must be a mapping of runtime -> destination")
 
-    merged_targets = dict(DEFAULT_TARGETS)
+    merged_targets = runtimes.global_targets("skills")
     merged_targets.update(targets)
     return GlobalConfig(
         targets=merged_targets,

@@ -8,22 +8,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from dotbrain import resource_loader, skills, paths
+from dotbrain import resource_loader, runtimes, skills, paths
 
-AGENT_TARGETS: dict[str, str] = {
-    "claude-code": "~/.claude/agents",
-    "codex": "~/.codex/agents",
-}
+def runtime_spec() -> dict[str, tuple[str, str]]:
+    """Packaged definition directory and suffix for each runtime that receives native subagents."""
+    return {rt.key: rt.subagents for rt in runtimes.RUNTIMES.values() if rt.subagents}
 
-RUNTIME_SPEC: dict[str, tuple[str, str]] = {
-    "claude-code": ("claude", ".md"),
-    "codex": ("codex", ".toml"),
-}
 
-WORKSPACE_RUNTIME: dict[str, str] = {
-    ".claude": "claude-code",
-    ".codex": "codex",
-}
+def workspace_runtimes() -> dict[str, str]:
+    """Runtime key for each agent workspace that receives native subagents."""
+    return {rt.workspace: rt.key for rt in runtimes.RUNTIMES.values() if rt.subagents}
 
 
 def _required_core() -> tuple[str, ...]:
@@ -64,7 +58,7 @@ def delivered_stem(name: str, runtime: str) -> str:
 
 def packaged_body(name: str, runtime: str) -> str:
     """Packaged definition text as delivered: a Codex agent's name carries the prefix."""
-    directory, suffix = RUNTIME_SPEC[runtime]
+    directory, suffix = runtime_spec()[runtime]
     text = resource_loader.resource(f"agents/{directory}/{name}{suffix}").read_text(encoding="utf-8")
     if runtime == "codex":
         line = f'name = "{name}"'
@@ -78,7 +72,7 @@ def packaged_body(name: str, runtime: str) -> str:
 class GlobalConfig:
     """Operator-configurable global subagent-link settings."""
 
-    targets: dict[str, str] = field(default_factory=lambda: dict(AGENT_TARGETS))
+    targets: dict[str, str] = field(default_factory=lambda: runtimes.global_targets("agents"))
     global_names: tuple[str, ...] = ()
 
 
@@ -89,8 +83,7 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
         "# Project-scoped extras belong in project.yaml; this file is for personal-home reach and extras.",
         "# Optional target overrides (defaults shown):",
         "# targets:",
-        "#   claude-code: ~/.claude/agents",
-        "#   codex: ~/.codex/agents",
+        *(f"#   {key}: {value}" for key, value in runtimes.global_targets("agents").items()),
     ]
     cleaned = skills._clean(names)
     if not cleaned:
@@ -102,7 +95,7 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
 
 
 def _cache_packaged(root: Path, name: str, runtime: str) -> tuple[Path, bool]:
-    directory, suffix = RUNTIME_SPEC[runtime]
+    directory, suffix = runtime_spec()[runtime]
     dest = paths.confined_path(root, f".cache/agents/{directory}/{delivered_stem(name, runtime)}{suffix}")
     desired = packaged_body(name, runtime)
     if dest.is_file() and not dest.is_symlink() and dest.read_text(encoding="utf-8") == desired:
@@ -118,7 +111,7 @@ def sync_packaged_subagents(dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home)
     cached: list[Path] = []
     for name in PROJECT_BASELINE:
-        for runtime in RUNTIME_SPEC:
+        for runtime in runtime_spec():
             if plugin_delivered(name, runtime):
                 continue
             dest, changed = _cache_packaged(root, name, runtime)
@@ -132,7 +125,7 @@ def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
     paths.validate_project_name(name)
     resolved: dict[str, Path] = {}
     root = Path(dotbrain_home)
-    for runtime, (subdir, ext) in RUNTIME_SPEC.items():
+    for runtime, (subdir, ext) in runtime_spec().items():
         if is_packaged(name):
             if not plugin_delivered(name, runtime):
                 resolved[runtime] = _cache_packaged(root, name, runtime)[0]
@@ -149,7 +142,7 @@ def validate_selection(dotbrain_home: Path, names: Sequence[str], runtimes: Sequ
     for name in names:
         paths.validate_project_name(name)
         available: set[str] = set()
-        for runtime, (directory, suffix) in RUNTIME_SPEC.items():
+        for runtime, (directory, suffix) in runtime_spec().items():
             if is_packaged(name):
                 available.add(runtime)
                 continue
@@ -251,7 +244,7 @@ def load_global_config(dotbrain_home: Path) -> GlobalConfig:
         isinstance(k, str) and isinstance(v, str) for k, v in targets.items()
     ):
         raise ValueError(f"{path}: targets must be a mapping of runtime -> destination")
-    merged_targets = dict(AGENT_TARGETS)
+    merged_targets = runtimes.global_targets("agents")
     merged_targets.update(targets)
     return GlobalConfig(
         targets=merged_targets,
@@ -278,14 +271,15 @@ def link_project_subagents(
     workspace_dirs: Mapping[str, Path] | None = None,
 ) -> skills.LinkResult:
     root = Path(dotbrain_home)
-    errors = validate_selection(root, names, [WORKSPACE_RUNTIME[workspace] for workspace in workspaces if workspace in WORKSPACE_RUNTIME])
+    capable = workspace_runtimes()
+    errors = validate_selection(root, names, [capable[workspace] for workspace in workspaces if workspace in capable])
     if errors:
         return skills.LinkResult(warnings=errors)
     resolved = {name: _resolve_subagent_files(root, name) for name in names}
     result = skills.LinkResult()
 
     for workspace in workspaces:
-        runtime = WORKSPACE_RUNTIME.get(workspace)
+        runtime = capable.get(workspace)
         if runtime is None:
             continue
         files = [resolved[name][runtime] for name in names if runtime in resolved[name]]

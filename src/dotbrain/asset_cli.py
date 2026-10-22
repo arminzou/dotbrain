@@ -4,7 +4,7 @@ import subprocess
 import typer
 import yaml
 
-from dotbrain import assets, paths, projects
+from dotbrain import assets, brainspaces, paths, projects, runtimes
 from dotbrain.results import CommandResult, TargetResult, render
 
 
@@ -13,7 +13,7 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
     exit_code = 1
     try:
         root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
-        assets.runtime_key(runtime)
+        runtimes.select(runtime)
         if operation == "list":
             rows = assets.catalog(root, kind, runtime, project)
             result.targets.append(TargetResult(project=project, scope="catalog", data={"assets": rows}))
@@ -37,6 +37,9 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
                     if target and target.checkout is None and all_projects:
                         item.findings.append({"severity": "warning", "message": paths.NO_CHECKOUT})
                         continue
+                    if target is not None:
+                        item.findings += [{"severity": "warning", "message": message}
+                                          for message in brainspaces.unknown_agent_warnings(target.brainspace, root)]
                     linked = assets.link_global(root, kind, runtime) if target is None else assets.link_project(root, target, kind, runtime)
                     item.changes = [f"delivered {name}" for name in linked.linked] + [f"pruned {name}" for name in linked.pruned]
                     item.errors.extend(linked.warnings)

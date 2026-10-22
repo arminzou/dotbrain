@@ -143,18 +143,20 @@ def bootstrap(
     """Prepare this machine for dotbrain: global skill and subagent links."""
     report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
     target = report.targets[0]
-    if runtime not in ("claude", "codex", "all"):
+    from dotbrain import runtimes
+    try:
+        runtimes.select(runtime)
+    except ValueError as exc:
         report.status = "failure"
-        report.errors.append("--runtime must be claude, codex, or all")
+        report.errors.append(str(exc))
         render(report, json_output=json_output)
         raise typer.Exit(2)
     root = Path(home).expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         dr_result = bootstrap_mod.ensure_data_root(root)
         target.changes.extend(dr_result.logs)
-        legacy_runtime = "claude-code" if runtime == "claude" else runtime
         for linker in (bootstrap_mod.link_global_skills, bootstrap_mod.link_global_subagents):
-            linked = linker(root, legacy_runtime)
+            linked = linker(root, runtime)
             target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
             target.errors.extend(linked.warnings)
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:

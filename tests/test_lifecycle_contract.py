@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, beads, workflows, subagents
+from dotbrain import adopter_repos, beads, doctor, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -211,3 +211,58 @@ def test_wire_selection_failure_does_not_migrate_or_write(lifecycle, problem):
     assert declaration.read_bytes() == before
     assert not (worktree / '.brain').exists()
     assert not (home / '.gitignore').exists()
+
+
+def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, tmp_path):
+    # A runtime known only to this test: skills and hooks, no native subagents. 'later' stands for a
+    # runtime a newer dotbrain sharing this home knows; every command warns about and skips it.
+    monkeypatch.setitem(runtimes.RUNTIMES, 'skillsonly',
+                        runtimes.Runtime('skillsonly', 'skillsonly', 'Skills Only', '.skillsonly', hooks=True))
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    skill = home / 'skills' / 'one'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('# one\n', encoding='utf-8')
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [skillsonly, later]\nskills: [one]\nbeads:\n  mode: none\n', encoding='utf-8')
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    runner = CliRunner()
+
+    def foreign(checkout):
+        workspace = checkout / '.skillsonly'
+        return {workspace / 'skills' / 'mine' / 'SKILL.md': 'mine', workspace / 'agents' / 'user.md': 'user'}
+
+    for checkout in (main, worktree):
+        entries = foreign(checkout)
+        for path, text in entries.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding='utf-8')
+        (checkout / '.skillsonly' / 'skills' / 'outside').symlink_to(elsewhere, target_is_directory=True)
+
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert not result.errors, result.errors
+        assert any(w.endswith(': later') for w in result.warnings), result.warnings
+        delivered = checkout / '.skillsonly' / 'skills' / 'one'
+        assert delivered.is_symlink() and delivered.resolve() == skill.resolve()
+        assert not (checkout / '.later').exists()
+        assert sorted(p.name for p in (checkout / '.skillsonly' / 'agents').iterdir()) == ['user.md']
+        assert not workflows.wire_project(dotbrain_home=home, repo=checkout).logs
+
+        refreshed = workflows.refresh_projects(home, cwd=checkout)
+        assert not refreshed.errors and any(w.endswith(': later') for w in refreshed.warnings)
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='skillsonly').errors
+        for argv, code in ((['skills', 'link', '--runtime', 'skillsonly'], 0),
+                           (['agents', 'link'], 0),
+                           (['agents', 'link', '--runtime', 'skillsonly'], 1),
+                           (['skills', 'link', '--runtime', 'later'], 2)):
+            invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
+            assert invoked.exit_code == code, (argv, invoked.output)
+            assert code != 1 or 'no native subagent delivery' in invoked.output
+
+        assert delivered.is_symlink() and (checkout / '.skillsonly' / 'skills' / 'outside').is_symlink()
+        assert {path: path.read_text(encoding='utf-8') for path in entries} == entries
+        report = doctor.run_doctor(home, home=tmp_path / 'user', cwd=checkout)
+        findings = report.projects['custom']
+        assert not [f.message for f in findings if f.status == 'error']
+        assert any(f.status == 'warn' and f.message.endswith(': later') for f in findings)

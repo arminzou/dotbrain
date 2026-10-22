@@ -13,7 +13,7 @@ from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
-from dotbrain import paths
+from dotbrain import paths, runtimes
 from dotbrain.adopter_repos import abbrev_home
 
 HEADING_STYLE = "bold green"
@@ -190,10 +190,12 @@ def render_operation(result, *, preview: bool = False) -> None:
                 category, change = "Shared Brain", change.removeprefix("shared Brain:").strip()
             elif change.startswith("shared tracker:"):
                 category, change = "Shared tracker", change.removeprefix("shared tracker:").strip()
-            elif any(prefix in change for prefix in (".codex/", "codex/")):
-                category = "Codex resources"
-            elif any(prefix in change for prefix in (".claude/", "claude-code/", "claude/")):
-                category = "Claude resources"
+            else:
+                # Later runtimes first: "claude/" must not claim a ".codex/" change.
+                for rt in reversed(runtimes.RUNTIMES.values()):
+                    if any(f"{prefix}/" in change for prefix in (rt.workspace, rt.key, rt.name)):
+                        category = f"{rt.label} resources"
+                        break
             groups.setdefault(category, []).append(change)
         for name, changes in groups.items():
             if len(groups) > 1:
@@ -215,7 +217,7 @@ def render_operation(result, *, preview: bool = False) -> None:
 
 
 def _runtimes(names) -> str:
-    return ", ".join(sorted({{"claude": "Claude", "claude-code": "Claude", "codex": "Codex"}.get(name, name) for name in names})) or "none"
+    return ", ".join(sorted({getattr(runtimes.find(name), "label", name) for name in names})) or "none"
 
 
 def render_catalog(result) -> None:
@@ -341,11 +343,12 @@ def render_doctor(report, *, verbose: bool = False) -> None:
             line(output, f"{marker} {name}" + (" · " + abbrev_home(Path(checkout)) if checkout else ""), "bold " + style)
             combined = {}
             for finding in selected:
-                match = re.match(r"^(claude-code|claude|codex): (.*)$", finding.message)
+                match = re.match(r"^([\w-]+): (.*)$", finding.message)
+                match = match if match and runtimes.find(match[1]) else None
                 key = (match[2] if match else finding.message, finding.suggestion)
                 combined.setdefault(key, []).append(match[1] if match else "")
-            for (message, suggestion), runtimes in combined.items():
-                prefix = _runtimes(runtimes) + ": " if all(runtimes) else ""
+            for (message, suggestion), names in combined.items():
+                prefix = _runtimes(names) + ": " if all(names) else ""
                 line(output, prefix + message, checkout=checkout, indent=2)
                 if suggestion:
                     line(output, ("Fix: " if status == "error" else "Next: ") + suggestion, "cyan", checkout, 2)

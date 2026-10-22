@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from dotbrain import paths
+from dotbrain import paths, runtimes
 
 
 # ---------------------------------------------------------------------------
@@ -37,8 +37,6 @@ class ProjectBeads:
     remote: str = ""
     database: str = ""
 
-
-DEFAULT_PROJECT_AGENTS: tuple[str, ...] = ("claude", "codex")
 
 _SIZE_UNITS = {"": 1, "B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
 
@@ -247,20 +245,20 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     """Read declared agent workspaces from ``brainspaces/<name>/.brain/project.yaml``.
 
-    Missing ``agents`` preserves legacy behavior by enabling both packaged agent
-    workspaces. An explicit empty list disables agent workspace seeding.
+    Missing ``agents`` preserves legacy behavior by enabling the default runtimes.
+    An explicit empty list disables agent workspace seeding.
     """
     import yaml
 
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
-        return DEFAULT_PROJECT_AGENTS
+        return tuple(rt.name for rt in runtimes.RUNTIMES.values() if rt.default)
 
     data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
 
     raw_agents = data.get("agents")
     if raw_agents is None:
-        return DEFAULT_PROJECT_AGENTS
+        return tuple(rt.name for rt in runtimes.RUNTIMES.values() if rt.default)
 
     entries = raw_agents if isinstance(raw_agents, list) else [raw_agents]
     cleaned: list[str] = []
