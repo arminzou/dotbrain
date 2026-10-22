@@ -29,8 +29,7 @@ def hook_entries(*, windows: bool | None = None) -> dict:
 
 
 def _owned_hook(entry: dict) -> bool:
-    return bool(re.search(r"(?<![\w./-])dotbrain(?:\.exe)?\s+hook\s+(?:run|session-start|stop|session-end)\b",
-                          entry["command"]))
+    return bool(re.match(r"dotbrain(?:\.exe)?\s+hook\s+run(?:\s|$)", entry["command"]))
 
 
 def _read_hooks(path: Path) -> dict:

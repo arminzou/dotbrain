@@ -37,7 +37,7 @@ def test_merge_reinstall_replace_and_remove(tmp_path):
     before = path.read_bytes()
     assert not cursor.reconcile_hooks(tmp_path).linked
     assert path.read_bytes() == before
-    installed["hooks"]["stop"].extend([{"command": "dotbrain hook stop"}] * 2)
+    installed["hooks"]["stop"].extend([{"command": "dotbrain hook run --event obsolete"}] * 2)
     path.write_text(json.dumps(installed))
     assert cursor.hook_state(tmp_path) == "stale"
     assert any("stale" in f.message for f in doctor._check_cursor_hooks(tmp_path))
@@ -46,6 +46,32 @@ def test_merge_reinstall_replace_and_remove(tmp_path):
     cursor.reconcile_hooks(tmp_path, remove=True)
     assert json.loads(path.read_text()) == data
     assert not cursor.reconcile_hooks(tmp_path, remove=True).pruned
+
+
+@pytest.mark.parametrize("windows", [False, True])
+@pytest.mark.parametrize("command", [
+    "echo dotbrain hook run",
+    'printf "%s" "dotbrain hook run --event startup"',
+    "Write-Output 'dotbrain hook run --event startup'",
+    '"dotbrain hook run"',
+    "dotbrain hook run-other",
+    "dotbrain hook stop",
+])
+def test_foreign_invocation_text_survives_reconciliation(tmp_path, monkeypatch, windows, command):
+    entries = cursor.hook_entries(windows=windows)
+    monkeypatch.setattr(cursor, "hook_entries", lambda: entries)
+    path = tmp_path / ".cursor/hooks.json"
+    path.parent.mkdir()
+    foreign = {"command": command, "timeout": 7}
+    original = {"version": 1, "hooks": {"stop": [foreign]}}
+    path.write_text(json.dumps(original), encoding="utf-8")
+    assert cursor.hook_state(tmp_path) == "foreign"
+    for _ in range(2):
+        assert not cursor.reconcile_hooks(tmp_path).warnings
+        assert json.loads(path.read_text(encoding="utf-8"))["hooks"]["stop"] == [foreign, *entries["stop"]]
+        assert cursor.hook_state(tmp_path) == "current"
+    assert not cursor.reconcile_hooks(tmp_path, remove=True).warnings
+    assert json.loads(path.read_text(encoding="utf-8")) == original
 
 
 def test_remove_only_empty_file(tmp_path):
