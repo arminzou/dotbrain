@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, beads, doctor, runtimes, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, doctor, hermes, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -277,3 +277,69 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
     assert any(f['message'].endswith(': later') for f in json.loads(unwired.stdout)['targets'][0]['findings'])
     assert not (worktree / '.skillsonly' / 'skills' / 'one').exists()
     assert (worktree / '.skillsonly' / 'skills' / 'mine' / 'SKILL.md').is_file()
+
+
+def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
+    # Hermes reads project skills from <checkout>/.hermes/skills once the checkout is trusted;
+    # dotbrain links only its selection there and leaves everything else in that directory alone.
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    skill = home / 'skills' / 'one'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('# one\n', encoding='utf-8')
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [hermes]\nskills: [one]\nbeads:\n  mode: none\n', encoding='utf-8')
+    user = tmp_path / 'user'
+    hermes_home = user / '.hermes'
+    runner = CliRunner()
+
+    for checkout in (main, worktree):
+        mine = checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md'
+        mine.parent.mkdir(parents=True)
+        mine.write_text('mine', encoding='utf-8')
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert not result.errors, result.errors
+        delivered = checkout / '.hermes' / 'skills' / 'one'
+        assert delivered.is_symlink() and delivered.resolve() == skill.resolve()
+        assert not (checkout / '.hermes' / 'agents').exists()
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+        for argv, code in ((['skills', 'link', '--runtime', 'hermes'], 0),
+                           (['agents', 'link', '--runtime', 'hermes'], 1)):
+            invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
+            assert invoked.exit_code == code, (argv, invoked.output)
+
+        def hermes_warnings():
+            report = doctor.run_doctor(home, home=user, cwd=checkout)
+            return {f.message for f in report.projects['custom']
+                    if f.status == 'warn' and f.message.startswith('hermes:')}
+
+        (hermes_home / 'config.yaml').unlink(missing_ok=True)
+        assert hermes_warnings() >= {'hermes: project skills load only from a trusted checkout'}
+        assets.link_global(home, 'skills', 'hermes', user_home=user)
+        (hermes_home / 'config.yaml').write_text(
+            f'plugins:\n  enabled: [dotbrain]\nskills:\n  trusted_project_dirs: [{json.dumps(str(checkout))}]\n',
+            encoding='utf-8')
+        assert hermes_warnings() == set()
+    assert hermes.state(hermes_home) == 'current'
+
+    for checkout in (worktree, main):
+        unwired = workflows.unwire_project(dotbrain_home=home, repo=checkout)
+        assert not unwired.errors
+        delivered = checkout / '.hermes' / 'skills' / 'one'
+        assert not delivered.exists() and not delivered.is_symlink()
+        assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+    # Project removal never touches the machine-wide plugin copy.
+    assert hermes.state(hermes_home) == 'current'
+
+
+def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
+    home, brainspace, main, _ = lifecycle
+    (brainspace / '.brain' / 'project.yaml').write_text('agents: [hermes]\nskills: []\nbeads:\n  mode: none\n',
+                                                         encoding='utf-8')
+    user = tmp_path / 'user'
+    report = doctor.run_doctor(home, home=user, cwd=main)
+    assert 'hermes: dotbrain plugin is not delivered' in {f.message for f in report.projects['custom']}
+    foreign = hermes.plugin_dir(user / '.hermes')
+    foreign.mkdir(parents=True)
+    report = doctor.run_doctor(home, home=user, cwd=main)
+    assert f'hermes: {foreign} is not dotbrain\'s plugin copy' in {f.message for f in report.projects['custom']}

@@ -1,7 +1,7 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, paths, projects, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, hermes, paths, projects, runtimes, skills, subagents
 
 
 def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str) -> tuple[str, ...]:
@@ -52,19 +52,37 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
-def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path | None = None) -> skills.LinkResult:
+def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool) -> dict[str, str]:
+    """Configured global targets, plus the home target of each opted-in relocatable runtime.
+
+    Such a runtime (Hermes) is opted in by an explicit --runtime request or by an existing owned
+    plugin copy, so later unfiltered runs keep its delivery current.
+    """
+    targets = dict(configured)
+    for rt in selected:
+        directory = runtimes.user_dir(rt, user_home)
+        if (rt.home_env and rt.key not in targets and (kind == "skills" or rt.subagents)
+                and (explicit or hermes.owned(directory))):
+            targets[rt.key] = str(directory / kind)
+    return targets
+
+
+def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path | None = None,
+                run=hermes._default_run) -> skills.LinkResult:
     selected = runtimes.select(runtime)
     if kind == "agents" and runtime != "all" and not selected[0].subagents:
         raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
     cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
            else subagents.load_global_config(home))
+    user_home = user_home or Path.home()
+    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all")
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
-    keys = [k for k in cfg.targets if k in known] if runtime == "all" else known
-    if any(k not in cfg.targets for k in keys):
+    keys = [k for k in targets if k in known] if runtime == "all" else known
+    if any(k not in targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
     result = skills.LinkResult()
-    destinations = {k: adopter_repos.expand_path(cfg.targets[k], home=user_home or Path.home()) for k in keys}
+    destinations = {k: adopter_repos.expand_path(targets[k], home=user_home) for k in keys}
     for dest in destinations.values():
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
             return skills.LinkResult(warnings=[f"{dest}: foreign asset directory conflicts with delivery"])
@@ -83,6 +101,12 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
                                                label=k, preserve_collisions=True, runtime=k)
         for field in ("linked", "pruned", "stashed", "warnings"):
             getattr(result, field).extend(getattr(linked, field))
+        rt = runtimes.find(k)
+        if kind == "skills" and rt.home_env:
+            # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.
+            delivered = hermes.deliver(runtimes.user_dir(rt, user_home), run=run)
+            result.linked += delivered.linked
+            result.warnings += delivered.warnings
     return result
 
 

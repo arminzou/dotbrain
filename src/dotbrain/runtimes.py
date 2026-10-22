@@ -7,7 +7,9 @@ machine may know it, and only an explicit ``--runtime`` request for it fails.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -21,11 +23,16 @@ class Runtime:
     subagents: tuple[str, str] | None = None
     hooks: bool = False  # the dotbrain plugin supplies session hooks
     default: bool = False  # selected when project.yaml declares no agents, and a default global target
+    # Environment variable that relocates the runtime's user home; dotbrain copies its plugin there
+    # and opts in by the presence of that owned copy rather than by a default global target.
+    home_env: str | None = None
 
 
 RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
     "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True),
+    # Session hooks for Hermes are not delivered yet; its plugin registers skills only.
+    "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", home_env="HERMES_HOME"),
 }
 
 
@@ -61,3 +68,9 @@ def global_targets(kind: str) -> dict[str, str]:
     """Default global destinations for ``skills`` or ``agents``, keyed by global target key."""
     return {rt.key: f"~/{rt.workspace}/{kind}" for rt in RUNTIMES.values()
             if rt.default and (kind == "skills" or rt.subagents)}
+
+
+def user_dir(rt: Runtime, user_home: Path) -> Path:
+    """The runtime's directory under the user's home, honoring its relocation variable."""
+    override = os.environ.get(rt.home_env) if rt.home_env else None
+    return Path(override).expanduser() if override else Path(user_home) / rt.workspace

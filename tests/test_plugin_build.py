@@ -195,11 +195,17 @@ def test_first_run_installers_pin_the_plugin_cli_version():
     version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"]["version"]
     scripts = PLUGIN_ROOT / "scripts"
 
-    for manifest_dir in (".claude-plugin", ".codex-plugin"):
-        manifest = json.loads(
-            (PLUGIN_ROOT / manifest_dir / "plugin.json").read_text(encoding="utf-8")
-        )
-        assert manifest["version"] == version
+    # Every host manifest takes the release version, and release-please bumps each one. The release
+    # workflow runs this suite at the tag and rejects a tag that disagrees with pyproject.
+    manifests = {"plugin/.claude-plugin/plugin.json": json.loads,
+                 "plugin/.codex-plugin/plugin.json": json.loads,
+                 "plugin/plugin.yaml": yaml.safe_load}
+    for relative, parse in manifests.items():
+        assert parse((REPO_ROOT / relative).read_text(encoding="utf-8"))["version"] == version
+    release = json.loads((REPO_ROOT / "release-please-config.json").read_text(encoding="utf-8"))
+    bumped = {entry["path"] if isinstance(entry, dict) else entry
+              for entry in release["packages"]["."]["extra-files"]}
+    assert set(manifests) <= bumped
     assert __version__ == version
     lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
     assert next(

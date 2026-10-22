@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, config, home_sync, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, config, hermes, home_sync, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
@@ -142,7 +142,8 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         try:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
-            for runtime, destination in cfg.targets.items():
+            targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False)
+            for runtime, destination in targets.items():
                 recognized = runtimes.find(runtime)
                 if recognized is None or recognized.key != runtime or (kind == "agents" and not recognized.subagents):
                     # A newer dotbrain sharing this home may know it; delivery skips it.
@@ -156,6 +157,41 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     for rt in runtimes.RUNTIMES.values():
         if rt.hooks:
             findings.extend(_check_plugin(home, rt.key))
+        if rt.home_env and hermes.owned(runtimes.user_dir(rt, home)):
+            findings.extend(_check_hermes_plugin(runtimes.user_dir(rt, home)))
+    return findings
+
+
+def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
+    """Freshness and activation of dotbrain's own plugin copy in the Hermes home."""
+    target = hermes.plugin_dir(hermes_home)
+    try:
+        findings = [Finding("ok", f"hermes: dotbrain plugin copy current at {target}") if hermes.state(hermes_home) == "current"
+                    else Finding("warn", f"hermes: dotbrain plugin copy is stale at {target}", "run dotbrain bootstrap")]
+        activation = hermes.activation(hermes_home)
+        if activation != "enabled":
+            findings.append(Finding("warn", f"hermes: dotbrain plugin is {activation}", f"run {hermes.ENABLE}"))
+        return findings
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("warn", f"hermes: plugin check unavailable: {exc}", "inspect the Hermes home")]
+
+
+def _check_hermes_project(hermes_home: Path, repo: Path | None, selected: tuple[str, ...]) -> list[Finding]:
+    """Hermes delivery a project declaring it relies on; freshness is a machine check."""
+    findings = []
+    try:
+        state = hermes.state(hermes_home)
+        if state == "missing":
+            findings.append(Finding("warn", "hermes: dotbrain plugin is not delivered", "run dotbrain bootstrap --runtime hermes"))
+        elif state == "foreign":
+            findings.append(Finding("warn", f"hermes: {hermes.plugin_dir(hermes_home)} is not dotbrain's plugin copy",
+                                    "move it aside, then run dotbrain bootstrap --runtime hermes"))
+        if repo is not None and repo.is_dir() and selected and not hermes.trusted(hermes_home, repo):
+            # Hermes reads <checkout>/.hermes/skills only from trusted project roots.
+            findings.append(Finding("warn", "hermes: project skills load only from a trusted checkout",
+                                    f"run hermes skills trust {repo}"))
+    except DIAGNOSIS_ERRORS as exc:
+        findings.append(Finding("warn", f"hermes: delivery check unavailable: {exc}", "inspect the Hermes home"))
     return findings
 
 
@@ -289,7 +325,8 @@ def _check_beads_state(brainspace: Path, name: str, dotbrain_home: Path, *, run:
     return findings
 
 
-def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, skip_absent: bool = False) -> list[Finding]:
+def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, skip_absent: bool = False,
+                   home: Path | None = None) -> list[Finding]:
     findings = []
     beads = config.load_project_config(root, target.project)
     workspaces = assets.project_workspaces(root, target, "all")
@@ -331,6 +368,10 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.append(Finding("error", f"Git exclusions unavailable: {exc}", "check Git metadata"))
         if paths.INJECT_ADOPTER_POINTER:
             findings.extend(_check_agent_pointer(repo))
+    for workspace in workspaces:
+        rt = runtimes.for_workspace(workspace)
+        if rt.home_env:
+            findings.extend(_check_hermes_project(runtimes.user_dir(rt, home or Path.home()), repo, selected))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings
@@ -358,7 +399,7 @@ def run_doctor(dotbrain_home: Path, home: Path | None = None, *, project: str | 
     for target in targets:
         report.checkouts[target.project] = str(target.checkout) if target.checkout else None
         try:
-            report.projects[target.project] = _check_project(target, root, run, skip_absent=all_projects)
+            report.projects[target.project] = _check_project(target, root, run, skip_absent=all_projects, home=home)
         except DIAGNOSIS_ERRORS as exc:
             report.projects[target.project] = [Finding("error", f"project diagnosis failed: {exc}", "correct the declaration or inaccessible paths")]
     return report

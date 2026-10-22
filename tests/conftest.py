@@ -25,6 +25,8 @@ def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
     """Help and error assertions match plain text; a forced-color terminal would inject ANSI codes."""
     for name in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
         monkeypatch.delenv(name, raising=False)
+    # A developer's HERMES_HOME would aim Hermes delivery at their real Hermes home.
+    monkeypatch.delenv("HERMES_HOME", raising=False)
     # Output carries tmp paths and host names whose length varies by machine and worker, so at the
     # default 80 columns a phrase could wrap differently on each runner. Tests that check wrapping
     # set their own width.
@@ -51,23 +53,24 @@ def _symlink_to_auto(self: pathlib.Path, target, target_is_directory: bool = Fal
 
 pathlib.Path.symlink_to = _symlink_to_auto
 
-# Beads is an external tool: the suite must behave the same whether or not a developer has `bd`
-# installed. Hide it from discovery, and fail any test that would launch it instead of injecting
-# a fake runner.
+# Beads and Hermes are external tools: the suite must behave the same whether or not a developer
+# has `bd` or `hermes` installed. Hide them from discovery, and fail any test that would launch one
+# instead of injecting a fake runner.
+_EXTERNAL_TOOLS = ("bd", "hermes")
 _original_which = shutil.which
 _original_popen_init = subprocess.Popen.__init__
 
 
 def _which_without_beads(cmd, *args, **kwargs):
-    if Path(str(cmd)).stem.lower() == "bd":
+    if Path(str(cmd)).stem.lower() in _EXTERNAL_TOOLS:
         return None
     return _original_which(cmd, *args, **kwargs)
 
 
 def _popen_without_beads(self, args, *rest, **kwargs):
     program = args[0] if isinstance(args, (list, tuple)) else args
-    if Path(str(program)).stem.lower() == "bd":
-        raise AssertionError(f"test launched real Beads: {args!r}; inject a fake runner")
+    if Path(str(program)).stem.lower() in _EXTERNAL_TOOLS:
+        raise AssertionError(f"test launched a real external tool: {args!r}; inject a fake runner")
     _original_popen_init(self, args, *rest, **kwargs)
 
 
