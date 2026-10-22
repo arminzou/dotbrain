@@ -12,7 +12,7 @@ def is_current(entry: dict) -> bool:
     return entry.get("version") == version
 
 
-def installed(runtime_home: Path) -> dict[str, list[dict]]:
+def installed(runtime_home: Path, *, arrays_only: bool = False) -> dict[str, list[dict]]:
     registry = runtime_home / "plugins/installed_plugins.json"
     if not registry.is_file():
         return {}
@@ -20,7 +20,7 @@ def installed(runtime_home: Path) -> dict[str, list[dict]]:
     plugins = data.get("plugins") or {}
     result = {}
     for name, entries in plugins.items():
-        if isinstance(entries, dict):
+        if isinstance(entries, dict) and not arrays_only:
             entries = [entries]
         if isinstance(entries, list):
             result[name] = [entry for entry in entries
@@ -46,7 +46,7 @@ def enabled_installs(scopes: tuple[Path, ...], *, include_stale: bool = True) ->
                   for scope in scopes[:-1]]
     disabled = {name for _, enabled in workspaces for name, value in enabled.items() if value is False}
     result = []
-    for name, entries in installed(scopes[-1] / ".claude").items():
+    for name, entries in installed(scopes[-1] / ".claude", arrays_only=True).items():
         if name in disabled:
             continue
         chosen = None

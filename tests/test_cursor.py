@@ -195,6 +195,31 @@ def test_stale_or_disabled_dotbrain_import_uses_owned_copy(dotbrain_home, tmp_pa
             assert not findings
 
 
+def test_single_object_plugin_entry_is_not_imported(dotbrain_home, tmp_path):
+    user = tmp_path / "user"
+    installation = user / ".claude/plugins/cache/dotbrain"
+    with resource_loader.plugin_tree() as source:
+        shutil.copytree(source / "skills", installation / "skills")
+        version = json.loads((source / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
+    entry = {"scope": "user", "installPath": str(installation), "version": version}
+    (user / ".claude/plugins/installed_plugins.json").write_text(json.dumps({"plugins": {
+        "dotbrain@dotbrain": entry}}), encoding="utf-8")
+    (user / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {
+        "dotbrain@dotbrain": True}}), encoding="utf-8")
+
+    assert claude_plugins.installed(user / ".claude") == {"dotbrain@dotbrain": [entry]}
+    assert claude_plugins.enabled_installs((user,)) == []
+    receiver = user / ".cursor/skills"
+    result = cursor.deliver(dotbrain_home, receiver, (), scopes=(user,))
+    assert not result.warnings
+    visible = cursor.discovered(user)
+    for name, source in cursor.sources(dotbrain_home, (), scopes=(user,)).items():
+        assert source.is_relative_to(cursor.plugin_dir(dotbrain_home))
+        assert (receiver / name).is_symlink()
+        assert visible[name] == {source.resolve()}
+    assert not doctor._check_cursor_skills(dotbrain_home, (), (user,))
+
+
 @pytest.mark.parametrize("project_current", [True, False])
 def test_import_version_uses_selected_registry_entry(tmp_path, project_current):
     user, checkout = tmp_path / "user", tmp_path / "checkout"
