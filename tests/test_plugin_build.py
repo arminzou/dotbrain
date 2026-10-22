@@ -202,10 +202,14 @@ def test_first_run_installers_pin_the_plugin_cli_version():
                  "plugin/plugin.yaml": yaml.safe_load}
     for relative, parse in manifests.items():
         assert parse((REPO_ROOT / relative).read_text(encoding="utf-8"))["version"] == version
+    # OpenCode records no version for file plugins, so the plugin carries its own constant.
+    opencode = "plugin/opencode/dotbrain.js"
+    assert re.findall(r'^const VERSION = "([^"]+)" // x-release-please-version$',
+                      (REPO_ROOT / opencode).read_text(encoding="utf-8"), re.M) == [version]
     release = json.loads((REPO_ROOT / "release-please-config.json").read_text(encoding="utf-8"))
     bumped = {entry["path"] if isinstance(entry, dict) else entry
               for entry in release["packages"]["."]["extra-files"]}
-    assert set(manifests) <= bumped
+    assert {*manifests, opencode} <= bumped
     assert __version__ == version
     lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
     assert next(

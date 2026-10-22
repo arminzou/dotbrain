@@ -26,12 +26,18 @@ class Runtime:
     # Environment variable that relocates the runtime's user home; dotbrain copies its plugin there
     # and opts in by the presence of that owned copy rather than by a default global target.
     home_env: str | None = None
+    # Where home_env points by default, relative to the user's home (the workspace when None), and
+    # the runtime's own directory below it.
+    home_default: str | None = None
+    home_subdir: str = ""
 
 
 RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
     "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True),
     "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", hooks=True, home_env="HERMES_HOME"),
+    "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", home_env="XDG_CONFIG_HOME",
+                        home_default=".config", home_subdir="opencode"),
 }
 
 
@@ -72,4 +78,5 @@ def global_targets(kind: str) -> dict[str, str]:
 def user_dir(rt: Runtime, user_home: Path) -> Path:
     """The runtime's directory under the user's home, honoring its relocation variable."""
     override = os.environ.get(rt.home_env) if rt.home_env else None
-    return Path(override).expanduser() if override else Path(user_home) / rt.workspace
+    base = Path(override).expanduser() if override else Path(user_home) / (rt.home_default or rt.workspace)
+    return base / rt.home_subdir

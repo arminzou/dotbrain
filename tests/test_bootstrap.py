@@ -162,7 +162,7 @@ def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_
     assert any(f.status == "warn" and f.message.endswith(": later") for f in findings)
     result = runner.invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "later", "--json"])
     assert result.exit_code == 2
-    assert "--runtime must be claude, codex, hermes, skillsonly, or all" in result.stdout
+    assert "--runtime must be claude, codex, hermes, opencode, skillsonly, or all" in result.stdout
 
 
 def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):

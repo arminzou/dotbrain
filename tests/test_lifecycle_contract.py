@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, assets, beads, doctor, hermes, runtimes, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, doctor, hermes, opencode, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -372,3 +372,85 @@ def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecy
     foreign.mkdir(parents=True)
     report = doctor.run_doctor(home, home=user, cwd=main)
     assert f'hermes: {foreign} is not dotbrain\'s plugin copy' in {f.message for f in report.projects['custom']}
+
+
+def test_opencode_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
+    # OpenCode reads project skills from <checkout>/.opencode/skills; dotbrain links only its
+    # selection there and leaves everything else in that directory alone.
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    for name in ('one', 'two'):
+        (home / 'skills' / name).mkdir(parents=True)
+        (home / 'skills' / name / 'SKILL.md').write_text(f'# {name}\n', encoding='utf-8')
+
+    def declare(selection):
+        (brainspace / '.brain' / 'project.yaml').write_text(
+            f'agents: [opencode]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+
+    def linked(checkout):
+        return sorted(p.name for p in (checkout / '.opencode' / 'skills').iterdir() if p.is_symlink())
+
+    def clean(checkout):
+        return git(checkout, 'status', '--porcelain', '--untracked-files=all').stdout == ''
+
+    def opencode_files(checkout):
+        # What OpenCode writes into every .opencode/ directory it scans.
+        directory = checkout / '.opencode'
+        (directory / '.gitignore').write_text('node_modules\npackage.json\npackage-lock.json\nbun.lock\n.gitignore',
+                                              encoding='utf-8')
+        (directory / 'package.json').write_text('{}', encoding='utf-8')
+        (directory / 'node_modules' / 'x').mkdir(parents=True)
+        (directory / 'node_modules' / 'x' / 'index.js').write_text('', encoding='utf-8')
+
+    declare('[one]')
+    user = tmp_path / 'user'
+    runner = CliRunner()
+    for checkout in (main, worktree):
+        mine = checkout / '.opencode' / 'skills' / 'mine' / 'SKILL.md'
+        mine.parent.mkdir(parents=True)
+        mine.write_text('mine', encoding='utf-8')
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert not result.errors, result.errors
+        assert linked(checkout) == ['one']
+        assert not (checkout / '.opencode' / 'agents').exists()
+        for argv, code in ((['skills', 'link', '--runtime', 'opencode'], 0),
+                           (['agents', 'link', '--runtime', 'opencode'], 1)):
+            invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
+            assert invoked.exit_code == code, (argv, invoked.output)
+        (checkout / '.opencode' / 'skills' / 'mine').rename(tmp_path / f'aside-{checkout.name}')
+        opencode_files(checkout)
+        # Dotbrain's links are excluded one by one; OpenCode's own files ignore themselves.
+        assert clean(checkout)
+        (tmp_path / f'aside-{checkout.name}').rename(checkout / '.opencode' / 'skills' / 'mine')
+
+        findings = doctor.run_doctor(home, home=user, cwd=checkout).projects['custom']
+        delivered = (user / '.config' / 'opencode').exists()
+        assert ('opencode: dotbrain plugin is not delivered' in {f.message for f in findings}) is not delivered
+        assets.link_global(home, 'skills', 'opencode', user_home=user)
+        findings = doctor.run_doctor(home, home=user, cwd=checkout).projects['custom']
+        assert not [f.message for f in findings if f.status != 'ok' and f.message.startswith('opencode:')]
+
+    # Update, then prune, the shared selection; each refresh touches only its own checkout.
+    for selection, expected in (('[two]', ['two']), ('[]', [])):
+        declare(selection)
+        before = {checkout: linked(checkout) for checkout in (main, worktree)}
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            assert not workflows.refresh_projects(home, cwd=checkout, runtime='opencode').errors
+            assert linked(checkout) == expected
+            assert (checkout / '.opencode' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+            if checkout is main:
+                assert linked(sibling) == before[sibling]
+
+    # Removal: deliver a selection to both checkouts, then unwire one at a time.
+    declare('[one, two]')
+    for checkout in (main, worktree):
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='opencode').errors
+    for checkout, sibling in ((worktree, main), (main, None)):
+        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+        assert linked(checkout) == []
+        assert (checkout / '.opencode' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+        assert (checkout / '.opencode' / 'package.json').is_file()
+        if sibling is not None:
+            assert linked(sibling) == ['one', 'two']
+        # Project removal never touches the machine-wide delivery.
+        assert opencode.state(user / '.config' / 'opencode') == 'current'
