@@ -33,7 +33,7 @@ def test_global_delivery_and_native_invocation_metadata(dotbrain_home, tmp_path)
             assert frontmatter.get("disable-model-invocation", False) is not (policy.get("policy") or {}).get("allow_implicit_invocation", True)
     assert (user / ".cursor/skills/run-execution/references/cursor.md").is_file()
     assert not (user / ".cursor/agents").exists()
-    assert not (user / ".cursor/hooks.json").exists()
+    assert cursor.hook_state(user) == "current"
     assert assets.link_global(dotbrain_home, "skills", "cursor", user_home=user).linked == []
     assert not doctor._check_cursor_skills(dotbrain_home, (), (user,))
 

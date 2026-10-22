@@ -156,7 +156,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
-        if rt.hooks and not rt.home_env:
+        if rt.hooks and not rt.home_env and rt.name != "cursor":
             findings.extend(_check_plugin(home, rt.key))
         # An owned copy or a configured global target both mean this machine expects the plugin;
         # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.
@@ -166,7 +166,16 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                             else _check_home_plugin(rt, directory))
     if "cursor" in configured or cursor.owned(root):
         findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
+        findings.extend(_check_cursor_hooks(home))
     return findings
+
+
+def _check_cursor_hooks(home: Path) -> list[Finding]:
+    state = cursor.hook_state(home)
+    if state != "current":
+        return [Finding("warn", f"cursor: Dotbrain hook entries are {state}",
+                        "run dotbrain skills link --scope global --runtime cursor")]
+    return [Finding("info", "cursor: hook entries are current; native consumption is not verified")]
 
 
 def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> list[Finding]:
@@ -452,6 +461,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
         if rt.name == "cursor":
             findings.extend(_check_home_plugin(rt, root))
+            findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings

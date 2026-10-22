@@ -1,6 +1,8 @@
 """Cursor skill discovery, reusing shared sources and owned-copy delivery."""
 import os
 import re
+import json
+import sys
 from pathlib import Path
 
 import yaml
@@ -11,6 +13,80 @@ KIND = "skill bundle"
 ROOTS = (".cursor/skills", ".claude/skills", ".codex/skills", ".grok/skills", ".agents/skills")
 FILES = ("skills",)
 GLOBAL = ".global-delivery"
+
+# Launch-time resume retains the original convention on the server but runs no startup sync.
+# preCompact is observe-only: it cannot return context. Startup context accompanies every
+# request, so compaction needs no refresh callback. Native lifecycle qualification is separate.
+HOOK_EVENTS = {"sessionStart": "startup", "stop": "turn-end", "sessionEnd": "session-end"}
+
+
+def hook_entries(*, windows: bool | None = None) -> dict:
+    windows = sys.platform == "win32" if windows is None else windows
+    checkout = '$env:CURSOR_PROJECT_DIR' if windows else '"$CURSOR_PROJECT_DIR"'
+    return {native: [{"command": f"dotbrain hook run --event {event} --checkout {checkout} --format json",
+                      "timeout": 15 if event == "startup" else 5}]
+            for native, event in HOOK_EVENTS.items()}
+
+
+def _owned_hook(entry: dict) -> bool:
+    return bool(re.search(r"(?<![\w./-])dotbrain(?:\.exe)?\s+hook\s+(?:run|session-start|stop|session-end)\b",
+                          entry["command"]))
+
+
+def _read_hooks(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8-sig")) if path.exists() else {}
+    if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
+        raise ValueError("expected an object with a hooks object")
+    for entries in data.get("hooks", {}).values():
+        if not isinstance(entries, list) or any(not isinstance(e, dict) or not isinstance(e.get("command"), str)
+                                                for e in entries):
+            raise ValueError("expected hook arrays with command strings")
+    return data
+
+
+def reconcile_hooks(user_home: Path, *, remove: bool = False) -> skills.LinkResult:
+    """Merge or remove command-owned entries, preserving every unrelated setting."""
+    result = skills.LinkResult()
+    path = user_home / ".cursor/hooks.json"
+    try:
+        data = _read_hooks(path)
+        original = json.loads(json.dumps(data))
+        hooks = data.setdefault("hooks", {})
+        for event, entries in list(hooks.items()):
+            kept = [entry for entry in entries if not _owned_hook(entry)]
+            if kept:
+                hooks[event] = kept
+            elif entries:  # keep unrelated empty event arrays
+                del hooks[event]
+        if not remove:
+            data.setdefault("version", 1)
+            for event, entries in hook_entries().items():
+                hooks.setdefault(event, []).extend(entries)
+        if data == original or (remove and not path.exists()):
+            return result
+        if remove and not hooks and not (data.keys() - {"version", "hooks"}):
+            path.unlink()
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        (result.pruned if remove else result.linked).append("cursor/hooks.json")
+    except (OSError, ValueError) as exc:
+        result.warnings.append(f"{path}: cannot reconcile Cursor hooks: {exc}")
+    return result
+
+
+def hook_state(user_home: Path) -> str:
+    path = user_home / ".cursor/hooks.json"
+    try:
+        data = _read_hooks(path)
+    except (OSError, ValueError):
+        return "malformed"
+    actual = {event: [entry for entry in entries if _owned_hook(entry)]
+              for event, entries in data.get("hooks", {}).items()}
+    actual = {event: entries for event, entries in actual.items() if entries}
+    if not actual:
+        return "foreign" if path.exists() else "missing"
+    return "current" if actual == hook_entries() else "stale"
 
 
 def plugin_dir(directory: Path) -> Path:

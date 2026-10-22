@@ -136,6 +136,10 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
                                                label=k, preserve_collisions=True, runtime=k)
         for field in ("linked", "pruned", "stashed", "warnings"):
             getattr(result, field).extend(getattr(linked, field))
+        if kind == "skills" and k == "cursor":
+            delivered_hooks = cursor.reconcile_hooks(user_home)
+            result.linked += delivered_hooks.linked
+            result.warnings += delivered_hooks.warnings
         rt = runtimes.find(k)
         if kind == "skills" and rt.home_env:
             # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.

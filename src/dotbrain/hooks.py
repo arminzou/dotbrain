@@ -27,6 +27,7 @@ leaves state every later sync refuses.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -160,6 +161,17 @@ def start_sync(*, push_only: bool = False, wait: float = 0, checkout: Path | Non
 
 
 EVENTS = ("startup", "resume", "clear", "compaction", "turn-end", "session-end")
+
+
+def handle_claude_event(event: str) -> None:
+    """Handle the Claude protocol, except when Cursor also imports the plugin hooks."""
+    if "CURSOR_VERSION" in os.environ:
+        return
+    if event == "startup" and payload_field("source") == "compact":
+        event = "compaction"
+    if event == "session-end" and payload_field("reason") == "clear":
+        return
+    handle_event(event)
 
 
 def handle_event(event: str, checkout: Path | None = None, output: str = "text") -> None:
