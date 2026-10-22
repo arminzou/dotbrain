@@ -103,15 +103,26 @@ def test_veto_keeps_linked_private_manual_skills_manual(tmp_path: Path, monkeypa
         (directory / "SKILL.md").write_text(f"---\nname: {name}\ndescription: x\n{flag}---\n", encoding="utf-8")
         (directory / "notes.md").write_text("x", encoding="utf-8")
 
+    def raw(root, name, body: bytes):
+        (root / "skills" / name).mkdir(parents=True)
+        (root / "skills" / name / "SKILL.md").write_bytes(body)
+
     skill(checkout / ".hermes", "private-manual", True)
     skill(home, "global-manual", True)
     skill(home, "auto", False)
     skill(checkout / ".hermes", "both", False)
-    skill(home, "both", True)  # the checkout's skill shadows the home's, as in Hermes
-    monkeypatch.chdir(checkout)
+    skill(home, "both", True)  # the project's skill shadows the home's, as in Hermes
+    # Each of these is manual-only as Hermes parses it.
+    raw(checkout / ".hermes", "commented", b"---\nname: commented\ndisable-model-invocation: true # explicit only\n---\n")
+    raw(checkout / ".hermes", "bom", b"\xef\xbb\xbf---\nname: bom\ndisable-model-invocation: true\n---\n")
+    raw(checkout / ".hermes", "bad-byte", b"---\nname: bad-byte\ndisable-model-invocation: true\n---\nbody \xff\n")
+    (checkout / ".git").mkdir()
+    (checkout / "src" / "deep").mkdir(parents=True)
+    monkeypatch.chdir(checkout / "src" / "deep")  # Hermes finds the project root above the cwd
     monkeypatch.setenv("HERMES_HOME", str(home))
+    plugin = _load_plugin()
     ctx = FakeContext()
-    _load_plugin().register(ctx)
+    plugin.register(ctx)
     [veto] = ctx.hooks["pre_tool_call"]
 
     def view(name, file_path=None):
@@ -119,10 +130,25 @@ def test_veto_keeps_linked_private_manual_skills_manual(tmp_path: Path, monkeypa
 
     assert view("private-manual") == {"action": "block",
                                       "message": "private-manual runs only when the user invokes /private-manual."}
-    assert view("global-manual") is not None
+    for name in ("global-manual", "commented", "bom", "bad-byte"):
+        assert view(name) is not None, name
     assert view("private-manual", "notes.md") is None
     for name in ("auto", "both", "missing", "../hermes/skills/global-manual", "other:global-manual"):
         assert view(name) is None, name
+
+    # A policy that cannot be read blocks that skill rather than allowing it.
+    def unreadable(text):
+        raise ValueError("unreadable")
+
+    monkeypatch.setattr(plugin, "_policy", unreadable)
+    assert view("auto") is not None
+    assert view("missing") is None
+
+
+def test_stdlib_frontmatter_parser_drops_inline_comments():
+    parse = _load_plugin()._frontmatter
+    fields = parse("﻿---\na: true # explicit only\nb: \"x # y\" # z\nc: # empty\nd: plain\n---\n")
+    assert fields == {"a": "true", "b": "x # y", "c": "", "d": "plain"}
 
 
 @pytest.fixture

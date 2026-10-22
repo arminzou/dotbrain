@@ -20,11 +20,12 @@ convention and syncs; this file only maps events and caches what the CLI printed
 
 Every hook fails open: a missing or failing ``dotbrain`` leaves the agent untouched.
 
-Hermes runs this in its own environment: standard library only.
+Hermes runs this in its own environment: standard library only, plus PyYAML when Hermes has it.
 """
 
 import os
 import posixpath
+import re
 import shutil
 import subprocess
 import sys
@@ -56,7 +57,7 @@ def _block(style, lines):
 
 def _frontmatter(text):
     """Top-level fields of a SKILL.md frontmatter block, as strings."""
-    lines = text.splitlines()
+    lines = text.removeprefix("﻿").splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
     fields = {}
@@ -79,6 +80,12 @@ def _frontmatter(text):
             continue
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
+        elif value[:1] in ("\"", "'") and value.find(value[0], 1) > 0:  # a quoted scalar, then a comment
+            value = value[1:value.find(value[0], 1)]  # ponytail: no escape handling inside quotes
+        elif value.startswith("#"):
+            value = ""
+        else:
+            value = value.split(" #", 1)[0].split("\t#", 1)[0].rstrip()
         fields[name.strip()] = value
     return fields
 
@@ -117,17 +124,57 @@ def _hermes_home():
         return Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
 
 
+def _project_root():
+    """The project root Hermes reads project skills from: the nearest ancestor holding ``.git``."""
+    try:
+        from agent.skill_utils import find_project_root  # not public Hermes API; may move
+    except Exception:  # noqa: BLE001
+        find_project_root = None
+    if find_project_root is not None:
+        return find_project_root()
+    start = Path(_checkout()).resolve()
+    for directory in (start, *start.parents):
+        if (directory / ".git").exists():
+            return None if directory == Path.home().resolve() else directory  # Hermes skips the home
+    return None
+
+
+def _policy(text):
+    """Frontmatter fields as Hermes reads them: YAML when PyYAML is there, as it is in Hermes."""
+    text = text.removeprefix("﻿")
+    try:
+        import yaml
+    except ImportError:
+        return _frontmatter(text)
+    end = re.search(r"\n---\s*\n", text[3:]) if text.startswith("---") else None
+    if end is None:
+        return {}
+    block = text[3:end.start() + 3]
+    try:
+        fields = yaml.safe_load(block)
+    except yaml.YAMLError:  # Hermes falls back to key: value lines
+        pairs = (line.split(":", 1) for line in block.strip().split("\n") if ":" in line)
+        fields = {key.strip(): value.strip() for key, value in pairs}
+    return fields if isinstance(fields, dict) else {}
+
+
 def _linked_manual(name):
-    """SKILL.md of a manual-only skill in the checkout's or the Hermes home's ``skills/``, where
-    dotbrain links private skills; the checkout wins, as in Hermes. None for any other skill."""
+    """SKILL.md of a manual-only skill in the project's or the Hermes home's ``skills/``, where
+    dotbrain links private skills; the project wins, as in Hermes. None for any other skill.
+    A skill whose policy cannot be read counts as manual-only."""
     if not name or name in (".", "..") or "/" in name or "\\" in name:
         return None
+    project = _project_root()
+    roots = ([project / ".hermes" / "skills"] if project else []) + [_hermes_home() / "skills"]
     # ponytail: looks the skill up by directory name, which is how dotbrain links it.
-    for root in (Path(_checkout()) / ".hermes" / "skills", _hermes_home() / "skills"):
+    for root in roots:
         skill_md = root / name / "SKILL.md"
         if skill_md.is_file():
-            fields = _frontmatter(skill_md.read_text(encoding="utf-8"))
-            return skill_md if fields.get("disable-model-invocation", "").lower() == "true" else None
+            try:
+                flag = _policy(skill_md.read_text(encoding="utf-8-sig", errors="replace")).get("disable-model-invocation")
+            except Exception:  # noqa: BLE001 - fail closed for this skill
+                return skill_md
+            return skill_md if flag is True or str(flag).strip().lower() == "true" else None
     return None
 
 
