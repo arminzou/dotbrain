@@ -22,6 +22,7 @@ Hermes runs this in its own environment: standard library only.
 """
 
 import os
+import posixpath
 import shutil
 import subprocess
 import sys
@@ -86,15 +87,22 @@ def skills():
         yield skill_md.parent.name, skill_md, _frontmatter(skill_md.read_text(encoding="utf-8"))
 
 
+def _supporting_file(file_path):
+    """Whether ``file_path``, which Hermes resolves against the skill directory, names a file other
+    than the SKILL.md inside it; a supporting-file read belongs to a skill the user already invoked."""
+    path = posixpath.normpath(str(file_path or "").strip().replace("\\", "/"))
+    escapes = path == ".." or path.startswith(("../", "/")) or ":" in path
+    return not (escapes or path == "." or path.casefold() == "skill.md")
+
+
 def manual_only_veto(manual):
     """A ``pre_tool_call`` hook that blocks the model from loading a manual-only skill."""
 
     def veto(tool_name="", args=None, **_):
-        # A supporting-file read (file_path) belongs to a skill the user already invoked.
-        if tool_name != "skill_view" or not isinstance(args, dict) or args.get("file_path"):
+        if tool_name != "skill_view" or not isinstance(args, dict):
             return None
         namespace, _, name = str(args.get("name") or "").strip().lstrip("/").rpartition(":")
-        if namespace == NAMESPACE and name in manual:
+        if namespace == NAMESPACE and name in manual and not _supporting_file(args.get("file_path")):
             return {"action": "block",
                     "message": f"{NAMESPACE}:{name} runs only when the user invokes /{NAMESPACE}:{name}."}
         return None

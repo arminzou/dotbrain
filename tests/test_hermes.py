@@ -58,7 +58,12 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
         if blocked:
             assert blocked["action"] == "block" and blocked["message"]
     some = sorted(manual)[0]
-    assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": "references/x.md"}) is None
+    for supporting in ("references/x.md", "./references/x.md", "references\\x.md", " scripts/SKILL.md.bak "):
+        assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": supporting}) is None, supporting
+    # Hermes serves file_path from the skill directory, so each of these is the whole skill or outside it.
+    for whole in ("", " ", ".", "SKILL.md", "skill.md", "./SKILL.md", " .\\SKILL.md ", "references/../SKILL.md",
+                  "../other/SKILL.md", "..", "/etc/x", "C:/x/SKILL.md", None):
+        assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": whole}) is not None, whole
     assert veto(tool_name="skill_view", args={"name": f"other:{some}"}) is None
     assert veto(tool_name="read_file", args={"name": f"dotbrain:{some}"}) is None
 
