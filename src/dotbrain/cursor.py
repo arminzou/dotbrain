@@ -41,11 +41,10 @@ def sources(home: Path, selection, *, scopes: tuple[Path, ...] = ()) -> dict[str
     with resource_loader.plugin_tree() as source:
         packaged = skills.discover_skills(source / "skills")
     result = {Path(name).name: plugin_dir(home) / "skills" / name for name in packaged}
-    for identifier, installation in claude_plugins.enabled_installs(scopes):
+    for identifier, installation in claude_plugins.enabled_installs(scopes, include_stale=False):
         if identifier == "dotbrain@dotbrain":
             for name in packaged:
-                if (installation / "skills" / name / "SKILL.md").is_file():
-                    result[Path(name).name] = installation / "skills" / name
+                result[Path(name).name] = installation / "skills" / name
     for name in selected:
         leaf = _identity(home / "skills" / name)
         if leaf in result:
@@ -54,7 +53,7 @@ def sources(home: Path, selection, *, scopes: tuple[Path, ...] = ()) -> dict[str
     return result
 
 
-def discovered(*scopes: Path, exclude: Path | None = None) -> dict[str, set[Path]]:
+def discovered(*scopes: Path, exclude: Path | None = None, include_stale: bool = True) -> dict[str, set[Path]]:
     """Native discovery roots, deduplicated by real path; supporting files stay beside SKILL.md."""
     found: dict[str, set[Path]] = {}
     visited: set[Path] = set()
@@ -75,7 +74,7 @@ def discovered(*scopes: Path, exclude: Path | None = None) -> dict[str, set[Path
             root = scope / relative
             for directory in directories(root):
                 found.setdefault(_identity(directory), set()).add(directory.resolve())
-    for _, installation in claude_plugins.enabled_installs(scopes):
+    for _, installation in claude_plugins.enabled_installs(scopes, include_stale=include_stale):
         for directory in directories(installation / "skills"):
             found.setdefault(_identity(directory), set()).add(directory.resolve())
     return found
@@ -98,7 +97,7 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         return result
     receiver.mkdir(parents=True, exist_ok=True)
     roots = (home / "skills",) + ((plugin_dir(home),) if owned(home) else ())
-    elsewhere = discovered(*scopes, exclude=receiver)
+    elsewhere = discovered(*scopes, exclude=receiver, include_stale=False)
     # Remove only obsolete owned links, including ones another discovery root now supplies.
     for entry in receiver.iterdir():
         if not entry.is_symlink() or not any(skills._points_into(entry, root) for root in roots):
@@ -106,7 +105,7 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         if entry.name not in desired or entry.resolve() != desired[entry.name].resolve() or entry.name in elsewhere:
             entry.unlink()
             result.pruned.append(f".cursor/skills/{entry.name}")
-    visible = discovered(*scopes)
+    visible = discovered(*scopes, include_stale=False)
     for name, source in desired.items():
         seen = visible.get(name, set())
         if seen:

@@ -133,9 +133,10 @@ def test_enabled_claude_plugin_supplies_packaged_skills(dotbrain_home, tmp_path,
     installation = user / ".claude/plugins/cache/dotbrain"
     with resource_loader.plugin_tree() as source:
         shutil.copytree(source / "skills", installation / "skills")
+        version = json.loads((source / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
     registry = user / ".claude/plugins/installed_plugins.json"
     registry.write_text(json.dumps({"plugins": {"dotbrain@dotbrain": [
-        {"scope": "user", "installPath": str(installation)}]}}), encoding="utf-8")
+        {"scope": "user", "installPath": str(installation), "version": version}]}}), encoding="utf-8")
     settings = user / ".claude/settings.json"
     settings.write_text(json.dumps({"enabledPlugins": {"dotbrain@dotbrain": True}}), encoding="utf-8")
 
@@ -154,6 +155,64 @@ def test_enabled_claude_plugin_supplies_packaged_skills(dotbrain_home, tmp_path,
     assert any("duplicate skill run-execution" in f.message for f in findings)
     assert not cursor.deliver(dotbrain_home, receiver, (), scopes=scopes).pruned
     assert (receiver / "run-execution").is_dir()
+
+
+@pytest.mark.parametrize("version,enabled", [
+    ("older-version", True), (None, True),
+    ("current", False), ("older-version", False), (None, False),
+])
+@pytest.mark.parametrize("already_delivered", [False, True])
+def test_stale_or_disabled_dotbrain_import_uses_owned_copy(dotbrain_home, tmp_path, version, enabled, already_delivered):
+    user = tmp_path / "user"
+    receiver = user / ".cursor/skills"
+    if already_delivered:
+        cursor.deliver(dotbrain_home, receiver, (), scopes=(user,))
+    installation = user / ".claude/plugins/cache/dotbrain"
+    with resource_loader.plugin_tree() as source:
+        shutil.copytree(source / "skills", installation / "skills")
+        if version == "current":
+            version = json.loads((source / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
+    entry = {"scope": "user", "installPath": str(installation)}
+    if version is not None:
+        entry["version"] = version
+    (user / ".claude/plugins/installed_plugins.json").write_text(json.dumps({"plugins": {
+        "dotbrain@dotbrain": [entry]}}), encoding="utf-8")
+    (user / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {
+        "dotbrain@dotbrain": enabled}}), encoding="utf-8")
+
+    for _ in range(2):
+        result = cursor.deliver(dotbrain_home, receiver, (), scopes=(user,))
+        assert not result.warnings and not result.pruned
+        for name, source in cursor.sources(dotbrain_home, (), scopes=(user,)).items():
+            assert source.is_relative_to(cursor.plugin_dir(dotbrain_home))
+            assert (receiver / name).is_symlink()
+            assert (receiver / name).resolve() == source.resolve()
+        findings = doctor._check_cursor_skills(dotbrain_home, (), (user,))
+        if enabled:
+            assert any(f.status == "warn" and "imported dotbrain plugin is stale" in f.message for f in findings)
+            assert any("duplicate skill run-execution" in f.message for f in findings)
+        else:
+            assert not findings
+
+
+@pytest.mark.parametrize("project_current", [True, False])
+def test_import_version_uses_selected_registry_entry(tmp_path, project_current):
+    user, checkout = tmp_path / "user", tmp_path / "checkout"
+    with resource_loader.plugin_tree() as source:
+        current = json.loads((source / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))["version"]
+    for scope in (user, checkout):
+        (scope / ".claude").mkdir(parents=True)
+        (scope / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {
+            "dotbrain@dotbrain": True}}), encoding="utf-8")
+    (user / ".claude/plugins").mkdir()
+    (user / ".claude/plugins/installed_plugins.json").write_text(json.dumps({"plugins": {
+        "dotbrain@dotbrain": [
+            {"scope": "user", "installPath": str(user / "plugin"),
+             "version": "older-version" if project_current else current},
+            {"scope": "project", "projectPath": str(checkout.resolve()), "installPath": str(checkout / "plugin"),
+             "version": current if project_current else "older-version"}]}}), encoding="utf-8")
+    assert claude_plugins.enabled_installs((checkout, user), include_stale=False) == (
+        [("dotbrain@dotbrain", checkout / "plugin")] if project_current else [])
 
 
 @pytest.mark.parametrize("enabled", [False, None])

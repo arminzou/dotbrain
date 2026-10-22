@@ -47,6 +47,7 @@ packages = ["src/dotbrain"]
 # The CLI delivers the Hermes plugin, the OpenCode plugin, and the Pi extension, so the wheel carries
 # them from the shared plugin tree; the OpenCode delivery reuses the shared copy of the skills.
 [tool.hatch.build.targets.wheel.force-include]
+"plugin/.claude-plugin/plugin.json" = "dotbrain/resources/plugin/.claude-plugin/plugin.json"
 "plugin/plugin.yaml" = "dotbrain/resources/plugin/plugin.yaml"
 "plugin/__init__.py" = "dotbrain/resources/plugin/__init__.py"
 "plugin/index.js" = "dotbrain/resources/plugin/index.js"
@@ -58,6 +59,7 @@ include = [
   "/LICENSE",
   "/docs",
   "/plugin/plugin.yaml",
+  "/plugin/.claude-plugin/plugin.json",
   "/plugin/__init__.py",
   "/plugin/opencode",
   "/plugin/index.js",

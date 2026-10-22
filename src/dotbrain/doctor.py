@@ -172,6 +172,11 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
 def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...]) -> list[Finding]:
     visible = cursor.discovered(*scopes)
     findings = []
+    current = claude_plugins.enabled_installs(scopes, include_stale=False)
+    for identifier, installation in claude_plugins.enabled_installs(scopes):
+        if identifier == "dotbrain@dotbrain" and (identifier, installation) not in current:
+            findings.append(Finding("warn", f"cursor: imported dotbrain plugin is stale at {installation}",
+                                    "update the Claude plugin and run dotbrain skills link --runtime cursor"))
     for name, source in cursor.sources(root, selection, scopes=scopes).items():
         seen = visible.get(name, set())
         if not seen:
