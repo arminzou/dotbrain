@@ -455,19 +455,19 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.append(Finding("error", f"Git exclusions unavailable: {exc}", "check Git metadata"))
         if paths.INJECT_ADOPTER_POINTER:
             findings.extend(_check_agent_pointer(repo))
-    for workspace in workspaces:
-        rt = runtimes.for_workspace(workspace)
-        if rt.name == "opencode":
-            config_dir = runtimes.user_dir(rt, home or Path.home())
-            try:
-                findings.extend(_opencode_absent(config_dir, opencode.state(config_dir)))
-            except DIAGNOSIS_ERRORS as exc:
-                findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
-        elif rt.home_env:
-            findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
-        if rt.name == "cursor":
-            findings.extend(_check_home_plugin(rt, root))
-            findings.extend(_check_cursor_hooks(home or Path.home()))
+        for workspace in workspaces:
+            rt = runtimes.for_workspace(workspace)
+            if rt.name == "opencode":
+                config_dir = runtimes.user_dir(rt, home or Path.home())
+                try:
+                    findings.extend(_opencode_absent(config_dir, opencode.state(config_dir)))
+                except DIAGNOSIS_ERRORS as exc:
+                    findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
+            elif rt.home_env:
+                findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
+            if rt.name == "cursor":
+                findings.extend(_check_home_plugin(rt, root))
+                findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings

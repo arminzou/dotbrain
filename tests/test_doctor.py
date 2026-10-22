@@ -87,6 +87,27 @@ def test_disabled_components_do_not_require_bd_node_dolt(tmp_path, monkeypatch):
     assert any(f.message == paths.NO_CHECKOUT for f in report.projects["example"])
 
 
+@pytest.mark.parametrize("runtime", ["hermes", "pi", "opencode", "cursor"])
+def test_all_checks_runtime_project_delivery_only_for_present_checkouts(tmp_path, runtime):
+    root = tmp_path / "home"
+    repo = tmp_path / "repo"
+    make_project(root, "wired", repo=repo, runtimes=(runtime,))
+    absent = make_project(root, "absent", runtimes=(runtime,))
+    write(absent / ".repo", str(tmp_path / "elsewhere"))
+    unregistered = make_project(root, "unregistered", runtimes=(runtime,))
+    (unregistered / ".repo").unlink()
+
+    report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True,
+                               run=recording_run(repo, []))
+
+    assert any(f.message.startswith(f"{runtime}:") and f.status == "warn"
+               for f in report.projects["wired"])
+    for name in ("absent", "unregistered"):
+        assert not any(f.message.startswith(f"{runtime}:") for f in report.projects[name])
+    assert any(f.status == "skip" for f in report.projects["absent"])
+    assert any(f.message == paths.NO_CHECKOUT for f in report.projects["unregistered"])
+
+
 def test_named_wrong_brainspace_and_beads_destinations_are_errors(tmp_path):
     root = tmp_path / "home"
     repo = tmp_path / "repo"
