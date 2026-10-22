@@ -409,7 +409,7 @@ Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
   里它只能当 lead。
 - 如果你自己给 dotbrain 的技能建过链接或副本，先删掉。比如指向 dotbrain plugin 的
   `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
-  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor` 会对每个重复的技能发出警告。
+  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的技能。
 - OpenCode 不限制只能手动调用的技能（比如 `run-retro`）：它们照样出现在技能列表里，模型也可以自己调用。
 - 从 OpenCode 里卸载 dotbrain 需要手动操作，见[卸载](#opencode-remove)。
 :::

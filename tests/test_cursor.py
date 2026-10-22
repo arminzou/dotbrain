@@ -84,11 +84,11 @@ def test_foreign_collision_and_duplicate_diagnosis(dotbrain_home, tmp_path):
     first = skill(user / ".claude/skills")
     second = skill(user / ".codex/skills")
     result = cursor.deliver(dotbrain_home, user / ".cursor/skills", ("example",), scopes=(user,))
-    assert result.warnings == []
-    assert any("foreign or duplicate skill example" in notice for notice in result.notices)
+    assert result.warnings == [] and result.notices == []
     assert not (user / ".cursor/skills/example").exists()
     messages = [f.message for f in doctor._check_cursor_skills(dotbrain_home, ("example",), (user,))]
-    assert any("duplicate skill example" in message for message in messages)
+    assert any(f.status == "info" and "duplicate skill example" in f.message
+               for f in doctor._check_cursor_skills(dotbrain_home, ("example",), (user,)))
     assert any("foreign skill example" in message for message in messages)
     shutil.rmtree(second)
     second.symlink_to(first, target_is_directory=True)
@@ -387,7 +387,7 @@ def test_bootstrap_completes_when_cursor_already_finds_a_copy(dotbrain_home, tmp
     (dotbrain_home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra:\n  - example\n")
     out = json.loads(CliRunner().invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "cursor", "--json"]).stdout)
     assert out["status"] == "success"
-    assert any("duplicate skill example" in f["message"] for t in out["targets"] for f in t["findings"])
+    assert not any("duplicate" in f["message"] for t in out["targets"] for f in t["findings"])
     assert not (user / ".cursor/skills/example").exists()
 
 

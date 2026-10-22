@@ -66,7 +66,7 @@ checkout. Start `pi` in the checkout and accept the trust prompt. See [Pi](getti
 
 ### OpenCode loads a different copy of a skill
 
-`dotbrain doctor` warns `OpenCode loads one of the two at random` when OpenCode would find a
+`dotbrain doctor --verbose` reports `OpenCode loads one of the two at random` when OpenCode would find a
 dotbrain skill twice: once from dotbrain and once from a folder you keep, such as a
 `~/.config/opencode/skills` link or `~/.claude/skills`. Remove the other copy, or move it out of
 OpenCode's skill folders, then restart OpenCode. See [OpenCode](getting-started.md#opencode).

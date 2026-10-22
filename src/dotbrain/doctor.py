@@ -196,10 +196,10 @@ def _check_cursor_skills(root: Path, selection, scopes: tuple[Path, ...], *, sel
             findings.append(Finding("error", f"cursor: skill {name} delivery is missing", "run dotbrain skills link --runtime cursor in this scope"))
         elif source.resolve() not in seen:
             findings.append(Finding("warn", f"cursor: foreign skill {name} shadows delivery", "inspect Cursor skill discovery roots"))
-    # Only dotbrain's skills: duplicates among the user's other skills are not dotbrain's to fix.
+    # Only dotbrain's skills, and only with --verbose: a duplicate is harmless unless the copies differ.
     for name, seen in visible.items():
         if name in reported and len(seen) > 1:
-            findings.append(Finding("warn", f"cursor: duplicate skill {name}: {', '.join(map(str, sorted(seen)))}",
+            findings.append(Finding("info", f"cursor: duplicate skill {name}: {', '.join(map(str, sorted(seen)))}",
                                     "remove the copies dotbrain did not deliver" + ("" if name in packaged else f", or drop {name} from the dotbrain skill selection")))
     return findings
 
@@ -215,7 +215,8 @@ def _check_opencode_plugin(config_dir: Path, home: Path) -> list[Finding]:
         findings = [Finding("ok", f"opencode: dotbrain plugin, with its session hooks, and skills current at {target}") if state == "current"
                     else Finding("warn", f"opencode: dotbrain delivery is stale at {config_dir}",
                                  "run dotbrain bootstrap --runtime opencode")]
-        findings.extend(Finding("warn", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
+        # Harmless unless the copies differ; shown with --verbose for when a skill misbehaves.
+        findings.extend(Finding("info", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",
                                 f"remove {other}, or move it out of OpenCode's skill directories")
                         for name, other in opencode.duplicate_skills(config_dir, home))
         return findings

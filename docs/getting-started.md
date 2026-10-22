@@ -435,7 +435,7 @@ Dotbrain also delivers to the [OpenCode](https://opencode.ai) CLI.
 - Remove any links to dotbrain's skills or copies of them that you made yourself, such as a
   `~/.config/opencode/skills` link to the dotbrain plugin, or copies under `~/.claude/skills` or
   `~/.agents/skills`. OpenCode reads those folders too, and when it finds two skills with the same
-  name, it loads one of them at random. `dotbrain doctor` warns about each duplicate.
+  name, it loads one of them at random. `dotbrain doctor --verbose` lists each duplicate.
 - Manual-only skills, such as `run-retro`, are not enforced in OpenCode. OpenCode lists them,
   and the model can invoke them on its own.
 - Removing dotbrain from OpenCode is manual. See [Remove](#opencode-remove).

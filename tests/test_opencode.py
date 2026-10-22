@@ -139,9 +139,9 @@ def test_foreign_entries_are_never_replaced(dotbrain_home, user):
 def test_doctor_reports_opencode_delivery(dotbrain_home, user):
     home, config_dir = user
 
-    def warnings():
+    def warnings(status="warn"):
         return {f.message for f in doctor._check_machine(dotbrain_home, home)
-                if f.status == "warn" and f.message.startswith("opencode:")}
+                if f.status == status and f.message.startswith("opencode:")}
 
     assert warnings() == set()  # not opted in
     (dotbrain_home / "skills/skills.yaml").write_text(
@@ -153,7 +153,8 @@ def test_doctor_reports_opencode_delivery(dotbrain_home, user):
 
     assets.link_global(dotbrain_home, "skills", "opencode", user_home=home)
     # The user's own skills link reaches the same skills as other files.
-    duplicates = warnings()
+    assert warnings() == set()  # duplicates are not warnings
+    duplicates = warnings("info")
     assert duplicates == {f"opencode: skill {name} is also at {config_dir / 'skills' / name}; "
                           "OpenCode loads one of the two at random"
                           for name in (p.parent.name for p in (PLUGIN_ROOT / "skills").glob("*/SKILL.md"))}

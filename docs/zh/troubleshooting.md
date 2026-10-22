@@ -62,7 +62,7 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 ### OpenCode 加载了另一份技能 {#opencode-loads-a-different-copy-of-a-skill}
 
 如果 OpenCode 会找到同一个 dotbrain 技能的两份：一份来自 dotbrain，一份来自你自己的目录（比如
-`~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor` 会警告
+`~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor --verbose` 会报告
 `OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的技能目录，然后重启 OpenCode。
 详见[OpenCode](getting-started.md#opencode)。
 
