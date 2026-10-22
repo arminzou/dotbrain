@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from dotbrain import assets, cursor, doctor, resource_loader
+from dotbrain import assets, claude_plugins, cursor, doctor, resource_loader
 
 
 def skill(root, name="example"):
@@ -168,6 +168,76 @@ def test_disabled_or_unselected_claude_plugin_is_not_discovered(dotbrain_home, t
     assert "example" not in cursor.discovered(user)
     assert not cursor.deliver(dotbrain_home, user / ".cursor/skills", (), scopes=(user,)).warnings
     assert (user / ".cursor/skills/run-execution").is_symlink()
+
+
+@pytest.mark.parametrize(("entries", "user_enabled", "project_enabled", "local_enabled", "expected"), [
+    (("user",), False, True, None, None),
+    (("project",), True, None, None, None),
+    (("project",), None, True, None, "project"),
+    (("local",), None, None, True, "local"),
+    (("user", "project", "local"), True, True, None, "project"),
+    (("user", "local", "project"), True, True, None, "local"),
+    (("user", "project"), True, False, None, None),
+    (("user", "project"), False, True, None, "project"),
+    (("user",), True, None, False, None),
+    (("user", "unrelated"), True, True, None, "user"),
+    (("unrelated",), False, True, None, None),
+    (("user",), True, False, True, "user"),
+    (("project", "user"), True, True, False, None),
+    (("user", "second-user"), True, None, None, "user"),
+    (("project", "local"), None, None, True, "project"),
+])
+def test_cursor_plugin_scope_selection(tmp_path, entries, user_enabled, project_enabled, local_enabled, expected):
+    user, checkout = tmp_path / "user", tmp_path / "checkout"
+    installs = []
+    for name in entries:
+        entry = {"scope": "user" if name == "second-user" else name, "installPath": str(tmp_path / name)}
+        if name in ("project", "local", "unrelated"):
+            entry.update(scope="local" if name == "local" else "project",
+                         projectPath=str((checkout if name != "unrelated" else tmp_path / "other").resolve()))
+        installs.append(entry)
+    registry = user / ".claude/plugins/installed_plugins.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({"plugins": {"example@market": installs}}), encoding="utf-8")
+    for scope, filename, enabled in ((user, "settings.json", user_enabled),
+                                     (checkout, "settings.json", project_enabled),
+                                     (checkout, "settings.local.json", local_enabled)):
+        if enabled is None:
+            continue
+        path = scope / ".claude" / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"enabledPlugins": {"example@market": enabled}}), encoding="utf-8")
+    assert claude_plugins.enabled_installs((checkout, user)) == (
+        [("example@market", tmp_path / expected)] if expected else [])
+
+
+@pytest.mark.parametrize("disabled", [False, True])
+def test_cursor_plugin_selection_across_workspaces(tmp_path, disabled):
+    user, first, second = (tmp_path / name for name in ("user", "first", "second"))
+    registry = user / ".claude/plugins/installed_plugins.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({"plugins": {"example@market": [
+        {"scope": "user", "installPath": str(tmp_path / "user-install")},
+        {"scope": "project", "projectPath": str(second.resolve()), "installPath": str(tmp_path / "project-install")}
+    ]}}), encoding="utf-8")
+    (user / ".claude/settings.json").write_text(json.dumps({"enabledPlugins": {"example@market": True}}), encoding="utf-8")
+    settings = second / ".claude/settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text(json.dumps({"enabledPlugins": {"example@market": not disabled}}), encoding="utf-8")
+    assert claude_plugins.enabled_installs((first, second, user)) == (
+        [] if disabled else [("example@market", tmp_path / "user-install")])
+
+
+def test_cursor_ignores_user_local_enablement_and_project_registries(tmp_path):
+    user, checkout = tmp_path / "user", tmp_path / "checkout"
+    for scope in (user, checkout):
+        registry = scope / ".claude/plugins/installed_plugins.json"
+        registry.parent.mkdir(parents=True)
+        registry.write_text(json.dumps({"plugins": {"example@market": [
+            {"scope": "user", "installPath": str(scope / "installation")}]}}), encoding="utf-8")
+        (scope / ".claude/settings.local.json").write_text(
+            json.dumps({"enabledPlugins": {"example@market": True}}), encoding="utf-8")
+    assert claude_plugins.enabled_installs((checkout, user)) == []
 
 
 def test_missing_delivery_and_no_agents(dotbrain_home, tmp_path):

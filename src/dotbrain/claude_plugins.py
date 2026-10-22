@@ -20,21 +20,38 @@ def installed(runtime_home: Path) -> dict[str, list[dict]]:
 
 
 def enabled_installs(scopes: tuple[Path, ...]) -> list[tuple[str, Path]]:
-    """Enabled installations, with earlier scopes overriding later (project before user)."""
-    enabled = {}
-    for scope in reversed(scopes):
-        for filename in ("settings.json", "settings.local.json"):
-            settings = scope / ".claude" / filename
-            if settings.is_file():
-                enabled.update(json.loads(settings.read_text(encoding="utf-8")).get("enabledPlugins") or {})
+    """Cursor's selection for workspace scopes followed by the user home."""
+    if not scopes:
+        return []
+
+    def settings(scope, filename):
+        path = scope / ".claude" / filename
+        return (json.loads(path.read_text(encoding="utf-8")).get("enabledPlugins") or {}) if path.is_file() else {}
+
+    def normalized(path):
+        return str(path).replace("\\", "/").rstrip("/") or "/"
+
+    user = settings(scopes[-1], "settings.json")
+    workspaces = [(normalized(scope.resolve()), {**settings(scope, "settings.json"),
+                                                **settings(scope, "settings.local.json")})
+                  for scope in scopes[:-1]]
+    disabled = {name for _, enabled in workspaces for name, value in enabled.items() if value is False}
     result = []
-    for scope in scopes:
-        for name, entries in installed(scope / ".claude").items():
-            if enabled.get(name) is not True:
-                continue
-            for entry in entries:
-                project = entry.get("projectPath")
-                if project and Path(project).resolve() not in {s.resolve() for s in scopes}:
-                    continue
-                result.append((name, Path(entry["installPath"]).expanduser()))
+    for name, entries in installed(scopes[-1] / ".claude").items():
+        if name in disabled:
+            continue
+        chosen = None
+        # A matching enabled project/local installation wins in registry order, then user fallback.
+        for workspace, enabled in workspaces:
+            if enabled.get(name) is True:
+                chosen = next((entry for entry in entries if entry.get("scope") in ("project", "local")
+                               and entry.get("projectPath") and normalized(entry["projectPath"]) == workspace), None)
+            if chosen is None and user.get(name) is True:
+                chosen = next((entry for entry in entries if entry.get("scope") == "user"), None)
+            if chosen is not None:
+                break
+        if not workspaces and user.get(name) is True:
+            chosen = next((entry for entry in entries if entry.get("scope") == "user"), None)
+        if chosen is not None:
+            result.append((name, Path(chosen["installPath"]).expanduser()))
     return result
