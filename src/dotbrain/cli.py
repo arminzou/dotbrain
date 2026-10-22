@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import typer
 import yaml
@@ -56,19 +56,14 @@ def main(
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
-    if hooks.payload_field("source") == "compact":
-        # Compaction fires mid-turn: never change files under the running agent.
-        hooks.start_sync(push_only=True)
-    else:
-        hooks.start_sync(wait=hooks.SESSION_START_SYNC_SECONDS)
-    hooks.emit_brain_context()
+    hooks.handle_event("compaction" if hooks.payload_field("source") == "compact" else "startup")
 
 
 @hook_app.command("stop")
 def hook_stop(args: list[str] = typer.Argument(None)) -> None:
     """Start a detached push-only home sync and return at once. Fail-open and silent."""
 
-    hooks.start_sync(push_only=True)
+    hooks.handle_event("turn-end")
 
 
 @hook_app.command("session-end")
@@ -77,7 +72,21 @@ def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
 
     if hooks.payload_field("reason") == "clear":
         return  # the SessionStart that follows /clear syncs; a second sync would only race it
-    hooks.start_sync()
+    hooks.handle_event("session-end")
+
+
+@hook_app.command("run")
+def hook_run(
+    event: Literal[hooks.EVENTS] = typer.Option(
+        ..., "--event", metavar="<event>", help="Session event: startup, resume, clear, compaction, turn-end, or session-end."),
+    checkout: Optional[Path] = typer.Option(None, "--checkout",
+                                            help="Checkout the event belongs to. Default: the working directory."),
+    output: Literal["text", "json"] = typer.Option("text", "--format",
+                                                   help="Context output: text (raw) or json (an additional_context object)."),
+) -> None:
+    """Handle a session event for any runtime adapter, without reading a hook payload. Fail-open."""
+
+    hooks.handle_event(event, checkout, output)
 
 
 def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:

@@ -48,6 +48,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`hook session-start`](#dotbrain-hook-session-start) | Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. |
 | [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
 | [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
+| [`hook run`](#dotbrain-hook-run) | Handle a session event for any runtime adapter, without reading a hook payload. |
 
 ## Setup
 
@@ -434,3 +435,17 @@ dotbrain hook session-end [ARGS]
 | Argument | Description |
 | --- | --- |
 | `ARGS` | — |
+
+### `dotbrain hook run` {#dotbrain-hook-run}
+
+Handle a session event for any runtime adapter, without reading a hook payload. Fail-open.
+
+```text
+dotbrain hook run [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--event` *choice* | — | Session event: startup, resume, clear, compaction, turn-end, or session-end. |
+| `--checkout` *path* | — | Checkout the event belongs to. Default: the working directory. |
+| `--format` *choice* | `text` | Context output: text (raw) or json (an additional_context object). |

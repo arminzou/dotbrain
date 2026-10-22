@@ -60,6 +60,13 @@ Brain 的改动不用手动提交和推送，就能到达你的其他机器。
 | `Stop` | `dotbrain hook stop` | 主 Agent 每轮结束后，在后台启动一次只记录和推送、不 fetch 的同步，然后立即返回。文件不会在 Agent 运行时被改动。 |
 | `SessionEnd` | `dotbrain hook session-end` | 在后台启动一次完整同步，然后立即返回；`/clear` 时跳过，由随后的 `SessionStart` 同步。 |
 
+其他运行时的 hook 改为调用 `dotbrain hook run`，它不读取 hook 的输入数据。用
+`--event startup|resume|clear|compaction|turn-end|session-end` 指定事件，用 `--checkout PATH`
+指定 checkout（默认是当前工作目录），加 `--format json` 则把约定输出为
+`{"additional_context": "..."}`。各事件的同步方式与上表对应的 hook 相同：会话开始类事件
+（`startup`、`resume`、`clear`）等待完整同步并注入约定；`compaction` 和 `turn-end` 只记录和推送；
+`session-end` 启动一次完整同步。清空会话时只发送 `clear`，不发送 `session-end`。
+
 一次完整同步分四步：
 
 1. **记录。** 所有没提交的改动都变成同步提交：每个有改动的 Brainspace 一个，其余改动合成一个

@@ -77,8 +77,8 @@ def brain_context(cwd: Path | None = None) -> bytes:
     return heading + convention.read_bytes() + b"\n\n"
 
 
-def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) -> None:
-    """Write the payload to a binary stream. Fail-open: never raises, never exits nonzero."""
+def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None, output: str = "text") -> None:
+    """Write the payload to a binary stream, raw or as JSON ``additional_context``. Fail-open."""
 
     target = stream if stream is not None else sys.stdout.buffer
     try:
@@ -87,6 +87,9 @@ def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None) 
         return
     if not payload:
         return
+    if output == "json":
+        # Cursor parses hook stdout as JSON and ignores raw text.
+        payload = json.dumps({"additional_context": payload.decode("utf-8", "replace")}).encode("utf-8")
     try:
         target.write(payload)
         target.flush()
@@ -123,11 +126,11 @@ def _launch_detached(argv: list[str], cwd: Path) -> subprocess.Popen:
                             stderr=subprocess.DEVNULL, **detach)
 
 
-def sync_home() -> Path | None:
+def sync_home(checkout: Path | None = None) -> Path | None:
     """The home to sync: the checkout's ``.brain`` links into it or the checkout is it, and sync is on."""
 
     home = paths.resolve_dotbrain_home().expanduser().resolve()
-    root = repo_root()
+    root = repo_root(checkout)
     if root is None:
         return None
     brain = root / ".brain"
@@ -137,11 +140,11 @@ def sync_home() -> Path | None:
     return home if config.load_config(home).sync.enabled else None
 
 
-def start_sync(*, push_only: bool = False, wait: float = 0) -> None:
+def start_sync(*, push_only: bool = False, wait: float = 0, checkout: Path | None = None) -> None:
     """Start a detached sync, waiting at most ``wait`` seconds for it. Fail-open: never raises."""
 
     try:
-        home = sync_home()
+        home = sync_home(checkout)
         if home is None:
             return
         argv = _sync_argv(home, push_only)
@@ -154,3 +157,25 @@ def start_sync(*, push_only: bool = False, wait: float = 0) -> None:
         return  # still running: it finishes detached; killing it could strand a merge
     except Exception:  # noqa: BLE001 - a hook must never break the session
         return
+
+
+EVENTS = ("startup", "resume", "clear", "compaction", "turn-end", "session-end")
+
+
+def handle_event(event: str, checkout: Path | None = None, output: str = "text") -> None:
+    """Run one session event's home sync, then emit the convention when a session (re)starts.
+
+    Session starts (``startup``, ``resume``, ``clear``) wait briefly for a full sync.
+    ``compaction`` and ``turn-end`` fire mid-session, so they only record and push: files never
+    change under a running agent. ``session-end`` schedules a full sync; a cleared session sends
+    ``clear`` instead, whose start sync covers it. Fail-open: never raises.
+    """
+
+    if event in ("compaction", "turn-end"):
+        start_sync(push_only=True, checkout=checkout)
+    elif event == "session-end":
+        start_sync(checkout=checkout)
+    else:
+        start_sync(wait=SESSION_START_SYNC_SECONDS, checkout=checkout)
+    if event not in ("turn-end", "session-end"):
+        emit_brain_context(cwd=checkout, output=output)

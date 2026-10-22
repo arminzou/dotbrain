@@ -64,6 +64,14 @@ every Brainspace, so Brain changes reach your other machines without a manual co
 | `Stop` | `dotbrain hook stop` | After each turn of the main agent, starts a background sync that records and pushes without fetching, and returns at once. Files never change under a running agent. |
 | `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once; skipped on `/clear`, whose `SessionStart` syncs. |
 
+Hooks for other runtimes call `dotbrain hook run` instead, which reads no hook payload. It takes
+the event as `--event startup|resume|clear|compaction|turn-end|session-end`, the checkout as
+`--checkout PATH` (default: the working directory), and `--format json` to print the convention
+as `{"additional_context": "..."}`. Each event syncs as its hook above does: the session starts
+(`startup`, `resume`, `clear`) wait for a full sync and inject the convention; `compaction` and
+`turn-end` only record and push; `session-end` starts a full sync. A cleared session sends only
+`clear`, never `session-end`.
+
 A full sync runs four steps:
 
 1. **Record.** Every uncommitted change becomes a sync commit: one per changed Brainspace, then one

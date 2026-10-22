@@ -35,7 +35,7 @@ GROUPS: list[tuple[str, str, str | None, list[str]]] = [
     ("Brain site", "Set up and run a Brain's private site.", "brain-site",
      ["site init", "site dev", "site build", "site preview"]),
     ("Internal", "Run by the plugin's hooks, not by hand.", "session-context",
-     ["hook session-start", "hook stop", "hook session-end"]),
+     ["hook session-start", "hook stop", "hook session-end", "hook run"]),
 ]
 
 _GUIDE_TITLES = {
