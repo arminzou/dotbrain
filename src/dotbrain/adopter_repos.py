@@ -21,7 +21,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import paths
+from dotbrain import paths, runtimes
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -534,7 +534,7 @@ def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
     root = Path(dotbrain_home).resolve()
     source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents")]
     links: list[Path] = []
-    for name in (".claude", ".codex"):
+    for name in (rt.workspace for rt in runtimes.RUNTIMES.values()):
         workspace = Path(repo) / name
         if workspace.is_symlink():
             candidates = [workspace]
@@ -591,7 +591,7 @@ def unwire_repo(
     exclude = git_exclude_file(repo, run)
     if exclude and exclude.is_file():
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
-        excludes = {*paths.EXCLUDE_ENTRIES, "/.claude", "/.codex"}
+        excludes = {*paths.EXCLUDE_ENTRIES, *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
         excludes.update(f"/{entry}" for entry in managed_entries)
         filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
                     or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]

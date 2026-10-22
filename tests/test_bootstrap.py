@@ -9,7 +9,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import bootstrap as bootstrap_mod, config, paths, resource_loader, skills, subagents, workflows
+from dotbrain import assets, bootstrap as bootstrap_mod, config, doctor, paths, resource_loader, runtimes, skills, subagents, workflows
 from dotbrain.cli import app
 
 from conftest import set_fake_home
@@ -138,6 +138,31 @@ def test_link_global_skills_expands_windows_tilde_target(
 
     assert result.warnings == []
     assert (fake_home / r".codex\skills").is_dir()
+
+
+def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_path: Path, monkeypatch):
+    # 'skillsonly' has skills and hooks but no native subagents; 'later' is a runtime this version
+    # does not recognize, as a newer dotbrain sharing the home might declare.
+    monkeypatch.setitem(runtimes.RUNTIMES, "skillsonly",
+                        runtimes.Runtime("skillsonly", "skillsonly", "Skills Only", ".skillsonly", hooks=True))
+    dest, later = tmp_path / "skillsonly-skills", tmp_path / "later-skills"
+    (dotbrain_home / "skills" / "skills.yaml").write_text(
+        f"targets:\n  skillsonly: {dest}\n  later: {later}\nglobal_extra:\n  - misc/discovery-test\n")
+    for runtime in ("all", "skillsonly"):
+        linked = bootstrap_mod.link_global_skills(dotbrain_home, runtime, home=tmp_path)
+        assert linked.warnings == []
+        assert linked.notices == (["unsupported global skills runtime skipped: later"] if runtime == "all" else [])
+        assert bootstrap_mod.link_global_subagents(dotbrain_home, runtime, home=tmp_path).warnings == []
+    assert (dest / "discovery-test").is_symlink()
+    assert not later.exists()
+    with pytest.raises(ValueError, match="no native subagent delivery"):
+        assets.link_global(dotbrain_home, "agents", "skillsonly", user_home=tmp_path)
+    findings = doctor._check_machine(dotbrain_home, tmp_path)
+    assert [f.message for f in findings if f.status == "error"] == []
+    assert any(f.status == "warn" and f.message.endswith(": later") for f in findings)
+    result = runner.invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "later", "--json"])
+    assert result.exit_code == 2
+    assert "--runtime must be claude, codex, hermes, skillsonly, or all" in result.stdout
 
 
 def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):

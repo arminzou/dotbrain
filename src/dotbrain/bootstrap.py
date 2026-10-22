@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from dotbrain import paths, resource_loader, skills, subagents
+from dotbrain import paths, resource_loader, runtimes, skills, subagents
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -60,7 +60,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
     result = DataRootResult()
     # Check all owned receivers before seeding any of them.
     for relative in (".gitignore", "config.yaml", "skills/skills.yaml", "agents/agents.yaml",
-                     *(f"agents/{directory}" for directory, _ in subagents.RUNTIME_SPEC.values()),
+                     *(f"agents/{directory}" for directory, _ in subagents.runtime_spec().values()),
                      ".cache/agents"):
         paths.confined_path(root, relative)
 
@@ -107,7 +107,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
     if not skills_dest.exists():
         skills_dest.parent.mkdir(parents=True, exist_ok=True)
         skills_dest.write_text(
-            skills.render_global_config(skills.DEFAULT_TARGETS, ()),
+            skills.render_global_config(runtimes.global_targets("skills"), ()),
             encoding="utf-8",
             newline="\n",
         )
@@ -115,7 +115,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
         result.logs.append(f"seeded skills/skills.yaml into {root}")
 
     agents_root = root / "agents"
-    for subdir, _ext in subagents.RUNTIME_SPEC.values():
+    for subdir, _ext in subagents.runtime_spec().values():
         (agents_root / subdir).mkdir(parents=True, exist_ok=True)
     agents_dest = agents_root / "agents.yaml"
     if not agents_dest.exists():
@@ -140,15 +140,18 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run) -> Data
 class GlobalSkillBootstrapResult:
     logs: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    notices: list[str] = field(default_factory=list)  # non-fatal warnings
 
 
 def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | None) -> GlobalSkillBootstrapResult:
     from dotbrain import assets
-    runtime = "claude" if target == "claude-code" else target
-    linked = assets.link_global(Path(dotbrain_home), kind, runtime, user_home=home)
+    if kind == "agents" and target != "all" and not runtimes.select(target)[0].subagents:
+        return GlobalSkillBootstrapResult()  # this runtime receives no native subagents
+    linked = assets.link_global(Path(dotbrain_home), kind, target, user_home=home)
     return GlobalSkillBootstrapResult(
         logs=[f"delivered global {name}" for name in linked.linked] + [f"pruned stale {name}" for name in linked.pruned],
         warnings=linked.warnings,
+        notices=linked.notices,
     )
 
 

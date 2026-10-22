@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, paths, skills, subagents
+from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, paths, runtimes, skills, subagents
 from dotbrain.adopter_repos import UnwireResult, unwire_repo
 from dotbrain.results import TargetResult
 
@@ -150,9 +150,10 @@ def wire_project(
             if str(exc).startswith(("skill not found:", "skill folder contains no skills:")):
                 raise RuntimeError(str(exc)) from exc
             raise
-        runtimes = [subagents.WORKSPACE_RUNTIME[ws] for ws in workspaces]
+        capable = subagents.workspace_runtimes()
         errors = subagents.validate_selection(dotbrain_home,
-                    subagents.project_link_set(config.load_project_subagents(dotbrain_home, project)), runtimes)
+                    subagents.project_link_set(config.load_project_subagents(dotbrain_home, project)),
+                    [capable[ws] for ws in workspaces if ws in capable])
         if errors:
             raise RuntimeError("; ".join(errors))
     rel = paths.data_dir(dotbrain_home).name
@@ -260,8 +261,8 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
     workspaces = assets.project_workspaces(dotbrain_home, target, runtime)
     skills.resolve_selection(dotbrain_home, config.load_project_skills(dotbrain_home, target.project))
     names = subagents.project_link_set(config.load_project_subagents(dotbrain_home, target.project))
-    errors = subagents.validate_selection(dotbrain_home, names,
-                 [subagents.WORKSPACE_RUNTIME[ws] for ws in workspaces])
+    capable = subagents.workspace_runtimes()
+    errors = subagents.validate_selection(dotbrain_home, names, [capable[ws] for ws in workspaces if ws in capable])
     if errors:
         raise RuntimeError('; '.join(errors))
     if target.checkout is None:
@@ -284,7 +285,7 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
                 raise RuntimeError(f'{directory}: foreign workspace link conflicts with delivery')
         elif directory.exists() and not directory.is_dir():
             raise RuntimeError(f'{directory}: workspace is not a directory')
-        for kind in ('skills', 'agents'):
+        for kind in ('skills', 'agents') if ws in capable else ('skills',):
             receiver = directory / kind
             if receiver.is_symlink() or (receiver.exists() and not receiver.is_dir()):
                 raise RuntimeError(f'{receiver}: foreign asset directory conflicts with delivery')
@@ -299,7 +300,7 @@ def refresh_projects(
     if not (dotbrain_home / '.git').exists():
         raise RuntimeError(f'{dotbrain_home} is not a dotbrain git checkout')
     config.load_config(dotbrain_home)
-    assets.runtime_key(runtime)
+    runtimes.select(runtime)
     targets = project_selection.select_projects(dotbrain_home, project=project,
                     all_projects=all_projects, cwd=cwd, run=run)
     # A runtime filter is an invocation constraint: reject it across the batch before writes.
@@ -320,6 +321,8 @@ def refresh_projects(
         result.targets.append(target)
         try:
             workspaces = _refresh_preflight(dotbrain_home, selected, runtime, run)
+            target.findings += [{'severity': 'warning', 'message': entry}
+                                for entry in brainspaces.unknown_agent_warnings(selected.brainspace, dotbrain_home)]
             shared = brainspaces.seed_brain(selected.brainspace, dotbrain_home, create_missing=False)
             target.data['shared_brain_changes'] += shared
             target.changes += [f'shared Brain: updated {entry}' for entry in shared]
@@ -332,7 +335,9 @@ def refresh_projects(
                         raise RuntimeError(warning)
                     if not was_local:
                         target.data['checkout_changes'].append(f'materialized {ws}')
-                for kind in ('skills', 'agents'):
+                # An explicit runtime without native subagents has no agents to link.
+                kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
+                for kind in kinds:
                     linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
                     target.errors += linked.warnings
                     target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
@@ -387,4 +392,5 @@ def unwire_project(
     adopter_repos.ensure_wiring_matches(target.checkout, dotbrain_home, target.project)
     result = unwire_repo(target.checkout, dotbrain_home=dotbrain_home, run=run)
     result.project = target.project
+    result.warnings += brainspaces.unknown_agent_warnings(target.brainspace, dotbrain_home)
     return result

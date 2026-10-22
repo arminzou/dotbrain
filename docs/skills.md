@@ -141,4 +141,9 @@ The skills arrive with the plugin, installed once per agent runtime rather than 
 [getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
 user scope, its skills are available in every session, including repos that are not wired yet.
 
+Hermes, on Linux only, gets the skills from a plugin copy that `dotbrain bootstrap --runtime hermes`
+places in the Hermes home, and a project's selected skills from `.hermes/skills/` in a trusted
+checkout. Hermes lists manual-only skills, but the model cannot load them; invoke them yourself.
+See [Hermes on Linux](getting-started.md#hermes).
+
 Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).

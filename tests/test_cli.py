@@ -395,6 +395,19 @@ def test_skills_link_global_renders_bootstrap_result(
     assert (dest / "discovery-test").is_symlink()   # extra
 
 
+@pytest.mark.parametrize("command", [["bootstrap"], ["skills", "link", "--scope", "global"]])
+def test_global_linking_warns_on_unknown_target_and_skips_it(
+    command, dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    set_fake_home(monkeypatch, fake_home)
+    _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n  later: ~/.later/skills\n")
+    result = runner.invoke(app, command)
+    assert result.exit_code == 0, result.output
+    assert "unsupported global skills runtime skipped: later" in result.output
+    assert not (fake_home / ".later").exists()
+
+
 def test_skills_link_global_uses_default_targets(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):

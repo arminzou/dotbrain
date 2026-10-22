@@ -42,6 +42,7 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`hook session-start`](#dotbrain-hook-session-start) | 先同步 home（最多等 10 秒），再输出已连接仓库的 Brain 上下文。 |
 | [`hook stop`](#dotbrain-hook-stop) | 在后台启动一次只推送的 home 同步，立即返回。 |
 | [`hook session-end`](#dotbrain-hook-session-end) | 在后台启动一次完整的 home 同步，立即返回。 |
+| [`hook run`](#dotbrain-hook-run) | 为任意运行时适配器处理一个会话事件，不读取 hook 输入数据。 |
 
 ## 配置 {#setup}
 
@@ -58,7 +59,7 @@ dotbrain bootstrap [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
@@ -115,7 +116,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--all` | — | 刷新所有已注册的项目。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -175,7 +176,7 @@ dotbrain skills list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -190,7 +191,7 @@ dotbrain skills link [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -208,7 +209,7 @@ dotbrain agents list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -223,7 +224,7 @@ dotbrain agents link [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -428,3 +429,17 @@ dotbrain hook session-end [ARGS]
 | 参数 | 说明 |
 | --- | --- |
 | `ARGS` | — |
+
+### `dotbrain hook run` {#dotbrain-hook-run}
+
+为任意运行时适配器处理一个会话事件，不读取 hook 输入数据。失败时放行。
+
+```text
+dotbrain hook run [OPTIONS]
+```
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--event` *choice* | — | 会话事件：startup、resume、clear、compaction、turn-end 或 session-end。 |
+| `--checkout` *path* | — | 事件所属的 checkout。默认是当前工作目录。 |
+| `--format` *choice* | `text` | 上下文输出格式：text（原样输出）或 json（一个 additional_context 对象）。 |

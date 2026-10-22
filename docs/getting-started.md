@@ -11,7 +11,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both |
+| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes) |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -330,6 +330,94 @@ Codex agent symlinks into marked real files and preserves foreign entries.
 JSON finding severity `advisory` is now `warning`, matching the existing warning results.
 Update scripts that match the old value; it is no longer emitted. Other result fields and exit
 codes are unchanged, and warnings alone still exit successfully. See [CLI Reference](cli-reference.md).
+
+## Hermes on Linux {#hermes}
+
+Dotbrain also delivers to the [Hermes Agent](https://github.com/NousResearch/hermes-agent) CLI.
+
+::: warning Limits
+- Hermes support is tested on Linux only: the Hermes CLI on Ubuntu 24.04. It is not supported on
+  Windows, and not tested on macOS or with the Hermes messaging gateway.
+- Dotbrain ships no subagents for Hermes, so Hermes has no native dotbrain workers. In
+  `run-execution` it works only as the lead.
+- Hermes loads project skills only from a checkout you trust. Trust each checkout, including each
+  linked worktree.
+- Manual-only skills, such as `dotbrain:run-retro`, show up in Hermes's skill list, but the model
+  cannot load them. Run them yourself with `/dotbrain:<skill>`.
+- Removing the plugin from Hermes is manual. See [Remove](#hermes-remove).
+:::
+
+### Set up {#hermes-setup}
+
+Hermes has no dotbrain marketplace install. The CLI copies the plugin into the Hermes home instead.
+Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
+
+```bash
+dotbrain bootstrap --runtime hermes
+```
+
+This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins/dotbrain`) and runs
+`hermes plugins enable dotbrain`. If `hermes` is not on `PATH`, or the command fails, run
+`hermes plugins enable dotbrain` yourself. On a new Hermes home, the first `hermes` command can take
+over a minute while Hermes prepares its runtime, so the enable step may time out.
+
+Then declare Hermes for each project that should get it, link its skills, and trust the checkout:
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - hermes
+```
+
+```bash
+dotbrain refresh                   # links selected skills into .hermes/skills/
+hermes skills trust ~/repos/my-app
+dotbrain doctor
+```
+
+Doctor reports a missing, stale, or disabled plugin copy, and a checkout that has selected skills
+but is not trusted. Start a new
+Hermes session in the checkout after setup. Packaged skills appear as `dotbrain:<skill>`; your
+selected private skills appear under their own names.
+
+### What happens in a Hermes session {#hermes-sessions}
+
+The plugin uses Hermes's hooks to run the same [home sync](session-context.md#home-sync) and to
+inject the convention. See the [Hermes runtime notes](session-context.md#runtime-notes).
+
+### Update {#hermes-update}
+
+Upgrade the CLI as in [Staying Current](#staying-current), then run:
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+Once the plugin copy exists, an unfiltered `dotbrain bootstrap` keeps it current. Dotbrain replaces
+only its own copy, never a directory it did not create. New Hermes sessions load the update.
+
+### Remove {#hermes-remove}
+
+For one checkout, `dotbrain unwire` removes its Hermes skill links. To keep the checkout wired but
+drop Hermes, remove `hermes` from `agents:` and delete dotbrain's links under the checkout's
+`.hermes/skills/`; `dotbrain refresh` does not remove them. Then revoke trust:
+
+```bash
+hermes skills untrust ~/repos/my-app
+```
+
+To remove the plugin from Hermes, disable it first, then delete the copy. Hermes cannot disable a
+plugin whose directory is already gone.
+
+```bash
+hermes plugins disable dotbrain
+rm -rf ~/.hermes/plugins/dotbrain   # or $HERMES_HOME/plugins/dotbrain
+```
+
+Also delete dotbrain's global skill links under `~/.hermes/skills/`, if you selected any. Without the
+plugin copy, `dotbrain bootstrap` no longer delivers to Hermes, unless you run it with
+`--runtime hermes` or `skills/skills.yaml` names a `hermes` target.
 
 ## Edit Config Only When Needed
 

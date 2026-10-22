@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import subprocess
 from pathlib import Path
+from enum import Enum
 from typing import Optional
 
 import typer
@@ -56,19 +57,14 @@ def main(
 def hook_session_start(args: list[str] = typer.Argument(None)) -> None:
     """Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. Fail-open."""
 
-    if hooks.payload_field("source") == "compact":
-        # Compaction fires mid-turn: never change files under the running agent.
-        hooks.start_sync(push_only=True)
-    else:
-        hooks.start_sync(wait=hooks.SESSION_START_SYNC_SECONDS)
-    hooks.emit_brain_context()
+    hooks.handle_event("compaction" if hooks.payload_field("source") == "compact" else "startup")
 
 
 @hook_app.command("stop")
 def hook_stop(args: list[str] = typer.Argument(None)) -> None:
     """Start a detached push-only home sync and return at once. Fail-open and silent."""
 
-    hooks.start_sync(push_only=True)
+    hooks.handle_event("turn-end")
 
 
 @hook_app.command("session-end")
@@ -77,7 +73,26 @@ def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
 
     if hooks.payload_field("reason") == "clear":
         return  # the SessionStart that follows /clear syncs; a second sync would only race it
-    hooks.start_sync()
+    hooks.handle_event("session-end")
+
+
+# str enums, not Literal: Typer before 0.16 cannot resolve Literal and then fails every command.
+HookEvent = Enum("HookEvent", {event: event for event in hooks.EVENTS}, type=str)
+HookFormat = Enum("HookFormat", {"text": "text", "json": "json"}, type=str)
+
+
+@hook_app.command("run")
+def hook_run(
+    event: HookEvent = typer.Option(
+        ..., "--event", metavar="<event>", help="Session event: startup, resume, clear, compaction, turn-end, or session-end."),
+    checkout: Optional[Path] = typer.Option(None, "--checkout",
+                                            help="Checkout the event belongs to. Default: the working directory."),
+    output: HookFormat = typer.Option("text", "--format",
+                                                   help="Context output: text (raw) or json (an additional_context object)."),
+) -> None:
+    """Handle a session event for any runtime adapter, without reading a hook payload. Fail-open."""
+
+    hooks.handle_event(event.value, checkout, output.value)
 
 
 def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:
@@ -128,20 +143,23 @@ def bootstrap(
     """Prepare this machine for dotbrain: global skill and subagent links."""
     report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
     target = report.targets[0]
-    if runtime not in ("claude", "codex", "all"):
+    from dotbrain import runtimes
+    try:
+        runtimes.select(runtime)
+    except ValueError as exc:
         report.status = "failure"
-        report.errors.append("--runtime must be claude, codex, or all")
+        report.errors.append(str(exc))
         render(report, json_output=json_output)
         raise typer.Exit(2)
     root = Path(home).expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         dr_result = bootstrap_mod.ensure_data_root(root)
         target.changes.extend(dr_result.logs)
-        legacy_runtime = "claude-code" if runtime == "claude" else runtime
         for linker in (bootstrap_mod.link_global_skills, bootstrap_mod.link_global_subagents):
-            linked = linker(root, legacy_runtime)
+            linked = linker(root, runtime)
             target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
             target.errors.extend(linked.warnings)
+            target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
         target.errors.append(str(exc))
     if target.errors:

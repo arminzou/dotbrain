@@ -118,4 +118,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 技能随插件一起提供，每个 Agent 运行时装一次，而不是每个仓库装一次。安装命令见[快速开始](getting-started.md)。
 插件装在用户级别，所以它的技能在每个会话里都可用，包括还没连接的仓库。
 
+Hermes 只限 Linux。它的技能来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，
+项目选中的技能来自已信任 checkout 里的 `.hermes/skills/`。只能手动调用的技能会出现在 Hermes 的列表里，
+但模型加载不了，要你自己调用。详见[在 Linux 上使用 Hermes](getting-started.md#hermes)。
+
 内置技能直接在 [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills) 里编辑。

@@ -64,6 +64,14 @@ every Brainspace, so Brain changes reach your other machines without a manual co
 | `Stop` | `dotbrain hook stop` | After each turn of the main agent, starts a background sync that records and pushes without fetching, and returns at once. Files never change under a running agent. |
 | `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once; skipped on `/clear`, whose `SessionStart` syncs. |
 
+Hooks for other runtimes call `dotbrain hook run` instead, which reads no hook payload. It takes
+the event as `--event startup|resume|clear|compaction|turn-end|session-end`, the checkout as
+`--checkout PATH` (default: the working directory), and `--format json` to print the convention
+as `{"additional_context": "..."}`. Each event syncs as its hook above does: the session starts
+(`startup`, `resume`, `clear`) wait for a full sync and inject the convention; `compaction` and
+`turn-end` only record and push; `session-end` starts a full sync. A cleared session sends only
+`clear`, never `session-end`.
+
 A full sync runs four steps:
 
 1. **Record.** Every uncommitted change becomes a sync commit: one per changed Brainspace, then one
@@ -116,6 +124,15 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   sync and returns. Whether Codex fires `Stop` for the main thread only, and whether it runs the
   `Stop` hook in the background, is not yet verified. Stop and session-end syncs exit at once if
   another sync is running, and a push-only sync returns quickly.
+- **Hermes** (Linux only; see [Hermes on Linux](getting-started.md#hermes)) runs the hooks once
+  the plugin is enabled. Before the first model request of a session, the plugin runs
+  `dotbrain hook run --event startup` and adds the convention to that first user message, not to
+  the system prompt. Hermes keeps it in the session history, so a resumed session runs `resume` for
+  the sync but gets no second copy. When compaction drops it from the history, the next turn runs `compaction`
+  and adds it again. By default Hermes moves hook context over 10,000 characters to a file, so a convention
+  must stay below that size. Hermes fires its own session-end hook after every turn, so that hook
+  starts the `turn-end` push in the background. A real exit runs `session-end`. Delegated child
+  agents get no convention and no sync.
 - In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
@@ -127,6 +144,7 @@ example prompts, and how the lead coordinates their results.
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
+Hermes gets no dotbrain subagents.
 Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
 without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 

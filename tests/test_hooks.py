@@ -7,6 +7,7 @@ tests pin the behavior the script had, including byte-exact passthrough of Brain
 from __future__ import annotations
 
 import io
+import json
 import os
 import subprocess
 import sys
@@ -377,4 +378,59 @@ def test_sync_failures_never_break_a_hook(tmp_path: Path, monkeypatch, launches)
 
     hooks.start_sync()  # an invalid config is swallowed, not raised
 
+    assert launches == []
+
+
+# --- Runtime-neutral event entrypoint -------------------------------------------------------
+
+WAIT = ["--wait-for-lock", str(hooks.SESSION_START_SYNC_SECONDS)]
+
+
+@pytest.mark.parametrize(("event", "sync_tail", "emits"), [
+    ("startup", WAIT, True),
+    ("resume", WAIT, True),
+    ("clear", WAIT, True),  # the start after a clear syncs; no termination sync is sent for it
+    ("compaction", ["--push-only"], True),  # mid-turn: never a full sync
+    ("turn-end", ["--push-only"], False),
+    ("session-end", [], False),
+])
+def test_run_maps_each_event_onto_the_checkout_given(tmp_path: Path, monkeypatch, launches,
+                                                     event, sync_tail, emits):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    checkout = _wired_checkout(tmp_path, home)
+    (checkout / ".brain" / "DOTBRAIN.md").write_bytes(b"BODY\n")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(tmp_path)  # not a repository: only --checkout can find the wiring
+
+    result = CliRunner().invoke(app, ["hook", "run", "--event", event, "--checkout", str(checkout)])
+
+    assert result.exit_code == 0
+    assert result.stdout_bytes == (hooks.brain_context(cwd=checkout) if emits else b"")
+    assert launches == [[sys.executable, "-I", "-c", CLI, "sync", "--home", str(home.resolve()), *sync_tail]]
+
+
+def test_run_emits_json_additional_context(tmp_path: Path, monkeypatch, launches):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    checkout = _wired_checkout(tmp_path, home)
+    (checkout / ".brain" / "DOTBRAIN.md").write_bytes("BODY \"quoted\" café\r\n".encode("utf-8"))
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(app, ["hook", "run", "--event", "startup", "--checkout", str(checkout),
+                                      "--format", "json"])
+
+    assert result.exit_code == 0
+    assert json.loads(result.stdout_bytes) == {"additional_context": hooks.brain_context(cwd=checkout).decode()}
+
+
+@pytest.mark.parametrize("output", ["text", "json"])
+def test_run_in_an_unwired_checkout_is_silent(tmp_path: Path, monkeypatch, launches, output):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(home)  # the working directory is the home, but the event names another checkout
+
+    for checkout in (_repo(tmp_path, "unwired"), tmp_path / "missing"):
+        result = CliRunner().invoke(app, ["hook", "run", "--event", "startup", "--checkout", str(checkout),
+                                          "--format", output])
+        assert result.exit_code == 0 and result.stdout_bytes == b"", checkout
     assert launches == []

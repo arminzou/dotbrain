@@ -48,6 +48,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`hook session-start`](#dotbrain-hook-session-start) | Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. |
 | [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
 | [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
+| [`hook run`](#dotbrain-hook-run) | Handle a session event for any runtime adapter, without reading a hook payload. |
 
 ## Setup
 
@@ -64,7 +65,7 @@ dotbrain bootstrap [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
@@ -121,7 +122,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | Select a named Brainspace. |
 | `--all` | — | Refresh all registered projects. |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -181,7 +182,7 @@ dotbrain skills list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -196,7 +197,7 @@ dotbrain skills link [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -214,7 +215,7 @@ dotbrain agents list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -229,7 +230,7 @@ dotbrain agents link [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -434,3 +435,17 @@ dotbrain hook session-end [ARGS]
 | Argument | Description |
 | --- | --- |
 | `ARGS` | — |
+
+### `dotbrain hook run` {#dotbrain-hook-run}
+
+Handle a session event for any runtime adapter, without reading a hook payload. Fail-open.
+
+```text
+dotbrain hook run [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--event` *choice* | — | Session event: startup, resume, clear, compaction, turn-end, or session-end. |
+| `--checkout` *path* | — | Checkout the event belongs to. Default: the working directory. |
+| `--format` *choice* | `text` | Context output: text (raw) or json (an additional_context object). |

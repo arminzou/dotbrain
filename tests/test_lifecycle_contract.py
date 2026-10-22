@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, beads, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, doctor, hermes, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -211,3 +211,164 @@ def test_wire_selection_failure_does_not_migrate_or_write(lifecycle, problem):
     assert declaration.read_bytes() == before
     assert not (worktree / '.brain').exists()
     assert not (home / '.gitignore').exists()
+
+
+def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, tmp_path):
+    # A runtime known only to this test: skills and hooks, no native subagents. 'later' stands for a
+    # runtime a newer dotbrain sharing this home knows; every command warns about and skips it.
+    monkeypatch.setitem(runtimes.RUNTIMES, 'skillsonly',
+                        runtimes.Runtime('skillsonly', 'skillsonly', 'Skills Only', '.skillsonly', hooks=True))
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    skill = home / 'skills' / 'one'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('# one\n', encoding='utf-8')
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [skillsonly, later]\nskills: [one]\nbeads:\n  mode: none\n', encoding='utf-8')
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    runner = CliRunner()
+
+    def foreign(checkout):
+        workspace = checkout / '.skillsonly'
+        return {workspace / 'skills' / 'mine' / 'SKILL.md': 'mine', workspace / 'agents' / 'user.md': 'user'}
+
+    for checkout in (main, worktree):
+        entries = foreign(checkout)
+        for path, text in entries.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding='utf-8')
+        (checkout / '.skillsonly' / 'skills' / 'outside').symlink_to(elsewhere, target_is_directory=True)
+
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert not result.errors, result.errors
+        assert any(w.endswith(': later') for w in result.warnings), result.warnings
+        delivered = checkout / '.skillsonly' / 'skills' / 'one'
+        assert delivered.is_symlink() and delivered.resolve() == skill.resolve()
+        assert not (checkout / '.later').exists()
+        assert sorted(p.name for p in (checkout / '.skillsonly' / 'agents').iterdir()) == ['user.md']
+        assert not workflows.wire_project(dotbrain_home=home, repo=checkout).logs
+
+        refreshed = workflows.refresh_projects(home, cwd=checkout)
+        assert not refreshed.errors and any(w.endswith(': later') for w in refreshed.warnings)
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='skillsonly').errors
+        for argv, code in ((['skills', 'link', '--runtime', 'skillsonly'], 0),
+                           (['agents', 'link'], 0),
+                           (['agents', 'link', '--runtime', 'skillsonly'], 1),
+                           (['skills', 'link', '--runtime', 'later'], 2)):
+            invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
+            assert invoked.exit_code == code, (argv, invoked.output)
+            assert code != 1 or 'no native subagent delivery' in invoked.output
+
+        assert delivered.is_symlink() and (checkout / '.skillsonly' / 'skills' / 'outside').is_symlink()
+        assert {path: path.read_text(encoding='utf-8') for path in entries} == entries
+        report = doctor.run_doctor(home, home=tmp_path / 'user', cwd=checkout)
+        findings = report.projects['custom']
+        assert not [f.message for f in findings if f.status == 'error']
+        assert any(f.status == 'warn' and f.message.endswith(': later') for f in findings)
+
+    for kind in ('skills', 'agents'):
+        for json_flag in (['--json'], []):
+            listed = runner.invoke(app, [kind, 'list', '--project', 'custom', '--home', str(home), *json_flag])
+            assert listed.exit_code == 0, listed.output
+            assert 'ignored unknown agent workspace' in listed.output and ': later' in listed.output, listed.output
+    unwired = runner.invoke(app, ['unwire', '--repo', str(worktree), '--home', str(home), '--json'])
+    assert unwired.exit_code == 0, unwired.output
+    assert any(f['message'].endswith(': later') for f in json.loads(unwired.stdout)['targets'][0]['findings'])
+    assert not (worktree / '.skillsonly' / 'skills' / 'one').exists()
+    assert (worktree / '.skillsonly' / 'skills' / 'mine' / 'SKILL.md').is_file()
+
+
+def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
+    # Hermes reads project skills from <checkout>/.hermes/skills once the checkout is trusted;
+    # dotbrain links only its selection there and leaves everything else in that directory alone.
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    skill = home / 'skills' / 'one'
+    skill.mkdir(parents=True)
+    (skill / 'SKILL.md').write_text('# one\n', encoding='utf-8')
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [hermes]\nskills: [one]\nbeads:\n  mode: none\n', encoding='utf-8')
+    user = tmp_path / 'user'
+    hermes_home = user / '.hermes'
+    runner = CliRunner()
+
+    for checkout in (main, worktree):
+        mine = checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md'
+        mine.parent.mkdir(parents=True)
+        mine.write_text('mine', encoding='utf-8')
+        result = workflows.wire_project(dotbrain_home=home, repo=checkout)
+        assert not result.errors, result.errors
+        delivered = checkout / '.hermes' / 'skills' / 'one'
+        assert delivered.is_symlink() and delivered.resolve() == skill.resolve()
+        assert not (checkout / '.hermes' / 'agents').exists()
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+        for argv, code in ((['skills', 'link', '--runtime', 'hermes'], 0),
+                           (['agents', 'link', '--runtime', 'hermes'], 1)):
+            invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
+            assert invoked.exit_code == code, (argv, invoked.output)
+
+        def hermes_warnings():
+            report = doctor.run_doctor(home, home=user, cwd=checkout)
+            return {f.message for f in report.projects['custom']
+                    if f.status == 'warn' and f.message.startswith('hermes:')}
+
+        (hermes_home / 'config.yaml').unlink(missing_ok=True)
+        assert hermes_warnings() >= {'hermes: project skills load only from a trusted checkout'}
+        assets.link_global(home, 'skills', 'hermes', user_home=user)
+        (hermes_home / 'config.yaml').write_text(
+            f'plugins:\n  enabled: [dotbrain]\nskills:\n  trusted_project_dirs: [{json.dumps(str(checkout))}]\n',
+            encoding='utf-8')
+        assert hermes_warnings() == set()
+    assert hermes.state(hermes_home) == 'current'
+
+    # Update, then prune, the shared selection; each refresh touches only its own checkout.
+    two = home / 'skills' / 'two'
+    two.mkdir(parents=True)
+    (two / 'SKILL.md').write_text('# two\n', encoding='utf-8')
+
+    def linked(checkout):
+        directory = checkout / '.hermes' / 'skills'
+        return sorted(p.name for p in directory.iterdir() if p.is_symlink())
+
+    for selection, expected in (('[two]', ['two']), ('[]', [])):
+        (brainspace / '.brain' / 'project.yaml').write_text(
+            f'agents: [hermes]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+        before = {checkout: linked(checkout) for checkout in (main, worktree)}
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+            assert linked(checkout) == expected
+            for name in expected:
+                assert (checkout / '.hermes' / 'skills' / name).resolve() == (home / 'skills' / name).resolve()
+            assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+            if checkout is main:
+                assert linked(sibling) == before[sibling]
+
+    # Removal: deliver a selection to both checkouts, then unwire one at a time.
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [hermes]\nskills: [one, two]\nbeads:\n  mode: none\n', encoding='utf-8')
+    for checkout in (main, worktree):
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+        assert linked(checkout) == ['one', 'two']
+    for checkout, sibling in ((worktree, main), (main, None)):
+        unwired = workflows.unwire_project(dotbrain_home=home, repo=checkout)
+        assert not unwired.errors
+        assert linked(checkout) == []
+        assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+        if sibling is not None:
+            assert linked(sibling) == ['one', 'two']
+        # Project removal never touches the machine-wide plugin copy.
+        assert hermes.state(hermes_home) == 'current'
+
+
+def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
+    home, brainspace, main, _ = lifecycle
+    (brainspace / '.brain' / 'project.yaml').write_text('agents: [hermes]\nskills: []\nbeads:\n  mode: none\n',
+                                                         encoding='utf-8')
+    user = tmp_path / 'user'
+    report = doctor.run_doctor(home, home=user, cwd=main)
+    assert 'hermes: dotbrain plugin is not delivered' in {f.message for f in report.projects['custom']}
+    foreign = hermes.plugin_dir(user / '.hermes')
+    foreign.mkdir(parents=True)
+    report = doctor.run_doctor(home, home=user, cwd=main)
+    assert f'hermes: {foreign} is not dotbrain\'s plugin copy' in {f.message for f in report.projects['custom']}

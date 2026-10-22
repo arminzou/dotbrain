@@ -178,4 +178,4 @@ dotbrain unwire             # disconnect, keep the Brainspace
 
 ### 支持哪些 Agent？ {#which-agents-are-supported}
 
-Claude Code 和 Codex。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+Claude Code 和 Codex；Hermes 也可以，但只限 Linux（见[在 Linux 上使用 Hermes](getting-started.md#hermes)）。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。

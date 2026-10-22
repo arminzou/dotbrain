@@ -1,0 +1,4 @@
+name: dotbrain
+version: "0.12.0"
+description: Private project context, shared across coding agents and worktrees.
+author: Armin Zou
