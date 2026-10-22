@@ -41,9 +41,13 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
     manual = {p.parent.name for p in sources
               if yaml.safe_load(p.read_text(encoding="utf-8").split("---")[1]).get("disable-model-invocation")}
     assert manual
-    for name, (path, description, _) in ctx.skills.items():
+    for name, (path, description, fields) in ctx.skills.items():
         assert path == PLUGIN_ROOT / "skills" / name / "SKILL.md"
-        assert description
+        # The stdlib parser agrees with YAML on every string field, folded descriptions included.
+        parsed = yaml.safe_load(path.read_text(encoding="utf-8").split("---")[1])
+        assert description == parsed["description"], name
+        assert {k: v for k, v in fields.items() if isinstance(parsed.get(k), str)} == \
+            {k: v for k, v in parsed.items() if isinstance(v, str)}, name
     # Supporting files sit next to the registered SKILL.md.
     assert (ctx.skills["run-execution"][0].parent / "references" / "hermes.md").is_file()
 
@@ -101,12 +105,29 @@ def test_global_delivery_copies_the_plugin_and_links_skills(dotbrain_home, tmp_p
     assert again.linked == [] and again.warnings == [] and len(calls) == 1
 
     # Update replaces only the owned copy, dropping files the source no longer has.
-    (copy / "stray.txt").write_text("old")
-    (copy / hermes.MARKER).write_text("outdated\n")
+    (copy / "skills/stray.txt").write_text("old")
     assert hermes.state(hermes_home) == "stale"
     updated = assets.link_global(dotbrain_home, "skills", "hermes", user_home=user, run=run)
     assert updated.linked == ["hermes/plugins/dotbrain"]
-    assert not (copy / "stray.txt").exists() and hermes.state(hermes_home) == "current"
+    assert not (copy / "skills/stray.txt").exists() and hermes.state(hermes_home) == "current"
+
+    # A damaged copy is stale even though its marker is intact, and delivery repairs it.
+    for damage in (lambda: (copy / "plugin.yaml").unlink(),
+                   lambda: (copy / "__init__.py").write_text("changed"),
+                   lambda: shutil.rmtree(copy / "skills/run-execution/references")):
+        damage()
+        assert hermes.state(hermes_home) == "stale"
+        assert assets.link_global(dotbrain_home, "skills", "hermes", user_home=user, run=run).linked
+        assert hermes.state(hermes_home) == "current"
+
+    # Staging never reuses, or removes, anything already in the plugins directory.
+    foreign_tmp = hermes_home / "plugins/.dotbrain.tmp"
+    foreign_tmp.mkdir()
+    (foreign_tmp / "keep.txt").write_text("keep")
+    (copy / "plugin.yaml").unlink()
+    assets.link_global(dotbrain_home, "skills", "hermes", user_home=user, run=run)
+    assert (foreign_tmp / "keep.txt").read_text() == "keep"
+    assert sorted(p.name for p in (hermes_home / "plugins").iterdir()) == [".dotbrain.tmp", "dotbrain"]
 
     # Prune removes only dotbrain's skill links.
     _global_extra(dotbrain_home)
@@ -127,7 +148,7 @@ def test_unfiltered_delivery_reaches_hermes_only_once_opted_in(dotbrain_home, tm
     assert explicit.warnings == []
     assert "delivered global hermes: run `hermes plugins enable dotbrain` to load the plugin" in explicit.logs
     assert not (user / ".hermes").exists()
-    (hermes.plugin_dir(hermes_home) / hermes.MARKER).write_text("outdated\n")
+    (hermes.plugin_dir(hermes_home) / "plugin.yaml").unlink()
 
     # The owned copy is the opt-in: an unfiltered run keeps it current.
     later = bootstrap.link_global_skills(dotbrain_home, home=user)
@@ -161,7 +182,7 @@ def test_doctor_reports_stale_and_inactive_hermes_delivery(dotbrain_home, tmp_pa
     hermes_home = user / ".hermes"
     assert not [f for f in doctor._check_machine(dotbrain_home, user) if "hermes" in f.message]
     assets.link_global(dotbrain_home, "skills", "hermes", user_home=user)
-    (hermes.plugin_dir(hermes_home) / hermes.MARKER).write_text("outdated\n")
+    (hermes.plugin_dir(hermes_home) / "plugin.yaml").unlink()
     warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
     assert f"hermes: dotbrain plugin copy is stale at {hermes.plugin_dir(hermes_home)}" in warnings
     assert "hermes: dotbrain plugin is not enabled" in warnings
@@ -175,3 +196,14 @@ def test_doctor_reports_stale_and_inactive_hermes_delivery(dotbrain_home, tmp_pa
     assert not [f for f in findings if f.status != "ok" and f.message.startswith("hermes:")]
     # No packaged-agent demand: Hermes has no native subagents.
     assert not [f for f in findings if "hermes" in f.message and "agents" in f.message]
+
+
+def test_doctor_expects_the_plugin_for_a_configured_global_hermes_target(dotbrain_home, tmp_path):
+    user = tmp_path / "user"
+    (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  hermes: {user / 'hskills'}\nglobal_extra: []\n")
+    warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
+    assert "hermes: dotbrain plugin is not delivered" in warnings
+    foreign = hermes.plugin_dir(user / ".hermes")
+    foreign.mkdir(parents=True)
+    warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
+    assert f"hermes: {foreign} is not dotbrain's plugin copy" in warnings

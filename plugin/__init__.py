@@ -8,28 +8,58 @@ and keeps explicit-only skills manual: Hermes ignores ``disable-model-invocation
 Hermes runs this in its own environment: standard library only.
 """
 
+import textwrap
 from pathlib import Path
 
 SKILLS = Path(__file__).resolve().parent / "skills"
 NAMESPACE = "dotbrain"
 
 
+def _block(style, lines):
+    """A YAML literal (``|``) or folded (``>``) block scalar with clip, strip or keep chomping."""
+    lines = textwrap.dedent("\n".join(lines)).split("\n")
+    if style[0] == "|":
+        text = "\n".join(lines)
+    else:
+        # ponytail: more-indented folded lines are folded too; YAML keeps their line breaks.
+        text = ""
+        for line in lines:
+            if not line.strip():
+                text += "\n"
+            else:
+                text += (" " if text and not text.endswith("\n") else "") + line.strip()
+    chomp = style[1:2]
+    if chomp == "-":
+        return text.rstrip("\n")
+    return text + "\n" if chomp == "+" else text.rstrip("\n") + "\n"
+
+
 def _frontmatter(text):
-    """Top-level ``key: value`` pairs of a SKILL.md frontmatter block, as strings."""
+    """Top-level fields of a SKILL.md frontmatter block, as strings."""
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
     fields = {}
-    for line in lines[1:]:
+    key, block = None, []
+    for line in lines[1:] + ["---"]:
+        if key is not None and (not line.strip() or line[:1].isspace()) and line.strip() != "---":
+            block.append(line)
+            continue
+        if key is not None:
+            fields[key] = _block(style, block)
+            key, block = None, []
         if line.strip() == "---":
             break
-        key, sep, value = line.partition(":")
+        name, sep, value = line.partition(":")
         if not sep or line[:1].isspace():
             continue
         value = value.strip()
+        if value[:1] in ("|", ">"):
+            key, style = name.strip(), value
+            continue
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
-        fields[key.strip()] = value
+        fields[name.strip()] = value
     return fields
 
 

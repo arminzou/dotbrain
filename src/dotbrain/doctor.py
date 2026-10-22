@@ -138,10 +138,12 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings = [_check_binary("git"), _check_dotbrain_config(root), _check_templates(root)]
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
+    configured: set[str] = set()  # runtimes with a configured global target
     for kind in ("skills", "agents"):
         try:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
+            configured.update(cfg.targets)
             targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False)
             for runtime, destination in targets.items():
                 recognized = runtimes.find(runtime)
@@ -157,16 +159,20 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     for rt in runtimes.RUNTIMES.values():
         if rt.hooks:
             findings.extend(_check_plugin(home, rt.key))
-        if rt.home_env and hermes.owned(runtimes.user_dir(rt, home)):
+        # An owned copy or a configured global target both mean this machine expects the plugin.
+        if rt.home_env and (rt.key in configured or hermes.owned(runtimes.user_dir(rt, home))):
             findings.extend(_check_hermes_plugin(runtimes.user_dir(rt, home)))
     return findings
 
 
 def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
-    """Freshness and activation of dotbrain's own plugin copy in the Hermes home."""
+    """Presence, freshness and activation of dotbrain's own plugin copy in the Hermes home."""
     target = hermes.plugin_dir(hermes_home)
     try:
-        findings = [Finding("ok", f"hermes: dotbrain plugin copy current at {target}") if hermes.state(hermes_home) == "current"
+        state = hermes.state(hermes_home)
+        if state in ("missing", "foreign"):
+            return _plugin_absent(hermes_home, state)
+        findings = [Finding("ok", f"hermes: dotbrain plugin copy current at {target}") if state == "current"
                     else Finding("warn", f"hermes: dotbrain plugin copy is stale at {target}", "run dotbrain bootstrap")]
         activation = hermes.activation(hermes_home)
         if activation != "enabled":
@@ -176,16 +182,20 @@ def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
         return [Finding("warn", f"hermes: plugin check unavailable: {exc}", "inspect the Hermes home")]
 
 
+def _plugin_absent(hermes_home: Path, state: str) -> list[Finding]:
+    if state == "missing":
+        return [Finding("warn", "hermes: dotbrain plugin is not delivered", "run dotbrain bootstrap --runtime hermes")]
+    if state == "foreign":
+        return [Finding("warn", f"hermes: {hermes.plugin_dir(hermes_home)} is not dotbrain's plugin copy",
+                        "move it aside, then run dotbrain bootstrap --runtime hermes")]
+    return []
+
+
 def _check_hermes_project(hermes_home: Path, repo: Path | None, selected: tuple[str, ...]) -> list[Finding]:
     """Hermes delivery a project declaring it relies on; freshness is a machine check."""
     findings = []
     try:
-        state = hermes.state(hermes_home)
-        if state == "missing":
-            findings.append(Finding("warn", "hermes: dotbrain plugin is not delivered", "run dotbrain bootstrap --runtime hermes"))
-        elif state == "foreign":
-            findings.append(Finding("warn", f"hermes: {hermes.plugin_dir(hermes_home)} is not dotbrain's plugin copy",
-                                    "move it aside, then run dotbrain bootstrap --runtime hermes"))
+        findings.extend(_plugin_absent(hermes_home, hermes.state(hermes_home)))
         if repo is not None and repo.is_dir() and selected and not hermes.trusted(hermes_home, repo):
             # Hermes reads <checkout>/.hermes/skills only from trusted project roots.
             findings.append(Finding("warn", "hermes: project skills load only from a trusted checkout",

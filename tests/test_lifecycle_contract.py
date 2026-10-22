@@ -322,6 +322,28 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         assert hermes_warnings() == set()
     assert hermes.state(hermes_home) == 'current'
 
+    # Update, then prune, the shared selection; each refresh touches only its own checkout.
+    two = home / 'skills' / 'two'
+    two.mkdir(parents=True)
+    (two / 'SKILL.md').write_text('# two\n', encoding='utf-8')
+
+    def linked(checkout):
+        directory = checkout / '.hermes' / 'skills'
+        return sorted(p.name for p in directory.iterdir() if p.is_symlink())
+
+    for selection, expected in (('[two]', ['two']), ('[]', [])):
+        (brainspace / '.brain' / 'project.yaml').write_text(
+            f'agents: [hermes]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+        before = {checkout: linked(checkout) for checkout in (main, worktree)}
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+            assert linked(checkout) == expected
+            for name in expected:
+                assert (checkout / '.hermes' / 'skills' / name).resolve() == (home / 'skills' / name).resolve()
+            assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+            if checkout is main:
+                assert linked(sibling) == before[sibling]
+
     for checkout in (worktree, main):
         unwired = workflows.unwire_project(dotbrain_home=home, repo=checkout)
         assert not unwired.errors

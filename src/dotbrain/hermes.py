@@ -12,6 +12,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import tempfile
 from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
@@ -47,10 +48,11 @@ def _files(root: Path) -> Iterator[Path]:
 
 
 def digest(root: Path) -> str:
-    """Content digest of the plugin tree below ``root``."""
+    """Content digest of the plugin files below ``root``; the marker is not part of it."""
     h = hashlib.sha256()
     for path in _files(root):
-        h.update(path.relative_to(root).as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
+        body = path.read_bytes() + b"\0" if path.is_file() else b"\1missing"
+        h.update(path.relative_to(root).as_posix().encode() + b"\0" + body)
     return h.hexdigest()
 
 
@@ -66,8 +68,9 @@ def state(hermes_home: Path) -> str:
         return "missing"
     if not owned(hermes_home):
         return "foreign"
+    # Compare the delivered files themselves, so a damaged copy is repaired despite its marker.
     with resource_loader.hermes_plugin() as source:
-        current = (target / MARKER).read_text(encoding="utf-8").strip() == digest(source)
+        current = digest(target) == digest(source)
     return "current" if current else "stale"
 
 
@@ -108,20 +111,23 @@ def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
         result.warnings.append(f"{target} exists and was not created by dotbrain; skipping")
         return result
     if current != "current":
-        staging = target.with_name(f".{PLUGIN}.tmp")
-        if staging.exists():
-            shutil.rmtree(staging)
-        with resource_loader.hermes_plugin() as source:
-            for name in resource_loader.HERMES_PLUGIN_FILES:
-                if (source / name).is_dir():
-                    shutil.copytree(source / name, staging / name, ignore=shutil.ignore_patterns("__pycache__"))
-                else:
-                    staging.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(source / name, staging / name)
-            (staging / MARKER).write_text(digest(source) + "\n", encoding="utf-8", newline="\n")
-        if target.exists():
-            shutil.rmtree(target)
-        staging.rename(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        # A fresh staging directory of our own: nothing already in the plugins directory is touched.
+        staging = Path(tempfile.mkdtemp(dir=target.parent, prefix=f".{PLUGIN}-staging-"))
+        try:
+            with resource_loader.hermes_plugin() as source:
+                for name in resource_loader.HERMES_PLUGIN_FILES:
+                    if (source / name).is_dir():
+                        shutil.copytree(source / name, staging / name, ignore=shutil.ignore_patterns("__pycache__"))
+                    else:
+                        shutil.copy2(source / name, staging / name)
+                (staging / MARKER).write_text(digest(source) + "\n", encoding="utf-8", newline="\n")
+            if target.exists():
+                shutil.rmtree(target)  # owned: state() said stale, not foreign
+            staging.rename(target)
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging)
         result.linked.append(f"hermes/plugins/{PLUGIN}")
     if activation(hermes_home) == "not enabled":
         if shutil.which("hermes") is None:
