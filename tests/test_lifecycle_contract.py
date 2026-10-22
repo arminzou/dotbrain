@@ -344,14 +344,21 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
             if checkout is main:
                 assert linked(sibling) == before[sibling]
 
-    for checkout in (worktree, main):
+    # Removal: deliver a selection to both checkouts, then unwire one at a time.
+    (brainspace / '.brain' / 'project.yaml').write_text(
+        'agents: [hermes]\nskills: [one, two]\nbeads:\n  mode: none\n', encoding='utf-8')
+    for checkout in (main, worktree):
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
+        assert linked(checkout) == ['one', 'two']
+    for checkout, sibling in ((worktree, main), (main, None)):
         unwired = workflows.unwire_project(dotbrain_home=home, repo=checkout)
         assert not unwired.errors
-        delivered = checkout / '.hermes' / 'skills' / 'one'
-        assert not delivered.exists() and not delivered.is_symlink()
+        assert linked(checkout) == []
         assert (checkout / '.hermes' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
-    # Project removal never touches the machine-wide plugin copy.
-    assert hermes.state(hermes_home) == 'current'
+        if sibling is not None:
+            assert linked(sibling) == ['one', 'two']
+        # Project removal never touches the machine-wide plugin copy.
+        assert hermes.state(hermes_home) == 'current'
 
 
 def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
