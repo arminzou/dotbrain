@@ -59,6 +59,11 @@ provisions both.
 Update both together, as described in [Staying current](getting-started.md#staying-current).
 Use the upgrade command for the package manager that installed the CLI.
 
+### Pi does not see project skills
+
+`dotbrain doctor` warns `project skills load only from a trusted checkout` until Pi trusts the
+checkout. Start `pi` in the checkout and accept the trust prompt. See [Pi on Windows](getting-started.md#pi).
+
 ### OpenCode loads a different copy of a skill
 
 `dotbrain doctor` warns `OpenCode loads one of the two at random` when OpenCode would find a
@@ -203,6 +208,7 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 ### Which agents are supported?
 
 Claude Code and Codex; Hermes on Linux only (see [Hermes on Linux](getting-started.md#hermes)); and
-OpenCode on native Windows only (see [OpenCode on Windows](getting-started.md#opencode)).
+OpenCode and Pi on native Windows only (see [OpenCode on Windows](getting-started.md#opencode) and
+[Pi on Windows](getting-started.md#pi)).
 Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).

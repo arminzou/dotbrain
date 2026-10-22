@@ -164,7 +164,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         if rt.home_env and (rt.key in configured or assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home))):
             directory = runtimes.user_dir(rt, home)
             findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
-                            else _check_hermes_plugin(directory))
+                            else _check_home_plugin(rt, directory))
     return findings
 
 
@@ -196,43 +196,46 @@ def _opencode_absent(config_dir: Path, state: str) -> list[Finding]:
     return []
 
 
-def _check_hermes_plugin(hermes_home: Path) -> list[Finding]:
-    """Presence, freshness and activation of dotbrain's own plugin copy in the Hermes home."""
-    target = hermes.plugin_dir(hermes_home)
+def _check_home_plugin(rt: runtimes.Runtime, directory: Path) -> list[Finding]:
+    """Presence and freshness of dotbrain's own copy in a runtime's home, and Hermes activation."""
+    adapter = assets.HOME_DELIVERY[rt.name]
+    target = adapter.plugin_dir(directory)
     try:
-        state = hermes.state(hermes_home)
+        state = adapter.state(directory)
         if state in ("missing", "foreign"):
-            return _plugin_absent(hermes_home, state)
-        findings = [Finding("ok", f"hermes: dotbrain plugin copy, with its session hooks, current at {target}") if state == "current"
-                    else Finding("warn", f"hermes: dotbrain plugin copy is stale at {target}", "run dotbrain bootstrap")]
-        activation = hermes.activation(hermes_home)
-        if activation != "enabled":
+            return _plugin_absent(rt, directory, state)
+        hooks = ", with its session hooks," if rt.hooks else ""
+        findings = [Finding("ok", f"{rt.name}: dotbrain {adapter.KIND} copy{hooks} current at {target}") if state == "current"
+                    else Finding("warn", f"{rt.name}: dotbrain {adapter.KIND} copy is stale at {target}", "run dotbrain bootstrap")]
+        if adapter is hermes and (activation := hermes.activation(directory)) != "enabled":
             findings.append(Finding("warn", f"hermes: dotbrain plugin is {activation}", f"run {hermes.ENABLE}"))
         return findings
     except DIAGNOSIS_ERRORS as exc:
-        return [Finding("warn", f"hermes: plugin check unavailable: {exc}", "inspect the Hermes home")]
+        return [Finding("warn", f"{rt.name}: {adapter.KIND} check unavailable: {exc}", f"inspect {directory}")]
 
 
-def _plugin_absent(hermes_home: Path, state: str) -> list[Finding]:
+def _plugin_absent(rt: runtimes.Runtime, directory: Path, state: str) -> list[Finding]:
+    adapter = assets.HOME_DELIVERY[rt.name]
     if state == "missing":
-        return [Finding("warn", "hermes: dotbrain plugin is not delivered", "run dotbrain bootstrap --runtime hermes")]
+        return [Finding("warn", f"{rt.name}: dotbrain {adapter.KIND} is not delivered", f"run dotbrain bootstrap --runtime {rt.name}")]
     if state == "foreign":
-        return [Finding("warn", f"hermes: {hermes.plugin_dir(hermes_home)} is not dotbrain's plugin copy",
-                        "move it aside, then run dotbrain bootstrap --runtime hermes")]
+        return [Finding("warn", f"{rt.name}: {adapter.plugin_dir(directory)} is not dotbrain's {adapter.KIND} copy",
+                        f"move it aside, then run dotbrain bootstrap --runtime {rt.name}")]
     return []
 
 
-def _check_hermes_project(hermes_home: Path, repo: Path | None, selected: tuple[str, ...]) -> list[Finding]:
-    """Hermes delivery a project declaring it relies on; freshness is a machine check."""
+def _check_home_project(rt: runtimes.Runtime, directory: Path, repo: Path | None, selected: tuple[str, ...]) -> list[Finding]:
+    """Home delivery a project declaring the runtime relies on; freshness is a machine check."""
+    adapter = assets.HOME_DELIVERY[rt.name]
     findings = []
     try:
-        findings.extend(_plugin_absent(hermes_home, hermes.state(hermes_home)))
-        if repo is not None and repo.is_dir() and selected and not hermes.trusted(hermes_home, repo):
-            # Hermes reads <checkout>/.hermes/skills only from trusted project roots.
-            findings.append(Finding("warn", "hermes: project skills load only from a trusted checkout",
-                                    f"run hermes skills trust {repo}"))
+        findings.extend(_plugin_absent(rt, directory, adapter.state(directory)))
+        if repo is not None and repo.is_dir() and selected and not adapter.trusted(directory, repo):
+            # Both runtimes read <checkout>/<workspace>/skills only from trusted project roots.
+            findings.append(Finding("warn", f"{rt.name}: project skills load only from a trusted checkout",
+                                    adapter.trust_hint(repo)))
     except DIAGNOSIS_ERRORS as exc:
-        findings.append(Finding("warn", f"hermes: delivery check unavailable: {exc}", "inspect the Hermes home"))
+        findings.append(Finding("warn", f"{rt.name}: delivery check unavailable: {exc}", f"inspect {directory}"))
     return findings
 
 
@@ -418,7 +421,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             except DIAGNOSIS_ERRORS as exc:
                 findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
         elif rt.home_env:
-            findings.extend(_check_hermes_project(runtimes.user_dir(rt, home or Path.home()), repo, selected))
+            findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
     findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings

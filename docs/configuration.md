@@ -35,6 +35,7 @@ asset changes use `dotbrain skills link --scope global` or `dotbrain agents link
 | `DOTBRAIN_HOME` | `~/dotbrain` (`%USERPROFILE%\dotbrain` on Windows) | Where Brainspaces and config live |
 | `HERMES_HOME` | `~/.hermes` | Hermes's own home; dotbrain puts its Hermes plugin copy and global Hermes skills there |
 | `XDG_CONFIG_HOME` | `~/.config` | Parent of OpenCode's config directory; dotbrain puts its OpenCode plugin file, packaged skills, and global OpenCode skills under `$XDG_CONFIG_HOME/opencode` |
+| `PI_CODING_AGENT_DIR` | `~/.pi/agent` | Pi's agent directory; dotbrain puts its Pi extension copy and global Pi skills there |
 
 ## `config.yaml`
 
@@ -110,7 +111,7 @@ skills:                       # extra skills for this project's workspaces
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `execution-engine` | `beads` | The private execution backend |
-| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, `hermes` ([Linux only](getting-started.md#hermes)), or `opencode` ([native Windows only](getting-started.md#opencode)) |
+| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, `hermes` ([Linux only](getting-started.md#hermes)), `opencode` ([native Windows only](getting-started.md#opencode)), or `pi` |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
@@ -193,7 +194,7 @@ the private `agents/` root, not delivered copies. Dotbrain migrates owned Codex 
 overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
 filename is reported instead of replaced.
 
-Runtime flags use `--runtime claude|codex|hermes|opencode|all`. YAML target keys are `claude-code`,
-`codex`, `hermes`, and `opencode`. Hermes and OpenCode have no subagent target.
+Runtime flags use `--runtime claude|codex|hermes|opencode|pi|all`. YAML target keys are
+`claude-code`, `codex`, `hermes`, `opencode`, and `pi`. Hermes, OpenCode, and Pi have no subagent target.
 Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
 with project selectors or `--all`.

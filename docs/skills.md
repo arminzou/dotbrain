@@ -152,4 +152,9 @@ selected skills from `.opencode/skills/` in the checkout. Skills keep their own 
 `dotbrain:` prefix. Manual-only skills are not enforced: OpenCode lists them and the model can
 invoke them. See [OpenCode on Windows](getting-started.md#opencode).
 
+Pi, on native Windows only, gets the skills from the extension that
+`dotbrain bootstrap --runtime pi` places in the Pi agent directory, and a project's selected skills
+from `.pi/skills/` in a trusted checkout. Manual-only skills are hidden from the model; invoke them
+with `/skill:<name>`. See [Pi on Windows](getting-started.md#pi).
+
 Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).

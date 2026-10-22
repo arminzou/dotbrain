@@ -199,7 +199,8 @@ def test_first_run_installers_pin_the_plugin_cli_version():
     # workflow runs this suite at the tag and rejects a tag that disagrees with pyproject.
     manifests = {"plugin/.claude-plugin/plugin.json": json.loads,
                  "plugin/.codex-plugin/plugin.json": json.loads,
-                 "plugin/plugin.yaml": yaml.safe_load}
+                 "plugin/plugin.yaml": yaml.safe_load,
+                 "plugin/index.js": lambda text: {"version": re.search(r'VERSION = "([^"]+)"', text)[1]}}
     for relative, parse in manifests.items():
         assert parse((REPO_ROOT / relative).read_text(encoding="utf-8"))["version"] == version
     # OpenCode records no version for file plugins, so the plugin carries its own constant.

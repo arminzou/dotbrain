@@ -125,6 +125,11 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   plugin 在后台启动 `turn-end` 推送。OpenCode 退出时，为每个空闲会话启动 `session-end`。强制结束 OpenCode 或者
   直接关掉窗口会跳过这一步，下次会话启动时的同步会补上。重新加载配置也会关闭 plugin，但对还在运行的会话只推送。
   task 子 Agent 不注入约定，也不同步。
+- **Pi**（只限原生 Windows，见[在 Windows 上使用 Pi](getting-started.md#pi)）在扩展放进它的 Agent 目录后就会运行
+  这些 hook。每次会话启动时，扩展运行 `dotbrain hook run`（`startup`、`resume`，`/new` 对应 `clear`，重新加载或
+  fork 对应 `compaction`），并在这个会话的每次运行里把约定作为 system prompt 的一节加上。压缩之后运行
+  `compaction`，约定照样会加上；刷新失败时保留原来的约定。一次运行结束时，在后台启动 `turn-end` 推送。`/quit`
+  运行 `session-end`。直接关掉控制台窗口很可能会跳过这一步，下次会话启动时的同步会补上。
 - 在不支持 hook 的运行时里，调用 `dotbrain` 技能手动加载约定，并自己运行 `dotbrain sync`。
 
 ## 子 Agent {#subagents}
@@ -133,7 +138,7 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
 Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
-比如 `dotbrain-worker`。Hermes 和 OpenCode 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
+比如 `dotbrain-worker`。Hermes、OpenCode 和 Pi 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
 不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
 
 | 子 Agent | 做什么 |

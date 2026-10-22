@@ -65,7 +65,7 @@ dotbrain bootstrap [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
@@ -122,7 +122,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | Select a named Brainspace. |
 | `--all` | — | Refresh all registered projects. |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -182,7 +182,7 @@ dotbrain skills list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -197,7 +197,7 @@ dotbrain skills link [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -215,7 +215,7 @@ dotbrain agents list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -230,7 +230,7 @@ dotbrain agents link [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |

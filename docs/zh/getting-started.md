@@ -11,7 +11,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes)。OpenCode 也行，但只限原生 Windows，见[在 Windows 上使用 OpenCode](#opencode) |
+| Claude Code 或 Codex | 任选其一，或两个都用。也可以用 Hermes，但只限 Linux，见[在 Linux 上使用 Hermes](#hermes)。OpenCode 和 Pi 也行，但只限原生 Windows，见[在 Windows 上使用 OpenCode](#opencode)和[在 Windows 上使用 Pi](#pi) |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -503,6 +503,101 @@ rm -rf "$oc/dotbrain"
 
 两样都删完再运行 `dotbrain bootstrap`：只要还剩一样，不带参数的 bootstrap 就会把另一样装回来。两样都删掉之后，
 `dotbrain bootstrap` 就不会再给 OpenCode 交付，除非你用 `--runtime opencode` 运行它。最后重启 OpenCode。
+
+## 在 Windows 上使用 Pi {#pi}
+
+Dotbrain 也支持 [Pi](https://github.com/earendil-works/pi) coding agent 的 CLI。
+
+::: warning 限制
+- Pi 只在原生 Windows 上测过：Windows 11 上的 Pi 1.4.0。其他操作系统和其他 Pi 版本都没有测过。
+- Dotbrain 不为 Pi 提供子 Agent，所以 Pi 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
+- 只能手动调用的技能（比如 `run-retro`）对模型隐藏，只有你输入 `/skill:<name>` 时才会运行。但 Pi
+  不会阻止模型直接读取这类技能的文件。
+- 直接关掉控制台窗口很可能会跳过 Pi 的关闭事件，也就跳过了退出时的完整同步。每次运行后的推送照常进行，
+  下次会话启动时的同步会补上剩下的部分。
+- 从 Pi 里卸载 dotbrain 需要手动操作，见[卸载](#pi-remove)。
+:::
+
+### 安装 {#pi-setup}
+
+Pi 没有 dotbrain 的 marketplace，扩展由 CLI 复制到 Pi 的 Agent 目录。先安装 CLI（见[第 2 步](#_2-get-the-cli)），
+然后运行：
+
+```bash
+dotbrain bootstrap --runtime pi
+```
+
+如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `pi`，bootstrap 会自动设置 Pi，
+并把 `pi` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
+`pi` 但还没设置时，它只会提示这条命令。
+
+这会把扩展连同打包的技能复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
+则复制到 `$PI_CODING_AGENT_DIR/extensions/dotbrain/`。在 Windows 上，`~` 指 `%USERPROFILE%`。你在
+`skills/skills.yaml` 里选的全局技能会链接到 `~/.pi/agent/skills/`。Dotbrain 不会修改 Pi 的设置和信任文件。
+
+扩展会运行 Pi 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。
+
+然后为每个需要 Pi 的项目声明它，并链接技能：
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - pi
+```
+
+```bash
+dotbrain refresh                   # 把选中的技能链接到 .pi/skills/
+dotbrain doctor
+```
+
+Pi 只从你信任的 checkout 里加载 `.pi/skills/`。在 checkout 里启动 `pi`，它询问是否信任这个项目时选择接受；
+在此之前，`dotbrain doctor` 会警告项目技能只从受信任的 checkout 加载。打包的技能用自己的名字出现，比如
+`wire-brain`，不带 `dotbrain:` 前缀。如果你自己有同名技能，Pi 用你的那个。
+
+### Pi 会话里会发生什么 {#pi-sessions}
+
+扩展通过 Pi 的事件执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进 system prompt。详见
+[Pi 的运行时说明](session-context.md#runtime-notes)。
+
+### 更新 {#pi-update}
+
+按[保持更新](#staying-current)升级 CLI，然后运行：
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+扩展存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的技能保持最新。Dotbrain 只替换它自己标记过的扩展目录。
+Pi 在启动时加载扩展，所以要重启 Pi 才能用上更新。
+
+### 卸载 {#pi-remove}
+
+先用 `/quit` 退出 Pi，让退出时的同步跑完。
+
+对单个 checkout，`dotbrain unwire` 会删掉它的 Pi 技能链接。如果想保留连接、只去掉 Pi，就从 `agents:` 里删掉
+`pi`，再手动删除 checkout 里 `.pi/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
+
+要卸载扩展，先从 `skills/skills.yaml` 里删掉 `pi` 目标（如果有的话），再从 Pi 的 Agent 目录里删除扩展目录和
+dotbrain 的全局技能链接。设置了 `PI_CODING_AGENT_DIR` 时，下面的命令会用它，你自己的技能不受影响：
+
+::: code-group
+
+```powershell [PowerShell 7]
+$pi = if ($env:PI_CODING_AGENT_DIR) { $env:PI_CODING_AGENT_DIR } else { "$env:USERPROFILE\.pi\agent" }
+Remove-Item -Recurse "$pi\extensions\dotbrain"
+Get-ChildItem "$pi\skills" | Where-Object { $_.LinkTarget -like '*dotbrain*skills*' } | Remove-Item
+```
+
+```bash [Git Bash]
+pi="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+rm -rf "$pi/extensions/dotbrain"
+find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
+```
+
+:::
+
+扩展删掉、`pi` 目标也没有了之后，`dotbrain bootstrap` 就不会再给 Pi 交付，除非你用 `--runtime pi` 运行它。最后重启 Pi。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

@@ -143,6 +143,14 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   each idle session. Killing OpenCode or closing its window skips that step; the next session
   start syncs what was left. A config reload also shuts the plugin down, but while a session is
   still running it only pushes. Task subagents get no convention and no sync.
+- **Pi** (native Windows only; see [Pi on Windows](getting-started.md#pi)) runs the hooks once the
+  extension is in its agent directory. At each session start, the extension runs
+  `dotbrain hook run` (`startup`, `resume`, `clear` for `/new`, and `compaction` for a reload or
+  fork) and adds the convention as a system prompt section on every run of that session. After
+  compaction it runs `compaction` and keeps adding the convention; a failed refresh keeps the one it
+  had. When a run settles, it starts the `turn-end` push in the background. `/quit` runs
+  `session-end`. Closing the console window probably skips that step; the next session start syncs
+  what was left.
 - In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
@@ -154,7 +162,7 @@ example prompts, and how the lead coordinates their results.
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
-Hermes and OpenCode get no dotbrain subagents.
+Hermes, OpenCode, and Pi get no dotbrain subagents.
 Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
 without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 

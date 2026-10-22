@@ -1,10 +1,10 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, hermes, opencode, paths, projects, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, hermes, opencode, paths, pi, projects, runtimes, skills, subagents
 
 # The owned plugin delivery of each runtime that has no marketplace install.
-HOME_DELIVERY = {"hermes": hermes, "opencode": opencode}
+HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi}
 
 
 def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str) -> tuple[str, ...]:
@@ -71,7 +71,7 @@ def detected_targets(user_home: Path) -> dict[str, str]:
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool) -> dict[str, str]:
     """Configured global targets, plus the home target of each opted-in relocatable runtime.
 
-    Such a runtime (Hermes, OpenCode) is opted in by an explicit --runtime request or by an
+    Such a runtime (Hermes, OpenCode, Pi) is opted in by an explicit --runtime request or by an
     existing owned plugin copy, so later unfiltered runs keep its delivery current.
     """
     targets = dict(configured)

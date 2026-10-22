@@ -11,7 +11,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes). So does OpenCode, on native Windows only: see [OpenCode on Windows](#opencode) |
+| Claude Code or Codex | Either runtime, or both. Hermes works too, on Linux only: see [Hermes on Linux](#hermes). So do OpenCode and Pi, on native Windows only: see [OpenCode on Windows](#opencode) and [Pi on Windows](#pi) |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -540,6 +540,111 @@ rm -rf "$oc/dotbrain"
 Delete both before you run `dotbrain bootstrap` again: while one of them is still there, an
 unfiltered bootstrap puts the other one back. Once both are gone, `dotbrain bootstrap` no longer
 delivers to OpenCode, unless you run it with `--runtime opencode`. Restart OpenCode afterwards.
+
+## Pi on Windows {#pi}
+
+Dotbrain also delivers to the [Pi](https://github.com/earendil-works/pi) coding agent CLI.
+
+::: warning Limits
+- Pi support is tested on native Windows only: Windows 11 with Pi 1.4.0. Other operating systems
+  and other Pi releases are not tested.
+- Dotbrain ships no subagents for Pi, so Pi has no native dotbrain workers. In `run-execution` it
+  works only as the lead.
+- Manual-only skills, such as `run-retro`, are hidden from the model and run only when you type
+  `/skill:<name>`. Pi does not stop the model from reading such a skill's file directly.
+- Closing the console window probably skips Pi's shutdown event, and with it the full sync at exit.
+  The push after each run still happens, and the next session start syncs what was left.
+- Removing dotbrain from Pi is manual. See [Remove](#pi-remove).
+:::
+
+### Set up {#pi-setup}
+
+Pi has no dotbrain marketplace install. The CLI copies an extension into the Pi agent directory
+instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
+
+```bash
+dotbrain bootstrap --runtime pi
+```
+
+If `pi` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up Pi on
+its own and adds `pi` to the `targets:` in `skills/skills.yaml`. After that, bootstrap does not add
+a runtime unasked: when it finds `pi` installed but not set up, it prints this command instead.
+
+This copies the extension, with the packaged skills, to `~/.pi/agent/extensions/dotbrain/`, or to
+`$PI_CODING_AGENT_DIR/extensions/dotbrain/` when `PI_CODING_AGENT_DIR` is set. On Windows, `~` is
+`%USERPROFILE%`. Global skills you select in `skills/skills.yaml` are linked into
+`~/.pi/agent/skills/`. Dotbrain does not edit Pi's settings or trust files.
+
+The extension runs the `dotbrain` it finds on the `PATH` that Pi started with. Without one,
+sessions still work, but they get no convention and no sync.
+
+Then declare Pi for each project that should get it, and link its skills:
+
+```yaml
+# ~/dotbrain/brainspaces/<name>/.brain/project.yaml
+agents:
+  - pi
+```
+
+```bash
+dotbrain refresh                   # links selected skills into .pi/skills/
+dotbrain doctor
+```
+
+Pi loads `.pi/skills/` only from a checkout you trust. Start `pi` in the checkout and accept when it
+asks to trust the project; until then, `dotbrain doctor` warns that project skills load only from a
+trusted checkout. Packaged skills appear under their own names, such as `wire-brain`, without the
+`dotbrain:` prefix. When one of your own skills has the same name, Pi uses yours.
+
+### What happens in a Pi session {#pi-sessions}
+
+The extension uses Pi's events to run the same [home sync](session-context.md#home-sync) and to
+add the convention to the system prompt. See the
+[Pi runtime notes](session-context.md#runtime-notes).
+
+### Update {#pi-update}
+
+Upgrade the CLI as in [Staying Current](#staying-current), then run:
+
+```bash
+dotbrain bootstrap
+dotbrain refresh --all
+```
+
+Once the extension exists, an unfiltered `dotbrain bootstrap` keeps it and the packaged skills
+current. Dotbrain replaces only an extension folder it marked as its own. Pi loads extensions when
+it starts, so restart Pi to use the update.
+
+### Remove {#pi-remove}
+
+Quit Pi with `/quit` first, so the sync at exit can finish.
+
+For one checkout, `dotbrain unwire` removes its Pi skill links. To keep the checkout wired but drop
+Pi, remove `pi` from `agents:` and delete dotbrain's links under the checkout's `.pi/skills/`;
+`dotbrain refresh` does not remove them.
+
+To remove the extension, first remove any `pi` target from `skills/skills.yaml`. Then delete the
+extension folder and dotbrain's global skill links from the Pi agent directory. These commands use
+`PI_CODING_AGENT_DIR` when it is set, and leave your own skills in place:
+
+::: code-group
+
+```powershell [PowerShell 7]
+$pi = if ($env:PI_CODING_AGENT_DIR) { $env:PI_CODING_AGENT_DIR } else { "$env:USERPROFILE\.pi\agent" }
+Remove-Item -Recurse "$pi\extensions\dotbrain"
+Get-ChildItem "$pi\skills" | Where-Object { $_.LinkTarget -like '*dotbrain*skills*' } | Remove-Item
+```
+
+```bash [Git Bash]
+pi="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+rm -rf "$pi/extensions/dotbrain"
+find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
+```
+
+:::
+
+Once the extension is gone and no `pi` target is left, `dotbrain bootstrap` no longer delivers to
+Pi, unless you run it with `--runtime pi`. Restart Pi afterwards.
 
 ## Edit Config Only When Needed
 

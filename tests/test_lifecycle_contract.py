@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, assets, beads, doctor, hermes, opencode, runtimes, workflows, subagents
+from dotbrain import adopter_repos, assets, beads, doctor, hermes, opencode, pi, runtimes, workflows, subagents
 from dotbrain.cli import app
 
 
@@ -359,6 +359,64 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
             assert linked(sibling) == ['one', 'two']
         # Project removal never touches the machine-wide plugin copy.
         assert hermes.state(hermes_home) == 'current'
+
+
+def test_pi_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
+    # Pi reads project skills from <checkout>/.pi/skills once the checkout is trusted; dotbrain
+    # links only its selection there and leaves everything else in that directory alone.
+    monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
+    home, brainspace, main, worktree = lifecycle
+    for name in ('one', 'two'):
+        (home / 'skills' / name).mkdir(parents=True)
+        (home / 'skills' / name / 'SKILL.md').write_text(f'# {name}\n', encoding='utf-8')
+    user = tmp_path / 'user'
+    agent_dir = user / '.pi' / 'agent'
+
+    def declare(selection):
+        (brainspace / '.brain' / 'project.yaml').write_text(
+            f'agents: [pi]\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+
+    def linked(checkout):
+        return sorted(p.name for p in (checkout / '.pi' / 'skills').iterdir() if p.is_symlink())
+
+    def pi_warnings(checkout):
+        report = doctor.run_doctor(home, home=user, cwd=checkout)
+        return {f.message for f in report.projects['custom'] if f.status == 'warn' and f.message.startswith('pi:')}
+
+    declare('[one]')
+    for checkout in (main, worktree):
+        mine = checkout / '.pi' / 'skills' / 'mine' / 'SKILL.md'
+        mine.parent.mkdir(parents=True)
+        mine.write_text('mine', encoding='utf-8')
+        assert not workflows.wire_project(dotbrain_home=home, repo=checkout).errors
+        assert linked(checkout) == ['one']
+        assert not (checkout / '.pi' / 'agents').exists()
+        undelivered = {'pi: dotbrain extension is not delivered'} if checkout is main else set()
+        assert pi_warnings(checkout) == {'pi: project skills load only from a trusted checkout'} | undelivered
+        assets.link_global(home, 'skills', 'pi', user_home=user)
+        (agent_dir / 'trust.json').write_text(json.dumps({str(checkout): True}), encoding='utf-8')
+        assert pi_warnings(checkout) == set()
+
+    # Update, then prune, the shared selection; each refresh touches only its own checkout.
+    for selection, expected in (('[two]', ['two']), ('[]', [])):
+        declare(selection)
+        for checkout, sibling in ((main, worktree), (worktree, main)):
+            before = linked(sibling)
+            assert not workflows.refresh_projects(home, cwd=checkout, runtime='pi').errors
+            assert linked(checkout) == expected and linked(sibling) == before
+            assert (checkout / '.pi' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+
+    # Removal: unwire one checkout at a time; the machine-wide extension copy stays.
+    declare('[one, two]')
+    for checkout in (main, worktree):
+        assert not workflows.refresh_projects(home, cwd=checkout, runtime='pi').errors
+    for checkout, sibling in ((worktree, main), (main, None)):
+        assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+        assert linked(checkout) == []
+        assert (checkout / '.pi' / 'skills' / 'mine' / 'SKILL.md').read_text(encoding='utf-8') == 'mine'
+        if sibling is not None:
+            assert linked(sibling) == ['one', 'two']
+        assert pi.state(agent_dir) == 'current'
 
 
 def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
