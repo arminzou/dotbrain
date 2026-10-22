@@ -146,4 +146,10 @@ places in the Hermes home, and a project's selected skills from `.hermes/skills/
 checkout. Hermes lists manual-only skills, but the model cannot load them; invoke them yourself.
 See [Hermes on Linux](getting-started.md#hermes).
 
+OpenCode, on native Windows only, gets the skills from the packaged copy that
+`dotbrain bootstrap --runtime opencode` places in the OpenCode config directory, and a project's
+selected skills from `.opencode/skills/` in the checkout. Skills keep their own names, without the
+`dotbrain:` prefix. Manual-only skills are not enforced: OpenCode lists them and the model can
+invoke them. See [OpenCode on Windows](getting-started.md#opencode).
+
 Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).

@@ -59,6 +59,13 @@ provisions both.
 Update both together, as described in [Staying current](getting-started.md#staying-current).
 Use the upgrade command for the package manager that installed the CLI.
 
+### OpenCode loads a different copy of a skill
+
+`dotbrain doctor` warns `OpenCode loads one of the two at random` when OpenCode would find a
+dotbrain skill twice: once from dotbrain and once from a folder you keep, such as a
+`~/.config/opencode/skills` link or `~/.claude/skills`. Remove the other copy, or move it out of
+OpenCode's skill folders, then restart OpenCode. See [OpenCode on Windows](getting-started.md#opencode).
+
 ### `dotbrain site` fails
 
 Check `node --version`; the site needs Node.js 22.12 or later. Follow the build error to the named
@@ -195,6 +202,7 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 
 ### Which agents are supported?
 
-Claude Code and Codex, and Hermes on Linux only (see [Hermes on Linux](getting-started.md#hermes)).
+Claude Code and Codex; Hermes on Linux only (see [Hermes on Linux](getting-started.md#hermes)); and
+OpenCode on native Windows only (see [OpenCode on Windows](getting-started.md#opencode)).
 Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).

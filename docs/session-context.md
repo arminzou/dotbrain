@@ -133,6 +133,16 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   must stay below that size. Hermes fires its own session-end hook after every turn, so that hook
   starts the `turn-end` push in the background. A real exit runs `session-end`. Delegated child
   agents get no convention and no sync.
+- **OpenCode** (native Windows only; see [OpenCode on Windows](getting-started.md#opencode)) runs
+  the hooks once the plugin file is in its config directory. Before the first model request of a
+  session, the plugin runs `dotbrain hook run --event startup` and adds the convention to the
+  system prompt of every request in that session; a session this OpenCode process did not create,
+  such as one continued with `opencode run -c`, runs `resume` instead. After compaction it runs
+  `compaction` and keeps adding the convention. When a run finishes and the session goes idle, it
+  starts the `turn-end` push in the background. When OpenCode exits, it starts `session-end` for
+  each idle session. Killing OpenCode or closing its window skips that step; the next session
+  start syncs what was left. A config reload also shuts the plugin down, but while a session is
+  still running it only pushes. Task subagents get no convention and no sync.
 - In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
@@ -144,7 +154,7 @@ example prompts, and how the lead coordinates their results.
 dotbrain ships packaged subagents. Claude Code receives them from the plugin as
 `dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
 generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
-Hermes gets no dotbrain subagents.
+Hermes and OpenCode get no dotbrain subagents.
 Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
 without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 

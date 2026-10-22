@@ -122,4 +122,8 @@ Hermes 只限 Linux。它的技能来自 `dotbrain bootstrap --runtime hermes` �
 项目选中的技能来自已信任 checkout 里的 `.hermes/skills/`。只能手动调用的技能会出现在 Hermes 的列表里，
 但模型加载不了，要你自己调用。详见[在 Linux 上使用 Hermes](getting-started.md#hermes)。
 
+OpenCode 只限原生 Windows。它的技能来自 `dotbrain bootstrap --runtime opencode` 放进 OpenCode 配置目录的打包副本，
+项目选中的技能来自 checkout 里的 `.opencode/skills/`。技能用自己的名字，不带 `dotbrain:` 前缀。只能手动调用的技能
+在 OpenCode 里不受限制：它们照样出现在列表里，模型也可以调用。详见[在 Windows 上使用 OpenCode](getting-started.md#opencode)。
+
 内置技能直接在 [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills) 里编辑。

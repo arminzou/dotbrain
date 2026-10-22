@@ -73,6 +73,8 @@ codex plugin add dotbrain@dotbrain
 在 Codex 里打开 `/hooks`，信任 dotbrain 的 hook，然后新开一个 thread。
 Hermes 只支持 Linux，通过 CLI 而不是 marketplace 安装，见
 [在 Linux 上使用 Hermes](https://arminzou.github.io/dotbrain/zh/getting-started#hermes)。
+OpenCode 只支持原生 Windows，同样通过 CLI 安装，见
+[在 Windows 上使用 OpenCode](https://arminzou.github.io/dotbrain/zh/getting-started#opencode)。
 Windows 用户请先开启
 [开发人员模式](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
 再连接项目，这样 Dotbrain 不用管理员权限也能创建目录符号链接。
