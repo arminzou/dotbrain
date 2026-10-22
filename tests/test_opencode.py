@@ -1,18 +1,17 @@
 """OpenCode delivery: the CLI's owned plugin file and skill directories, and the plugin's config hook."""
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 from dotbrain import assets, bootstrap, doctor, opencode
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent / "plugin"
-MANUAL = sorted(p.parent.name for p in (PLUGIN_ROOT / "skills").glob("*/SKILL.md")
-                if yaml.safe_load(p.read_text(encoding="utf-8").split("---")[1]).get("disable-model-invocation"))
+
 
 # Imports the delivered plugin as OpenCode does, runs its config hook, and prints the config.
 HARNESS = """
@@ -168,18 +167,56 @@ def test_doctor_reports_opencode_delivery(dotbrain_home, user):
     assert warnings() == {f"opencode: dotbrain delivery is stale at {config_dir}"}
 
 
-@pytest.mark.parametrize("permission", [None, "allow", {"*": "ask", "skill": {"*": "allow", MANUAL[0]: "allow"}},
-                                        {"skill": "ask", "bash": {"*": "allow"}}])
-def test_config_hook_adds_skill_paths_and_denies_manual_skills_last(dotbrain_home, user, tmp_path, permission):
+def _skill(directory: Path, frontmatter: bytes) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "SKILL.md").write_bytes(frontmatter)
+    return directory / "SKILL.md"
+
+
+def test_skill_index_reads_frontmatter_as_opencode_does(tmp_path):
+    root = tmp_path / "skills"
+    cases = {
+        "quoted-key": b'---\n"name": quoted-key\n---\n',
+        "escaped": b'---\nname: "manual\\u002dskill"\n---\n',
+        "bom": b"\xef\xbb\xbf---\r\nname: bom\r\ndescription: >\r\n  folded\r\n---\r\n",
+        "comment": b"---\nname: comment # trailing\n---\n",
+        "colon": b"---\nname: colon\ndescription: Use when: asked\n---\n",  # OpenCode's unquoted-colon retry
+        # OpenCode decodes invalid bytes as U+FFFD and still loads the skill.
+        "invalid-byte": b"---\nname: invalid-byte\n---\nbody \xff\xfe\n",
+        "broken": b"---\nname: [unclosed\n---\n",
+        "nameless": b"---\ndescription: no name\n---\n",
+        "nested/deeper": b"---\nname: nested-one\n---\n",
+        ".hidden": b"---\nname: hidden\n---\n",
+    }
+    for folder, text in cases.items():
+        _skill(root / folder, text)
+
+    index = {Path(s["file"]).parent.relative_to(root).as_posix(): s["name"] for s in opencode.skill_index([root])}
+    assert index == {"quoted-key": "quoted-key", "escaped": "manual-skill", "bom": "bom", "comment": "comment",
+                     "colon": "colon", "invalid-byte": "invalid-byte", "nested/deeper": "nested-one"}
+    # A broken or nameless skill is no skill to OpenCode; hidden folders are not scanned.
+
+
+def test_doctor_finds_duplicates_by_name_in_nested_folders(dotbrain_home, user):
+    home, config_dir = user
+    (config_dir / "skills").unlink()
+    assets.link_global(dotbrain_home, "skills", "opencode", user_home=home)
+    nested = _skill(home / ".claude/skills/team/renamed-copy", b"---\nname: wire-brain\ndescription: mine\n---\n")
+    _skill(home / ".agents/skills/other", b"---\nname: not-dotbrains\n---\n")
+    assert opencode.duplicate_skills(config_dir, home) == [("wire-brain", nested.parent)]
+
+
+@pytest.mark.parametrize("permission", [None, "allow", {"*": "ask", "external_directory": {"*": "ask"}},
+                                        {"external_directory": "deny", "bash": {"*": "allow"}}])
+def test_config_hook_adds_skill_paths_and_allows_linked_skill_directories_last(dotbrain_home, user, tmp_path,
+                                                                                 permission):
     home, config_dir = user
     project = tmp_path / "project"
-    private = project / ".opencode/skills/private-manual"
-    private.mkdir(parents=True)
-    (private / "SKILL.md").write_bytes(b'---\nname: "private-manual"\ndisable-model-invocation: true # explicit\n---\n')
-    linked = dotbrain_home / "skills/misc/global-manual"
-    linked.mkdir(parents=True)
-    (linked / "SKILL.md").write_bytes(b"\xef\xbb\xbf---\r\nname: global-manual\r\ndescription: >\r\n  folded\r\n"
-                                      b"disable-model-invocation: true\r\n---\r\n")
+    _skill(project / ".opencode/skills/by-hand", b"---\nname: by-hand\n---\n")
+    source = _skill(dotbrain_home / "skills/misc/project-linked", b"---\nname: project-linked\n---\n")
+    (project / ".opencode/skills/project-linked").symlink_to(source.parent, target_is_directory=True)
+    # Manual-only skills are not enforced: they get the same treatment as any other.
+    _skill(dotbrain_home / "skills/misc/global-manual", b"---\nname: global-manual\ndisable-model-invocation: true\n---\n")
     _global_extra(dotbrain_home, "misc/global-manual", "misc/discovery-test")
     assert assets.link_global(dotbrain_home, "skills", "opencode", user_home=home).warnings == []
 
@@ -190,24 +227,25 @@ def test_config_hook_adds_skill_paths_and_denies_manual_skills_last(dotbrain_hom
 
     roots = [str(opencode.packaged_dir(config_dir) / "skills"), str(opencode.skills_dir(config_dir))]
     assert [Path(p) for p in out["skills"]["paths"]] == [Path("~/mine"), *map(Path, roots)]
-    denied = sorted([*MANUAL, "global-manual", "private-manual"])
+    # Each linked skill's resolved directory is readable; copies and real directories need no rule.
+    readable = {str(Path(os.path.realpath(p)) / "*") for p in (
+        opencode.skills_dir(config_dir) / "global-manual", opencode.skills_dir(config_dir) / "discovery-test",
+        project / ".opencode/skills/project-linked")}
     for rules in (out["permission"], out["agent"]["build"]["permission"]):
-        assert list(rules)[-1] == "skill"
-        skill = rules["skill"]
-        assert sorted(list(skill)[-len(denied):]) == denied
-        assert {skill[name] for name in denied} == {"deny"}
+        assert list(rules)[-1] == "external_directory"
+        assert {p for p, action in rules["external_directory"].items() if action == "allow"} == readable
+        assert "skill" not in rules and "read" not in rules
     assert "permission" not in out["agent"]["plain"]
     # The user's other permissions stay as they were.
     before = {"*": permission} if isinstance(permission, str) else dict(permission or {})
-    skill_before = before.pop("skill", None)
-    assert {k: v for k, v in out["permission"].items() if k != "skill"} == before
-    if isinstance(skill_before, str):
-        assert list(out["permission"]["skill"].items())[0] == ("*", skill_before)
-    elif skill_before:
-        assert out["permission"]["skill"]["*"] == skill_before["*"]
-    assert "run-execution" not in out["permission"]["skill"]
+    external_before = before.pop("external_directory", None)
+    assert {k: v for k, v in out["permission"].items() if k != "external_directory"} == before
+    if isinstance(external_before, str):
+        assert list(out["permission"]["external_directory"].items())[0] == ("*", external_before)
+    elif external_before:
+        assert out["permission"]["external_directory"]["*"] == external_before["*"]
 
     # Run twice (a second OpenCode instance), nothing is added twice.
     again = _run_hook(tmp_path, config_dir, out, directory=project)
     assert again["skills"]["paths"] == out["skills"]["paths"]
-    assert list(again["permission"]["skill"])[-len(denied):] == list(out["permission"]["skill"])[-len(denied):]
+    assert again["permission"] == out["permission"]

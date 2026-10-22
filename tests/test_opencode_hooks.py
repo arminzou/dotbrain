@@ -28,7 +28,8 @@ for await (const chunk of process.stdin) raw += chunk
 const { plugin, input, parents, lookup, fastTimers, steps } = JSON.parse(raw)
 if (fastTimers) {
   const real = globalThis.setTimeout
-  globalThis.setTimeout = (fn, ms, ...rest) => real(fn, Math.min(ms, 300), ...rest)
+  // Long enough for a fake CLI started through cmd.exe to log its call on a loaded machine.
+  globalThis.setTimeout = (fn, ms, ...rest) => real(fn, Math.min(ms, 1500), ...rest)
 }
 input.client = { session: { get: async ({ path }) => {
   if (lookup === "fails") throw new Error("no server")

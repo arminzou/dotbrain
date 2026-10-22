@@ -7,11 +7,10 @@
  * `<opencode config>/dotbrain/skills/`. OpenCode scans neither directory on its own; the `config`
  * hook adds both to `skills.paths`, so each skill keeps its supporting files next to its SKILL.md.
  *
- * Explicit-only skills (`disable-model-invocation: true`) stay manual: the hook appends a
- * `permission.skill` deny rule for each, after the user's own rules, since the last matching rule
- * wins. A denied skill is hidden from the model and its `skill` tool refuses it, while the user's
- * `/<skill>` command still loads it. Project skills the CLI links into `.opencode/skills/` get the
- * same rule.
+ * Skills reached through a link, which is how the CLI delivers global and project skills, get an
+ * `external_directory` allow rule for their resolved directory, so the model reads their supporting
+ * files without an approval prompt. Manual-only skills (`disable-model-invocation: true`) are not
+ * enforced: OpenCode lists them and the model can invoke them.
  *
  * Session hooks hand each OpenCode event to `dotbrain hook run --checkout <worktree>`, which decides
  * wiring, assembles the convention and syncs; this file only maps events and caches what the CLI
@@ -45,6 +44,8 @@ const SKILL_ROOTS = [
   path.join(CONFIG_DIR, "dotbrain", "packaged", "skills"),
   path.join(CONFIG_DIR, "dotbrain", "skills"),
 ]
+// The skill folders OpenCode reads from each `.opencode` config directory.
+const PROJECT_SKILL_FOLDERS = ["skills", "skill"]
 
 function isDir(target) {
   try {
@@ -54,25 +55,7 @@ function isDir(target) {
   }
 }
 
-/** Top-level `key: value` fields of a SKILL.md frontmatter block, as strings. */
-function frontmatter(text) {
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/)
-  const fields = {}
-  if (lines[0]?.trim() !== "---") return fields
-  for (const line of lines.slice(1)) {
-    if (line.trim() === "---") break
-    const match = /^([A-Za-z0-9_-]+):(.*)$/.exec(line)
-    if (!match) continue
-    let value = match[2].trim()
-    const quote = value[0]
-    const end = quote === '"' || quote === "'" ? value.indexOf(quote, 1) : -1
-    value = end > 0 ? value.slice(1, end) : value.startsWith("#") ? "" : value.replace(/\s+#.*$/, "")
-    fields[match[1]] = value
-  }
-  return fields
-}
-
-/** SKILL.md files below `root`, following links as OpenCode's scan does. */
+/** SKILL.md files below `root`, following links; hidden folders are skipped, as OpenCode's scan does. */
 function skillFiles(root, depth = 0) {
   let entries
   try {
@@ -85,43 +68,43 @@ function skillFiles(root, depth = 0) {
     const full = path.join(root, entry.name)
     if (entry.name === "SKILL.md") found.push(full)
     // ponytail: depth cap instead of cycle detection; skills nest a few levels at most.
-    else if (depth < 8 && entry.name !== "node_modules" && isDir(full)) found.push(...skillFiles(full, depth + 1))
+    else if (depth < 8 && !entry.name.startsWith(".") && isDir(full)) found.push(...skillFiles(full, depth + 1))
   }
   return found
 }
 
-/** Names of the explicit-only skills below `roots`, as OpenCode names them (frontmatter `name`). */
-function manualOnly(roots) {
-  const names = new Set()
-  for (const root of roots) {
-    for (const file of skillFiles(root)) {
-      let fields
-      try {
-        fields = frontmatter(fs.readFileSync(file, "utf8"))
-      } catch {
-        continue // OpenCode cannot load it either
-      }
-      if (String(fields["disable-model-invocation"] ?? "").toLowerCase() === "true") {
-        names.add(fields.name || path.basename(path.dirname(file)))
-      }
+/**
+ * `<dir>/*` for each skill below `roots` that OpenCode reaches through a link, `<dir>` resolved.
+ * OpenCode lets the model read a skill's own directory, but under the path it found the skill at,
+ * while its read check resolves links: a linked skill's supporting files would need approval.
+ */
+function linkedSkillDirs(roots) {
+  const patterns = new Set()
+  for (const file of roots.flatMap((root) => skillFiles(root))) {
+    try {
+      const dir = path.dirname(file)
+      const real = fs.realpathSync.native(dir)
+      if (real !== path.resolve(dir)) patterns.add(path.join(real, "*"))
+    } catch {
+      // a broken link: OpenCode cannot load it either
     }
   }
-  return [...names].sort()
+  return [...patterns].sort()
 }
 
-/** `permission` with a deny rule for each name appended last under `skill`; other keys untouched. */
-function denyLast(permission, names) {
+/** `permission` with an `external_directory` allow for each pattern, appended last so it wins. */
+function allowLast(permission, patterns) {
   const rules = permission == null ? {} : typeof permission === "string" ? { "*": permission } : permission
   if (typeof rules !== "object" || Array.isArray(rules)) return permission
-  const skill = rules.skill
-  const own = typeof skill === "string" ? { "*": skill } : skill && typeof skill === "object" ? { ...skill } : {}
-  for (const name of names) {
-    delete own[name]
-    own[name] = "deny"
+  const current = rules.external_directory
+  const own = typeof current === "string" ? { "*": current } : current && typeof current === "object" ? { ...current } : {}
+  for (const pattern of patterns) {
+    delete own[pattern]
+    own[pattern] = "allow"
   }
   // Re-adding the key moves it after every other permission, `*` included.
-  delete rules.skill
-  rules.skill = own
+  delete rules.external_directory
+  rules.external_directory = own
   return rules
 }
 
@@ -285,7 +268,9 @@ function sessionHooks(client, checkout) {
 }
 
 async function server({ client, project: info, directory, worktree } = {}) {
-  const project = [...new Set([worktree, directory].filter(Boolean))].map((dir) => path.join(dir, ".opencode", "skills"))
+  // ponytail: the directory and the worktree only; OpenCode also reads any .opencode between them.
+  const dirs = [...new Set([directory, worktree].filter(Boolean))]
+  const projectRoots = dirs.flatMap((dir) => PROJECT_SKILL_FOLDERS.map((name) => path.join(dir, ".opencode", name)))
   return {
     // A git project's worktree is the checkout; elsewhere there is nothing to wire.
     ...(info?.vcs === "git" && worktree ? sessionHooks(client, worktree) : {}),
@@ -294,13 +279,13 @@ async function server({ client, project: info, directory, worktree } = {}) {
       cfg.skills ??= {}
       const listed = cfg.skills.paths ?? []
       cfg.skills.paths = [...listed, ...roots.filter((root) => !listed.includes(root))]
-      const names = manualOnly([...roots, ...project])
-      if (!names.length) return
-      cfg.permission = denyLast(cfg.permission, names)
+      const dirs = linkedSkillDirs([...roots, ...projectRoots])
+      if (!dirs.length) return
+      cfg.permission = allowLast(cfg.permission, dirs)
       // An agent's own permission is applied after the global one, so it needs the rules too.
       // ponytail: legacy `mode` entries are not covered; OpenCode merges them into `agent`.
       for (const agent of Object.values(cfg.agent ?? {})) {
-        if (agent && agent.permission != null) agent.permission = denyLast(agent.permission, names)
+        if (agent && agent.permission != null) agent.permission = allowLast(agent.permission, dirs)
       }
     },
   }

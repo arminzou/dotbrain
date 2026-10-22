@@ -10,8 +10,11 @@ files it marked as its own and never edits the OpenCode configuration.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from pathlib import Path
+
+import yaml
 
 from dotbrain import hermes, resource_loader
 from dotbrain.skills import LinkResult
@@ -37,6 +40,103 @@ def packaged_dir(config_dir: Path) -> Path:
 def skills_dir(config_dir: Path) -> Path:
     """Where operator-selected global skills are linked for OpenCode."""
     return Path(config_dir) / "dotbrain" / "skills"
+
+
+def _global_roots(config_dir: Path) -> list[Path]:
+    return [packaged_dir(config_dir) / "skills", skills_dir(config_dir)]
+
+
+class _Loader(yaml.SafeLoader):
+    """YAML 1.2 booleans, as OpenCode's js-yaml reads them: `yes` and `on` stay strings."""
+
+
+_Loader.yaml_implicit_resolvers = {
+    key: [(tag, regex) for tag, regex in resolvers if tag != "tag:yaml.org,2002:bool"]
+    for key, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+_Loader.add_implicit_resolver("tag:yaml.org,2002:bool", re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
+                              list("tTfF"))
+
+_FRONTMATTER = re.compile(r"\A---[ \t]*\r?\n(?:(.*?)\r?\n)?---[ \t]*(?:\r?\n|\Z)", re.S)
+
+
+def _sanitize(block: str) -> str:
+    """OpenCode's retry for unquoted colons: such a value becomes a block scalar."""
+    out = []
+    for line in block.splitlines():
+        entry = re.match(r"^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.*)$", line)
+        value = entry.group(2).strip() if entry else ""
+        if (not entry or line.strip().startswith("#") or re.match(r"^\s+", line) or value in ("", ">", "|")
+                or value[0] in "\"'" or ":" not in value):
+            out.append(line)
+        else:
+            out += [f"{entry.group(1)}: |-", f"  {value}"]
+    return "\n".join(out)
+
+
+def _frontmatter(file: Path):
+    """The parsed frontmatter, ``{}`` without one, or ``None`` when OpenCode could not read it."""
+    try:
+        # As OpenCode reads it: invalid bytes become U+FFFD, and a BOM is stripped.
+        text = file.read_bytes().decode("utf-8-sig", errors="replace")
+    except OSError:
+        return None
+    match = _FRONTMATTER.match(text)
+    if not match:
+        return {}
+    for block in (match.group(1) or "", _sanitize(match.group(1) or "")):
+        try:
+            return yaml.load(block, Loader=_Loader) or {}
+        except yaml.YAMLError:
+            continue
+    return None
+
+
+def _skill_files(root: Path, *, dot: bool = False, _ancestors: frozenset = frozenset()) -> list[Path]:
+    """``SKILL.md`` files below ``root``, following links as OpenCode's scan does."""
+    try:
+        real = os.path.realpath(root)
+        entries = sorted(os.scandir(root), key=lambda entry: entry.name)
+    except OSError:
+        return []
+    if real in _ancestors:  # a link back up the tree
+        return []
+    found = []
+    for entry in entries:
+        try:
+            if entry.name == "SKILL.md" and entry.is_file():
+                found.append(Path(entry.path))
+            elif entry.is_dir() and (dot or not entry.name.startswith(".")):
+                found += _skill_files(Path(entry.path), dot=dot, _ancestors=_ancestors | {real})
+        except OSError:
+            continue
+    return found
+
+
+def skill_index(roots, *, dot: bool = False) -> list[dict]:
+    """``{"name", "file"}`` for each skill OpenCode finds below ``roots``, named as OpenCode names it."""
+    index = []
+    for root in roots:
+        for file in _skill_files(Path(root), dot=dot):
+            data = _frontmatter(file)
+            name, description = (data.get("name"), data.get("description")) if isinstance(data, dict) else (None, None)
+            if not isinstance(name, str) or not (description is None or isinstance(description, str)):
+                continue  # OpenCode does not load it as a skill
+            index.append({"name": name, "file": str(file)})
+    return index
+
+
+def _write_atomic(target: Path, data: bytes) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Written beside the target and moved over it, so OpenCode never reads half a file.
+    handle, staging = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}-", suffix=".tmp")
+    try:
+        with os.fdopen(handle, "wb") as out:
+            out.write(data)
+        os.replace(staging, target)
+    finally:
+        if os.path.exists(staging):
+            os.unlink(staging)
 
 
 def _file_owned(config_dir: Path) -> bool:
@@ -93,36 +193,21 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
             hermes.replace_tree(packaged_dir(config_dir), tree, SKILL_FILES)
             result.linked.append("opencode/dotbrain/packaged")
         if _file_state(config_dir, source) != "current":
-            target = plugin_file(config_dir)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            # Written beside the target and moved over it, so OpenCode never loads half a file.
-            handle, staging = tempfile.mkstemp(dir=target.parent, prefix=f".{PLUGIN_FILE}-", suffix=".tmp")
-            try:
-                with os.fdopen(handle, "wb") as out:
-                    out.write(source.read_bytes())
-                os.replace(staging, target)
-            finally:
-                if os.path.exists(staging):
-                    os.unlink(staging)
+            _write_atomic(plugin_file(config_dir), source.read_bytes())
             result.linked.append(f"opencode/plugins/{PLUGIN_FILE}")
     return result
 
 
 def duplicate_skills(config_dir: Path, user_home: Path) -> list[tuple[str, Path]]:
-    """``(skill, other copy)`` for each dotbrain skill OpenCode also finds in a directory the user
-    keeps, as a different file; OpenCode then loads one of the two at random."""
-    ours: dict[str, Path] = {}
-    for root in (packaged_dir(config_dir) / "skills", skills_dir(config_dir)):
-        if root.is_dir():
-            for entry in sorted(root.iterdir()):
-                if (entry / "SKILL.md").is_file():
-                    ours.setdefault(entry.name, (entry / "SKILL.md").resolve())
-    roots = [Path(config_dir) / name for name in FOREIGN_SKILL_ROOTS] + [Path(user_home) / name for name in USER_SKILL_ROOTS]
-    found = []
-    # ponytail: matches top-level skill directories by name; OpenCode keys on the frontmatter name.
-    for root in roots:
-        for name, mine in ours.items():
-            other = root / name / "SKILL.md"
-            if other.is_file() and other.resolve() != mine:
-                found.append((name, root / name))
-    return found
+    """``(skill, other copy)`` for each dotbrain skill OpenCode also finds, under the same name, in a
+    directory the user keeps, as a different file; OpenCode then loads one of the two at random."""
+    ours: dict[str, set[Path]] = {}
+    for skill in skill_index(_global_roots(config_dir)):
+        if skill["name"] is not None:
+            ours.setdefault(skill["name"], set()).add(Path(skill["file"]).resolve())
+    # The folders OpenCode scans besides dotbrain's: its config's own, without hidden folders, and
+    # the Claude and agents homes, with them.
+    others = (skill_index([Path(config_dir) / name for name in FOREIGN_SKILL_ROOTS])
+              + skill_index([Path(user_home) / name for name in USER_SKILL_ROOTS], dot=True))
+    return [(skill["name"], Path(skill["file"]).parent) for skill in others
+            if skill["name"] in ours and Path(skill["file"]).resolve() not in ours[skill["name"]]]
