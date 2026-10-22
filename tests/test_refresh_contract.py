@@ -219,6 +219,34 @@ def test_managed_convention_parent_symlink_preserves_user_content_before_writes(
     assert (brain / 'DOTBRAIN.md').read_text() == 'Old convention\n'
 
 
+def test_batch_skips_checkout_on_another_machine_but_refreshes_shared_brain(setup, tmp_path):
+    home, _, _ = setup
+    second = project(home, tmp_path / 'elsewhere', name='second')
+    (tmp_path / 'elsewhere').rename(tmp_path / 'gone')
+    (second / '.brain' / 'DOTBRAIN.md').write_text('old\n', encoding='utf-8')
+    result = CliRunner().invoke(app, ['refresh', '--all', '--home', str(home), '--json'])
+    assert result.exit_code == 0, result.output
+    target = json.loads(result.stdout)['targets'][1]
+    assert target['status'] == 'success'
+    assert target['data']['shared_brain_changes'] == ['DOTBRAIN.md']
+    assert any('not on this machine' in f['message'] for f in target['findings'])
+    assert not (tmp_path / 'elsewhere').exists()
+
+
+@pytest.mark.parametrize('local_override', [False, True])
+def test_absent_checkout_still_fails_when_named_or_overridden(setup, tmp_path, local_override):
+    home, _, _ = setup
+    second = project(home, tmp_path / 'elsewhere', name='second')
+    (tmp_path / 'elsewhere').rename(tmp_path / 'gone')
+    if local_override:
+        (second / '.repo.local').write_text(str(tmp_path / 'missing-local'), encoding='utf-8')
+        result = workflows.refresh_projects(home, all_projects=True)
+        assert result.targets[1].status == 'failure'
+    else:
+        result = workflows.refresh_project(home, 'second')
+    assert any('registered checkout is missing' in e for e in result.errors)
+
+
 def test_filtered_batch_isolates_invalid_config_and_continues(setup, tmp_path):
     home, brainspace, _ = setup
     (brainspace / '.brain' / 'project.yaml').write_text('agents: [codex]\nbeads: {mode: none}\n', encoding='utf-8')

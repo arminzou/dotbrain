@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import subprocess
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import yaml
@@ -320,6 +320,12 @@ def refresh_projects(
                     checkout=str(selected.checkout) if selected.checkout else None,
                     data={'shared_brain_changes': [], 'shared_tracker_changes': [], 'checkout_changes': []})
         result.targets.append(target)
+        if (all_projects and selected.checkout is not None and not selected.checkout.is_dir()
+                and not (selected.brainspace / '.repo.local').is_file()):
+            # A shared .repo may name a checkout that lives only on another machine.
+            selected = replace(selected, checkout=None)
+            target.findings.append({'severity': 'warning',
+                                    'message': 'checkout not on this machine; checkout refresh skipped'})
         try:
             workspaces = _refresh_preflight(dotbrain_home, selected, runtime, run)
             target.findings += [{'severity': 'warning', 'message': entry}
