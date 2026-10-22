@@ -160,7 +160,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         if rt.hooks and not rt.home_env:
             findings.extend(_check_plugin(home, rt.key))
         # An owned copy or a configured global target both mean this machine expects the plugin;
-        # that copy, current and enabled, is also what delivers the Hermes session hooks.
+        # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.
         if rt.home_env and (rt.key in configured or assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home))):
             directory = runtimes.user_dir(rt, home)
             findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
@@ -176,7 +176,7 @@ def _check_opencode_plugin(config_dir: Path, home: Path) -> list[Finding]:
         if state in ("missing", "foreign"):
             return _opencode_absent(config_dir, state)
         target = opencode.plugin_file(config_dir)
-        findings = [Finding("ok", f"opencode: dotbrain plugin and skills current at {target}") if state == "current"
+        findings = [Finding("ok", f"opencode: dotbrain plugin, with its session hooks, and skills current at {target}") if state == "current"
                     else Finding("warn", f"opencode: dotbrain delivery is stale at {config_dir}",
                                  "run dotbrain bootstrap --runtime opencode")]
         findings.extend(Finding("warn", f"opencode: skill {name} is also at {other}; OpenCode loads one of the two at random",

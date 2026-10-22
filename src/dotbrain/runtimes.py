@@ -36,7 +36,7 @@ RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
     "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True),
     "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", hooks=True, home_env="HERMES_HOME"),
-    "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", home_env="XDG_CONFIG_HOME",
+    "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", hooks=True, home_env="XDG_CONFIG_HOME",
                         home_default=".config", home_subdir="opencode"),
 }
 

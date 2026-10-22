@@ -13,8 +13,24 @@
  * `/<skill>` command still loads it. Project skills the CLI links into `.opencode/skills/` get the
  * same rule.
  *
+ * Session hooks hand each OpenCode event to `dotbrain hook run --checkout <worktree>`, which decides
+ * wiring, assembles the convention and syncs; this file only maps events and caches what the CLI
+ * printed, and only in git projects:
+ *
+ * - the first `chat.message` of a root session runs `startup` (`resume` for a session this instance
+ *   did not see created) and caches the convention; `experimental.chat.system.transform` adds it to
+ *   every request of that session, since OpenCode rebuilds the system prompt each time;
+ * - `session.compacted` runs `compaction` and refreshes the cached convention;
+ * - `session.idle` ends every run loop: `turn-end` pushes in the background;
+ * - `dispose` tears the instance down, as on exit: `session-end` schedules a full sync;
+ * - child sessions (task subagents, which have a `parentID`) get no convention and no sync.
+ *
+ * Every hook fails open: OpenCode gives hooks no timeout and a throwing hook fails the prompt, so a
+ * missing, failing or slow `dotbrain` leaves the agent untouched.
+ *
  * Node built-ins only: OpenCode installs no dependencies for this file.
  */
+import { spawn } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -107,9 +123,144 @@ function denyLast(permission, names) {
   return rules
 }
 
-async function server({ directory, worktree } = {}) {
+// The CLI's session start waits at most 10 s for sync.
+const START_TIMEOUT_MS = 12_000
+// First line of every convention `dotbrain hook run` prints.
+const HEADING = "## dotbrain convention"
+
+function isExecutable(target) {
+  try {
+    if (!fs.statSync(target).isFile()) return false
+    if (process.platform !== "win32") fs.accessSync(target, fs.constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** `dotbrain` on PATH, as a shell would find it; undefined when absent. */
+function findCli() {
+  const exts = process.platform === "win32" ? (process.env.PATHEXT || ".COM;.EXE;.BAT;.CMD").split(";") : [""]
+  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
+    if (!dir) continue
+    for (const ext of exts) {
+      const file = path.join(dir, "dotbrain" + ext)
+      if (isExecutable(file)) return file
+    }
+  }
+}
+
+function spawnCli(event, checkout, options) {
+  const exe = findCli()
+  if (!exe) return undefined
+  const args = ["hook", "run", "--event", event, "--checkout", checkout]
+  const opts = { windowsHide: true, ...options }
+  // Node runs .cmd and .bat files only through cmd.exe.
+  // ponytail: cmd.exe still expands %VAR% inside a quoted path; an .exe has no such issue.
+  const child = /\.(cmd|bat)$/i.test(exe)
+    ? spawn(`"${exe}"`, args.map((arg) => `"${arg}"`), { ...opts, shell: true })
+    : spawn(exe, args, opts)
+  child.on("error", () => {}) // an unhandled spawn error would crash OpenCode
+  return child
+}
+
+/** What `dotbrain hook run` printed for this event; "" when it is absent, fails or overruns. */
+function hookRun(event, checkout) {
+  return new Promise((resolve) => {
+    let out = ""
+    let child
+    // A timer of its own: a process the CLI leaves behind can hold the pipe open past the kill.
+    const timer = setTimeout(() => {
+      child?.kill()
+      resolve("")
+    }, START_TIMEOUT_MS)
+    const done = (text) => {
+      clearTimeout(timer)
+      resolve(text)
+    }
+    child = spawnCli(event, checkout, { stdio: ["ignore", "pipe", "ignore"] })
+    if (!child) return done("")
+    child.stdout.setEncoding("utf8").on("data", (chunk) => (out += chunk))
+    child.on("error", () => done(""))
+    child.on("close", (code) => done(code === 0 ? out.trim() : ""))
+  })
+}
+
+/** Start `dotbrain hook run` without waiting; the CLI starts its own detached sync. */
+function launch(event, checkout) {
+  spawnCli(event, checkout, { detached: true, stdio: "ignore" })?.unref()
+}
+
+/** `hook`, made never to throw or reject. */
+function failOpen(hook) {
+  return async (...args) => {
+    try {
+      await hook(...args)
+    } catch {
+      // a hook must never break the agent
+    }
+  }
+}
+
+function sessionHooks(client, checkout) {
+  const created = new Set() // sessions this instance saw created
+  const children = new Set() // child sessions: no convention, no sync
+  const conventions = new Map() // root session id -> Promise of its convention ("" when unwired)
+
+  async function isChild(id) {
+    if (children.has(id)) return true
+    if (created.has(id)) return false
+    try {
+      return Boolean((await client.session.get({ path: { id } }))?.data?.parentID)
+    } catch {
+      return false // an unknown session counts as a root: missing the convention costs more
+    }
+  }
+
+  return {
+    "chat.message": failOpen(async ({ sessionID } = {}) => {
+      if (!sessionID || children.has(sessionID)) return
+      if (!conventions.has(sessionID)) {
+        const event = created.has(sessionID) ? "startup" : "resume"
+        conventions.set(sessionID, isChild(sessionID).then((child) => {
+          if (!child) return hookRun(event, checkout)
+          children.add(sessionID)
+          conventions.delete(sessionID)
+          return ""
+        }))
+      }
+      await conventions.get(sessionID)
+    }),
+    "experimental.chat.system.transform": failOpen(async ({ sessionID } = {}, output) => {
+      if (!sessionID || !conventions.has(sessionID)) return
+      const text = await conventions.get(sessionID)
+      if (text && !output.system.some((part) => part.includes(HEADING))) output.system.push(text)
+    }),
+    event: failOpen(async ({ event } = {}) => {
+      const props = event?.properties ?? {}
+      if (event?.type === "session.created" && props.info?.id) {
+        created.add(props.info.id)
+        if (props.info.parentID) children.add(props.info.id)
+      } else if (event?.type === "session.compacted" && conventions.has(props.sessionID)) {
+        const old = conventions.get(props.sessionID)
+        conventions.set(props.sessionID, hookRun("compaction", checkout).then(async (text) => text || (await old)))
+      } else if (event?.type === "session.idle" && conventions.has(props.sessionID)) {
+        launch("turn-end", checkout)
+      }
+    }),
+    // Awaited at instance teardown (exit, quit, config reload); a killed process skips it.
+    dispose: failOpen(() => {
+      for (const _ of conventions.keys()) launch("session-end", checkout)
+      conventions.clear()
+    }),
+  }
+}
+
+async function server({ client, project: info, directory, worktree } = {}) {
   const project = [...new Set([worktree, directory].filter(Boolean))].map((dir) => path.join(dir, ".opencode", "skills"))
   return {
+    // A git project's worktree is the checkout; elsewhere there is nothing to wire.
+    ...(info?.vcs === "git" && worktree ? sessionHooks(client, worktree) : {}),
     async config(cfg) {
       const roots = SKILL_ROOTS.filter(isDir)
       cfg.skills ??= {}
@@ -124,7 +275,6 @@ async function server({ directory, worktree } = {}) {
         if (agent && agent.permission != null) agent.permission = denyLast(agent.permission, names)
       }
     },
-    // Session hooks join this object.
   }
 }
 
