@@ -95,7 +95,7 @@ def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path
     assert (root / "skills" / "skills.yaml").read_text() == custom
 
 
-def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path):
+def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
     dest = tmp_path / "codex-skills"
     (dotbrain_home / "skills" / "skills.yaml").write_text(
         "targets:\n"
@@ -104,14 +104,14 @@ def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_pat
         "  - misc/discovery-test\n"
     )
 
-    result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
+    result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert result.warnings == []
     assert (dest / "discovery-test").is_symlink()
     assert any(line.startswith("delivered global") for line in result.logs)
 
 
-def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_path: Path):
+def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
     dest = tmp_path / "codex-skills"
     (dotbrain_home / "skills" / "skills.yaml").write_text(
         "targets:\n"
@@ -120,7 +120,7 @@ def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_p
         "  - misc/not-installed\n"
     )
 
-    result = bootstrap_mod.link_global_skills(dotbrain_home, "codex")
+    result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert any("skill not found" in warning for warning in result.warnings)
     assert result.logs == []
@@ -141,6 +141,7 @@ def test_link_global_skills_expands_windows_tilde_target(
 
 
 def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_path: Path, monkeypatch):
+    set_fake_home(monkeypatch, tmp_path)
     # 'skillsonly' has skills and hooks but no native subagents; 'later' is a runtime this version
     # does not recognize, as a newer dotbrain sharing the home might declare.
     monkeypatch.setitem(runtimes.RUNTIMES, "skillsonly",
@@ -248,8 +249,8 @@ def test_link_global_subagents_warns_once_for_missing_name(
     assert result.warnings == ["subagent not found: missing-agent"]
 
 
-def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path):
-    result = bootstrap_mod.link_global_skills(dotbrain_home)
+def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path, fake_home: Path):
+    result = bootstrap_mod.link_global_skills(dotbrain_home, home=fake_home)
 
     assert not result.warnings
 
