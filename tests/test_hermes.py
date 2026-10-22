@@ -92,6 +92,39 @@ def test_veto_blocks_every_path_the_host_resolves_to_skill_md(tmp_path: Path):
             assert not (skill_md.parent / alias).exists()
 
 
+def test_veto_keeps_linked_private_manual_skills_manual(tmp_path: Path, monkeypatch):
+    # Hermes ignores disable-model-invocation in project and home skills as well.
+    checkout, home = tmp_path / "repo", tmp_path / "hermes"
+
+    def skill(root, name, manual):
+        directory = root / "skills" / name
+        directory.mkdir(parents=True)
+        flag = "disable-model-invocation: true\n" if manual else ""
+        (directory / "SKILL.md").write_text(f"---\nname: {name}\ndescription: x\n{flag}---\n", encoding="utf-8")
+        (directory / "notes.md").write_text("x", encoding="utf-8")
+
+    skill(checkout / ".hermes", "private-manual", True)
+    skill(home, "global-manual", True)
+    skill(home, "auto", False)
+    skill(checkout / ".hermes", "both", False)
+    skill(home, "both", True)  # the checkout's skill shadows the home's, as in Hermes
+    monkeypatch.chdir(checkout)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    ctx = FakeContext()
+    _load_plugin().register(ctx)
+    [veto] = ctx.hooks["pre_tool_call"]
+
+    def view(name, file_path=None):
+        return veto(tool_name="skill_view", args={"name": name, "file_path": file_path})
+
+    assert view("private-manual") == {"action": "block",
+                                      "message": "private-manual runs only when the user invokes /private-manual."}
+    assert view("global-manual") is not None
+    assert view("private-manual", "notes.md") is None
+    for name in ("auto", "both", "missing", "../hermes/skills/global-manual", "other:global-manual"):
+        assert view(name) is None, name
+
+
 @pytest.fixture
 def fake_hermes(monkeypatch):
     """A `hermes` on PATH whose invocations are recorded instead of run."""

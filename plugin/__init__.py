@@ -3,7 +3,9 @@
 Registers each skill under ``skills/`` from its own SKILL.md, so supporting files stay next to it,
 and keeps explicit-only skills manual: Hermes ignores ``disable-model-invocation``, so a
 ``pre_tool_call`` veto refuses the model's own ``skill_view`` of them while the user's
-``/dotbrain:<skill>`` command, which loads the skill without a tool call, still works.
+``/dotbrain:<skill>`` command, which loads the skill without a tool call, still works. The veto
+covers the private skills dotbrain links into the checkout's and the Hermes home's ``skills/``
+directories too.
 
 Session hooks hand each Hermes event to ``dotbrain hook run``, which decides wiring, assembles the
 convention and syncs; this file only maps events and caches what the CLI printed:
@@ -107,19 +109,43 @@ def _supporting_file(skill_md, file_path):
     return not (os.path.exists(target) and os.path.samefile(target, skill_md))
 
 
+def _hermes_home():
+    try:
+        from hermes_constants import get_hermes_home  # not public Hermes API; may move
+        return Path(get_hermes_home())
+    except Exception:  # noqa: BLE001
+        return Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
+
+
+def _linked_manual(name):
+    """SKILL.md of a manual-only skill in the checkout's or the Hermes home's ``skills/``, where
+    dotbrain links private skills; the checkout wins, as in Hermes. None for any other skill."""
+    if not name or name in (".", "..") or "/" in name or "\\" in name:
+        return None
+    # ponytail: looks the skill up by directory name, which is how dotbrain links it.
+    for root in (Path(_checkout()) / ".hermes" / "skills", _hermes_home() / "skills"):
+        skill_md = root / name / "SKILL.md"
+        if skill_md.is_file():
+            fields = _frontmatter(skill_md.read_text(encoding="utf-8"))
+            return skill_md if fields.get("disable-model-invocation", "").lower() == "true" else None
+    return None
+
+
 def manual_only_veto(manual):
     """A ``pre_tool_call`` hook that blocks the model from loading a manual-only skill.
 
-    ``manual`` maps each manual-only skill name to its SKILL.md path.
+    ``manual`` maps each packaged manual-only skill name to its SKILL.md path; an unnamespaced name
+    is looked up among the linked private skills.
     """
 
     def veto(tool_name="", args=None, **_):
         if tool_name != "skill_view" or not isinstance(args, dict):
             return None
         namespace, _, name = str(args.get("name") or "").strip().lstrip("/").rpartition(":")
-        if namespace == NAMESPACE and name in manual and not _supporting_file(manual[name], args.get("file_path")):
-            return {"action": "block",
-                    "message": f"{NAMESPACE}:{name} runs only when the user invokes /{NAMESPACE}:{name}."}
+        skill_md = manual.get(name) if namespace == NAMESPACE else None if namespace else _linked_manual(name)
+        if skill_md is not None and not _supporting_file(skill_md, args.get("file_path")):
+            label = f"{namespace}:{name}" if namespace else name
+            return {"action": "block", "message": f"{label} runs only when the user invokes /{label}."}
         return None
 
     return veto
@@ -131,8 +157,7 @@ def register(ctx):
         ctx.register_skill(name, skill_md, description=fields.get("description", ""), frontmatter=fields)
         if fields.get("disable-model-invocation", "").lower() == "true":
             manual[name] = skill_md
-    if manual:
-        ctx.register_hook("pre_tool_call", manual_only_veto(manual))
+    ctx.register_hook("pre_tool_call", _fail_open(manual_only_veto(manual)))
     for name, hook in HOOKS.items():
         ctx.register_hook(name, _fail_open(hook))
 
