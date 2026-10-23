@@ -83,6 +83,11 @@ dotbrain detach [OPTIONS]
 
 只读检查机器是否就绪以及所选项目的配置。
 
+以下三种情况会给出警告：CLI 和已注册的 Claude Code 插件版本不一致（两者一起升级）；
+Brain 的 DOTBRAIN.md 与当前 CLI 自带的约定不同（运行 `dotbrain refresh`）；
+设计仍为 active，但通过 spec 关联的 epic 已关闭（运行 `close-design` 或修正 lifecycle）。
+缺少检查所需的数据时会跳过并说明原因。这些警告不影响退出码。
+
 ```text
 dotbrain doctor [OPTIONS]
 ```

@@ -13,6 +13,7 @@ import yaml
 
 from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
+from dotbrain import __version__
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 PROBE_TIMEOUT = 15
@@ -131,6 +132,7 @@ def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None)
 
 def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings = [_check_binary("git"), _check_dotbrain_config(root), _check_templates(root)]
+    findings.extend(_check_plugin_version(home))
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
     for kind in ("skills", "agents"):
@@ -176,6 +178,64 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
         findings.extend(_check_cursor_hooks(home))
     return findings
+
+
+def _check_plugin_version(home: Path) -> list[Finding]:
+    try:
+        entries = claude_plugins.installed(home / ".claude").get("dotbrain@dotbrain", [])
+        if not entries:
+            return [Finding("info", "CLI/plugin version check skipped: Claude Code plugin registry or dotbrain entry unavailable")]
+        findings = []
+        for entry in entries:
+            version = entry.get("version")
+            if not isinstance(version, str) or not version:
+                findings.append(Finding("info", "CLI/plugin version check skipped: registered plugin version unavailable"))
+            elif version != __version__:
+                findings.append(Finding("warn", f"CLI {__version__} differs from registered Claude Code plugin {version}",
+                                        "upgrade both the dotbrain CLI and Claude Code plugin to matching versions"))
+        return findings or [Finding("ok", "CLI and registered Claude Code plugin versions match")]
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("info", f"CLI/plugin version check skipped: plugin registry unavailable: {exc}")]
+
+
+def _check_convention(brainspace: Path) -> list[Finding]:
+    try:
+        convention = brainspace / ".brain/DOTBRAIN.md"
+        if not convention.is_file():
+            return [Finding("info", "Brain convention check skipped: DOTBRAIN.md unavailable", "run dotbrain refresh")]
+        packaged = resource_loader.resource("templates/brain/DOTBRAIN.md").read_text(encoding="utf-8")
+        if convention.read_text(encoding="utf-8") != packaged:
+            return [Finding("warn", "Brain DOTBRAIN.md differs from the installed CLI's packaged convention", "run dotbrain refresh")]
+        return [Finding("ok", "Brain DOTBRAIN.md matches the installed convention")]
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("info", f"Brain convention check skipped: input unavailable: {exc}")]
+
+
+def _check_design_lifecycle(brainspace: Path, mode: str, run: Runner) -> list[Finding]:
+    try:
+        directory = brainspace / ".brain/designs"
+        if not directory.is_dir():
+            return [Finding("info", "design lifecycle check skipped: designs directory unavailable")]
+        active = [path for path in sorted(directory.glob("*.md"))
+                  if site._field(path.read_text(encoding="utf-8"), "lifecycle") == "active"]
+        if not active:
+            return [Finding("info", "design lifecycle check: no active designs")]
+        if mode == "none" or not (brainspace / ".beads/metadata.json").is_file():
+            return [Finding("info", "design lifecycle check skipped: tracker disabled or not initialized")]
+        response = run(["bd", "--readonly", "list", "--all", "--type", "epic", "--limit", "0", "--json"],
+                       cwd=brainspace, check=False, timeout=PROBE_TIMEOUT, env=beads._beads_env(brainspace))
+        if response.returncode:
+            return [Finding("info", "design lifecycle check skipped: tracker unavailable")]
+        epics = json.loads(response.stdout)
+        if not isinstance(epics, list) or any(not isinstance(epic, dict) for epic in epics):
+            raise ValueError("expected a list of epics")
+        closed_specs = {epic.get("spec_id") for epic in epics if epic.get("status") == "closed"}
+        findings = [Finding("warn", f"design {path.name} is active while its spec-linked epic is closed",
+                            "run close-design or correct the design lifecycle")
+                    for path in active if f"design:{path.stem}" in closed_specs]
+        return findings or [Finding("ok", "active designs have no closed spec-linked epics")]
+    except DIAGNOSIS_ERRORS as exc:
+        return [Finding("info", f"design lifecycle check skipped: input or tracker unavailable: {exc}")]
 
 
 def _check_cursor_hooks(home: Path) -> list[Finding]:
@@ -434,6 +494,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
     agents = subagents.project_link_set(config.load_project_subagents(root, target.project))
     if not (target.brainspace / ".brain").is_dir():
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
+    findings.extend(_check_convention(target.brainspace))
+    findings.extend(_check_design_lifecycle(target.brainspace, beads.mode, run))
     repo = target.checkout
     if repo is None:
         findings.append(Finding("warn", paths.NO_CHECKOUT,

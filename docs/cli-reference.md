@@ -88,6 +88,8 @@ dotbrain detach [OPTIONS]
 
 Read-only health check of machine readiness and selected project setup.
 
+Warns about CLI/Claude Code plugin version skew (upgrade both), a stale Brain convention (run dotbrain refresh), and active designs with closed spec-linked epics (run close-design or correct the lifecycle). Unavailable drift inputs are skipped with an explanation; these warnings do not change the exit status.
+
 ```text
 dotbrain doctor [OPTIONS]
 ```

@@ -192,7 +192,13 @@ def doctor(home: HomeOption = None,
            all_projects: bool = typer.Option(False, "--all", help="Inspect every registered project."),
            verbose: bool = typer.Option(False, "--verbose", "-v", help="Include healthy checks and informational context."),
            json_output: JsonOption = False) -> None:
-    """Read-only health check of machine readiness and selected project setup."""
+    """Read-only health check of machine readiness and selected project setup.
+
+    Warns about CLI/Claude Code plugin version skew (upgrade both), a stale Brain
+    convention (run dotbrain refresh), and active designs with closed spec-linked
+    epics (run close-design or correct the lifecycle). Unavailable drift inputs
+    are skipped with an explanation; these warnings do not change the exit status.
+    """
     label = "Checking machine and all projects..." if all_projects else "Checking machine and project..."
     try:
         root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
