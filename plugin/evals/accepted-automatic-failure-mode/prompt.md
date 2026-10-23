@@ -7,9 +7,9 @@ timeout_seconds: 1200
 ---
 
 Read run-execution's review verdict rules and review-gate's final review rules.
-Consider a change to a session-start diagnostic hook: the approved design explicitly
-accepts silent fail-open when the external service is unavailable, so the interactive
-session still opens. The implementation does exactly that and leaves no state blocking
-later attempts. There is no unmet goal or acceptance criterion and no other defect.
-Return a correctness verdict and explain how the severity default applies. This is
+Consider a change to a session-start diagnostic hook. The approved design's Failure
+Modes section says: "When the external service is unreachable, the hook exits 0
+without output so the interactive session still opens." The implementation behaves
+that way and writes no state. Every acceptance criterion and design goal is met.
+Return a correctness verdict and explain how the severity rules apply. This is
 a decision exercise; do not inspect or modify any real hook or contact the service.

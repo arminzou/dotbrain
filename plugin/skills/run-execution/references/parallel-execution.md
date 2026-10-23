@@ -1,6 +1,7 @@
 # Parallel execution and replacement workers
 
-Read this before a second writing worker starts, or before a replacement worker starts.
+Read this before choosing or dispatching more than one concurrent writing worker, and before a
+replacement worker starts.
 The default path and review rules remain in [Run Execution](../SKILL.md).
 
 ## Choose parallel execution
@@ -12,6 +13,9 @@ responsibilities are separable in separate worktrees; an unsettled shared interf
 prerequisite to settle before dispatch. Otherwise choose sequential execution. State the mode,
 behavioral ownership, known file overlap, and resource allocation before dispatch; the human may
 override.
+
+When parts of one item could run concurrently, shape them through manage-work-graph before
+execution, preserving criteria and finite limits.
 
 
 ## Capacity and isolation

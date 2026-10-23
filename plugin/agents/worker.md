@@ -49,22 +49,23 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
 - Run the assigned checks. When none are assigned, run the smallest relevant
   checks you can identify and report them as your own choice. Record each result
   on your work item, when there is one, as
-  `## Attempt <n>: PASS | FAIL @ <revision>`. Apply `run-execution`'s checkpoint
-  retry rules unless the assignment overrides them; stop at the limit and report attempts.
+  `## Attempt <n>: PASS | FAIL @ <revision>`. After 3 consecutive failures on one
+  checkpoint, stop and report the attempts, unless the assignment names another limit.
 - Write comment files with the file-writing tool, never through the shell, which
   can corrupt Windows paths and quotes.
 - Run git as plain, separate commands. When told to set commit identity, set the
   `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables in the shell you are
   using.
-- Follow the dotbrain convention's public/private boundary for the candidate and report.
+- Keep private Brain context out of code, comments, and commit messages: no Brain
+  paths, ADR numbers, or decision-record identifiers. State the reason plainly.
 
 ## Finish
 
 Commit your finished candidate under the commit convention the assignment names,
 or, when it names none, the repository's written commit rules, else the style of
 its recent history.
-Keep your claim and return the candidate to the lead. Lead closure follows
-`manage-work-graph`'s ownership and closure rules. Report, in this order:
+Keep your claim: the lead integrates and checks, then closes the item under your
+actor, naming itself in the close reason, while you stay the assignee. Then report, in this order:
 
 - **Candidate:** commit revision and branch.
 - **Checks:** one line per check: command and pass/fail; on failure include failing test names

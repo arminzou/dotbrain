@@ -63,8 +63,10 @@ by others:
    and the reason. Write `none` if there are none.
 4. **Still unknown**: what you could not settle, and what would settle it.
 
-Follow the dotbrain convention's public/private boundary when preparing the report
-for reuse outside this session. Private source references may accompany the private answer.
+You may cite Brain paths and decision-record identifiers to the requester. Anything
+that goes into public text, such as code, commits, pull requests, or public docs,
+must state the reason in plain terms instead; say so when your answer is likely
+to be reused that way.
 
 ## Never
 

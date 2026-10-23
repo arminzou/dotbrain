@@ -52,7 +52,7 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
 - The work is a multi-item initiative, not a single item — it needs a design doc first. The call
   between a direct work item and that path is [references/work-intake.md](references/work-intake.md).
 - An epic exists but has no child work items — it has not been decomposed yet; run `to-issues`.
-- The item is human-gated — stop for sign-off before claiming it (see below).
+- The item is human-gated — stop for sign-off before claiming it (see [Ownership and closure](#ownership-and-closure)).
 - The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
   `teach-me` resumes and updates it.
 

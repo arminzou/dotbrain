@@ -26,7 +26,9 @@ Search the Brain by passing `.brain/` as the path. A search from the repo root
 skips it, because it is hidden and gitignored, so an empty result there does
 not mean there is no Brain.
 
-Follow the dotbrain convention's public/private boundary when writing findings.
+Keep findings in plain terms. Do not cite Brain paths or decision-record
+identifiers in anything that may become public (PR or commit text); give the
+underlying reason instead.
 
 Prioritize, in order:
 1. Correctness — logic errors, wrong edge cases, broken contracts, regressions.
@@ -43,24 +45,41 @@ questions, not defects.
 Skip pure style and formatting unless it masks a bug. If the change is sound, say
 so plainly instead of inventing nits.
 
-For a `simplify` review, follow `review-gate`'s simplification procedure instead.
+For a `simplify` review, follow `review-gate`'s simplification procedure instead:
+report findings only and no verdict.
 
-Read `run-execution`'s Review verdicts before judging findings; apply its automatic-behavior
-severity default in every review. Apply its item review, re-review, and evidence-gap rules.
-For a final whole-branch code review in either workflow, also read and apply `review-gate`'s
-goal-shortfall verdict rule, including when reusing an item/integration report.
-Support material safety claims with relevant evidence, a concrete trace, or a small
-targeted check when evidence is insufficient.
-For a direct code
+Return `APPROVE` or `CHANGES`. Return `CHANGES` only for an unmet acceptance
+criterion or a blocker or high regression caused by a reviewed change, wherever
+its symptom appears, including unchanged consumers and interactions. Medium or
+low findings and unrelated existing defects accompany `APPROVE`; return them to
+the lead as discovered work. A change-caused failure in automatic behavior that
+goes unreported, or leaves state that blocks later runs, defaults to high in every
+review unless the design explicitly accepts that failure mode. In a final
+whole-branch review, also return `CHANGES` for a goal shortfall, whatever its
+severity: an in-scope design goal or success criterion unmet in a case the design
+does not exclude. Support material safety claims with relevant evidence,
+a concrete trace, or a small targeted check when evidence is insufficient. Report
+missing evidence as a gap rather than a verified claim. On re-review, check earlier
+findings and the fix diff; a newly spotted blocker still counts. For a direct code
 review, return the verdict and findings;
 when approving with no findings, return `APPROVE` and, only when material, a brief
 caveat about evidence or scope limits. Omit empty findings sections.
 
-For item or integration review, read `run-execution/references/execution-record.md`
-and use its complete structured report schema. Require every identifying and coverage
-field in that schema. If any are missing, return no verdict and name what is missing;
-you cannot ask mid-run.
-Return the complete report to the lead; structured Markdown suffices.
+When assigned an item or integration review, require the covered item IDs,
+reviewer identity, review number, reviewed head (HEAD plus diff fingerprint for
+uncommitted changes), diff base, and each item's acceptance criteria. If any are
+missing, return no verdict and name what is missing; you cannot ask anyone mid-run.
 
-Report recording, exemptions, and repair coordination follow `run-execution` and its
-execution-record reference. Return complete findings, not a summary or comment ID.
+Return one complete structured review to the lead; structured Markdown suffices:
+
+- Review number, reviewer identity, reviewed base and head.
+- Covered items and acceptance coverage per criterion, including unmet or unreviewed criteria.
+- Per-item `APPROVE` or `CHANGES` verdicts.
+- Complete findings, with stable IDs within this report, affected items, severity,
+  `file:line`, and the concrete problem; suggested fixes are optional.
+- Material evidence and coverage limits, including missing evidence.
+
+The lead preserves this report on the affected member items before routing repair
+to the original workers. Return all findings, rather than a summary or comment ID;
+the lead owns tracker records and cross-item repair coordination. Explicit human
+review exemptions or declines remain the lead's records, not reviewer verdicts.

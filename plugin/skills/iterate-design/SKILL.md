@@ -199,7 +199,8 @@ Use this protocol throughout the handoff:
    - Otherwise print `ITERATING` and fix the weakest failing point next.
 
 Hard guards follow the convention's criteria ownership, authority, and hard-stop
-invariants. Apply the no-progress stop below; an inconclusive repeated plan needs a decision.
+invariants. Apply the no-progress stop below. A repeated plan or inconclusive check
+is a question for the human, not forward motion.
 
 ## Stop scopes
 

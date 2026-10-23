@@ -7,7 +7,7 @@ timeout_seconds: 300
 ---
 
 Read run-execution. You are the sole writer midway through an authorized item.
-The next operation is its narrow checkpoint. The once-only mechanical gate is
-later, and independent item review has not happened. You also need to explore a
+The next operation is its narrow checkpoint. Combined checks on the integrated
+candidate come later, and independent item review has not happened. You also need to explore a
 design choice that you will use in this session. State who performs each operation
 and why. Do not execute the hypothetical project commands or dispatch agents yet.

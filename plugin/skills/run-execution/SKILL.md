@@ -12,24 +12,26 @@ Read-only agents do not change execution mode.
 The HITL workflow returns to the human after each bounded execution. The handoff
 workflow chains executions through iterate-design's approved contract.
 
-**Before a second writing worker starts, or before a replacement worker starts, read
-[parallel execution](references/parallel-execution.md).** It owns capacity, isolation,
-group integration, containment, and replacement rules.
+**Read [parallel execution](references/parallel-execution.md) before choosing or
+dispatching more than one concurrent writing worker, and before a replacement worker
+starts.** It owns capacity, isolation, group integration, containment, and replacement rules.
 
 The work graph and closure rules belong to [manage-work-graph](../manage-work-graph/SKILL.md).
 The handoff loop and its stop scopes belong to [iterate-design](../iterate-design/SKILL.md).
 
-Workers use the lead's runtime unless the human requests another in the request or a
-project rule. Never change assigned runtime, scope, or checks on your own: ask, or stop
-blocked in an autonomous run. Before dispatch, fix rounds, cancellation, or recovery,
-read the affected runtime's mechanism: [Claude Code](references/claude-code.md),
-[Codex](references/codex.md), or lead-only [Hermes](references/hermes.md),
-[OpenCode](references/opencode.md), [Pi](references/pi.md), [Cursor](references/cursor.md).
-Prefer native subagents when runtimes match. Record any uncovered mechanism chosen by
+Workers use the lead's runtime unless the human explicitly asks for another, in the request
+or in a project rule they wrote. Never change assigned runtime, scope, or checks on your own:
+ask, or stop blocked in an autonomous run. Before dispatch, read the runtime reference of the
+lead and of each worker runtime, and the worker's again before fix rounds, cancellation, or
+recovery: [Claude Code](references/claude-code.md), [Codex](references/codex.md), or lead-only
+[Hermes](references/hermes.md), [OpenCode](references/opencode.md), [Pi](references/pi.md),
+[Cursor](references/cursor.md). They supply mechanisms; this skill's contract governs every
+runtime. Prefer native subagents when runtimes match. Record any uncovered mechanism chosen by
 judgment so a fix round or takeover can repeat it.
 
 Never spawn an agent only to check a checkpoint. The writer runs its own checkpoint
-checks. Spawn the verifier for the once-only gate, at most one verifier; spawn a reviewer
+checks. The lead runs gate checks unless the caller names a verifier, at most one;
+iterate-design reserves its verifier for the once-only in-loop gate. Spawn a reviewer
 for item review. Keep exploration that feeds a design in the session that will use it.
 
 Both workflows run on a dedicated branch and land through a review surface: a PR, or the branch
@@ -50,15 +52,18 @@ For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, neve
 `bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
 Stop for missing authorized scope or required checks. Exclude `learn:` beads.
-Keep human-gated items in scope and their dependents waiting. Missing required
-capabilities block execution; optional parallelism may fall back to serial execution
-after reporting it, without weakening scope, checks, isolation, or gates.
+Keep human-gated items in scope and their dependents waiting. A missing required
+capability blocks execution: worktree isolation for concurrent writers, a distinct Beads
+actor per worker, or an independent reviewer when review is required. Stop and report;
+never weaken the contract to fit the runtime. If only optional parallelism is missing,
+report the serial fallback before continuing, keeping scope, isolation, checks, and gates.
 
-At most one active writer owns an item. Shape concurrent parts through manage-work-graph
-before execution, preserving criteria and finite limits. Delegated workers return
+At most one active writer owns an item. Delegated workers return
 candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
 permissions and actor rules. Worker startup is defined only
-in the [worker role](../../agents/worker.md) and its Codex counterpart.
+in the [worker role](../../agents/worker.md) and its Codex counterpart. An unwired linked
+worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
+never rely on where one began.
 
 For code work, keep the delivery branch at its last accepted revision. Work and repairs
 stay on an isolated candidate branch even with one writer; the sole writer may use the
@@ -68,7 +73,7 @@ resetting or rewriting it. For other work, name the accepted artifact and target
 Use short branch slugs without work-item IDs: branch names reach public history.
 
 After passing writer checks, review and run combined checks against the candidate head.
-The lead runs these checks; reserve the verifier for the once-only gate. Only after
+Only after
 required review, checks, member acceptance, and human gates pass at that revision,
 promote with `git merge --ff-only <candidate-branch>` and confirm the delivery head
 equals it. Then set `dotbrain_phase: verified` and apply native closure through
@@ -99,7 +104,8 @@ override remains binding.
 
 Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
 it authored. Fix the boundary at the group base and exact integrated head, included items,
-acceptance criteria, affected consumers, and interactions. The reviewer returns its complete
+acceptance criteria, affected consumers, and interactions, and pass that boundary, the review
+number, and each item's acceptance criteria in the review request. The reviewer returns its complete
 structured report without tracker writes; the lead records it on member beads before notifying
 workers, following [the execution record](references/execution-record.md). Preserve
 the complete report using the execution record's schema and cross-item finding links.
@@ -110,7 +116,8 @@ Item and integration reviews never get a batch review bead.
 Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed
 changes, including symptoms in unchanged consumers or interactions. Return `APPROVE` with
 `medium` or `low` findings and unrelated existing defects; the lead files those as discovered
-work for a later bounded execution. Missing evidence or coverage is a gap, never a verified claim.
+work for a later bounded execution. Missing evidence is a gap, never a verified claim; missing
+coverage is a gap, never acceptance.
 
 A change-caused failure in automatic behavior that goes unreported, or leaves state
 that blocks later runs, defaults to `high` in every review unless the design explicitly
@@ -138,7 +145,8 @@ a conflict rebase or integrated-check repair, needs refreshed evidence before cl
 Acceptance/UAT records revision, environment, agreed journeys, actual checks/results,
 and gaps. An unexercised journey never passes or automatically becomes a request for
 human checking. Required UAT with failed, missing, or stale evidence holds affected work;
-investigate and repair within remaining limits. Record every finding's disposition.
+investigate and repair within remaining limits. Record every finding's disposition: blocking
+findings resolved; others applied, filed with follow-up IDs, or declined with reasons.
 A passing check resets only its own checkpoint streak; another attempt creates no new bead.
 
 ## Worker assignment

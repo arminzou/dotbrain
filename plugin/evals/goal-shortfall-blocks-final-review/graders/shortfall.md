@@ -1,4 +1,4 @@
 ---
 type: regex
-pattern: '(?is)(settings|goal|criterion|criteria).*(unmet|shortfall|not met|does not|CHANGES)'
+pattern: '(?i)(?=[^.\n]*settings)(?=[^.\n]*(goal shortfall|shortfall|goal[^.\n]*(unmet|not met|not delivered)))[^.\n]+'
 ---

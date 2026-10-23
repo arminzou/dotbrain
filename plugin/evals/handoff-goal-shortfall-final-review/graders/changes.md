@@ -1,5 +1,5 @@
 ---
 type: regex
 target: { source: file, path: .eval/calls.log }
-pattern: '(?i)(verdict[^\n]*(changes)|CHANGES)'
+pattern: '(?:^|\t|\n)[ >*#-]*(?:Review \d+|Verdict)\**: *\**CHANGES\b|"verdict" *: *"changes"|\bverdict=changes\b'
 ---

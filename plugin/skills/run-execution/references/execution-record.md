@@ -45,9 +45,8 @@ Review beads belong to review-gate and are never executed here.
 ## Write method
 
 Use [manage-work-graph's metadata and comment write method](../../manage-work-graph/SKILL.md#metadata-write-method).
-Acceptance/UAT evidence records revision, environment, agreed journeys, actual results,
-and gaps under Run Execution's acceptance rules. Record every finding's disposition:
-blocking findings resolved; others applied, filed with follow-up IDs, or declined with reasons.
+Acceptance/UAT evidence and finding dispositions follow
+[Run Execution's acceptance rules](../SKILL.md#item-review-and-acceptance).
 
 ## Comment headers
 
