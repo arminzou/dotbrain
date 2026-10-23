@@ -27,7 +27,6 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`unwire`](#dotbrain-unwire) | 移除一个 checkout 的连接，保留它的 Brainspace 和任务跟踪数据库。 |
 | [`projects list`](#dotbrain-projects-list) | 根据本地声明和连接，列出所有已注册的项目。 |
 | [`projects show`](#dotbrain-projects-show) | 查看当前已连接的项目，或某个指定项目已注册的 checkout。 |
-| [`check-head`](#dotbrain-check-head) | 只读检查分支 head 是否与已通过审核或验证的版本一致。 |
 | [`skills list`](#dotbrain-skills-list) | 查找本地可用的技能。 |
 | [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能。 |
 | [`agents list`](#dotbrain-agents-list) | 查找本地可用的 Agent。 |
@@ -181,27 +180,6 @@ dotbrain projects show [OPTIONS]
 | --- | --- | --- |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--json` | — | 输出一个结构化结果。 |
-
-### `dotbrain check-head` {#dotbrain-check-head}
-
-检查分支 head 是否与通过审核的 review bead 或已验证任务中记录的版本一致。命令只读取 Git 和 Beads。
-
-```text
-dotbrain check-head [OPTIONS] ITEM
-```
-
-`ITEM` 是 review bead 或单个任务的 ID。review 需要 `code` 模式的 `approve` 或 `readiness` 模式的 `ready`，
-以 `range` 的末端为准；任务需要 `dotbrain_phase: verified` 和一个 `integrated` artifact。
-版本缩写通过 Git 解析后再比较。分支名如果包含任务 ID，也会检查失败；前缀来自 tracker 返回的 ID。
-只有确实存在的任务 ID 才算；`fix/<前缀>-login` 这类普通分支名不受影响。
-integrated artifact 是 `git-branch` 时必须写成 `<分支>@<版本>`。
-检查失败时退出码为 `1`。版本不一致或缺少通过记录时，会提示重新审核和检查；HEAD 处于 detached 状态时，需要用 `--branch` 指定分支。
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--branch` *text* | 当前分支 | 要检查的本地分支。 |
-| `--repo` *path* | 当前目录 | 要检查的 checkout。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ## 技能和 Agent {#skills-and-agents}

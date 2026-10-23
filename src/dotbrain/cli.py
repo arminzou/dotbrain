@@ -171,22 +171,6 @@ def _render_doctor(report: doctor_mod.DoctorReport, *, json_output: bool = False
 
 
 @app.command()
-def check_head(
-    item: str = typer.Argument(..., help="Review bead or verified single work item."),
-    branch: Optional[str] = typer.Option(None, "--branch", help="Local branch to check. Default: current branch."),
-    repo: Optional[Path] = typer.Option(None, "--repo", help="Checkout to inspect. Default: working directory."),
-    json_output: JsonOption = False,
-) -> None:
-    """Check that a branch matches its accepted head without writing Git or tracker state."""
-    from dotbrain import accepted_head
-
-    report = accepted_head.check(item, branch, repo=repo)
-    render(report, json_output=json_output)
-    if report.status != "success":
-        raise typer.Exit(1)
-
-
-@app.command()
 def doctor(home: HomeOption = None,
            project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."),
            all_projects: bool = typer.Option(False, "--all", help="Inspect every registered project."),

@@ -218,8 +218,7 @@ or integration context require refreshed evidence.
 ### Accepted head
 
 The commit covered by a passing review and its required checks: the head of a review bead's
-recorded range, or a verified work item's recorded integrated revision. `dotbrain check-head`
-compares the delivery branch with that revision. See the [CLI reference](cli-reference.md#dotbrain-check-head).
+recorded range, or a verified work item's recorded integrated revision.
 
 ### Delivery branch
 

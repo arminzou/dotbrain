@@ -189,8 +189,7 @@ item review 和 integration review 直接记在各自涉及的工作项上，不
 ### Accepted head
 
 通过审阅和所需检查的那个 commit：可以是 review bead 所记录范围的末端，
-也可以是已验证工作项所记录的集成版本。`dotbrain check-head` 将 delivery branch 与这个版本比较。
-见 [CLI 参考](cli-reference.md#dotbrain-check-head)。
+也可以是已验证工作项所记录的集成版本。
 
 ### Delivery branch
 

@@ -25,7 +25,7 @@ GROUPS: list[tuple[str, str, str | None, list[str]]] = [
     ("Setup", "Prepare a machine and check its health.", "getting-started",
      ["bootstrap", "detach", "doctor"]),
     ("Projects", "Connect code repos to Brainspaces and keep them in sync.", "wiring",
-     ["wire", "refresh", "unwire", "projects list", "projects show", "check-head"]),
+     ["wire", "refresh", "unwire", "projects list", "projects show"]),
     ("Skills and agents", "Link skills and vendor-native subagents into agent runtimes.", "skills",
      ["skills list", "skills link", "agents list", "agents link"]),
     ("Beads", "Manage the Beads tracker's state and backend.", "beads-backend",
