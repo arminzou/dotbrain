@@ -66,7 +66,8 @@ Use [manage-work-graph's metadata and comment write method](../../manage-work-gr
 ```
 
 Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it. Its body
-holds the worker's runtime, its agent or session ID, any launch mechanism no runtime reference documents, and the full
+holds the worker's runtime, its agent or session ID with how it was launched (`in-session
+subagent` or `CLI session`), any launch mechanism no runtime reference documents, and the full
 assignment as sent. A fix round's `Dispatched` holds the consolidated assignment and what changed
 since the last round, so a fix round or replacement rebuilds its assignment from the item's
 records alone. A fix round resumes that worker by ID; a takeover needs to know which worker to
@@ -121,6 +122,12 @@ dependents on every member. `Containment` records accepted bases, isolated candi
 affected files/resources/consumers, exclusive repair ownership, before/after revisions
 and checks. Follow [containment](parallel-execution.md#failed-group-containment) and
 [stop scopes](../../iterate-design/SKILL.md#stop-scopes).
+
+A replacement lead identifies work by item, then branch or worktree, then revision; agent IDs do
+not survive every restart. It never resumes an `in-session subagent` ID from an ended lead
+session: that worker's termination is uncertain under
+[claim moves](../../manage-work-graph/SKILL.md#ownership-and-closure). It resumes a
+`CLI session` ID only after confirming that session is not running.
 
 Final review reuse follows [review-gate](../../review-gate/SKILL.md#final-branch-review).
 Retain the report and provenance references required there on the final review record.

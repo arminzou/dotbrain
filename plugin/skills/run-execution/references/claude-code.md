@@ -31,7 +31,8 @@ the `git` and `bd` commands its workers and reviewers run.
 
 Dispatch a reviewer without isolation, pointed at the detached review worktree the lead created.
 
-The launch returns the agent ID at once, and the worker's checkout is `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
+The launch returns the agent ID at once; record it in `Dispatched` as an in-session subagent.
+The worker's checkout is `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
 available. Record dispatch while the worker is still starting, before waiting for completion.
 Workers discover the shared tracker through Git metadata without wiring their subagent worktrees;
 their assignments carry precise source sections and references.
@@ -83,7 +84,7 @@ lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so
 project resources resolve. Launch in the background from that worktree with the assignment on
 stdin, `--agent dotbrain:worker`, `--output-format json`, and full access
 (`--permission-mode bypassPermissions`); nobody answers prompts in an unattended run. Generate the worker's ID up front and
-pass it as `--session-id <uuid>`, so `Dispatched` records it before launch; the JSON result
+pass it as `--session-id <uuid>`, so `Dispatched` records it as a CLI session before launch; the JSON result
 carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
 dotbrain:worker` from the same worktree, passing `--permission-mode bypassPermissions` again, since a
 resume starts in the default mode; the worker keeps its earlier turns. Stop a worker by

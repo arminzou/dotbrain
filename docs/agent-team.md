@@ -281,6 +281,9 @@ cannot be met. It also stops after two cycles without progress, or when you canc
 Cancellation preserves unfinished files, branches, worktrees, and evidence. A replacement takes
 over a claim only after the previous worker is confirmed stopped; a returned result or expired
 lease does not prove that. Recovery keeps the original scope, checks, and attempt history.
+A new lead session finds work by issue, then branch or worktree, then revision. It never resumes
+a subagent launched inside an ended lead session, and resumes a CLI session only after confirming
+that session is not running.
 
 ## Investigate Before Asking
 

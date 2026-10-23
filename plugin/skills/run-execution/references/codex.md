@@ -52,7 +52,8 @@ and stop before claiming.
 Retain the process handle/PID and the session ID from `thread.started`, plus paths to events,
 diagnostics, final response and exit evidence. Record dispatch before waiting, with the process
 identity if the session ID has not arrived yet. When `thread.started` arrives, add the session ID
-to the worker's `work` entry in `dotbrain_artifacts`, where a fix round or takeover finds it.
+to the worker's `work` entry in `dotbrain_artifacts`, where a fix round or takeover finds it, and
+record it in `Dispatched` as a CLI session.
 Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
@@ -119,8 +120,9 @@ the custom role file supplies effort.
 The packaged reviewer disables cross-session memory with `features.memories = false`.
 Project instructions, assigned acceptance criteria, relevant Brain records, and explicitly
 assigned skills still supply the review's Sources; include the needed context in its assignment.
-Point a nested reviewer at the detached review worktree the lead created. Keep fix rounds in
-the same worker or reviewer session, sending the shared fix-round message.
+Point a nested reviewer at the detached review worktree the lead created, and record a native
+subagent's ID in `Dispatched` as an in-session subagent. Keep fix rounds in the same worker or
+reviewer session, sending the shared fix-round message.
 Collect native results with the runtime's blocking agent-wait tool and a long supported wait
 interval, respecting the session's wait limit. Repeated short status polls each spend another
 lead model call while the reviewer is still working. Keep lifecycle and error checks; read
