@@ -34,6 +34,7 @@ def _make_adopter_repo(path: Path) -> Path:
     return path
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_refresh_all_creates_symlinks(dotbrain_home: Path, brainspace: Path,
                                    fake_home: Path, tmp_path: Path):
     repo = _make_adopter_repo(tmp_path / "example")
@@ -162,6 +163,7 @@ def test_ensure_server_beads_metadata_writes_server_metadata(tmp_path: Path):
     assert ["bd", "-C", str(tmp_path), "dolt", "test"] in calls
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_refresh_all_skips_beads_link_silently_for_mode_none(
     dotbrain_home: Path, brainspace: Path, fake_home: Path, tmp_path: Path
 ):

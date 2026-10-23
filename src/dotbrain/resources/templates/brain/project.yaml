@@ -3,9 +3,9 @@
 
 execution-engine: beads
 
-agents:
-  - claude
-  - codex
+# Agent runtimes to wire into this project's checkouts: claude, codex, hermes, opencode, pi, cursor.
+# Leave it commented out to follow this machine (every runtime set up here); a list is exact.
+# agents: [claude, codex]
 
 # Public-facing tracker for issue intake and contributor collaboration, never private work tracking.
 # One of: none, gh, linear.

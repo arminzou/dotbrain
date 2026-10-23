@@ -260,6 +260,7 @@ def test_wire_project_preserves_foreign_symlink_even_without_data_root_git(
 # --------------------------------------------------------------------------- orchestration
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     repo = tmp_path / "adopter"
     repo.mkdir()
@@ -304,6 +305,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert (repo / ".brain" / "AGENTS.md").is_file()
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
@@ -349,6 +351,7 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     assert status.stdout == ""
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_workspace_can_become_project_owned_without_force(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path
 ):
@@ -432,6 +435,7 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_home: Path, fake_ho
     assert skills.project_link_set(extras) == ()
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     """Scenario 5: git init with no commits, no AGENTS.md — wire creates AGENTS.md from scratch."""
     repo = tmp_path / "greenfield"
@@ -553,6 +557,7 @@ def test_wire_project_records_custom_database(dotbrain_home: Path, fake_home: Pa
     assert beads.database == "legacy_name"
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_honors_declared_agent_workspaces(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
     repo = tmp_path / "claude-only"
     repo.mkdir()

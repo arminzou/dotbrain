@@ -4,13 +4,39 @@ import pytest
 
 from typer.testing import CliRunner
 
-from dotbrain import assets, projects, skills, subagents
+from dotbrain import assets, owned_copy, projects, runtimes, skills, subagents
 from dotbrain.cli import app
 
 
 def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+@pytest.mark.parametrize("name", ["hermes", "opencode", "pi", "cursor"])
+def test_machine_agents_requires_owned_delivery(tmp_path, name):
+    home = tmp_path / "data"
+    runtime = runtimes.find(name)
+    directory = home if name == "cursor" else runtimes.user_dir(runtime, Path.home())
+    directory.mkdir(parents=True)
+    adapter = assets.HOME_DELIVERY[name]
+    assert assets.machine_agents(home) == ()
+    if name == "opencode":
+        write(adapter.plugin_file(directory), "// foreign plugin\n")
+    else:
+        adapter.plugin_dir(directory).mkdir(parents=True)
+    assert assets.machine_agents(home) == ()
+    if name == "opencode":
+        adapter.plugin_file(directory).write_bytes(adapter.HEADER + b" v1\n")
+    else:
+        write(adapter.plugin_dir(directory) / owned_copy.MARKER, "dotbrain\n")
+    assert assets.machine_agents(home) == (name,)
+
+
+@pytest.mark.parametrize("installed", [(), ("claude",), ("codex",), ("claude", "codex")])
+def test_missing_project_agents_follows_installed_cli_runtimes(tmp_path, monkeypatch, installed):
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in installed)
+    assert assets.project_agents(tmp_path, "missing") == installed
 
 
 @pytest.mark.parametrize("kind", ["skills", "agents"])

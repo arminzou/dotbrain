@@ -105,6 +105,7 @@ def test_unwire_keep_removes_symlinks_and_cleans_repo(tmp_path: Path, dotbrain_h
 # --------------------------------------------------------------------------- full round-trip
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
     """Wire a repo then unwire it; final state matches the disconnected_adopter_repo shape."""
     repo = tmp_path / "roundtrip"
@@ -366,7 +367,7 @@ def test_refresh_project_honors_declared_agent_workspaces(
     assert captured["workspaces"] == (".claude",)
     assert claude_workspace.is_dir()
     assert not claude_workspace.is_symlink()
-    assert (repo / ".codex").is_dir()
+    assert not (repo / ".codex").exists()
     assert not (brainspace / ".claude").exists()  # repo-backed: workspace lives in the repo
     assert not (brainspace / ".codex").exists()  # repo-backed: workspace lives in the repo
 

@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from dotbrain import hooks
 from dotbrain import brainspaces, resource_loader
@@ -73,14 +74,15 @@ def test_seed_brain_does_not_rewrite_unchanged_owned_files(
     assert readme.stat().st_mtime_ns == original_mtime
 
 
-def test_seeded_project_declares_the_default_runtimes(dotbrain_home: Path, monkeypatch):
+def test_seeded_project_omits_agents_and_preserves_existing_lists(dotbrain_home: Path, monkeypatch):
     from dotbrain import config, runtimes
 
     monkeypatch.setitem(runtimes.RUNTIMES, "newer", runtimes.Runtime("newer", "newer", "Newer", ".newer", default=True))
     monkeypatch.setitem(runtimes.RUNTIMES, "optin", runtimes.Runtime("optin", "optin", "Opt-in", ".optin"))
     fresh = dotbrain_home / "brainspaces" / "fresh"
     brainspaces.seed_brain(fresh, dotbrain_home)
-    assert config.load_project_agents(dotbrain_home, "fresh") == ("claude", "codex", "newer")
+    assert config.load_project_agents(dotbrain_home, "fresh") == ()
+    assert "agents" not in yaml.safe_load((fresh / ".brain/project.yaml").read_text(encoding="utf-8"))
     assert "# Per-project identity" in (fresh / ".brain" / "project.yaml").read_text(encoding="utf-8")
 
     existing = dotbrain_home / "brainspaces" / "existing"

@@ -344,7 +344,8 @@ dotbrain bootstrap --runtime hermes
 `hermes plugins enable dotbrain`。全新的 Hermes 主目录第一次运行 `hermes` 时要先准备运行环境，可能超过
 一分钟，所以启用这一步可能会超时。
 
-然后在需要 Hermes 的项目里声明它，链接技能，并信任这个 checkout：
+本机配置好 Hermes 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
+`hermes`。然后刷新技能链接，并信任这个 checkout：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -434,7 +435,8 @@ dotbrain bootstrap --runtime opencode
 
 plugin 运行的是 OpenCode 启动时 `PATH` 里的 `dotbrain`。找不到的话，会话照常可用，但没有约定，也不会同步。
 
-然后在需要 OpenCode 的项目里声明它，并链接技能：
+本机配置好 OpenCode 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
+`opencode`。然后刷新技能链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -536,7 +538,8 @@ dotbrain bootstrap --runtime pi
 
 扩展会运行 Pi 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。
 
-然后为每个需要 Pi 的项目声明它，并链接技能：
+本机配置好 Pi 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
+`pi`。然后刷新技能链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -630,7 +633,8 @@ OpenCode、Pi 不同，第一次运行 `dotbrain bootstrap` 不会自动设置 C
 hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了
 dotbrain Claude Code plugin 时，Cursor 也会加载它的 hook；dotbrain 让这些 hook 在 Cursor 下什么都不做，所以每个事件只运行一次。
 
-然后为每个需要 Cursor 的项目声明它，并链接技能：
+本机配置好 Cursor 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
+`cursor`。然后刷新技能链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml

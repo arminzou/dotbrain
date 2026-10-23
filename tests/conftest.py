@@ -21,10 +21,12 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 @pytest.fixture(autouse=True)
-def _plain_cli_output(monkeypatch: pytest.MonkeyPatch) -> None:
+def _plain_cli_output(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Help and error assertions match plain text; a forced-color terminal would inject ANSI codes."""
     for name in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
         monkeypatch.delenv(name, raising=False)
+    # Project runtime defaults inspect owned delivery in the user's home.
+    set_fake_home(monkeypatch, tmp_path / "user-home")
     # A developer's HERMES_HOME or PI_CODING_AGENT_DIR would aim delivery at their real runtime home.
     monkeypatch.delenv("HERMES_HOME", raising=False)
     # Likewise XDG_CONFIG_HOME for OpenCode delivery, which lands in $XDG_CONFIG_HOME/opencode.
@@ -109,6 +111,12 @@ def fake_home(tmp_path: Path) -> Path:
     home = tmp_path / "home"
     home.mkdir()
     return home
+
+
+@pytest.fixture
+def claude_codex_on_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Model the two CLI runtimes for tests that exercise their project delivery."""
+    monkeypatch.setattr("dotbrain.runtimes.installed", lambda rt: rt.name in ("claude", "codex"))
 
 
 @pytest.fixture

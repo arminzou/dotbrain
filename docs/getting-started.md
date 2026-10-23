@@ -365,7 +365,8 @@ This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins
 `hermes plugins enable dotbrain` yourself. On a new Hermes home, the first `hermes` command can take
 over a minute while Hermes prepares its runtime, so the enable step may time out.
 
-Then declare Hermes for each project that should get it, link its skills, and trust the checkout:
+New projects get Hermes automatically once it is set up on this machine. For a project with an
+explicit `agents:` list, add `hermes` to that list. Then refresh and trust the checkout:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -465,7 +466,8 @@ configuration.
 The plugin runs the `dotbrain` it finds on the `PATH` that OpenCode started with. Without one,
 sessions still work, but they get no convention and no sync.
 
-Then declare OpenCode for each project that should get it, and link its skills:
+New projects get OpenCode automatically once it is set up on this machine. For a project with an
+explicit `agents:` list, add `opencode` to that list. Then refresh to link its skills:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -575,7 +577,8 @@ This copies the extension, with the packaged skills, to `~/.pi/agent/extensions/
 The extension runs the `dotbrain` it finds on the `PATH` that Pi started with. Without one,
 sessions still work, but they get no convention and no sync.
 
-Then declare Pi for each project that should get it, and link its skills:
+New projects get Pi automatically once it is set up on this machine. For a project with an
+explicit `agents:` list, add `pi` to that list. Then refresh to link its skills:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -683,7 +686,8 @@ sessions still work, but they get no convention and no sync. When your dotbrain 
 is enabled, Cursor also loads its hooks; dotbrain makes those do nothing under Cursor, so each event
 runs once.
 
-Then declare Cursor for each project that should get it, and link its skills:
+New projects get Cursor automatically once it is set up on this machine. For a project with an
+explicit `agents:` list, add `cursor` to that list. Then refresh to link its skills:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
