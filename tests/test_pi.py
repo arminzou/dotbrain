@@ -322,6 +322,15 @@ def test_turn_settlement_pushes_in_the_background_and_never_runs_a_full_sync(tmp
 
 
 @needs_node
+def test_background_launch_keeps_detached_hidden_spawn_options(tmp_path):
+    report = _drive(tmp_path, [("agent_settled", {"aborted": False})])
+    assert len(report["spawns"]) == 1
+    assert {key: report["spawns"][0][key] for key in ("detached", "stdio", "windowsHide")} == {
+        "detached": True, "stdio": "ignore", "windowsHide": True,
+    }
+
+
+@needs_node
 @pytest.mark.parametrize("reason", ["quit", "reload", "new", "resume", "fork"])
 def test_only_quit_schedules_a_full_sync(tmp_path, reason):
     report = _drive(tmp_path, [("session_shutdown", {"reason": reason})])

@@ -1,7 +1,7 @@
 """OpenCode session hooks: the packaged plugin maps OpenCode events onto `dotbrain hook run`.
 
 Each test drives the real plugin file under Node with a fake OpenCode input and a fake `dotbrain`
-on PATH that records every call.
+on PATH that records every call. Spawn redirects the fake directly to Node to avoid shell grandchildren.
 """
 
 import json
@@ -22,11 +22,23 @@ BASE = "base prompt"
 
 # Plays `steps` against the plugin's hooks as OpenCode calls them and prints what each request got.
 HARNESS = r"""
-import { pathToFileURL } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import fs from "node:fs"
+import cp from "node:child_process"
+import { syncBuiltinESMExports } from "node:module"
 let raw = ""
 for await (const chunk of process.stdin) raw += chunk
 const { plugin, input, parents, lookup, fastTimers, steps, plainEnv } = JSON.parse(raw)
+const spawns = []
+const realSpawn = cp.spawn
+cp.spawn = (cmd, args, opts) => {
+  spawns.push(opts)
+  // Run the fake directly: a detached cmd.exe shim would give its Node child a visible console.
+  const { shell, ...directOpts } = opts
+  return realSpawn(process.execPath, [fileURLToPath(new URL("./bin/fake.mjs", import.meta.url)),
+    ...(shell ? args.map(arg => arg.slice(1, -1)) : args)], directOpts)
+}
+syncBuiltinESMExports()
 let cliTimedOut = false
 // OpenCode's TUI worker sees a plain, case-sensitive environment that names PATH as Windows does.
 if (plainEnv) process.env = Object.fromEntries(Object.entries(process.env).map(([k, v]) => [/^path$/i.test(k) ? "Path" : k, v]))
@@ -66,7 +78,7 @@ for (const step of steps) {
     result.errors.push(String(error))
   }
 }
-process.stdout.write(JSON.stringify({ ...result, cliTimedOut }))
+process.stdout.write(JSON.stringify({ ...result, cliTimedOut, spawns }))
 process.exit(0)
 """
 
@@ -206,6 +218,17 @@ def test_idle_pushes_in_the_background_and_dispose_ends_each_root_session_once(o
                   event("session.idle", "s1"), event("session.idle", "unseen"), {"op": "dispose"}, {"op": "dispose"})
     # Never a waiting full sync after the start: turn ends push, teardown schedules one sync per session.
     assert opencode.calls(7) == ["resume", "session-end", "session-end", "startup", "turn-end", "turn-end", "turn-end"]
+
+
+def test_background_launch_keeps_detached_hidden_spawn_options(opencode):
+    out = opencode.play(created("s1"), message("s1"), event("session.idle", "s1"), {"op": "dispose"})
+    background = [spawn for spawn in out["spawns"] if spawn["stdio"] == "ignore"]
+    assert len(background) == 2
+    for spawn in background:
+        assert {key: spawn[key] for key in ("detached", "stdio", "windowsHide")} == {
+            "detached": True, "stdio": "ignore", "windowsHide": True,
+        }
+    assert opencode.calls(3) == ["session-end", "startup", "turn-end"]
 
 
 def test_dispose_only_pushes_for_a_session_still_running(opencode):
