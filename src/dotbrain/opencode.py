@@ -201,11 +201,16 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
 
 def remove(config_dir: Path) -> LinkResult:
     result = LinkResult()
-    if _file_owned(config_dir):
+    target = packaged_dir(config_dir)
+    file_owned = _file_owned(config_dir)
+    # Check both before deleting either: a refusal must not leave a half-removed, unreported delivery.
+    if file_owned:
         paths.refuse_checkout(plugin_file(config_dir))
+    if owned_copy.owned(target):
+        paths.refuse_checkout(target)
+    if file_owned:
         plugin_file(config_dir).unlink()
         result.pruned.append(str(plugin_file(config_dir)))
-    target = packaged_dir(config_dir)
     if owned_copy.remove(target):
         result.pruned.append(str(target))
     return result

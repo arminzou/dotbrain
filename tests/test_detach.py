@@ -497,3 +497,17 @@ def test_detach_refuses_a_cursor_hooks_file_linked_into_a_checkout(dotbrain_home
     messages = [f["message"] for f in result.targets[0].findings] + result.targets[0].errors
     assert any("inside a wired checkout" in message for message in messages)
     assert _snapshot(checkout) == before
+
+
+def test_detach_removes_no_opencode_file_when_its_packaged_copy_is_refused(dotbrain_home, fake_home, tmp_path):
+    checkout, home = _linked_below_home("opencode", "dotbrain", fake_home, tmp_path)
+    opencode.deliver(home)  # the plugin file lands in the safe home, the packaged copy through the link
+    (checkout / ".brain").touch()
+    plugin = opencode.plugin_file(home)
+    before = plugin.read_bytes()
+
+    result = workflows.detach_runtime(dotbrain_home, "opencode", home=fake_home)
+
+    target = result.targets[0]
+    assert any("inside a wired checkout" in error for error in target.errors)
+    assert plugin.read_bytes() == before and not target.changes  # nothing removed, so nothing unreported
