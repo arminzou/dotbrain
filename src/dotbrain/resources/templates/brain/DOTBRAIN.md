@@ -63,9 +63,9 @@ drives it:
 
 - Verification, success, and acceptance criteria are human-owned; never weaken them to fit the build.
   During a loop, never edit Success Criteria or bead acceptance criteria. If they are wrong,
-  ambiguous, or unmeetable, stop affected work and recommend a decision through `grill-decisions`.
-  New scope/authority/criteria decisions stop affected work with evidence and a recommendation.
-  Get human approval; record changes. Contain independent work.
+  ambiguous, or unmeetable, or a new scope/authority/criteria decision arises, stop affected work
+  with evidence and recommend a decision through `grill-decisions`. Get human approval; record
+  changes. Contain independent work.
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
   Only the human authorizes a higher limit; keep the attempt history.

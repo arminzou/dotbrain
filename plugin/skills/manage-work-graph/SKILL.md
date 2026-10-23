@@ -92,7 +92,7 @@ See run-execution's parallel reference for replacement workers and retained arti
 
 Native closure requires acceptance evidence and resolved item-level human gates.
 Apply [run-execution's acceptance rules](../run-execution/SKILL.md#item-review-and-acceptance)
-for implementation and [review-gate's closing rules](../review-gate/SKILL.md#run-the-gate)
+for implementation and [review-bead closing rules](references/review-beads.md#closing)
 for reviews. Closure never merges the target branch or automatically invokes `close-design`.
 Leave the design and epic active until manually invoked terminal closeout; a ready PR
 awaits human approval and merge.

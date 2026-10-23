@@ -14,7 +14,8 @@ reflection rules; the coding agent runs the loop.
 ## When to use
 
 This loop drives the handoff workflow and is human-triggered: the human explicitly hands off to it as an automation handoff (for
-example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main`.
+example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main` — even
+after a mid-loop return to the human.
 
 Use when:
 
@@ -185,18 +186,7 @@ Use this protocol throughout the handoff:
      with the human's review requested. Review requirements follow review-gate.
      Record the PR URL and verification on the final review record selected by review-gate.
      Apply its review-bead closing rules.
-   - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
-     landing path was fixed at handoff — it stays on the branch even if a mid-loop
-     return to the human is needed along the way.
-   - Among outward actions, the approved contract authorizes only the Handoff delivery
-     sequence above. Merge and every other outward action remain human-owned.
-   - Apply the two stop scopes in Stop scopes below: item-level retry exhaustion or a human gate
-     blocks that item and its dependents, not independent work. Print `BLOCKED` immediately for a
-     whole-handoff condition, or when no unblocked work remains. Do not retry a blocked item without human
-     authorization; preserve its attempt trail.
-   - Print `BLOCKED` after two cycles without a code change, new verification evidence, or resolved
-     scope; report the stalled question rather than spending more turns.
-   - Otherwise print `ITERATING` and fix the weakest failing point next.
+   - Otherwise apply Stop scopes below; print `ITERATING` and fix the weakest failing point.
 
 Hard guards follow the convention's criteria ownership, authority, and hard-stop
 invariants. Apply the no-progress stop below. A repeated plan or inconclusive check
@@ -216,8 +206,7 @@ opened; a failure that compromises shared state; or cancellation.
 Item retry exhaustion follows [run-execution](../run-execution/SKILL.md#failure-cancellation-and-resume).
 Hold affected groups and dependents under its containment rules; continue proven independent
 work. End `BLOCKED` when no unblocked work remains. Keep blocked items in scope and report
-their attempt trail, waiting dependents, and recommended decision. Never mark the PR ready
-with a blocked scoped item. A whole-handoff condition stops independent work too.
+their attempt trail, waiting dependents, and recommended decision.
 
 ## Building blocks
 

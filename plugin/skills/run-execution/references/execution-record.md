@@ -6,7 +6,8 @@ acceptance, and specification links; three flat `dotbrain_` metadata keys hold t
 queryable current state; headed append-only comments are its evidence history; notes hold
 rationale and a resume summary. Writer permissions, claims, actors, and closure follow
 [manage-work-graph](../../manage-work-graph/SKILL.md#ownership-and-closure).
-Item review and cross-item repair follow [Run Execution](../SKILL.md#item-review-and-acceptance).
+Item review, verdicts and exemptions, checkpoint streaks, acceptance/UAT evidence, and finding
+dispositions follow [Run Execution](../SKILL.md#item-review-and-acceptance).
 
 ## The `dotbrain_` keys
 
@@ -27,7 +28,7 @@ Optional until the item enters `run-execution`. Populate only facts that exist.
   },
   "dotbrain_artifacts": [
     {"kind": "worktree", "purpose": "work", "ref": "/abs/path/to/worktree"},
-    {"kind": "git-branch", "purpose": "candidate", "ref": "item-123-short-slug@4f2a9c1"}
+    {"kind": "git-branch", "purpose": "candidate", "ref": "short-slug@4f2a9c1"}
   ]
 }
 ```
@@ -39,14 +40,11 @@ workflow progress, not a second status system. A blocked item keeps its last pha
 execution mode belong to the bounded execution, not the item. Beads' own `execution_mode` and documented execution-hint metadata keep their
 meanings as advisory routing input.
 
-Checkpoint streaks follow [Run Execution](../SKILL.md#item-review-and-acceptance).
 Review beads belong to review-gate and are never executed here.
 
 ## Write method
 
 Use [manage-work-graph's metadata and comment write method](../../manage-work-graph/SKILL.md#metadata-write-method).
-Acceptance/UAT evidence and finding dispositions follow
-[Run Execution's acceptance rules](../SKILL.md#item-review-and-acceptance).
 
 ## Comment headers
 
@@ -90,8 +88,6 @@ durable comment and finding ID from every other affected item. Route repairs to 
 workers with these references. Preserve disputes as new records and return them to the reviewer
 or human; never silently change a verdict. Member records must recover all findings and review
 limits without relying on an epic comment or a new batch review bead.
-
-Verdicts and exemptions follow [Run Execution](../SKILL.md#item-review-and-acceptance).
 
 ## Integration groups and recovery
 

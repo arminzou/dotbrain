@@ -87,7 +87,6 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    evidence, and any uncovered area.
 
 5. Apply [review-bead closing](../manage-work-graph/references/review-beads.md#closing).
-   Native closure and actor handling follow manage-work-graph.
 
 ## Completion
 

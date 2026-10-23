@@ -135,9 +135,7 @@ still counts. Each `CHANGES` is a failed check on the `item-review` checkpoint i
 during a fix round do not reset it. Only an `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
 through the retry-exhaustion rules; neither a replacement nor a new reviewer resets the count.
 
-Both execution modes: passing worker checks, candidate, provisional integration, coherent group
-review and combined checks, member acceptance and resolved human gates, close as `verified`,
-clean up, release dependents. A conflict rebase does not count toward the `CHANGES` cap.
+A conflict rebase does not count toward the `CHANGES` cap.
 Any changed patch or integration context affecting acceptance or review/check coverage, including
 a conflict rebase or integrated-check repair, needs refreshed evidence before closure. An earlier
 `APPROVE` does not cover a stale revision. No item closes with an unreviewed behavior change.
@@ -147,7 +145,6 @@ and gaps. An unexercised journey never passes or automatically becomes a request
 human checking. Required UAT with failed, missing, or stale evidence holds affected work;
 investigate and repair within remaining limits. Record every finding's disposition: blocking
 findings resolved; others applied, filed with follow-up IDs, or declined with reasons.
-A passing check resets only its own checkpoint streak; another attempt creates no new bead.
 
 ## Worker assignment
 
@@ -180,15 +177,11 @@ Packaged definitions keep their role effort and no model pin.
 Runtime references own history controls and how to apply model and effort settings.
 
 Launch each delegated writing worker in the background, so the launch returns before the worker
-finishes. As soon as the runtime identifies the worker, record `## Dispatched` with its checkout,
-branch, and base, with the worker's runtime and its agent or session ID in the comment body, before waiting on the
-worker. A record written after the worker returns leaves no trace of a running worker if the lead
-stops, and a fix round or takeover needs that ID. If a runtime can launch only in the foreground,
-record `Dispatched` before launching, naming the branch and base, and add the checkout to the
-`work` artifact once the worker reports it.
+finishes, and record `Dispatched` as [the execution record](references/execution-record.md#comment-headers)
+specifies. If a runtime can launch only in the foreground, record `Dispatched` before launching,
+naming the branch and base, and add the checkout to the `work` artifact once the worker reports it.
 
-Claims, actors, and native closure follow manage-work-graph. A user-launched session
-in a worktree attaches with explicit `dotbrain wire` and leads its own execution.
+A user-launched session in a worktree attaches with explicit `dotbrain wire` and leads its own execution.
 
 ## Execution record
 
@@ -221,7 +214,6 @@ promising to restore the former batch or choosing a different one.
 
 ## Completion
 
-Within approved authority, implement, commit, integrate, check/UAT, shape tasks, and
-close accepted work without routine sign-off. Stricter instructions still bind.
-Follow manage-work-graph's closure boundary. Return closed items, open items and their
+Within approved authority, apply the convention's human gates and manage-work-graph's
+closure boundary. Return closed items, open items and their
 blockers/gates/cancellation, preserved artifacts, discovered work, and design learning.
