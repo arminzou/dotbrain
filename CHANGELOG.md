@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.14.0](https://github.com/arminzou/dotbrain/compare/v0.13.0...v0.14.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* teach-me and triage-public are explicit-only; invoke them by name.
+
+### Features
+
+* slim execution skills, store agent records, warn on drift ([#57](https://github.com/arminzou/dotbrain/issues/57)) ([5f4f4c3](https://github.com/arminzou/dotbrain/commit/5f4f4c3ae320291dfc3e5b5809672acc7254c817))
+
 ## [0.13.0](https://github.com/arminzou/dotbrain/compare/v0.12.0...v0.13.0) (2026-10-23)
 
 
