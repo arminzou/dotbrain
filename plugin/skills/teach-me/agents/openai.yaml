@@ -1,3 +1,6 @@
 interface:
   display_name: "Teach Me"
   short_description: "Learn a project through its private Brain workspace"
+
+policy:
+  allow_implicit_invocation: false

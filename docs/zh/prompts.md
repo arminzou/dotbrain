@@ -225,6 +225,9 @@ outlive it to ADRs and CONTEXT.md.
 
 ## 学习 {#learn}
 
+使用下面的学习提示词前，先调用技能：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
+只说“teach me”不再启动这个技能。
+
 ### 开始学一个主题 {#start-learning-a-topic}
 
 ```text
@@ -286,6 +289,8 @@ Use write-agent-docs to tighten this project's AGENTS.md.
 **技能：** `write-agent-docs`。
 
 ### 分诊公开任务 {#triage-public-issues}
+
+先调用技能：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

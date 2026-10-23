@@ -242,6 +242,9 @@ never closed out. **Skill:** `close-design`, explicit only. See [The workflow](w
 
 ## Learn
 
+For the learning prompts below, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
+in Codex. Saying "teach me" alone no longer starts the skill.
+
 ### Start learning a topic
 
 ```text
@@ -304,6 +307,8 @@ Use write-agent-docs to tighten this project's AGENTS.md.
 rely on. **Skill:** `write-agent-docs`.
 
 ### Triage public issues
+
+First invoke `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex, then give the scope:
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

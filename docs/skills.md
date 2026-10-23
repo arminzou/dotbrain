@@ -54,15 +54,18 @@ Adding or removing skills from a selected bundle takes effect on the next reconc
 declaration stays unchanged. Removed owned links are pruned, while foreign entries are preserved.
 `projects show`, catalogs, and doctor use the same expanded selection.
 
-## Setup
+## Core workflow
+
+Wire, decide, design, decompose, execute, review, close, and curate project context.
+`write-agent-docs` supports the workflow with writing guidance and remains model-invocable.
+
+### Setup
 
 - **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain,
   including restoring a linked worktree's `.brain` and `.beads`. Installs the `dotbrain` CLI on
   first use if it is missing.
-- **`dotbrain`** — the operating convention itself. The session-start hook injects it
-  automatically; invoke it directly in runtimes where the hook does not run.
 
-## Planning
+### Planning
 
 - **`to-design`** — formalize a multi-step initiative into a living active design doc, save it to
   the Brain, and create an epic bead. Use when the work needs explicit design shape or a place to
@@ -73,22 +76,39 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   durable results into `CONTEXT.md` and `adr/`.
 - **`find-unknowns`** — surface blind spots and tacit assumptions in unfamiliar territory before
   committing to a design.
-- **`close-design`** — manually drive a design doc to a terminal state: check actual PR merge
+- **`close-design`** (invoke by name) — drive a design doc to a terminal state: check actual PR merge
   evidence for shipment, record evidence, promote residue to
   `adr/` and `CONTEXT.md`, close the epic.
 
-## Execution
+### Execution
 
 - **`manage-work-graph`** — file, inspect, claim, split, update, and close work items in the private
   work graph
 - **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, have each
   change reviewed independently, integrate, check, repair within limits, and escalate or recover
-- **`iterate-design`** — run an active design doc through the agent's native loop mode: plan,
+- **`iterate-design`** (invoke by name) — run an active design doc through the agent's native loop mode: plan,
   implement, verify, reflect, deliver through a draft pull request that becomes ready for your
   review, and stop on success or blocked
 
-## Triage And Review
+### Review and curate
 
+- **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
+  outcome on the issue; the lead closes accepted reviews before PR merge after required exact-revision
+  evidence and finding dispositions. Human PR approval, merge and release remain separate
+- **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
+  leaking context across the public project and private Brain
+- **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
+  user-owned skills, and guidance agents reach through pointers
+
+## Optional skills invoked by name
+
+These skills stay shipped. In Claude Code, use `/dotbrain:<name>`; in Codex, use `$<name>`.
+For example, use `/dotbrain:teach-me` or `/dotbrain:triage-public` in Claude Code,
+and `$teach-me` or `$triage-public` in Codex. Saying "teach me" alone no longer starts `teach-me`.
+Use the same syntax for `iterate-design` and `close-design` in the core workflow.
+
+- **`dotbrain`** — the operating convention itself. The session-start hook injects it
+  automatically; invoke it by name in runtimes where the hook does not run.
 - **`run-retro`** — explicitly review new or changed evidence, retaining private retrospective
   findings, successful practices, and bounded progress. Invoke manually or through an external
   agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:
@@ -111,25 +131,15 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
   Later runs review forward within explicitly
   selected contribution branches/PRs or a maintainer-selected integration branch, reusing shared
   progress and current applicable guidance. Missing scope is reported instead of assumed.
-- **`review-gate`** — run a durable review gate (code, simplification, or readiness) and record the
-  outcome on the issue; the lead closes accepted reviews before PR merge after required exact-revision
-  evidence and finding dispositions. Human PR approval, merge and release remain separate
-- **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
-  leaking context across the public project and private Brain
 - **`triage-public`** — classify public tracker items and promote ready work into private execution
 - **`review-architecture`** — review the codebase for architectural deepening opportunities
 
-## Authoring
-
-- **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
-  user-owned skills, and guidance agents reach through pointers
-
-## Brain Site
+### Brain Site
 
 - **`brain-site`** — explicitly invoke to set up, maintain, build, or preview a Brain's private
   site with `dotbrain site`, including sidebar, theme, and rendering checks
 
-## Learning
+### Learning
 
 See [Learning your project](learning.md) for learning paths, parked concepts, and session continuity.
 
