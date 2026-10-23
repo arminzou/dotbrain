@@ -10,7 +10,7 @@ triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
 Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, `run-retro`,
-and `close-design` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
+`close-design`, `teach-me`, `triage-public`, `brain-site`, and `dotbrain` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
 Code.
 
 ## Set Up
@@ -242,8 +242,9 @@ never closed out. **Skill:** `close-design`, explicit only. See [The workflow](w
 
 ## Learn
 
-For the learning prompts below, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
-in Codex. Saying "teach me" alone no longer starts the skill.
+To start or continue learning, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
+in Codex. Saying "teach me" alone no longer starts the skill. Parking a question needs no
+invocation.
 
 ### Start learning a topic
 
@@ -270,7 +271,7 @@ Park this for learning: why does retrying this operation require an idempotency 
 ```
 
 **When:** a question comes up mid-task and you do not want to switch into teaching now.
-**Skill:** `teach-me`. See [Learning your project](learning.md#park-a-question-while-working).
+**Skill:** `manage-work-graph`. See [Learning your project](learning.md#park-a-question-while-working).
 
 ## Maintain the Brain
 
