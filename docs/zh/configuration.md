@@ -154,13 +154,21 @@ PR 批准与合并仍由你决定。关闭自动交付后，私有记录和只�
 ```yaml
 # ~/dotbrain/skills/skills.yaml
 version: 1
-targets:
-  claude-code: ~/.claude/skills
-  codex: ~/.codex/skills
+profiles:
+  claude-code: [~/.claude-work]
+  codex: [~/.codex-work]
 global_extra:
   - my-collection/my-skill
   - another-collection        # select every descendant skill
 ```
+
+Claude Code 和 Codex 的技能会链接到默认主目录（`~/.claude` 和 `~/.codex`）及 `profiles` 中每个额外
+主目录下的 `skills/`。本机不存在的 profile 主目录会静默跳过，方便多台机器共享此文件。其他运行时继续
+沿用现有的路径重定位和插件安装要求，不接受 profiles。
+
+位于已连接 checkout 或 worktree 内的主目录会被拒绝，其中的链接不会被改动；主目录及其上级目录可以是
+符号链接。Doctor 还会检查每个 Claude Code 主目录是否安装了 dotbrain 插件。旧 `targets` 中指向默认
+技能目录的条目会被忽略；自定义技能目标会将其父目录作为额外主目录，并提示迁移到 `profiles`。
 
 包含 `SKILL.md` 的条目只选中这一个技能。否则，它的目录会递归展开为所有包含 `SKILL.md` 的子目录，
 `node_modules` 除外。选中同一来源的重叠条目会去重。不同来源映射到同一个目标名时，会在任何链接或清理之前

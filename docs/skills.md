@@ -24,9 +24,17 @@ skills:
 
 ```yaml
 # ~/dotbrain/skills/skills.yaml
+version: 1
+profiles:
+  claude-code: [~/.claude-work]
 global_extra:
   - another-collection
 ```
+
+Global linking uses each runtime's default home. For Claude Code and Codex, `profiles` adds
+extra homes, each receiving skills in `<home>/skills`; missing homes are skipped. Use runtime
+homes rather than folders inside project checkouts. See [configuration](configuration.md#skills-skills-yaml)
+for migration from legacy `targets`.
 
 A directory containing `SKILL.md` selects itself, even when it has descendant skills. Otherwise
 dotbrain discovers descendant `SKILL.md` directories recursively, excluding `node_modules`.

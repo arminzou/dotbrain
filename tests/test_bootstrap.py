@@ -96,7 +96,8 @@ def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path
 
 
 def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
-    dest = tmp_path / "codex-skills"
+    dest = tmp_path / "profile/skills"
+    dest.parent.mkdir()
     (dotbrain_home / "skills" / "skills.yaml").write_text(
         "targets:\n"
         f"  codex: {dest}\n"
@@ -137,7 +138,7 @@ def test_link_global_skills_expands_windows_tilde_target(
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert result.warnings == []
-    assert (fake_home / r".codex\skills").is_dir()
+    assert (fake_home / ".codex/skills").is_dir()
 
 
 def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_path: Path, monkeypatch):
@@ -333,16 +334,18 @@ def test_ensure_data_root_reports_a_missing_git_binary(tmp_path: Path):
         bootstrap_mod.ensure_data_root(tmp_path / "dr", run=_no_git)
 
 
-def test_installed_runtimes_are_seeded_on_first_run_and_named_afterwards(tmp_path: Path, monkeypatch):
+def test_installed_runtimes_are_not_seeded_and_are_named(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "opencode")
     home, user = tmp_path / "dr", tmp_path / "user"
     bootstrap_mod.ensure_data_root(home, user_home=user)
     targets = skills.load_global_config(home / "skills/skills.yaml").targets
-    assert targets["opencode"] == "~/.config/opencode/dotbrain/skills"
+    assert "opencode" not in targets
     assert "hermes" not in targets
     linked = bootstrap_mod.link_global_skills(home, "all", home=user)
     assert linked.warnings == []
-    assert (user / ".config/opencode/plugins/dotbrain.js").is_file()
+    assert linked.notices == ["OpenCode is installed; run `dotbrain bootstrap --runtime opencode` to deliver dotbrain to it"]
+    assert not (user / ".config/opencode").exists()
+    assert "targets:" not in (home / "skills/skills.yaml").read_text()
 
     # An existing config gains no target: bootstrap names the command instead of delivering unasked.
     (home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra: []\n")

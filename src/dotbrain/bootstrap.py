@@ -107,8 +107,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
     if not skills_dest.exists():
         skills_dest.parent.mkdir(parents=True, exist_ok=True)
         skills_dest.write_text(
-            skills.render_global_config({**runtimes.global_targets("skills"),
-                                         **assets.detected_targets(user_home or Path.home())}, ()),
+            skills.render_global_config(()),
             encoding="utf-8",
             newline="\n",
         )

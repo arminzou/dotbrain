@@ -23,9 +23,16 @@ skills:
 
 ```yaml
 # ~/dotbrain/skills/skills.yaml
+version: 1
+profiles:
+  claude-code: [~/.claude-work]
 global_extra:
   - another-collection
 ```
+
+全局链接使用各运行时的默认主目录。Claude Code 和 Codex 还可通过 `profiles` 添加额外主目录，技能会
+链接到每个主目录下的 `skills/`，不存在的主目录会跳过。请填写运行时主目录，不要填写项目 checkout
+内的目录。旧 `targets` 的迁移方式见[配置](configuration.md#skills-skills-yaml)。
 
 包含 `SKILL.md` 的目录只选中它自己，即使它下面还有子技能。否则，dotbrain 会递归查找所有包含 `SKILL.md` 的
 子目录，`node_modules` 除外。重复选中同一来源会去重。不同来源映射到同一个目标名（包括在不区分大小写的文件系统

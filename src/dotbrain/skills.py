@@ -20,6 +20,7 @@ class GlobalConfig:
 
     targets: dict[str, str] = field(default_factory=lambda: runtimes.global_targets("skills"))
     global_extra: tuple[str, ...] = ()
+    profiles: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -93,14 +94,21 @@ def load_global_config(path: Path) -> GlobalConfig:
 
     merged_targets = runtimes.global_targets("skills")
     merged_targets.update(targets)
+    profiles = data.get("profiles", {})
+    if not isinstance(profiles, dict) or not all(
+        k in ("claude-code", "codex") and isinstance(v, list)
+        and all(isinstance(home, str) and home.strip() for home in v)
+        for k, v in profiles.items()
+    ):
+        raise ValueError(f"{path}: profiles must map claude-code or codex to lists of runtime homes")
     return GlobalConfig(
         targets=merged_targets,
         global_extra=_clean(data.get("global_extra", data.get("extra"))),
+        profiles=profiles,
     )
 
 
 def render_global_config(
-    targets: dict[str, str],
     global_extra: Iterable[str],
 ) -> str:
     """Render the optional operator-owned skill-link config."""
@@ -109,10 +117,8 @@ def render_global_config(
         "version: 1",
         "# Operator skill-link config — your global skills, linked into every agent",
         "# session. List global skills under global_extra.",
-        "targets:",
+        "profiles: {}",
     ]
-    for key, value in targets.items():
-        lines.append(f"  {key}: {value}")
     extra = _clean(global_extra)
     if extra:
         lines.append("global_extra:")
