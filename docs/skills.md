@@ -103,9 +103,6 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
 ## Optional skills invoked by name
 
 These skills stay shipped. In Claude Code, use `/dotbrain:<name>`; in Codex, use `$<name>`.
-For example, use `/dotbrain:teach-me` or `/dotbrain:triage-public` in Claude Code,
-and `$teach-me` or `$triage-public` in Codex. Saying "teach me" alone no longer starts `teach-me`.
-Use the same syntax for `iterate-design` and `close-design` in the core workflow.
 
 - **`dotbrain`** — the operating convention itself. The session-start hook injects it
   automatically; invoke it by name in runtimes where the hook does not run.

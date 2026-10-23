@@ -226,7 +226,7 @@ outlive it to ADRs and CONTEXT.md.
 ## 学习 {#learn}
 
 开始或继续学习前，先调用技能：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
-只说“teach me”不再启动这个技能。把问题先存起来则不用调用。
+把问题先存起来则不用调用。
 
 ### 开始学一个主题 {#start-learning-a-topic}
 

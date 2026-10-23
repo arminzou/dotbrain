@@ -33,9 +33,7 @@ These skills stay shipped. Use `/dotbrain:<name>` in Claude Code or `$<name>` in
 The core workflow's `iterate-design` and `close-design` use the same invocation syntax.
 
 - **Learn:** [`teach-me`](teach-me/SKILL.md) teaches the project from its Brain across sessions.
-  Saying "teach me" alone no longer starts it: use `/dotbrain:teach-me` in Claude Code or `$teach-me` in Codex.
 - **Triage:** [`triage-public`](triage-public/SKILL.md) brings accepted public issues into private execution.
-  Use `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex.
 - **Brain site:** [`brain-site`](brain-site/SKILL.md) sets up, builds, and previews the private site.
 - **Architecture:** [`review-architecture`](review-architecture/SKILL.md) looks for architectural deepening opportunities.
 - **Convention:** [`dotbrain`](dotbrain/SKILL.md) provides the operating convention. The session-start

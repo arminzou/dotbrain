@@ -89,8 +89,6 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 ## 按名称调用的可选技能 {#optional-skills-invoked-by-name}
 
 这些技能仍随插件提供。在 Claude Code 中用 `/dotbrain:<name>`，在 Codex 中用 `$<name>`。
-例如，Claude Code 用 `/dotbrain:teach-me` 或 `/dotbrain:triage-public`，Codex 用 `$teach-me` 或 `$triage-public`。
-只说“teach me”不再启动 `teach-me`。核心流程中的 `iterate-design` 和 `close-design` 也用同样的方式调用。
 
 - **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的运行时里，需按名称调用。
 - **`run-retro`**：检查新增或变化的证据，在私有 Brain 中记录 Agent 的发现、成功做法和已处理的范围。

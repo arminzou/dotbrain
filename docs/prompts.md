@@ -243,8 +243,7 @@ never closed out. **Skill:** `close-design`, explicit only. See [The workflow](w
 ## Learn
 
 To start or continue learning, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
-in Codex. Saying "teach me" alone no longer starts the skill. Parking a question needs no
-invocation.
+in Codex. Parking a question needs no invocation.
 
 ### Start learning a topic
 
