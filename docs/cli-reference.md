@@ -33,6 +33,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`unwire`](#dotbrain-unwire) | Remove a checkout's wiring while retaining its Brainspace and tracker databases. |
 | [`projects list`](#dotbrain-projects-list) | List every registered project using local declarations and wiring. |
 | [`projects show`](#dotbrain-projects-show) | Inspect the current wired project or a named project's registered checkout. |
+| [`check-head`](#dotbrain-check-head) | Check that a branch matches its accepted head without writing Git or tracker state. |
 | [`skills list`](#dotbrain-skills-list) | Discover locally available skills. |
 | [`skills link`](#dotbrain-skills-link) | Reconcile selected skills in project or explicit global scope. |
 | [`agents list`](#dotbrain-agents-list) | Discover locally available agents. |
@@ -180,6 +181,24 @@ dotbrain projects show [OPTIONS]
 | --- | --- | --- |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--home` *path* | — | Override the private data root. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain check-head` {#dotbrain-check-head}
+
+Check that a branch matches its accepted head without writing Git or tracker state.
+
+```text
+dotbrain check-head [OPTIONS] ITEM
+```
+
+| Argument | Description |
+| --- | --- |
+| `ITEM` | Review bead or verified single work item. |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--branch` *text* | — | Local branch to check. Default: current branch. |
+| `--repo` *path* | — | Checkout to inspect. Default: working directory. |
 | `--json` | — | Emit one structured result. |
 
 ## Skills and agents

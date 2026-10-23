@@ -47,6 +47,14 @@ layout is still recognized; new Brainspaces are created under `brainspaces/`.
 
 ## Which Command to Use
 
+Before pushing a reviewed branch or marking its PR ready, run
+`dotbrain check-head <item> [--branch <name>]`. It compares the local branch head with a passing
+review bead's range head or a verified single work item's integrated revision. Abbreviated
+revisions are resolved through Git. A mismatch or missing acceptance fails with a reminder to
+refresh review and checks. Branch names containing a work-item ID also fail: rename the branch.
+The ID prefix comes from the tracker-returned item. The command only reads Git and Beads;
+`--repo <path>` selects the checkout and `--json` produces the standard structured result.
+
 ```mermaid
 flowchart TD
   accTitle: Choosing wire, refresh, unwire, or wire-brain
