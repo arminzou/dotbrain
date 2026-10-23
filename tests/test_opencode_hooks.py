@@ -23,15 +23,27 @@ BASE = "base prompt"
 # Plays `steps` against the plugin's hooks as OpenCode calls them and prints what each request got.
 HARNESS = r"""
 import { pathToFileURL } from "node:url"
+import fs from "node:fs"
 let raw = ""
 for await (const chunk of process.stdin) raw += chunk
 const { plugin, input, parents, lookup, fastTimers, steps, plainEnv } = JSON.parse(raw)
+let cliTimedOut = false
 // OpenCode's TUI worker sees a plain, case-sensitive environment that names PATH as Windows does.
 if (plainEnv) process.env = Object.fromEntries(Object.entries(process.env).map(([k, v]) => [/^path$/i.test(k) ? "Path" : k, v]))
 if (fastTimers) {
   const real = globalThis.setTimeout
-  // Long enough for a fake CLI started through cmd.exe to log its call on a loaded machine.
-  globalThis.setTimeout = (fn, ms, ...rest) => real(fn, Math.min(ms, 1500), ...rest)
+  globalThis.setTimeout = (fn, ms, ...rest) => {
+    if (fastTimers !== "cli") return real(fn, Math.min(ms, 1500), ...rest)
+    // Expire the CLI cap only after the fake has recorded its call, regardless of startup speed.
+    const timer = setInterval(() => {
+      if (!fs.existsSync(new URL("./bin/calls.log", import.meta.url))) return
+      clearInterval(timer)
+      cliTimedOut = true
+      fn(...rest)
+      fs.writeFileSync(new URL("./bin/timed-out", import.meta.url), "")
+    }, 10)
+    return timer
+  }
 }
 input.client = { session: { get: async ({ path }) => {
   if (lookup === "fails") throw new Error("no server")
@@ -54,7 +66,7 @@ for (const step of steps) {
     result.errors.push(String(error))
   }
 }
-process.stdout.write(JSON.stringify(result))
+process.stdout.write(JSON.stringify({ ...result, cliTimedOut }))
 process.exit(0)
 """
 
@@ -64,10 +76,13 @@ import fs from "node:fs"
 const dir = new URL(".", import.meta.url)
 const args = process.argv.slice(2)
 const event = args[args.indexOf("--event") + 1]
-fs.appendFileSync(new URL("calls.log", dir), JSON.stringify({ event, checkout: args[args.indexOf("--checkout") + 1] }) + "\n")
 const behavior = JSON.parse(fs.readFileSync(new URL("behavior.json", dir), "utf8"))[event] ?? {}
-if (behavior.sleep) await new Promise((resolve) => setTimeout(resolve, behavior.sleep * 1000))
 process.stdout.write(behavior.out ?? "")
+fs.appendFileSync(new URL("calls.log", dir), JSON.stringify({ event, checkout: args[args.indexOf("--checkout") + 1] }) + "\n")
+// cmd.exe can leave this process behind on Windows; exit once the harness has fired the cap.
+if (behavior.hang) await new Promise(() => setInterval(() => {
+  if (fs.existsSync(new URL("timed-out", dir))) process.exit(0)
+}, 10))
 process.exit(behavior.code ?? 0)
 """
 
@@ -239,12 +254,13 @@ def test_missing_cli_is_a_silent_no_op(opencode, tmp_path):
     assert opencode.calls() == []
 
 
-@pytest.mark.parametrize("startup", [{"out": CONVENTION, "code": 1}, {"out": CONVENTION, "sleep": 5}])
+@pytest.mark.parametrize("startup", [{"out": CONVENTION, "code": 1}, {"out": CONVENTION, "hang": True}])
 def test_cli_failures_fail_open(opencode, startup):
-    opencode.fast_timers = True  # the 12 s cap, shortened
+    opencode.fast_timers = "cli" if startup.get("hang") else False
     opencode.behave(startup=startup)
     out = opencode.play(created("s1"), message("s1"), request("s1"), message("s1"), request("s1"))
     assert out["requests"] == [[], []]
+    assert out["cliTimedOut"] == startup.get("hang", False)
     assert opencode.calls(1) == ["startup"]  # a failed start is not retried every request
 
 

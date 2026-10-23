@@ -46,6 +46,19 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
                                            scopes=(target.checkout, Path.home()))
             for field in ("linked", "pruned", "warnings", "notices"):
                 getattr(result, field).extend(getattr(cursor_result, field))
+        if runtime == "all":
+            # Removed runtimes still have checkout-local links to retire. Never follow a
+            # workspace or receiver link: it can lead to user content outside this checkout.
+            for rt in runtimes.RUNTIMES.values():
+                directory = target.checkout / rt.workspace
+                receiver = directory / "skills"
+                if rt.workspace in workspaces or directory.is_symlink() or receiver.is_symlink() or not receiver.is_dir():
+                    continue
+                roots = (cursor.plugin_dir(home),) if rt.name == "cursor" and cursor.owned(home) else ()
+                pruned = skills.link_into(home, receiver, (), label=f"{rt.workspace}/skills",
+                                          prune_owned_only=True, owned_roots=roots)
+                result.pruned += pruned.pruned
+                result.warnings += pruned.warnings
     else:
         names = subagents.project_link_set(config.load_project_subagents(home, target.project))
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names, workspace_dirs=workspace_dirs)

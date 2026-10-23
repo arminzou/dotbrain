@@ -6,7 +6,3 @@ Cursor runs only as the lead. Dotbrain delivers no native Cursor workers, so a C
 the writing itself in sequential execution. When the human asks for workers in another runtime,
 dispatch them through that runtime's reference, such as [Claude Code](claude-code.md) or
 [Codex](codex.md), under the shared contract. Never choose another runtime on your own.
-
-Required reviews, checks and acceptance still apply as the shared contract sets them.
-
-Cursor CLI discovery and manual-only invocation remain subject to native qualification.

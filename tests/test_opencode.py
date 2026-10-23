@@ -207,6 +207,26 @@ def test_doctor_finds_duplicates_by_name_in_nested_folders(dotbrain_home, user):
     assert opencode.duplicate_skills(config_dir, home) == [("wire-brain", nested.parent)]
 
 
+@pytest.mark.parametrize("folder, managed", [("synced/account_org", True), ("team", False),
+                                             ("synced-copy", False)])
+def test_doctor_duplicate_advice_respects_account_synced_skills(dotbrain_home, user, folder, managed):
+    home, config_dir = user
+    (config_dir / "skills").unlink()
+    assets.link_global(dotbrain_home, "skills", "opencode", user_home=home)
+    duplicate = _skill(home / ".claude/skills" / folder / "renamed-copy",
+                       b"---\nname: wire-brain\ndescription: mine\n---\n").parent
+
+    findings = doctor._check_opencode_plugin(config_dir, home)
+    finding, = [f for f in findings if f"is also at {duplicate};" in f.message]
+
+    assert finding.status == "info"
+    if managed:
+        assert "remove wire-brain from your claude.ai account" in finding.suggestion
+        assert str(duplicate) not in finding.suggestion
+    else:
+        assert f"remove {duplicate}, or move it out" in finding.suggestion
+
+
 @pytest.mark.parametrize("permission", [None, "allow", {"*": "ask", "external_directory": {"*": "ask"}},
                                         {"external_directory": "deny", "bash": {"*": "allow"}}])
 def test_config_hook_adds_skill_paths_and_allows_linked_skill_directories_last(dotbrain_home, user, tmp_path,

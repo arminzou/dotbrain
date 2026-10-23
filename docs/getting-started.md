@@ -698,7 +698,8 @@ dotbrain doctor
 
 When the project also declares `claude`, Cursor usually finds its skills through `.claude/skills/`,
 and `.cursor/skills/` stays empty. Packaged skills appear under their own names, such as
-`wire-brain`. Manual-only skills, such as `run-retro`, run only when you type `/<name>`.
+`wire-brain`. Manual-only skills, such as `run-retro`, are left out of Cursor's skill list and are
+meant to be run by name with `/<name>`. Cursor does not block the model from reading their `SKILL.md` files.
 
 ### What happens in a Cursor session {#cursor-sessions}
 
