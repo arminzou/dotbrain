@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.13.0](https://github.com/arminzou/dotbrain/compare/v0.12.0...v0.13.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **runtimes:** Projects without agents now follow machine setup. Set agents: [claude, codex] to retain the previous runtime selection. Refresh also preserves undeclared workspaces instead of pruning them.
+
+### Features
+
+* **agents:** deliver global subagents to runtime profiles ([#53](https://github.com/arminzou/dotbrain/issues/53)) ([60b05e1](https://github.com/arminzou/dotbrain/commit/60b05e1b1e8076f6143695680c99cb3e93d4bc6e))
+* **bootstrap:** set up every working runtime on a machine's first run ([#55](https://github.com/arminzou/dotbrain/issues/55)) ([a61215b](https://github.com/arminzou/dotbrain/commit/a61215b9ae307efc02ad1e4e0fcec4a1eb869ef0))
+* **cli:** detach dotbrain's machine-wide delivery from a runtime ([#54](https://github.com/arminzou/dotbrain/issues/54)) ([bd5df2d](https://github.com/arminzou/dotbrain/commit/bd5df2d5bf63a1a0d4f44a277315296cc71a45a9))
+* **cursor:** deliver skills and hooks to Cursor CLI ([#46](https://github.com/arminzou/dotbrain/issues/46)) ([da024f4](https://github.com/arminzou/dotbrain/commit/da024f4ea4585a12cd4965f784e684b2de5204a0))
+* deliver skills and hooks to Hermes through a shared runtime description ([#41](https://github.com/arminzou/dotbrain/issues/41)) ([d94c532](https://github.com/arminzou/dotbrain/commit/d94c53264564109a83bb4d375d24f1ef96d89a2d))
+* deliver skills and hooks to OpenCode ([#42](https://github.com/arminzou/dotbrain/issues/42)) ([0cda5d4](https://github.com/arminzou/dotbrain/commit/0cda5d4438b5d6132761f8ee2987b6a01447035a))
+* **pi:** deliver dotbrain skills and hooks to Pi ([#44](https://github.com/arminzou/dotbrain/issues/44)) ([900749c](https://github.com/arminzou/dotbrain/commit/900749cfbe76c4030f09448ccfdc4b8372240934))
+* **runtimes:** follow machine setup for undeclared projects ([#50](https://github.com/arminzou/dotbrain/issues/50)) ([a8e91cd](https://github.com/arminzou/dotbrain/commit/a8e91cd2cc35e08db0795cb5cc0ed4f781c9e010))
+* **skills:** link global skills into runtime profiles ([#52](https://github.com/arminzou/dotbrain/issues/52)) ([adcb5a4](https://github.com/arminzou/dotbrain/commit/adcb5a406704b87a677f1a57eab017cb102c256a))
+
+
+### Bug Fixes
+
+* **refresh:** skip checkouts on another machine in --all ([3de1f09](https://github.com/arminzou/dotbrain/commit/3de1f09645178cd8fc2da80ece04a747ec29c7eb))
+
+
+### Documentation
+
+* stop tying Hermes, OpenCode, and Pi to one operating system ([479a8e9](https://github.com/arminzou/dotbrain/commit/479a8e98ca56a34288c3c365772e2eab2d45db86))
+
 ## [0.12.0](https://github.com/arminzou/dotbrain/compare/v0.11.0...v0.12.0) (2026-10-22)
 
 
