@@ -157,6 +157,79 @@ dotbrain 连接的 Coding Agent 环境，比如 Claude Code 或 Codex。
 根据私有的源材料，写出一份面向公开读者的说明或产物，而不直接暴露私有原文。dotbrain 用这条边界让 Brain 保持私有，
 同时仍然可以公开发布文档或工具。
 
+## 交付与验证 {#delivery-and-verification}
+
+### Home sync
+
+通过 `dotbrain sync`，让 dotbrain home 与它自己的私有 remote 交换 Git 历史。
+交换前会先提交 home 中尚未提交的改动。任务跟踪的同步（`dotbrain beads sync`）是另一项操作，只拉取，不推送。
+
+### Plugin and packaged subagent
+
+Plugin 是运行时原生支持的包，用来交付 dotbrain 的共享技能、约定和运行时集成。
+packaged subagent 是 dotbrain 随包提供的 Agent 定义：负责写入的 `worker`，以及只读的
+`researcher`、`reviewer` 和 `verifier`。packaged worker 完成分配的工作并提交候选改动，由 lead 负责交付。
+运行时如何发现和加载这些定义，见[会话上下文](session-context.md#subagents)。
+
+### Review bead
+
+记录设计级审阅或独立审阅的工作项，包含范围、评判标准、发现、证据、适用时的结论，以及每条发现的处理结果。
+item review 和 integration review 直接记在各自涉及的工作项上，不另建 review bead。
+
+### Integration review
+
+针对一组暂时合在一起的工作项，在同一个确切版本上做的独立代码审阅。
+在这些工作项关闭或解除对后续工作的阻塞之前，审阅必须覆盖每项的验收条件、受影响的使用方，以及改动之间的相互影响。
+
+### Integration candidate
+
+从已验收版本出发、存放待验收改动的独立分支。lead 把它提升到 delivery branch 前，
+审阅和检查必须覆盖它确切的 head。补丁或集成上下文变了，就需要重新审阅和检查。
+
+### Accepted head
+
+通过审阅和所需检查的那个 commit：可以是 review bead 所记录范围的末端，
+也可以是已验证工作项所记录的集成版本。`dotbrain check-head` 将 delivery branch 与这个版本比较。
+见 [CLI 参考](cli-reference.md#dotbrain-check-head)。
+
+### Delivery branch
+
+存放已验收结果的专用分支。提升候选改动时，只能将它 fast-forward 到已验收的确切 head；
+失败或尚未被审阅和检查覆盖的候选分支继续单独保留。
+
+### Checkpoint
+
+一次执行中有明确边界的实现步骤，以及针对它的小范围检查。每个命名的 checkpoint（比如测试或 item review）
+分别记录重试历史。checkpoint 本身不是工作项，也不是 commit；检查由做出改动的 Agent 来跑。
+
+### Verifier gate and verification evidence
+
+verifier gate 是约定好的、能机械判定通过或失败的检查，比如测试、构建或指标。
+verification evidence 记录实际跑了什么、输出和缺口，以及证据对应的版本和环境。
+verifier 角色负责跑检查并返回证据，审阅负责补充判断。各层检查由谁来跑，见[工作流程](workflow.md)。
+
+### Acceptance and UAT
+
+Acceptance 表示约定的条件和证据已满足，可以把工作项或集成候选结果验收到 delivery branch。
+UAT（用户验收测试）在明确的运行时、版本和操作系统环境中验证约定的用户流程。
+Agent 可以执行并记录这些检查；PR 的批准和合并仍由人决定。
+
+### Review surface
+
+展示改动、供人审阅的地方：通常是 PR；项目没有 PR 托管时，就是分支 diff。
+完整测试套件的结果和适合公开读者的验证证据放在这里。
+
+### Oracle
+
+审阅所依据的书面标准，包括适用的决策、设计目标、验收条件和规则。
+审阅开始前就固定下来，让审阅结果回答最初的问题。
+
+### Canon and durable residue
+
+Canon 是项目中具有权威性的词汇、决策和规则，与根据它们写出的说明文档有别。
+durable residue 是设计结束后仍有用的知识，要整理到相应的词汇、决策或规则文档中。
+设计收尾的流程见[工作流程](workflow.md)。
+
 ## 不收录的术语 {#excluded-terms}
 
 本术语表有意不收录较底层的实现术语和私有的内部说法。它的目的是解释公开的概念模型，而不是每一条 CLI 修改路径
