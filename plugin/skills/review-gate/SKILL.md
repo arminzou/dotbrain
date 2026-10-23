@@ -76,17 +76,8 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    handoff authorization. No review result authorizes merge or release. Record findings,
    evidence, and any uncovered area.
 
-5. Apply the shared contract's closing rules. The lead closes `code`/`readiness` reviews on
-   passing required verdict and evidence at the exact integrated revision, resolved blocking
-   findings, and recorded dispositions for other findings, before PR merge. Failed, missing, or
-   stale evidence holds affected work; changed integrated heads require refreshed review/checks.
-   Required UAT records revision, environment, journeys, checks/results, and gaps; an unexercised
-   journey is a gap, never a pass or an automatic request for the human to check.
-   A `simplify` bead closes once every finding is applied, filed, or declined with a reason;
-   it stays non-blocking for PR readiness. A `simplify` bead does not close on merge.
-   Preserve explicit unresolved-decision gates and stricter instructions; add no blanket `human`
-   label for reviews. Closure never merges the target branch and never automatically invokes
-   `close-design`. Record closeout and evidence, preserving the assignee and finite repair limits.
+5. Apply [review-bead closing](../manage-work-graph/references/review-beads.md#closing).
+   Native closure and actor handling follow manage-work-graph.
 
 ## Completion
 

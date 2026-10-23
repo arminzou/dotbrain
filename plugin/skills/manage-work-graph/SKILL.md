@@ -56,12 +56,8 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
 - The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
   `teach-me` resumes and updates it.
 
-Both the HITL and handoff workflows run on a dedicated branch and land through a review surface:
-a PR, or the branch diff where the project hosts no PRs. `run-execution`'s lead proposes the branch
-at the first HITL bounded execution; one branch may span several bounded executions. Parallel
-workers integrate into that branch, never into `main`. The HITL lead asks before pushing or
-opening a PR. Merge stays human-owned. Local HITL landing requires explicit human instruction,
-recorded by the lead; it is never the default. Checkout or worktree selection belongs to that lead.
+Branch selection and delivery follow [run-execution](../run-execution/SKILL.md).
+Session invariants follow the dotbrain convention.
 
 ## Who writes the graph
 
@@ -75,19 +71,46 @@ Roles follow the agent team: the **lead** runs one execution and dispatches **wo
   assigned, evidence comments on its own item. It returns discovered work and design-relevant
   learning to the lead, who records them.
 
-## Human gate
+## Ownership and closure
 
-Items flagged for human review need a person's decision before an agent proceeds. The agent
-checks for gated items before each new item and treats only flagged items as gated.
+Apply the convention's human gates and criteria ownership before claiming or closing.
+Claim only work you will do yourself; a delegated worker performs its own startup under
+its [role contract](../../agents/worker.md). Never claim an epic merely to anchor scope.
+Pass your own `--actor <actor>` on every tracker write. The lead alone writes execution
+metadata. A worker retains its claim through candidate return and every fix round;
+returning a candidate changes neither assignee nor claim. Claimed work stays out of
+`bd ready`; lease expiry does not release a claim or permit another actor to claim it.
 
-Unflagged items are **autonomous**: the agent may pick them up, work them, and close them without
-stopping for sign-off. This is the default because most items are small enough that the check-in
-adds friction without value. The human-review flag is the intentional exception.
+Only the assignee can close. The lead closes accepted work under the worker's actor,
+naming itself in the reason and preserving the assignee:
+`bd close <id> --actor <worker-actor> --reason "<reason> (closed by <lead-actor>)" --json --quiet`.
+Never use `bd close --force` or `bd reclaim` on a worker's item.
+Move a claim only after the former worker is confirmed stopped:
+`bd update <id> --assignee <new-actor> --force --actor <lead-actor>`.
+Record `Claim moved: <from actor> -> <to actor>`; uncertain termination needs the human.
+See run-execution's parallel reference for replacement workers and retained artifacts.
 
-Flag an item for human review when a genuine unresolved scope, authority, acceptance, or design
-decision needs the human. Explicit operator overrides and stricter instructions remain binding.
-Authorized task shaping, local commits, candidate integration, checks/UAT, and accepted work or
-review closure need no routine human sign-off. A review alone never warrants a `human` label.
+Native closure requires acceptance evidence and resolved item-level human gates.
+Apply [run-execution's acceptance rules](../run-execution/SKILL.md#item-review-and-acceptance)
+for implementation and [review-gate's closing rules](../review-gate/SKILL.md#run-the-gate)
+for reviews. Closure never merges the target branch or automatically invokes `close-design`.
+Leave the design and epic active until manually invoked terminal closeout; a ready PR
+awaits human approval and merge.
+
+## Metadata write method
+
+Write only changed keys with `bd update <id> --metadata '<json-object>' --actor <actor> --json --quiet`.
+Beads merges one level deep: unnamed keys survive; named values are replaced whole.
+Write each changed `dotbrain_attempts` or `dotbrain_artifacts` value complete, not just
+the changed entry. `--set-metadata` stores an object as an escaped string; use it, if at
+all, for `dotbrain_phase` alone. Query with `bd list --metadata-field <key>=<value>`;
+add `--all` for closed items. Keep logs in evidence comments, never metadata.
+
+Write comment files verbatim in a temporary location outside the project. Prefer the
+runtime file-writing tool. Shell fallbacks are quoted heredocs in bash/zsh (including
+Git Bash) or single-quoted here-strings in PowerShell 7 with UTF-8 without BOM.
+Never use `printf` or `echo -e` for comment text: Windows path backslashes become
+control characters. Append with `bd comments add <id> --file <file> --actor <actor> --json`.
 
 ## Operating loop
 
@@ -108,25 +131,15 @@ review closure need no routine human sign-off. A review alone never warrants a `
    implementing. Beads carry execution facts; the design doc carries the design,
    rationale, and file-level scope — do not infer those from the compressed acceptance criteria
    alone.
-6. Hand implementation to `run-execution` with the selected item or finite batch. Provisional
-   integration closes no items and releases no dependents. Its lead applies these closure rules
-   only after required review, combined checks, each member's acceptance, and resolved human gates
-   cover the exact integrated revision; dependent bases contain accepted prerequisites. Failed
-   or uncovered groups and their dependents stay held while only proven independent work continues
-   from accepted bases with isolated candidates in either workflow. For
-   single-item work in either workflow, close accepted work without routine confirmation.
-   Review beads follow their evidence and disposition rules (see Review beads below). Work originating from
-   an existing public issue may land through its public PR collaboration flow
-   ([references/public-provenance.md](references/public-provenance.md)). `bd close` remains the
-   private close signal.
-7. Work and review closure never merges the target branch and never automatically invokes
-   `close-design`. Even when all scoped work and reviews close, leave the design and epic active
-   until manually invoked terminal closeout. A ready PR awaits human approval and merge.
+6. Hand implementation to `run-execution` with the selected item or finite batch.
+   Apply the ownership and closure rules above when its acceptance gate passes.
+   For existing public issues, use [public provenance](references/public-provenance.md).
+   `bd close` remains the private close signal.
+7. Follow the closure boundary above; review records follow `review-gate`.
 8. When implementation exposes hidden requirements or follow-up work: do the obvious in-scope work
    directly; create or update related items when new work becomes explicit; split or reshape the
    current item when it is no longer the right shape; adjust dependencies within approved scope.
-   Acceptance criteria remain human-owned: surface proposed changes for a decision, never weaken
-   them to fit the build. Put discoveries back into the graph, never into ad hoc todo files.
+   Follow the convention's criteria ownership rule. Put discoveries back into the graph, never into ad hoc todo files.
 9. Return to step 2. Continue until the ready frontier is empty or hits a human-gated item
    whose decision you're not present to make.
 

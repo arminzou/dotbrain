@@ -24,9 +24,7 @@ Search the Brain by passing `.brain/` as the path. A search from the repo root
 skips it, because it is hidden and gitignored, so an empty result there does
 not mean there is no Brain.
 
-Keep findings in plain terms. Do not cite Brain paths or decision-record
-identifiers in anything that may become public (PR or commit text); give the
-underlying reason instead.
+Follow the dotbrain convention's public/private boundary when writing findings.
 
 Prioritize, in order:
 1. Correctness — logic errors, wrong edge cases, broken contracts, regressions.
@@ -46,31 +44,20 @@ so plainly instead of inventing nits.
 For a `simplify` review, follow `review-gate`'s simplification procedure instead:
 report findings only and no verdict.
 
-Return `APPROVE` or `CHANGES`. Return `CHANGES` only for an unmet acceptance
-criterion or a blocker or high regression caused by a reviewed change, wherever
-its symptom appears, including unchanged consumers and interactions. Medium or
-low findings and unrelated existing defects accompany `APPROVE`; return them to
-the lead as discovered work. Support material safety claims with relevant evidence,
-a concrete trace, or a small targeted check when evidence is insufficient. Report
-missing evidence as a gap rather than a verified claim. On re-review, check earlier
-findings and the fix diff; a newly spotted blocker still counts. For a direct code
+Read `run-execution`'s item review and acceptance rules before returning a verdict.
+Apply its verdict thresholds, re-review rules, and evidence-gap treatment.
+Support material safety claims with relevant evidence, a concrete trace, or a small
+targeted check when evidence is insufficient.
+For a direct code
 review, return the verdict and findings;
 when approving with no findings, return `APPROVE` and, only when material, a brief
 caveat about evidence or scope limits. Omit empty findings sections.
 
-When assigned an item or integration review, require the covered item IDs,
-reviewer identity, review number, reviewed head (HEAD plus diff fingerprint for
-uncommitted changes), diff base, and each item's acceptance criteria. If any are
-missing, return no verdict and name what is missing; you cannot ask anyone mid-run.
-
-Return one complete structured review to the lead; structured Markdown suffices:
-
-- Review number, reviewer identity, reviewed base and head.
-- Covered items and acceptance coverage per criterion, including unmet or unreviewed criteria.
-- Per-item `APPROVE` or `CHANGES` verdicts.
-- Complete findings, with stable IDs within this report, affected items, severity,
-  `file:line`, and the concrete problem; suggested fixes are optional.
-- Material evidence and coverage limits, including missing evidence.
+For item or integration review, read `run-execution/references/execution-record.md`
+and use its complete structured report schema. Require every identifying and coverage
+field in that schema. If any are missing, return no verdict and name what is missing;
+you cannot ask mid-run.
+Return the complete report to the lead; structured Markdown suffices.
 
 The lead preserves this report on the affected member items before routing repair
 to the original workers. Return all findings, rather than a summary or comment ID;

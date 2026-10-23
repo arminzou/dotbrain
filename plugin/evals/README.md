@@ -15,11 +15,19 @@ rule-bearing skill. They do not run in CI.
 | `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 | `execution-rules` | `parallel-reference-before-second-writer`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
+| `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that
 log every call to `.eval/calls.log` and answer from `.eval/fixtures/`. Nothing reaches a real
 tracker, GitHub, or network.
+
+The `execution-rules` and `workflow-owners` cases cover moved workflow instructions.
+Decision exercises check the agent's selected next operations; they do not qualify
+runtime concurrency. For `parallel-reference-before-second-writer`, also inspect the
+kept transcript: the Read of `parallel-execution.md` must precede the second writing
+worker's Agent call. The native tool-presence and response graders alone cannot prove
+that ordering. All new cases remain unrun until a paid eval is authorized separately.
 
 ## Running
 

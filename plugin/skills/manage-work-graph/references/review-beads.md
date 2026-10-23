@@ -9,18 +9,9 @@ on member work items using `run-execution`'s
 [execution record](../../run-execution/references/execution-record.md), not a separate batch
 review bead. The independent reviewer writes no tracker records.
 
-For any returned review, the lead preserves reviewer identity, base/head revision references,
-covered items and acceptance coverage, verdicts, full finding wording, severity, stable finding
-IDs, and material evidence or coverage limits before dispatching repairs. Ownership and
-coordination notes are labeled as lead additions; disputes return to the reviewer or human
-without silently changing a verdict. Cross-item findings have one responsible worker, a full
-durable finding on that worker's item, and references to its comment and finding ID on all other
-affected items. Repair references go to the original workers.
-
-Code review includes change-caused consequences in unchanged consumers and interactions.
-Unmet acceptance or a blocker/high regression caused by the reviewed change produces `CHANGES`
-wherever its symptom appears; unrelated existing defects and medium/low findings remain
-non-blocking discovered work. Missing safety evidence is a reported gap, not a verified claim.
+Item review, report preservation, cross-item repair, and verdict thresholds follow
+[Run Execution](../../run-execution/SKILL.md#item-review-and-acceptance).
+Final whole-branch review and simplify policy follow [review-gate](../../review-gate/SKILL.md).
 
 A review bead records agent work. The lead applies the evidence and disposition rules in
 Closing below; independent review remains required. A genuine unresolved decision or explicit
@@ -153,15 +144,14 @@ and return scope, authority, or acceptance changes to `grill-decisions`.
 - **Closeout record** — append `## Closeout @ <commit>` with reviewer provenance, exact base/head,
   required verdict and evidence references, every finding ID and disposition, surviving follow-up
   IDs, and coverage gaps. Confirm the current integrated head matches before native `bd close`.
-  Preserve the assignee: close under its actor, naming the lead in the reason; never force closure.
+  Apply [native closure and actor handling](../SKILL.md#ownership-and-closure).
 - **UAT evidence** — record revision, environment, agreed user journeys, actual checks/results,
   and gaps. An unexercised journey is a gap, never a pass. Missing UAT holds affected work when
   required; it is not an automatic request for the human to check. Investigate and repair within
   remaining limits; preserve containment, retry caps, and finite whole-loop limits on resume.
-- **Delivery boundary** — closure grants no PR approval or merge authority, never merges the
-  target branch, and never automatically invokes `close-design`. Neither PR approval nor merge
-  is a prerequisite for accepted review closure. The design and epic remain active until manually
-  invoked terminal closeout. Review-derived follow-up work uses ordinary work closure rules.
+- **Delivery boundary** — apply [manage-work-graph's closure boundary](../SKILL.md#ownership-and-closure).
+  Neither PR approval nor merge is a prerequisite for accepted review closure.
+  Review-derived follow-up work uses ordinary work closure rules.
 
 For an epic gate, make the review bead depend on every scoped implementation bead; it becomes
 claimable only after the graph reaches its final review step.

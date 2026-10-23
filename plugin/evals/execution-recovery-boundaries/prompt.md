@@ -16,3 +16,6 @@ Attempt PASS from its first dispatch and a duplicate beta completion arrive. A r
 writer is available. Explain what you record, what may run, which branch can advance,
 and what needs a human decision. Include the recovery operations after a human grants
 one additional attempt. Do not spawn a verifier just for the worker checkpoint.
+
+Finally consider cancellation followed by a delayed candidate and duplicate completion.
+State what changes, what must remain intact, and who can authorize resuming the work.

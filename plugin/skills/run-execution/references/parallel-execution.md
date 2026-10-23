@@ -39,9 +39,8 @@ into the target and route needed rebases to the original workers.
 | Operation | Required input or gate | Result and next operation |
 | --- | --- | --- |
 | Integrate provisionally | Passing worker checks, coherent group membership, and the accepted delivery head; workers remain assignees. | Create an isolated group candidate branch from the accepted delivery head. For each candidate, rebase the item branch onto the current group candidate, then fast-forward the group candidate with `git merge --ff-only <item-branch>`; never create a merge commit. On conflict, resume the original worker and rerun checks. Keep all members open and dependents held. |
-| Integration review | Exact integrated revision, group base, included items, and acceptance criteria. | Required independent review, recorded exemptions, or bounded review-fix rounds; lead records the returned report on members. |
-| Check | Exact integrated group revision, combined checks covering every member, and no other verifier running. The lead runs checks unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence. Failures or gaps hold the group; changed patches or context affecting acceptance require refreshed review and check coverage. |
-| Promote and apply closure rules | Combined checks, required independent review, each member's acceptance evidence, and resolved human gates at the exact integrated revision. | Fast-forward the agreed delivery branch with `git merge --ff-only <group-branch>` and confirm its head equals the reviewed and checked revision. Then write `dotbrain_phase: verified` and apply native item closure through `manage-work-graph`. Provisional integration alone is never acceptance. |
+| Integration review and checks | Group base/head, included items, and criteria. | Apply [Run Execution's item review and acceptance](../SKILL.md#item-review-and-acceptance) and check role routing to every member. |
+| Promote and apply closure rules | Run Execution's acceptance gate passes for the group. | Fast-forward the delivery branch with `git merge --ff-only <group-branch>`; apply Run Execution's head confirmation and manage-work-graph's native closure. |
 
 - If the delivery head advances before promotion, rebase or rebuild the group candidate from the
   latest accepted delivery head, route conflicts to original workers, and refresh review and
@@ -60,33 +59,7 @@ changes. Provisional integration closes no items and releases no dependents.
 
 ## Completion handling
 
-A completion notification means a report is available, not that the item passed. Finish the
-current integration, promotion, or execution-record update before processing available reports.
-Cancellation and safety stops still take effect immediately. Collect available results before
-refilling worker slots, starting another integration, or reporting status or completion. Do not
-wait for every worker to finish.
-
-For each result:
-
-1. Match the item, runtime agent or session ID, dispatch or fix round, and reported revision to
-   the recorded assignment and actual artifacts. Arrival order does not establish which result
-   is current. Missing identity or artifacts hold the affected result pending reconciliation.
-2. Compare the result with the item's execution record. An already processed duplicate changes
-   no phase, claim, attempt count, or acceptance state and triggers no repeated follow-up.
-   If recording stopped partway, reconcile the saved evidence before completing the missing writes.
-3. Classify a result from an older round, superseded revision, replaced worker, cancelled execution,
-   or closed item as stale. Retain new evidence with its source. It cannot overwrite newer state,
-   restore a claim, reopen an item, or resume cancelled work. Route relevant findings through the
-   existing discovered-work and failure rules instead of silently discarding them.
-4. Record a new result and its disposition on the existing item before dispatching follow-up work
-   or integrating its candidate. Use the existing execution-record comments and artifact references,
-   including the source agent or session ID, dispatch or fix round, revision, evidence, and gaps.
-   Confirm the stored record matches the result. A returned candidate retains its claim and leaves dependents held.
-
-After recording results, choose integration groups, review, fixes, and eligible ready work under
-the existing acceptance and capacity rules. Keep pending results in the lead's session and
-recoverable facts on member beads. Use these records without a separate inbox directory or scheduler ledger.
-
+Apply [result reconciliation](execution-record.md#completion-handling) before refilling.
 
 ## Failed-group containment
 
@@ -99,17 +72,13 @@ Reconsidering a failed group as smaller groups requires a new explicit review bo
 combined acceptance evidence; prior individual verdicts alone are insufficient.
 Serialize shared repair with an explicit file/resource boundary and recorded before/after revisions
 and checks. Stop affected writers while that resource is exclusively held. If containment cannot
-be proven, stop dispatch and integration; shared-state compromise or unresolved scope, safety, or
-acceptance decisions stop the entire execution. Cancellation remains a whole-execution stop.
+be proven, stop dispatch and integration; apply [iterate-design's stop scopes](../../iterate-design/SKILL.md#stop-scopes)
+for shared-state compromise, unresolved decisions, and cancellation.
 
 
 ## Claim moves and replacements
 
-Move a claim only for a replacement after the previous worker is confirmed stopped:
-`bd update <id> --assignee <new-actor> --force`, recording `Claim moved: <from actor> -> <to actor>`.
-Beads refuses to reassign a live claim without `--force`; the confirmed stop is what makes forcing
-it legitimate. When termination is uncertain, ask the human.
-
+Apply [claim moves](../../manage-work-graph/SKILL.md#ownership-and-closure).
 
 A replacement worker continues in the stopped worker's worktree named by the item's
 `work` artifact. Confirm termination before replacement and preserve scope, budgets,

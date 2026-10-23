@@ -32,16 +32,14 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
-  `run-execution` carries out an item or finite batch. While delegated workers run, only the
-  lead changes the work graph or the active design doc; the lead is the agent running that
-  execution.
-- Both the HITL and handoff workflows run on a dedicated branch and land through a review
-  surface: a PR, or the branch diff where the project hosts no PRs. Parallel workers integrate
-  into that branch, never into `main`. In the HITL workflow, propose the branch at the first
-  bounded execution; it may span several bounded executions. Reuse approval before pushing or opening a PR;
-  ask only for missing authority. Merge stays human-owned; PR approval and release too.
-  Local HITL landing requires explicit human instruction, recorded
-  by the lead; it is never the default.
+  `run-execution` carries out an item or finite batch. Follow `manage-work-graph` for
+  claims, actors, and who may change the graph or active design.
+- PR approval, merge, and release stay human-owned. Follow `run-execution` for branches
+  and HITL delivery, and `iterate-design` for authorized handoff delivery.
+- Check human-gated items before each new item. Flag genuine unresolved scope, authority,
+  acceptance, or design decisions; explicit operator gates and stricter instructions bind.
+  Unflagged items are autonomous: work and accepted closure need no routine sign-off.
+  A review alone does not create a human gate.
 - Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
   Do not drift to synonyms.
 - If a proposed change conflicts with an ADR, call it out before proceeding.
@@ -64,21 +62,16 @@ These invariants bind any iterative or autonomous execution, whatever skill or l
 drives it:
 
 - Verification, success, and acceptance criteria are human-owned; never weaken them to fit the build.
+  During a loop, never edit Success Criteria or bead acceptance criteria. If they are wrong,
+  ambiguous, or unmeetable, stop affected work and recommend a decision through `grill-decisions`.
   New scope/authority/criteria decisions stop affected work with evidence and a recommendation.
   Get human approval; record changes. Contain independent work.
 - Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
   is hit, report blocked with the attempt trail; do not keep iterating.
+  Only the human authorizes a higher limit; keep the attempt history.
 - Reuse complete approval without repeat `GO`; execution requests grant no missing authority.
-  `iterate-design` validates scope, branch/base, checks/UAT, reviews, provider/auth, PR authorization
-  and finite limits; preserve overrides and remaining limits on resume. Check credentials privately;
-  availability grants no authority. Delivery: a draft PR at the first push, one mention of the human
-  for each blocked stop. `FINAL`: agreed work, reviews, acceptance/UAT complete; ready-for-review PR
-  requests human review. Unauthorized actions end the loop and go to the human.
-- The lead closes accepted work and reviews without routine human sign-off, before PR merge:
-  required verdict/evidence at the exact integrated revision, blocking findings resolved and other
-  findings dispositioned. Simplify closes on dispositions, stays non-blocking. Explicit gates bind.
-  Closure never merges the target branch and never automatically invokes `close-design`. Details:
-  `manage-work-graph/references/review-beads.md`.
+  Follow `iterate-design` for contract validation, delivery, loop outcomes, and stop scopes.
+- Review gates close only under `review-gate`'s rules.
 - Beads are the state; the active design doc is the spec. State says where you are, the spec says
   where to go. Reread the spec every iteration, not just at loop start.
 

@@ -14,7 +14,7 @@ workflow chains executions through iterate-design's approved contract.
 
 **Before a second writing worker starts, or before a replacement worker starts, read
 [parallel execution](references/parallel-execution.md).** It owns capacity, isolation,
-group integration, completion handling, containment, and replacement rules.
+group integration, containment, and replacement rules.
 
 The work graph and closure rules belong to [manage-work-graph](../manage-work-graph/SKILL.md).
 The handoff loop and its stop scopes belong to [iterate-design](../iterate-design/SKILL.md).
@@ -36,8 +36,8 @@ Both workflows run on a dedicated branch and land through a review surface: a PR
 diff where the project hosts no PRs. At the first HITL bounded execution, propose the branch
 and its base: an unmerged branch only when the work depends on it, else a sibling on the shared
 base; one branch may span several bounded executions. Parallel workers integrate into that branch,
-never into `main`. Ask before pushing or opening a PR in the HITL workflow. Merge stays
-human-owned. Local HITL landing requires explicit human instruction, recorded by the lead;
+never into `main`. Ask before pushing or opening a PR in the HITL workflow. Apply the
+convention's human gates. Local HITL landing requires explicit human instruction, recorded by the lead;
 it is never the default.
 
 ## Select and work
@@ -56,8 +56,8 @@ after reporting it, without weakening scope, checks, isolation, or gates.
 
 At most one active writer owns an item. Shape concurrent parts through manage-work-graph
 before execution, preserving criteria and finite limits. Delegated workers return
-candidates, checks, discoveries, and design learning; the lead records them and alone
-edits the design, work graph, and execution metadata. Worker startup is defined only
+candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
+permissions and actor rules. Worker startup is defined only
 in the [worker role](../../agents/worker.md) and its Codex counterpart.
 
 For code work, keep the delivery branch at its last accepted revision. Work and repairs
@@ -103,13 +103,13 @@ acceptance criteria, affected consumers, and interactions. The reviewer returns 
 structured report without tracker writes; the lead records it on member beads before notifying
 workers, following [the execution record](references/execution-record.md). Preserve reviewer
 identity, revision references, acceptance coverage, per-item verdicts, findings, and evidence gaps.
-Assign each cross-item finding to one responsible original worker and link the finding from every
-affected member. Item and integration reviews never get a batch review bead.
+Use the execution record's report schema and cross-item finding links.
+Item and integration reviews never get a batch review bead.
 
 Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed
 changes, including symptoms in unchanged consumers or interactions. Return `APPROVE` with
 `medium` or `low` findings and unrelated existing defects; the lead files those as discovered
-work for a later bounded execution. Missing coverage is a gap, never acceptance.
+work for a later bounded execution. Missing evidence or coverage is a gap, never a verified claim.
 
 On `CHANGES`, resume the same writing worker to fix its candidate using the worker runtime's
 reference. The lead sets `dotbrain_phase` to `working` and
@@ -130,13 +130,18 @@ Any changed patch or integration context affecting acceptance or review/check co
 a conflict rebase or integrated-check repair, needs refreshed evidence before closure. An earlier
 `APPROVE` does not cover a stale revision. No item closes with an unreviewed behavior change.
 
+Acceptance/UAT records revision, environment, agreed journeys, actual checks/results,
+and gaps. An unexercised journey never passes or automatically becomes a request for
+human checking. Required UAT with failed, missing, or stale evidence holds affected work;
+investigate and repair within remaining limits. Record every finding's disposition.
+A passing check resets only its own checkpoint streak; another attempt creates no new bead.
+
 ## Worker assignment
 
 Every delegated worker receives a compact assignment in its runtime message:
 
 - work-item IDs and the assigned operation
-- the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
-  actor is the shared Git user, and a repeated claim by the same actor succeeds silently
+- the worker's Beads actor, under manage-work-graph's actor rules
 - project rules, acceptance criteria, task limits, permission boundaries, and named skills
 - allowed actions and file or resource ownership, behavioral responsibility, and known file overlap
 - checkout, item branch, and base revision, where applicable
@@ -148,7 +153,7 @@ Every delegated worker receives a compact assignment in its runtime message:
 Make the assignment self-contained: include settled constraints and exact authority sections,
 not the lead's conversation or whole workflow documents. Omit only duplicated role defaults and
 the lead's Beads actor; keep the worker's own actor and every assignment-specific override.
-The worker's role supplies the default retry/escalation rules and commit-convention fallback.
+The worker's role supplies startup and commit-convention fallback; this skill owns retries.
 The lead loads `run-execution`'s dispatch,
 integration, and recovery references;
 workers load their role contract, project rules, and task-relevant sections and skills. Supply known
@@ -180,12 +185,13 @@ append-only comments as specified in [execution-record.md](references/execution-
 
 ## Failure, cancellation, and resume
 
-An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive
+Apply [iterate-design's stop scopes](../iterate-design/SKILL.md#stop-scopes) in either workflow.
+Unless the assignment names another limit, an item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive
 item-review `CHANGES`, or a human gate. Record `Blocked`, add `human`, keep it open,
 and report the attempt trail, waiting dependents, remaining uncertainty, and a concrete
 decision with a recommendation. Missing results never pass. Keep blocked items in scope.
-Only the human authorizes more attempts or changed criteria; retain the history and
-record the new decision and limit. For independent work and failed groups, apply the
+Apply the convention's human decision and hard-stop invariants; record any authorized
+new limit without resetting history. For independent work and failed groups, apply the
 parallel reference's containment rules before continuing.
 
 Cancellation stops dispatch and integration. Ask workers to stop, preserve unfinished

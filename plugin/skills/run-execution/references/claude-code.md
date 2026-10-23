@@ -12,8 +12,8 @@ Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
 `dotbrain:reviewer`, `dotbrain:verifier`, and `dotbrain:researcher`. For the explorer role,
 use Claude Code's built-in `Explore` agent. Dispatch packaged roles by name, never as a fork
 of the lead's conversation. The worker's definition always launches it in the
-background. For in-place work, dispatch it without isolation. For isolated work, which every
-concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
+background. For in-place work, dispatch it without isolation. For isolated work,
+set worktree isolation on the `Agent` call; its definition never sets
 isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
 agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
 lead's working directory instead. Address the worker by its agent ID.
@@ -49,7 +49,7 @@ Git as plain, separate commands and set commit identity through the `GIT_AUTHOR_
 
 ## Collect and fix
 
-Apply the shared [completion handling](parallel-execution.md#completion-handling) rules when processing
+Apply the shared [completion handling](execution-record.md#completion-handling) rules when processing
 available results. A native completion notification does not establish item acceptance.
 
 Collect the native task completion notification and the worker's candidate and check evidence.
@@ -57,7 +57,7 @@ Retain the agent ID for follow-up. A completed task can resume with `SendMessage
 ID in the lead session that spawned it; use this for item-review fixes and conflict rebases.
 The resumed worker continues in its original worktree.
 
-Apply [completion and capacity rules](parallel-execution.md#completion-handling)
+Apply [capacity rules](parallel-execution.md#capacity-and-isolation)
 before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 ## Stop and recover

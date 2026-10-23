@@ -58,7 +58,7 @@ Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
 
-Apply the shared [completion handling](parallel-execution.md#completion-handling) rules when processing
+Apply the shared [completion handling](execution-record.md#completion-handling) rules when processing
 available results. The process checks below establish completion, not item acceptance.
 
 Wait on the retained process handle. Check process exit, session ID from `thread.started`,
@@ -68,7 +68,7 @@ Read the final response file as the worker's report. Read transcript prose and t
 when diagnosing a failure revealed by these signals. A zero exit is process evidence only;
 acceptance follows the shared contract.
 
-Apply [completion and capacity rules](parallel-execution.md#completion-handling)
+Apply [capacity rules](parallel-execution.md#capacity-and-isolation)
 before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 When the installed CLI supports it, continue a stopped session with
@@ -93,7 +93,7 @@ through `Start-Process` was already outside the worker's process tree, and stopp
 worker's handle left it running and writing. Before cancelling, record every nested writer's
 PID and creation time; the worker must report them. Stop each recorded identity's tree, then
 confirm that no recorded identity remains and that its activity and tracker writes have stopped.
-Move the claim only after that. A quiet window and an empty worker tree do not establish
+Apply manage-work-graph's claim-move rule after that. A quiet window and an empty worker tree do not establish
 termination: a writer with no recorded identity kept writing after both checks passed. Keep its
 claim, report the uncertainty and wait for the human decision. Beads refuses an unforced
 reassign of a live claim.
@@ -127,8 +127,8 @@ lead model call while the reviewer is still working. Keep lifecycle and error ch
 transcript content only to investigate a reported failure or evidence gap.
 
 If an assignment requires a custom agent, verify its availability by actually spawning that role
-in this CLI session. A delivered TOML file is insufficient. Count nested writing agents toward
-the shared writing-worker cap and track their termination; avoid nested writers when direct CLI
+in this CLI session. A delivered TOML file is insufficient. Apply the parallel reference's
+capacity rule to nested writers and track their termination; avoid nested writers when direct CLI
 workers cover the assignment. Packaged subagents are spawned as `dotbrain-<role>`, for example
 a nested reviewer as `dotbrain-reviewer`, and follow the shared item-review rules. A `codex exec`
 writer cannot select an agent, so its assignment points it to the packaged worker's definition,
