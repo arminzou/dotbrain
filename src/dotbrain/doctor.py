@@ -468,15 +468,17 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_agent_pointer(repo))
         for workspace in workspaces:
             rt = runtimes.for_workspace(workspace)
+            directory = runtimes.user_dir(rt, home or Path.home())
+            if rt.home_env and not assets.HOME_DELIVERY[rt.name].owned(directory):
+                continue
             if rt.name == "opencode":
-                config_dir = runtimes.user_dir(rt, home or Path.home())
                 try:
-                    findings.extend(_opencode_absent(config_dir, opencode.state(config_dir)))
+                    findings.extend(_opencode_absent(directory, opencode.state(directory)))
                 except DIAGNOSIS_ERRORS as exc:
                     findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
             elif rt.home_env:
-                findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
-            if rt.name == "cursor":
+                findings.extend(_check_home_project(rt, directory, repo, selected))
+            if rt.name == "cursor" and cursor.global_delivery(root):
                 findings.extend(_check_home_plugin(rt, root))
                 findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))

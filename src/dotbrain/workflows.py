@@ -12,6 +12,7 @@ The subprocess seams take an injected ``run`` callable so tests record argv inst
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
@@ -74,8 +75,6 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
     user_home = home or Path.home()
     report = CommandResult("detach")
     cfg = skills.load_global_config(dotbrain_home / "skills/skills.yaml")
-    checkouts = [p.checkout.resolve() for p in project_selection.select_projects(dotbrain_home, all_projects=True)
-                 if p.checkout is not None]
     for rt in selected:
         target = TargetResult(scope="global", data={"runtime": rt.name})
         report.targets.append(target)
@@ -86,8 +85,8 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
         try:
             for dest in destinations:
                 resolved = dest.resolve()
-                if resolved != dest.absolute() or any(resolved.is_relative_to(checkout) for checkout in checkouts):
-                    target.findings.append({"severity": "warning", "message": f"{dest}: symlinked path or project checkout; skipping"})
+                if os.path.lexists(resolved.parent.parent / ".brain"):
+                    target.findings.append({"severity": "warning", "message": f"{dest}: project checkout; skipping"})
                     continue
                 if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
                     target.findings.append({"severity": "warning", "message": f"{dest}: foreign skill directory; skipping"})

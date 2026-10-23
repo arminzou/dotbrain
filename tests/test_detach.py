@@ -198,20 +198,30 @@ def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home
     assert config.read_bytes() == before
 
 
-@pytest.mark.parametrize("destination", ("symlinked-parent", "configured-checkout"))
-def test_detach_skips_receivers_that_reach_project_checkouts(destination, dotbrain_home, fake_home, tmp_path, monkeypatch):
+@pytest.mark.parametrize("destination", ("symlinked-parent", "configured-checkout", "sibling-worktree"))
+@pytest.mark.parametrize("marker", ("file", "directory", "dangling-link"))
+def test_detach_skips_receivers_that_reach_project_checkouts(destination, marker, dotbrain_home, fake_home, tmp_path, monkeypatch):
     set_fake_home(monkeypatch, fake_home)
     checkout = tmp_path / "checkout"
     receiver = checkout / ".codex/skills"
     receiver.mkdir(parents=True)
     link = receiver / "owned"
     link.symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
+    brain = checkout / ".brain"
+    if marker == "file":
+        brain.touch()
+    elif marker == "directory":
+        brain.mkdir()
+    else:
+        brain.symlink_to(tmp_path / "missing-brain", target_is_directory=True)
     if destination == "symlinked-parent":
         (fake_home / ".codex").symlink_to(checkout / ".codex", target_is_directory=True)
     else:
         project = dotbrain_home / "brainspaces/example"
         (project / ".brain").mkdir(parents=True)
-        (project / ".repo").write_text(str(checkout))
+        main = tmp_path / "main" if destination == "sibling-worktree" else checkout
+        main.mkdir(exist_ok=True)
+        (project / ".repo").write_text(str(main))
         (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  codex: {receiver.as_posix()}\n")
 
     result = workflows.detach_runtime(dotbrain_home, "codex", home=fake_home)
@@ -221,3 +231,48 @@ def test_detach_skips_receivers_that_reach_project_checkouts(destination, dotbra
     assert link.is_symlink() and link.is_dir()
     assert any(f["severity"] == "warning" and "project checkout" in f["message"]
                for f in result.targets[0].findings)
+
+
+def test_detach_prunes_global_skills_under_symlinked_home_ancestor(dotbrain_home, tmp_path):
+    actual = tmp_path / "actual"
+    actual.mkdir()
+    alias = tmp_path / "alias"
+    alias.symlink_to(actual, target_is_directory=True)
+    home = alias / "home"
+    receiver = home / ".codex/skills"
+    receiver.mkdir(parents=True)
+    link = receiver / "owned"
+    link.symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
+
+    result = workflows.detach_runtime(dotbrain_home, "codex", home=home)
+
+    assert result.status == "success"
+    assert result.targets[0].changes == ["removed codex/owned"]
+    assert not link.is_symlink()
+    assert not [f for f in result.targets[0].findings if f["severity"] == "warning"]
+
+
+@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi", "cursor"))
+def test_project_doctor_does_not_request_home_delivery_after_detach(runtime, dotbrain_home, fake_home, tmp_path, monkeypatch):
+    from dotbrain import projects
+
+    set_fake_home(monkeypatch, fake_home)
+    for variable in ("HERMES_HOME", "XDG_CONFIG_HOME", "PI_CODING_AGENT_DIR"):
+        monkeypatch.delenv(variable, raising=False)
+    rt = runtimes.find(runtime)
+    run = lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, "", "")
+    assert not assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run).warnings
+    assert workflows.detach_runtime(dotbrain_home, runtime, home=fake_home, run=run).status == "success"
+    checkout = tmp_path / "checkout"
+    (checkout / rt.workspace).mkdir(parents=True)
+    project = dotbrain_home / "brainspaces/example"
+    (project / ".brain").mkdir(parents=True)
+    (project / ".brain/project.yaml").write_text(
+        f"agents: [{runtime}]\nbeads:\n  mode: none\nskills: [misc/discovery-test]\n", encoding="utf-8")
+    target = projects.ProjectTarget("example", project, checkout)
+
+    findings = doctor._check_project(target, dotbrain_home, run, home=fake_home)
+
+    assert not [f for f in findings if "not delivered" in f.message or "hook entries" in f.message]
+    assert not [f for f in findings if "bootstrap" in f.suggestion or "--scope global" in f.suggestion]
+    assert any("delivery is missing" in f.message for f in findings)  # Project resources still checked.
