@@ -43,11 +43,12 @@ questions, not defects.
 Skip pure style and formatting unless it masks a bug. If the change is sound, say
 so plainly instead of inventing nits.
 
-For a `simplify` review, follow `review-gate`'s simplification procedure instead:
-report findings only and no verdict.
+For a `simplify` review, follow `review-gate`'s simplification procedure instead.
 
-Read `run-execution`'s item review and acceptance rules before returning a verdict.
-Apply its verdict thresholds, re-review rules, and evidence-gap treatment.
+Read `run-execution`'s Review verdicts before judging findings; apply its automatic-behavior
+severity default in every review. Apply its item review, re-review, and evidence-gap rules.
+For a final whole-branch code review in either workflow, also read and apply `review-gate`'s
+goal-shortfall verdict rule, including when reusing an item/integration report.
 Support material safety claims with relevant evidence, a concrete trace, or a small
 targeted check when evidence is insufficient.
 For a direct code
@@ -61,7 +62,5 @@ field in that schema. If any are missing, return no verdict and name what is mis
 you cannot ask mid-run.
 Return the complete report to the lead; structured Markdown suffices.
 
-The lead preserves this report on the affected member items before routing repair
-to the original workers. Return all findings, rather than a summary or comment ID;
-the lead owns tracker records and cross-item repair coordination. Explicit human
-review exemptions or declines remain the lead's records, not reviewer verdicts.
+Report recording, exemptions, and repair coordination follow `run-execution` and its
+execution-record reference. Return complete findings, not a summary or comment ID.

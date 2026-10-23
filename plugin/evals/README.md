@@ -16,6 +16,7 @@ rule-bearing skill. They do not run in CI.
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 | `execution-rules` | `parallel-reference-before-second-writer`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
 | `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
+| `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that

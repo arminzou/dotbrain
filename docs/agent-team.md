@@ -203,7 +203,9 @@ keep the full record and public Verification block, with passing logs summarized
 
 The lead sends the integrated group to an independent reviewer. An unmet acceptance criterion or
 a change-caused blocker/high regression produces `CHANGES`, even in an unchanged consumer.
-Unrelated existing defects are discovered work; medium/low findings remain non-blocking. Safety
+A change-caused failure in automatic behavior defaults to high severity if it goes unreported
+or leaves state that blocks later runs, unless the design explicitly accepts that failure mode.
+Unrelated existing defects are discovered work; other medium/low findings remain non-blocking. Safety
 claims need evidence, a concrete trace, or a small targeted check; missing evidence is a gap.
 If the reviewer returns `CHANGES`, the lead records the report before sending the durable finding
 references back to the original responsible worker, which fixes the change in the same checkout,
@@ -229,6 +231,12 @@ reviewed changes, but need not be fresh. Otherwise arrange a whole-branch review
 checks, the final human PR review, and your merge gate remain.
 A single-item branch reuses its item review only if it covers the whole final diff; otherwise it
 also needs a whole-branch review.
+In either workflow, a final review returns `CHANGES` for an unmet in-scope design goal or
+success criterion in a case the design does not exclude, whatever its severity. Reused
+reports must assess this too. Item and integration review thresholds stay the same.
+In a handoff, the lead files the goal-shortfall fix under the epic with its reason and
+adds it to the loop's fixed set within the existing finite budget. If that budget runs
+out with the fix open, the handoff ends `BLOCKED`. A fix needing a new decision still asks you.
 A handoff also gets a non-blocking simplification pass when an independent reviewer is available;
 the lead records finding dispositions within approved scope and returns new consequential decisions to you.
 

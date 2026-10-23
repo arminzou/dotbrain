@@ -1,0 +1,5 @@
+verdict-recorded
+no-close=demo-r2
+no-push
+no-merge
+branch-unchanged=theme-support

@@ -101,15 +101,20 @@ Use a reviewer agent that authored none of the reviewed change. The lead never r
 it authored. Fix the boundary at the group base and exact integrated head, included items,
 acceptance criteria, affected consumers, and interactions. The reviewer returns its complete
 structured report without tracker writes; the lead records it on member beads before notifying
-workers, following [the execution record](references/execution-record.md). Preserve reviewer
-identity, revision references, acceptance coverage, per-item verdicts, findings, and evidence gaps.
-Use the execution record's report schema and cross-item finding links.
+workers, following [the execution record](references/execution-record.md). Preserve
+the complete report using the execution record's schema and cross-item finding links.
 Item and integration reviews never get a batch review bead.
+
+### Review verdicts
 
 Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed
 changes, including symptoms in unchanged consumers or interactions. Return `APPROVE` with
 `medium` or `low` findings and unrelated existing defects; the lead files those as discovered
 work for a later bounded execution. Missing evidence or coverage is a gap, never a verified claim.
+
+A change-caused failure in automatic behavior that goes unreported, or leaves state
+that blocks later runs, defaults to `high` in every review unless the design explicitly
+accepts that failure mode.
 
 On `CHANGES`, resume the same writing worker to fix its candidate using the worker runtime's
 reference. The lead sets `dotbrain_phase` to `working` and

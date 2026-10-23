@@ -11,12 +11,10 @@ Preflight contract (record the human's approval; reuse without repeat `GO` while
 - Dedicated branch and base: <branch / base>
 - Limits: <finite whole-loop budget/turn limit, retry caps, consumed and remaining allowance>
 - Acceptance/UAT: <agreed criteria, journeys, environment and required evidence>
-- Writing-worker cap: <announced finite cap; human-specified or lead-selected from actual runtime
-  capacity and isolation, reserving lead/review/verification capacity; separate from total scope>
+- Writing-worker cap: <cap under run-execution's parallel reference>
 - Human-gated items in scope: <none | ids; with any, the handoff can only end BLOCKED>
-- Verification: <narrow checkpoint check>, in-loop Success Criteria gate (fast tier), full suite at
-  the review surface, final whole-branch code review for multi-item branches, default non-blocking
-  simplify pass, readiness: <only if named in this contract>
+- Verification: <checkpoint check>, in-loop Success Criteria gate (fast tier), full suite
+  at the review surface; final reviews under review-gate; readiness: <if named>
 - Delivery: draft at first push, pushes after accepted integration groups, one mention per blocked stop,
   ready at FINAL with human review requested; provider/auth: <available>; agent identity:
   <distinct from human>; base ruleset: <reviewed PR required, stale approvals dismissed>
@@ -28,9 +26,8 @@ Before entering the loop, and after context recovery:
 - Run `bd prime` for the Beads protocol; dotbrain injects none. Skip it only when the operator's own
   Beads hook already supplied it.
 - If the linked bead names the current work, inspect `bd ready --json --quiet`,
-  `bd human list --json --quiet`, and `bd show <id> --json --quiet`. Claim a ready work bead
-  yourself only when you will work it as a team of one; otherwise `run-execution` claims it under
-  each worker's own actor. Never claim an epic merely because it is linked.
+  `bd human list --json --quiet`, and `bd show <id> --json --quiet`.
+  Apply manage-work-graph's claim and actor rules.
 - Validate complete approved authority still applies: scope, branch/base, criteria, checks/UAT,
   review expectations, provider/auth and PR authority, finite limits, and narrower operator overrides.
   Reuse a complete applicable contract without repeat GO. An execution request does not silently
@@ -70,10 +67,10 @@ satisfies the design doc's Success Criteria and agreed acceptance/UAT, relevant 
 the full suite pass at the exact integrated revision, design-relevant discoveries
 are reflected into the active design doc, final review has no blocking findings (required code
 review APPROVE, named readiness review READY), and the agreed ready-for-review PR exists with
-the human's review requested. Simplify findings or an unavailable simplify reviewer never block FINAL.
+the human's review requested. Review requirements follow review-gate.
 
 Stop scopes:
-- The whole handoff ends BLOCKED for wrong or unmeetable criteria; unresolvable scope, safety,
+- The whole handoff ends BLOCKED for an exhausted whole-loop budget; wrong or unmeetable criteria; unresolvable scope, safety,
   or design ambiguity; two cycles without a code change, new verification evidence, or resolved
   scope; an action outside the approved contract; a missing required capability or a PR that cannot be opened;
   a failure that compromises shared state; or cancellation.
@@ -81,6 +78,16 @@ Stop scopes:
   continue only proven independent work under its containment rules. End BLOCKED when
   no unblocked work remains. Preserve scope and report attempts and recommended decisions.
   Never mark a PR ready with a blocked scoped item.
+
+Goal-shortfall repairs:
+Admit a goal-shortfall repair into the running loop. The lead files its fix as a work
+item under the epic, records why it is needed to meet the approved
+goal, and adds it to the running loop's fixed set. Meeting an approved goal adds no new
+scope. The fix shares the existing finite whole-loop budget and limits; admission grants
+no extra attempts. Exhausting that budget with the fix open ends BLOCKED, never FINAL.
+A fix needing a new design, scope, authority, or criteria decision still stops affected
+work and asks the human under the convention's decision rules. Other discoveries keep
+their existing treatment.
 
 Loop protocol (every iteration, not just the first):
 1. Reread the active design doc fresh, plus AGENTS.md, CONTEXT.md if present, and the linked bead
@@ -91,8 +98,8 @@ Loop protocol (every iteration, not just the first):
    and capacity available. Refill eligible slots as prerequisites close while independent siblings
    continue. Never add items silently to an execution already under way.
 3. If the path is unclear, use a read-only explorer first.
-4. Run that execution through `run-execution` as its lead. Only the lead changes the work graph,
-   the execution record, and the active design doc.
+4. Run that execution through `run-execution` as its lead. Apply manage-work-graph's
+   writer permissions to the graph, execution metadata, and active design.
 5. Apply run-execution's checkpoint role routing. Run the once-only in-loop Success
    Criteria gate before final review.
 6. Apply run-execution's bounded repair, retry, review and acceptance rules.
@@ -105,6 +112,7 @@ Loop protocol (every iteration, not just the first):
    REFLECT does not invoke run-retro or add another reflection report.
 8. After the integrated in-loop gate passes, apply review-gate's final whole-branch
    review rules, including reuse, named readiness review, simplify, and the PR summary.
+   Admit any goal-shortfall repair through the rule above before deciding the loop outcome.
 9. Stop if blocked by missing design guidance, unsafe scope growth, or verifier ambiguity.
 10. Before calling FINAL: complete Handoff delivery above. Record the PR URL and
     verification on the final record selected by review-gate; apply its closing rules.

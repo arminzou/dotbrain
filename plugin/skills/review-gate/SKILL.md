@@ -29,7 +29,17 @@ cites. The reviewer supplements the gate, never replaces it. Simplify uses the b
 If no independent reviewer is available, skip that optional pass with a note; it does not block
 delivery.
 
+Read [Run Execution's review verdicts](../run-execution/SKILL.md#review-verdicts),
+including the automatic-behavior severity default, before judging findings.
+
 ## Final branch review
+
+A **goal shortfall** shows that an in-scope design goal or success criterion is unmet
+in a case the design does not exclude; non-goals delimit the judgment. In the final
+whole-branch review, return `CHANGES` for a goal shortfall in either workflow, whatever
+its severity label. Item and integration review thresholds are unchanged.
+Apply this final verdict rule when reusing an item/integration report too: it must
+explicitly assess goal shortfalls, or the final review needs a refreshed report.
 
 Before it is offered for merge in either workflow, a branch carrying more than one work item requires a final `code` review
 of the whole branch diff against its agreed base at the exact final head. Reuse the final

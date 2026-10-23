@@ -46,7 +46,7 @@ or changed authority, with evidence and a recommendation; stop affected work unt
 An execution request does not silently authorize an unapproved contract.
 
 - **Scope:** one named work bead, or every implementation bead under the named design/epic in
-  dependency order. An epic is never claimed merely because it anchors the scope.
+  dependency order. Apply manage-work-graph's claim rules.
 - **Branch and base:** dedicated branch name, a short slug with no work-item ID, and base branch. Base on
   an unmerged branch only when the work depends on it (a stacked PR targeting that branch's PR);
   work that merely shares a base gets a sibling branch on that base.
@@ -137,6 +137,17 @@ treat it as a human decision gate.
 For design/epic scope, repeat run-execution's ready-frontier operation after closure.
 Final review records follow review-gate and its review-beads reference.
 
+## Goal-shortfall repairs
+
+Admit a goal-shortfall repair into the running loop. The lead files its fix as a work
+item under the epic, records why it is needed to meet the approved
+goal, and adds it to the running loop's fixed set. Meeting an approved goal adds no new
+scope. The fix shares the existing finite whole-loop budget and limits; admission grants
+no extra attempts. Exhausting that budget with the fix open ends `BLOCKED`, never `FINAL`.
+A fix needing a new design, scope, authority, or criteria decision still stops affected
+work and asks the human under the convention's decision rules. Other discoveries keep
+their existing treatment.
+
 ## Loop protocol
 
 Use this protocol throughout the handoff:
@@ -152,8 +163,8 @@ Use this protocol throughout the handoff:
    outer loop, reflection, overall limits, final review, and delivery.
 3. VERIFY: Apply run-execution's role routing for checkpoint checks. Run the once-only
    in-loop gate before final review.
-4. REFLECT: As the lead, the only agent that edits the active design doc, update it only for
-   design-relevant learning, including what workers returned:
+4. REFLECT: Apply manage-work-graph's writer permissions. Update the active design only
+   for design-relevant learning, including what workers returned:
    - A known unknown was resolved.
    - A new known unknown appeared.
    - An implementation note changes how future work items should be built.
@@ -164,14 +175,14 @@ Use this protocol throughout the handoff:
    REFLECT does not invoke `run-retro` or add another reflection report.
 5. REVIEW: After the integrated in-loop gate passes, apply
    [review-gate](../review-gate/SKILL.md#final-branch-review) for final whole-branch review,
-   reuse, named readiness review, the simplify pass, and its PR summary.
+   reuse, named readiness review, the simplify pass, and its PR summary. Admit any
+   goal-shortfall repair through the rule above before deciding the loop outcome.
 6. DECIDE:
    - Print `FINAL` only when every scoped item is closed and none is blocked, the scoped work
      satisfies agreed acceptance/UAT, the in-loop gate, full suite and final review have evidence
      at the exact integrated revision, required code review
      is `APPROVE`, any named readiness review is `READY`, and the agreed ready-for-review PR exists
-     with the human's review requested. A skipped or findings-bearing simplify pass does not
-     prevent `FINAL`.
+     with the human's review requested. Review requirements follow review-gate.
      Record the PR URL and verification on the final review record selected by review-gate.
      Apply its review-bead closing rules.
    - This loop is an automation handoff: it runs on its dedicated branch, never `main`, and the
@@ -195,7 +206,8 @@ invariants. Apply the no-progress stop below; an inconclusive repeated plan need
 These stop scopes apply to bounded execution in both workflows; only the handoff uses
 the loop outcomes below. A whole-execution stop prevents independent work too.
 
-The whole handoff ends at `FINAL`, or `BLOCKED` for wrong or unmeetable criteria; unresolvable
+The whole handoff ends at `FINAL`, or `BLOCKED` for an exhausted whole-loop budget;
+wrong or unmeetable criteria; unresolvable
 scope, safety, or design ambiguity; two cycles without a code change, new verification evidence,
 or resolved scope; an action outside the approved contract; a missing required capability or a PR that cannot be
 opened; a failure that compromises shared state; or cancellation.
