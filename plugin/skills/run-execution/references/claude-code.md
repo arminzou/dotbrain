@@ -18,7 +18,7 @@ isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's 
 agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
 lead's working directory instead. Address the worker by its agent ID.
 
-Send the self-contained assignment in the `Agent` prompt, with exact authority sections and checks,
+Send the self-contained assignment in the `Agent` prompt, with exact source sections and checks,
 without pasting the lead's conversation or dispatch, integration, and recovery references.
 Omit the call's `model` option unless the user explicitly requests a different model;
 otherwise inherit the configured model.
@@ -29,11 +29,12 @@ Packaged subagents inherit the lead session's permission mode, and their permiss
 in the lead's session. In an unattended run nobody answers them, so the session must already allow
 the `git` and `bd` commands its workers and reviewers run.
 
-The launch returns the agent ID at once, and the worker's checkout is
-`.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
+Dispatch a reviewer without isolation, pointed at the detached review worktree the lead created.
+
+The launch returns the agent ID at once, and the worker's checkout is `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
 available. Record dispatch while the worker is still starting, before waiting for completion.
 Workers discover the shared tracker through Git metadata without wiring their subagent worktrees;
-their assignments carry precise authority sections and source references.
+their assignments carry precise source sections and references.
 
 Before the first dispatch, when `git check-ignore -q .claude/worktrees/` fails, add
 `/.claude/worktrees/` to `$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages
@@ -80,11 +81,11 @@ The sections above assume a Claude Code lead using the `Agent` tool. A lead in a
 launches Claude Code workers as separate `claude -p` sessions instead. Prepare a worktree as the
 lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so the plugin and
 project resources resolve. Launch in the background from that worktree with the assignment on
-stdin, `--agent dotbrain:worker`, `--output-format json`, and the permission mode authorized for
-this execution; nobody answers prompts in an unattended run. Generate the worker's ID up front and
+stdin, `--agent dotbrain:worker`, `--output-format json`, and full access
+(`--permission-mode bypassPermissions`); nobody answers prompts in an unattended run. Generate the worker's ID up front and
 pass it as `--session-id <uuid>`, so `Dispatched` records it before launch; the JSON result
 carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
-dotbrain:worker` from the same worktree, passing the authorized permission mode again, since a
+dotbrain:worker` from the same worktree, passing `--permission-mode bypassPermissions` again, since a
 resume starts in the default mode; the worker keeps its earlier turns. Stop a worker by
 ending its process tree. Check `claude --help` when an option is rejected.
 

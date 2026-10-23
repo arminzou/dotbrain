@@ -69,9 +69,10 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    human decision follows. Read the target's relevant context and decisions. For readiness, read
    [the procedure](references/readiness.md) before pass 1. For simplify, read the bundled
    [simplification procedure](references/simplify.md) before reviewing.
-2. Keep the reviewed tree read-only. The reviewer returns a complete report to the lead without
-   tracker writes. The lead records findings and provenance on the review bead; item/integration
-   reports go to member execution records through `run-execution`. Include affected consumers and
+2. Keep the reviewed tree read-only: the reviewer inspects it with `git diff` and `git show` only.
+   An item/integration reviewer records its report on member execution records itself, as
+   `run-execution` specifies. For a review bead, the reviewer returns its complete report and the
+   lead records findings and provenance on the bead. Include affected consumers and
    interactions, including unchanged files: change-caused regressions can block wherever their
    symptom appears; unrelated existing defects remain discovered work. Gather executed or traced
    evidence (`verifier` for the

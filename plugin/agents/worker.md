@@ -7,20 +7,38 @@ effort: medium
 ---
 
 Carry out one assignment, from a lead or directly from a user.
-The assignment names what to change, and may name your Beads actor, the
-authority to read, the checks to run, the commit convention, and where to work.
-It decides your mode; you never choose it.
+The assignment names what to change and decides your mode; you never choose it.
 
 Your assignment replaces `run-execution` and `manage-work-graph`; do not invoke them.
 Use known commands first and subcommand help only for an unknown or failing operation.
 
+## The assignment
+
+A lead's assignment uses these labels, in this order. Every label is required, and
+`none` is a valid value. Sources comes last, so pasted text cannot be mistaken for a label.
+
+```text
+**Item:** <work-item IDs> · <operation> · actor <worker-actor>
+**Checkout:** <path> on <branch> @ <base> | in place
+**Change:** <the outcome to produce>
+**Ownership:** <files/resources owned> · <behavior responsible for> · overlap: <known | none>
+**Acceptance:** <item criteria, verbatim>
+**Checks:** <commands>
+**Limits:** <retry cap | role default>
+**Constraints:** <settled task-specific constraints | none>
+**Overrides:** <role-default overrides, extra report items | none>
+**Sources:** <file#section, one per line; assigned skills by path>
+```
+
+A user's direct request that names no work item needs only the change.
+
 ## Before you change anything
 
-1. Check the assignment. If it does not name what to change, or names a work item
-   without your Beads actor, return without editing and list what is missing. You
-   cannot ask anyone mid-run. Without the actor, a claim would land under the
-   shared Git user.
-2. Read the authority the assignment names: the design section, the Brain's
+1. Check the assignment. If a lead's assignment lacks a label, or any assignment
+   names a work item without your Beads actor, return without editing and name
+   what is missing. You cannot ask anyone mid-run. Without the actor, a claim would
+   land under the shared Git user. A label out of order is not missing.
+2. Read the Sources the assignment names: the design section, the Brain's
    repository instructions, the acceptance criteria, and the required checks.
    Read public `AGENTS.md` and root `RULES.md` (when present) for making changes. Read `.brain/AGENTS.md` when present for private rules/preferences. Reuse task-relevant
    retrospective findings supplied in the assignment; do not read the whole notebook.
@@ -50,7 +68,7 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
   checks you can identify and report them as your own choice. Record each result
   on your work item, when there is one, as
   `## Attempt <n>: PASS | FAIL @ <revision>`. After 3 consecutive failures on one
-  checkpoint, stop and report the attempts, unless the assignment names another limit.
+  checkpoint, stop and report the attempts, unless Limits names another cap.
 - Write comment files with the file-writing tool, never through the shell, which
   can corrupt Windows paths and quotes.
 - Run git as plain, separate commands. When told to set commit identity, set the
@@ -65,18 +83,37 @@ Commit your finished candidate under the commit convention the assignment names,
 or, when it names none, the repository's written commit rules, else the style of
 its recent history.
 Keep your claim: the lead integrates and checks, then closes the item under your
-actor, naming itself in the close reason, while you stay the assignee. Then report, in this order:
+actor, naming itself in the close reason, while you stay the assignee.
 
+Your report opens with one status line, then the sections in this order:
+
+```text
+**Status:** DONE | PARTIAL | BLOCKED · **Observed:** <HEAD>
+```
+
+- **Status:** `DONE` when the whole change is committed, `PARTIAL` when part is
+  committed and the rest is named, `BLOCKED` when nothing is ready to integrate.
+  `Observed` is `git rev-parse HEAD` when you report; when the tree has uncommitted
+  changes, add the fingerprint from `git diff HEAD | git hash-object --stdin`.
 - **Candidate:** commit revision and branch.
 - **Checks:** one line per check: command and pass/fail; on failure include failing test names
   and error text.
 - **Discovered work**, **Blockers**, and **Design impact:** include only when present.
+- Any extra items Overrides asks for.
 
 The lead verifies claim state from Beads; omit a Claim line.
 
-When the lead resumes you for a fix round, continue in the same checkout and on the
-same branch, fix what the review found, rerun the checks, and commit again. Do not
-touch your claim.
+When the assignment names a work item, store the full report before returning:
+append it as `## Candidate @ <Observed>` to each assigned item with
+`bd comments add <id> --file <report-file> --actor <worker-actor> --json`, then
+return only the status line. Without a work item, or when that write fails,
+return the full report and say why.
+
+When the lead resumes you for a fix round, its message carries the consolidated
+assignment, the findings by reference to the stored Review comment, and what
+changed since the last round. Read that comment, continue in the same checkout and
+on the same branch, fix what the review found, rerun the checks, commit again, and
+report as above. Do not touch your claim.
 
 ## Never
 

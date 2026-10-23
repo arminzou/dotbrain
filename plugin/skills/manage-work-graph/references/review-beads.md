@@ -4,13 +4,15 @@ How to persist any code review's findings as a bead and operate that bead afterw
 skill, tool, or ad hoc process produced them. A review's own methodology — what it checks, how
 rigorously, its finding vocabulary — stays owned by that review. This reference only covers turning
 its output into a bead and tracking remediation. `review-gate` selects the review mode; this
-file owns its shared record. Item and integration reviews return to the lead, who records them
-on member work items using `run-execution`'s
-[execution record](../../run-execution/references/execution-record.md), not a separate batch
-review bead. The independent reviewer writes no tracker records.
+file owns its shared record. The reviewer of an item or integration review records its report on
+member work items itself, as `run-execution`'s
+[execution record](../../run-execution/references/execution-record.md) specifies, not on a
+separate batch review bead; the lead confirms those records. A review bead's notes, metadata, and
+verdict comments stay the lead's records.
 
-Item review, report preservation, cross-item repair, and verdict thresholds follow
-[Run Execution](../../run-execution/SKILL.md#item-review-and-acceptance).
+Report preservation and cross-item repair follow
+[the execution record](../../run-execution/references/execution-record.md); item review and
+verdict thresholds follow [Run Execution](../../run-execution/SKILL.md#item-review-and-acceptance).
 Final whole-branch review and simplify policy follow [review-gate](../../review-gate/SKILL.md).
 
 A review bead records agent work. The lead applies Closing below and the convention's

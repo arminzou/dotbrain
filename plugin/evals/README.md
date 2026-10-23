@@ -16,6 +16,7 @@ rule-bearing skill. They do not run in CI.
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 | `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
 | `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
+| `dispatch-records` | `worker-rejects-missing-label`, `worker-stores-candidate-report`, `fix-round-from-stored-assignment`, `observed-revision-mismatch-held`, `reviewer-records-review-comment` | The two `worker-*` cases as `phase-2`; others are decision exercises; cases unrun |
 | `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
@@ -29,6 +30,10 @@ runtime concurrency. For `parallel-reference-before-dispatch`, also inspect the
 kept transcript: the Read of `parallel-execution.md` must precede the first writing
 worker's Agent call. The native tool-presence and response graders alone cannot prove
 that ordering. All new cases remain unrun until a paid eval is authorized separately.
+
+`worker-rejects-missing-label` has no `checks` file: a correct worker returns before any
+tracker or Git call, and the checker fails every rule when nothing was logged. Its native
+graders read the empty claim log and the reply.
 
 ## Running
 

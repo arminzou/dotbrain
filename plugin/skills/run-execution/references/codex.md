@@ -33,9 +33,8 @@ Read the relevant subcommand help only when an option is unknown or rejected. La
 codex exec --cd <worktree> --sandbox danger-full-access -c model_reasoning_effort=medium --json -o <final-response-file> -
 ```
 
-Use the permission policy authorized for this execution; the example is the explicitly authorized
-full-access path, not permission to broaden another execution's policy. Worktrees isolate edits,
-not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
+Workers and reviewers launch with full access, as shown; their role definitions, not the sandbox,
+keep them within their roles. Worktrees isolate edits, not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
 configured authentication. Keep stdout JSONL, stderr diagnostics and the final response separate.
 On Windows use `pwsh -NoProfile`; background helpers started through `Start-Process` must be hidden.
 
@@ -72,8 +71,8 @@ Apply [capacity rules](parallel-execution.md#capacity-and-isolation)
 before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 When the installed CLI supports it, continue a stopped session with
-`codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original
-worktree, reapply the authorized permission policy using supported flags/configuration, and
+`codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix-round message through stdin. Run from the original
+worktree, reapply full access using supported flags/configuration, and
 verify the resumed session ID, actual checkout, branch and claim. Do not use `--last`, which can
 select another worker's session, or `--worktree`, which creates a different checkout. Keep the
 original assignment and reference paths available. If resume is unavailable, report that fact
@@ -119,8 +118,9 @@ Omit the spawn tool's model option unless the user explicitly requests a differe
 the custom role file supplies effort.
 The packaged reviewer disables cross-session memory with `features.memories = false`.
 Project instructions, assigned acceptance criteria, relevant Brain records, and explicitly
-assigned skills still supply review authority; include the needed context in its assignment.
-Keep fix rounds in the same worker or reviewer session with findings and the changed diff.
+assigned skills still supply the review's Sources; include the needed context in its assignment.
+Point a nested reviewer at the detached review worktree the lead created. Keep fix rounds in
+the same worker or reviewer session, sending the shared fix-round message.
 Collect native results with the runtime's blocking agent-wait tool and a long supported wait
 interval, respecting the session's wait limit. Repeated short status polls each spend another
 lead model call while the reviewer is still working. Keep lifecycle and error checks; read

@@ -26,6 +26,16 @@ the same deterministic gate already has evidence for the current commit and a
 clean tree, say so rather than re-running it; a changed tree means a fresh run.
 Never treat an author's self-check as acceptance evidence.
 
+Every report opens with one status line:
+
+```text
+**Status:** PASS | FAIL | NOT RUN · **Observed:** <HEAD>
+```
+
+`PASS` when every gate command ran and passed, `FAIL` when any failed or the run stopped partway, `NOT RUN` when
+no gate command ran. `Observed` is `git rev-parse HEAD` in the checked tree, plus the
+fingerprint from `git diff HEAD | git hash-object --stdin` when it has uncommitted changes.
+
 If no gate command ran, return `not run`, the reason, and what is needed to run the gate,
 with the revision and environment when available. Omit the full record table and PR-ready block.
 When reusing existing evidence, identify its source and say that no fresh gate ran.

@@ -34,7 +34,7 @@ Optional until the item enters `run-execution`. Populate only facts that exist.
 ```
 
 `verified` means the integrated item passed its agreed acceptance checks. It does not close the
-item or bypass a human gate; native status is the authority for closure. The phase describes
+item or bypass a human gate; native status alone decides closure. The phase describes
 workflow progress, not a second status system. A blocked item keeps its last phase: the native
 `human` label and a `Blocked` comment mark it. The HITL/handoff workflow and sequential/parallel
 execution mode belong to the bounded execution, not the item. Beads' own `execution_mode` and documented execution-hint metadata keep their
@@ -53,7 +53,7 @@ Use [manage-work-graph's metadata and comment write method](../../manage-work-gr
 ## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)
 ## Attempt <n>: PASS | FAIL @ <revision>
 ## Candidate @ <revision>
-## Review <n>: APPROVE | CHANGES @ <revision>
+## Review <n>: APPROVE | CHANGES @ <revision> (round <r>)
 ## Review skipped: <reason>
 ## Review skipped: declined by human — <reason>
 ## Integrated @ <revision> on <target> (candidate <revision>)
@@ -65,29 +65,39 @@ Use [manage-work-graph's metadata and comment write method](../../manage-work-gr
 ## Cancelled @ <revision>
 ```
 
-Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it, and put the
-worker's runtime and its agent or session ID in its body, plus any launch mechanism no runtime
-reference documents: a fix round resumes that worker by ID, and a takeover needs to know which
-worker to confirm stopped.
+Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it. Its body
+holds the worker's runtime, its agent or session ID, any launch mechanism no runtime reference documents, and the full
+assignment as sent. A fix round's `Dispatched` holds the consolidated assignment and what changed
+since the last round, so a fix round or replacement rebuilds its assignment from the item's
+records alone. A fix round resumes that worker by ID; a takeover needs to know which worker to
+confirm stopped.
 
-Before notifying workers or dispatching repairs, the lead appends the returned structured
-review to affected member items under its own actor. The reviewer writes no tracker records.
-Preserve reviewer identity, review number, base/head references, covered items and per-criterion
-acceptance coverage (including unmet or unreviewed criteria), per-item verdicts, complete finding wording and severity (`blocker`, `high`, `medium`,
-`low`), `file:line`, and material evidence or coverage limits. For an uncommitted candidate,
-include HEAD and a diff fingerprint so the verdict cannot be mistaken for approval of HEAD alone.
+A writing worker appends its full report as `Candidate` before returning and returns only its
+status line. A lead that writes the change itself, including on a lead-only runtime, records the
+same `Candidate` shape.
+
+An item or integration reviewer appends its full report as `Review` to every item in its review
+boundary, in one command under its own actor, and returns a status line and an index; the lead
+routes from the index and reads a body only to dispute it. Before notifying workers or
+dispatching repairs, the lead confirms each boundary item has that round's `Review` comment,
+copies a missing one from a sibling item, and records the whole report itself only when the
+reviewer could not write. The report preserves reviewer identity, review number and round,
+base/head references, covered items and per-criterion acceptance coverage (including unmet or
+unreviewed criteria), per-item verdicts, complete finding wording and severity (`blocker`,
+`high`, `medium`, `low`), `file:line`, and material evidence or coverage limits. For an
+uncommitted candidate, it includes HEAD and a diff fingerprint so the verdict cannot be mistaken
+for approval of HEAD alone.
 
 ```bash
 bd comments add <item-id> --file <review-file> --actor <lead-actor> --json
 ```
 
-Confirm the stored comment text matches the returned review before repair dispatch. Label
-ownership and coordination notes as lead additions. A cross-item finding has one responsible
-worker: record the full finding on that worker's item, with its stable finding ID, and link its
-durable comment and finding ID from every other affected item. Route repairs to the original
-workers with these references. Preserve disputes as new records and return them to the reviewer
-or human; never silently change a verdict. Member records must recover all findings and review
-limits without relying on an epic comment or a new batch review bead.
+Confirm a comment the lead copies or records matches the report. Label ownership and
+coordination notes as lead additions. A cross-item finding has one responsible worker: name it in
+a lead note on every affected item, citing the `Review` comment and finding ID, and route repairs
+to the original workers with these references. Preserve disputes as new records and return them
+to the reviewer or human; never silently change a verdict. Member records must recover all
+findings and review limits without relying on an epic comment or a new batch review bead.
 
 ## Integration groups and recovery
 
@@ -128,6 +138,9 @@ For each result:
 1. Match the item, runtime agent or session ID, dispatch or fix round, and reported revision to
    the recorded assignment and actual artifacts. Arrival order does not establish which result
    is current. Missing identity or artifacts hold the affected result pending reconciliation.
+   So does a status line whose `Observed` revision differs from the requested review or
+   verification head, or from a worker's reported candidate and actual branch head: never
+   record such a result as current.
 2. Compare the result with the item's execution record. An already processed duplicate changes
    no phase, claim, attempt count, or acceptance state and triggers no repeated follow-up.
    If recording stopped partway, reconcile the saved evidence before completing the missing writes.
@@ -138,7 +151,8 @@ For each result:
 4. Record a new result and its disposition on the existing item before dispatching follow-up work
    or integrating its candidate. Use the existing execution-record comments and artifact references,
    including the source agent or session ID, dispatch or fix round, revision, evidence, and gaps.
-   Confirm the stored record matches the result. A returned candidate retains its claim and leaves dependents held.
+   Confirm the stored record matches the result; a worker's report is its `Candidate` comment,
+   recorded by the lead from the returned report only when the worker could not. A returned candidate retains its claim and leaves dependents held.
 
 After recording results, choose integration groups, review, fixes, and eligible ready work under
 Run Execution's acceptance rules and this reference's linked capacity rules. Keep pending results in the lead's session and

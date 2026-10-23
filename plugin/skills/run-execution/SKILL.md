@@ -105,10 +105,12 @@ override remains binding.
 Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
 it authored. Fix the boundary at the group base and exact integrated head, included items,
 acceptance criteria, affected consumers, and interactions, and pass that boundary, the review
-number, and each item's acceptance criteria in the review request. The reviewer returns its complete
-structured report without tracker writes; the lead records it on member beads before notifying
-workers, following [the execution record](references/execution-record.md). Preserve
-the complete report using the execution record's schema and cross-item finding links.
+number and round, the reviewer's Beads actor, and each item's acceptance criteria in the review
+request. Before dispatch, create the reviewer's checkout with `git worktree add --detach <path>
+<head>` and point the reviewer at it without runtime isolation, never at the lead's checkout;
+remove it with `git worktree remove` after recording the verdict. The reviewer records its report
+on every boundary item and returns an index; the lead confirms and routes it as
+[the execution record](references/execution-record.md) specifies.
 Item and integration reviews never get a batch review bead.
 
 ### Review verdicts
@@ -123,10 +125,11 @@ A change-caused failure in automatic behavior that goes unreported, or leaves st
 that blocks later runs, defaults to `high` in every review unless the design explicitly
 accepts that failure mode.
 
-On `CHANGES`, resume the same writing worker to fix its candidate using the worker runtime's
-reference. The lead sets `dotbrain_phase` to `working` and
-appends `## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)`.
-The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
+On `CHANGES`, resume the original writing worker using the worker runtime's reference. The lead
+sets `dotbrain_phase` to `working` and appends
+`## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)` with the
+consolidated assignment and what changed since the last round; the resume message carries both
+and cites the `Review` comment for the findings. The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
 work; a delegated sequential worker is resumed like a parallel worker. If the worker cannot
 resume, load [the replacement rules](references/parallel-execution.md#claim-moves-and-replacements).
 The same reviewer re-reviews its earlier findings and the fix diff; a newly spotted `blocker`
@@ -148,23 +151,12 @@ findings resolved; others applied, filed with follow-up IDs, or declined with re
 
 ## Worker assignment
 
-Every delegated worker receives a compact assignment in its runtime message:
-
-- work-item IDs and the assigned operation
-- the worker's Beads actor, under manage-work-graph's actor rules
-- project rules, acceptance criteria, task limits, permission boundaries, and named skills
-- allowed actions and file or resource ownership, behavioral responsibility, and known file overlap
-- checkout, item branch, and base revision, where applicable
-- relevant authority text or precise source sections, with source identity and enough context
-  to resolve conflicts; required project rules still apply
-- required checks and the artifacts, evidence, and blockers to return
-- any override of a role default, including retry, escalation, or commit-convention overrides
-
-Make the assignment self-contained: include settled constraints and exact authority sections,
-not the lead's conversation or whole workflow documents. Omit only duplicated role defaults and
-the lead's Beads actor; keep the worker's own actor and every assignment-specific override.
-The worker's role supplies startup and commit-convention fallback; this skill owns retries.
-The lead loads `run-execution`'s dispatch,
+Every delegated writing worker receives, in its runtime message, the labelled assignment that
+[the worker role](../../agents/worker.md#the-assignment) defines, with every label in order;
+reviewer requests keep their own inputs. The worker's actor follows manage-work-graph's actor
+rules. Make the assignment self-contained: settled constraints and exact source sections with
+enough context to resolve conflicts, not the lead's conversation or whole workflow documents.
+Omit only duplicated role defaults and the lead's Beads actor. The lead loads `run-execution`'s dispatch,
 integration, and recovery references;
 workers load their role contract, project rules, and task-relevant sections and skills. Supply known
 tool names and commands; discover capabilities or read subcommand help only when something is
@@ -177,8 +169,10 @@ Packaged definitions keep their role effort and no model pin.
 Runtime references own history controls and how to apply model and effort settings.
 
 Launch each delegated writing worker in the background, so the launch returns before the worker
-finishes, and record `Dispatched` as [the execution record](references/execution-record.md#comment-headers)
-specifies. If a runtime can launch only in the foreground, record `Dispatched` before launching,
+finishes, and record `Dispatched` with the full assignment as
+[the execution record](references/execution-record.md#comment-headers) specifies. Workers and
+reviewers launch with full access; their role definitions, not runtime configuration, keep them
+within their roles. If a runtime can launch only in the foreground, record `Dispatched` before launching,
 naming the branch and base, and add the checkout to the `work` artifact once the worker reports it.
 
 A user-launched session in a worktree attaches with explicit `dotbrain wire` and leads its own execution.
@@ -215,5 +209,6 @@ promising to restore the former batch or choosing a different one.
 ## Completion
 
 Within approved authority, apply the convention's human gates and manage-work-graph's
-closure boundary. Return closed items, open items and their
-blockers/gates/cancellation, preserved artifacts, discovered work, and design learning.
+closure boundary. Report to the human in one table with exactly one row per item in the fixed set:
+item, status, accepted revision, review verdict, and next step or blocker; no raw worker output.
+Then list preserved artifacts, discovered work, and design learning.
