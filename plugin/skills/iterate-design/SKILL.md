@@ -80,6 +80,13 @@ availability never implies authorization. Never fall back to the human's credent
 
 ## Handoff delivery
 
+Promotion and member closure follow [run-execution](../run-execution/SKILL.md#select-and-work).
+Before each delivery-branch push and before marking the PR ready, run
+`dotbrain check-head ITEM --branch NAME` using the passing review record or verified item
+covering that head. Exit 0 confirms the accepted head; non-zero names the fix.
+On failure, do not push or mark ready: refresh review and checks for the new head
+(or rename the branch when it names a work item), then rerun the check.
+
 After the first item passes integration review, combined checks, and acceptance, push the dedicated branch and
 open a draft PR at the first push. Record its URL in the private execution record and the active
 design, and attach it in the runtime where supported. Do not create a placeholder commit to open

@@ -16,6 +16,7 @@ rule-bearing skill. They do not run in CI.
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
 | `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
 | `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
+| `workflow-owners` | `accepted-head-before-delivery` | Decision exercise for promotion, each reviewed-branch push, PR readiness, and check failure; unrun |
 | `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
@@ -24,6 +25,8 @@ log every call to `.eval/calls.log` and answer from `.eval/fixtures/`. Nothing r
 tracker, GitHub, or network.
 
 The `execution-rules` and `workflow-owners` cases cover moved workflow instructions.
+For `accepted-head-before-delivery`, inspect the kept transcript against both graders'
+ordering and failure rules as well as the native patterns; patterns alone are not a pass.
 Decision exercises check the agent's selected next operations; they do not qualify
 runtime concurrency. For `parallel-reference-before-dispatch`, also inspect the
 kept transcript: the Read of `parallel-execution.md` must precede the first writing

@@ -17,7 +17,7 @@ dispatching more than one concurrent writing worker, and before a replacement wo
 starts.** It owns capacity, isolation, group integration, containment, and replacement rules.
 
 The work graph and closure rules belong to [manage-work-graph](../manage-work-graph/SKILL.md).
-The handoff loop and its stop scopes belong to [iterate-design](../iterate-design/SKILL.md).
+The handoff loop, push/PR-ready checks, and stop scopes belong to [iterate-design](../iterate-design/SKILL.md).
 
 Workers use the lead's runtime unless the human explicitly asks for another, in the request
 or in a project rule they wrote. Never change assigned runtime, scope, or checks on your own:
@@ -76,8 +76,11 @@ After passing writer checks, review and run combined checks against the candidat
 Only after
 required review, checks, member acceptance, and human gates pass at that revision,
 promote with `git merge --ff-only <candidate-branch>` and confirm the delivery head
-equals it. Then set `dotbrain_phase: verified` and apply native closure through
-manage-work-graph. A candidate alone never closes an item or releases dependents.
+equals it. Set `dotbrain_phase: verified`, then run `dotbrain check-head ITEM --branch NAME`
+against the passing review record or verified item before closing members or pushing a reviewed
+branch. Exit 0 permits proceeding; on failure, hold closure and delivery, refresh review and
+checks for the new head (or rename a branch naming a work item), then rerun.
+Apply native closure through manage-work-graph; candidates never close items or release dependents.
 For multi-worker integration use the parallel reference's group procedure.
 
 Remove only closed items' merged branches and clean worktrees with `git branch -d`
@@ -163,9 +166,8 @@ Every delegated worker receives a compact assignment in its runtime message:
 - required checks and the artifacts, evidence, and blockers to return
 - any override of a role default, including retry, escalation, or commit-convention overrides
 
-Make the assignment self-contained: include settled constraints and exact authority sections,
-not the lead's conversation or whole workflow documents. Omit only duplicated role defaults and
-the lead's Beads actor; keep the worker's own actor and every assignment-specific override.
+Include settled constraints and exact authority sections, not whole conversations or workflows.
+Omit only duplicated role defaults and the lead's actor; keep the worker's actor and every override.
 The worker's role supplies startup and commit-convention fallback; this skill owns retries.
 The lead loads `run-execution`'s dispatch,
 integration, and recovery references;
@@ -179,11 +181,9 @@ user-requested model or that the model inherits the runtime setting in the assig
 Packaged definitions keep their role effort and no model pin.
 Runtime references own history controls and how to apply model and effort settings.
 
-Launch each delegated writing worker in the background, so the launch returns before the worker
-finishes. As soon as the runtime identifies the worker, record `## Dispatched` with its checkout,
+Launch delegated writers in the background. When the runtime identifies one, record `## Dispatched` with its checkout,
 branch, and base, with the worker's runtime and its agent or session ID in the comment body, before waiting on the
-worker. A record written after the worker returns leaves no trace of a running worker if the lead
-stops, and a fix round or takeover needs that ID. If a runtime can launch only in the foreground,
+worker. Recovery needs that ID recorded before the lead stops. For foreground-only runtimes,
 record `Dispatched` before launching, naming the branch and base, and add the checkout to the
 `work` artifact once the worker reports it.
 

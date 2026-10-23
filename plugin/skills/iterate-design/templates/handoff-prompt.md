@@ -42,6 +42,11 @@ Before entering the loop, and after context recovery:
   exhausted limit or grants new authority.
 
 Handoff delivery:
+- Follow run-execution for promotion and member closure. Before each delivery-branch push
+  and before marking the PR ready, run `dotbrain check-head ITEM --branch NAME` against
+  the passing review record or verified item covering that head. Exit 0 confirms acceptance.
+  On failure, do not push or mark ready: refresh review and checks for the new head
+  (or rename a branch naming a work item), then rerun the check.
 - After the first item passes integration review, combined checks, and acceptance, push the dedicated branch and
   open a draft PR at the first push. Record the URL privately and attach it where supported.
   Do not create a placeholder commit to open it at preflight.
