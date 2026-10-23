@@ -121,4 +121,4 @@ Identify relevant public rules or proposals, checks actually performed, and limi
 
 Cite public examples when available; disclose when no incident evidence is publicly inspectable.
 Keep private provenance in `RETRO.md`. Map each proposed rule to its reason and review check.
-PR approval, upstream merge, and release remain human-owned.
+Apply the dotbrain convention's human gates.

@@ -40,7 +40,7 @@ that already exist upstream. The user's yes to that offer authorizes that one `R
 without a second request; until it merges, `RULES.md` is a pending destination that blocks
 other delivery to it. An existing `RULES.md` does not itself enable delivery. Disabling
 auto-delivery stops public mutations, including PR updates, unless specifically authorized.
-Read-only reconciliation continues in either mode. Approval, merge, and release stay human-owned.
+Read-only reconciliation continues in either mode. Apply the dotbrain convention's human gates.
 
 ## Suggest enforcement
 

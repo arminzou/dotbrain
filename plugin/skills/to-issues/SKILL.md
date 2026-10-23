@@ -85,8 +85,8 @@ work may proceed only with proven containment. An absent execution contract bloc
 not settled decomposition, and need not become an artificial human task in the graph.
 
 After settled scope, create the task set without a second routine sign-off. In-scope task shaping
-and dependencies are agent-owned; new scope, authority, or criteria decisions stop affected work
-with evidence and a recommendation. Never weaken human-owned acceptance to fit the build.
+and dependencies are agent-owned. Apply the dotbrain convention's scope, authority, and
+criteria ownership rules when a new decision is needed.
 
 Completion: every goal in the design doc is covered by at least one work item, every work item names the
 goals it covers, prerequisites are investigated, and unresolved consequential decisions are explicit blockers.

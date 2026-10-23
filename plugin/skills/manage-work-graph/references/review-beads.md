@@ -13,9 +13,8 @@ Item review, report preservation, cross-item repair, and verdict thresholds foll
 [Run Execution](../../run-execution/SKILL.md#item-review-and-acceptance).
 Final whole-branch review and simplify policy follow [review-gate](../../review-gate/SKILL.md).
 
-A review bead records agent work. The lead applies the evidence and disposition rules in
-Closing below; independent review remains required. A genuine unresolved decision or explicit
-operator gate still binds, but being a review does not create a human gate.
+A review bead records agent work. The lead applies Closing below and the convention's
+human gates; independent review follows review-gate.
 
 ## Verdict vocabulary
 
@@ -125,10 +124,8 @@ comments, destroys the record the shape exists to protect.
 
 ## Closing
 
-The lead closes accepted reviews before PR merge, without routine human sign-off. Do not add
-the `human` label merely because a bead is a review. An explicit gate for a genuine unresolved
-decision and stricter operator instructions still bind; investigate within approved authority
-and return scope, authority, or acceptance changes to `grill-decisions`.
+The lead closes accepted reviews before PR merge. Apply the convention's human gates
+and criteria ownership; investigate within approved authority.
 
 - **Code/readiness** — require `APPROVE`/`READY`, respectively, and all required acceptance
   evidence at the exact integrated revision. Blocking findings must be resolved; filing or
@@ -139,16 +136,14 @@ and return scope, authority, or acceptance changes to `grill-decisions`.
   requires a new review record or reopening before that review counts as current evidence.
 - **Simplify** — close once every finding is applied, filed as its own item, or declined with a
   reason within approved scope. Record follow-up IDs and reasons. A clean pass has zero findings
-  to disposition. Simplify remains non-blocking for PR readiness; an open simplify bead never
-  holds the PR or `FINAL`. A `simplify` bead does not close on merge.
+  to disposition. PR readiness follows review-gate's simplify policy.
+  A `simplify` bead does not close on merge.
 - **Closeout record** — append `## Closeout @ <commit>` with reviewer provenance, exact base/head,
   required verdict and evidence references, every finding ID and disposition, surviving follow-up
   IDs, and coverage gaps. Confirm the current integrated head matches before native `bd close`.
   Apply [native closure and actor handling](../SKILL.md#ownership-and-closure).
-- **UAT evidence** — record revision, environment, agreed user journeys, actual checks/results,
-  and gaps. An unexercised journey is a gap, never a pass. Missing UAT holds affected work when
-  required; it is not an automatic request for the human to check. Investigate and repair within
-  remaining limits; preserve containment, retry caps, and finite whole-loop limits on resume.
+- **UAT evidence** — apply [Run Execution's acceptance/UAT evidence rules](../../run-execution/SKILL.md#item-review-and-acceptance).
+  Preserve the record and remaining limits on resume under iterate-design.
 - **Delivery boundary** — apply [manage-work-graph's closure boundary](../SKILL.md#ownership-and-closure).
   Neither PR approval nor merge is a prerequisite for accepted review closure.
   Review-derived follow-up work uses ordinary work closure rules.
