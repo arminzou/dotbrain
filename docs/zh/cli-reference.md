@@ -20,10 +20,11 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | 命令 | 作用 |
 | --- | --- |
 | [`bootstrap`](#dotbrain-bootstrap) | 为 dotbrain 准备这台机器：全局技能和子 Agent 链接。 |
+| [`detach`](#dotbrain-detach) | 移除指定运行时的 dotbrain 机器级交付。 |
 | [`doctor`](#dotbrain-doctor) | 只读检查机器是否就绪以及所选项目的配置。 |
 | [`wire`](#dotbrain-wire) | 创建 Brainspace 或连接一个 checkout，包括链接出来的 worktree。 |
 | [`refresh`](#dotbrain-refresh) | 修复配置，同时保留项目声明和内容。 |
-| [`unwire`](#dotbrain-unwire) | 断开一个 checkout，保留它的 Brainspace 和任务跟踪数据库。 |
+| [`unwire`](#dotbrain-unwire) | 移除一个 checkout 的连接，保留它的 Brainspace 和任务跟踪数据库。 |
 | [`projects list`](#dotbrain-projects-list) | 根据本地声明和连接，列出所有已注册的项目。 |
 | [`projects show`](#dotbrain-projects-show) | 查看当前已连接的项目，或某个指定项目已注册的 checkout。 |
 | [`skills list`](#dotbrain-skills-list) | 查找本地可用的技能。 |
@@ -61,6 +62,21 @@ dotbrain bootstrap [OPTIONS]
 | `--home` *path* | — | 覆盖私有数据目录。 |
 | `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain detach` {#dotbrain-detach}
+
+移除指定运行时的 dotbrain 机器级交付，保留其他来源的内容和项目 checkout 的连接。
+Claude Code 和 Codex 的 marketplace 插件需单独卸载，输出会给出命令。
+
+```text
+dotbrain detach [OPTIONS]
+```
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--runtime` *text* | 必填 | claude、codex、hermes、opencode、pi、cursor 或 all（全部运行时）。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果，每个运行时一个目标。 |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
 
@@ -121,7 +137,7 @@ dotbrain refresh [OPTIONS]
 
 ### `dotbrain unwire` {#dotbrain-unwire}
 
-断开一个 checkout，保留它的 Brainspace 和任务跟踪数据库。
+移除一个 checkout 的连接，保留它的 Brainspace 和任务跟踪数据库。
 
 ```text
 dotbrain unwire [OPTIONS]
@@ -129,7 +145,7 @@ dotbrain unwire [OPTIONS]
 
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `--repo` *path* | — | 要断开的 checkout。 |
+| `--repo` *path* | — | 要移除连接的 checkout。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果。 |

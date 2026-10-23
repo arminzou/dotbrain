@@ -140,7 +140,7 @@ def test_pi_has_no_subagent_delivery(dotbrain_home, tmp_path):
         assets.link_global(dotbrain_home, "agents", "pi", user_home=tmp_path)
 
 
-def test_doctor_reports_missing_stale_and_foreign_pi_delivery(dotbrain_home, tmp_path):
+def test_doctor_reports_stale_pi_but_ignores_unowned_delivery(dotbrain_home, tmp_path):
     user = tmp_path / "user"
     agent_dir = user / ".pi/agent"
     assert not [f for f in doctor._check_machine(dotbrain_home, user) if f.message.startswith("pi:")]
@@ -158,10 +158,10 @@ def test_doctor_reports_missing_stale_and_foreign_pi_delivery(dotbrain_home, tmp
     (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  pi: {agent_dir / 'skills'}\nglobal_extra: []\n")
     shutil.rmtree(pi.plugin_dir(agent_dir))
     warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
-    assert "pi: dotbrain extension is not delivered" in warnings
+    assert not [message for message in warnings if message.startswith("pi:")]
     pi.plugin_dir(agent_dir).mkdir()
     warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
-    assert f"pi: {pi.plugin_dir(agent_dir)} is not dotbrain's extension copy" in warnings
+    assert not [message for message in warnings if message.startswith("pi:")]
 
 
 @pytest.mark.parametrize(("entries", "trusted"), [

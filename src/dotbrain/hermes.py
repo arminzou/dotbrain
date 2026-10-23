@@ -104,3 +104,20 @@ def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
                 detail = str(exc) if isinstance(exc, subprocess.TimeoutExpired) else getattr(exc, "stderr", None) or str(exc)
                 result.warnings.append(f"hermes: `{ENABLE}` failed: {detail.strip()}")
     return result
+
+
+def remove(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
+    result = LinkResult()
+    if not owned(hermes_home):
+        return result
+    command = ["hermes", "plugins", "disable", PLUGIN]
+    if shutil.which("hermes") is None:
+        result.warnings.append("hermes: could not disable plugin; hermes is not on PATH")
+    else:
+        try:
+            run(command, env={**os.environ, "HERMES_HOME": str(hermes_home)})
+        except (OSError, subprocess.SubprocessError) as exc:
+            result.warnings.append(f"hermes: could not disable plugin: {exc}")
+    if owned_copy.remove(plugin_dir(hermes_home)):
+        result.pruned.append(str(plugin_dir(hermes_home)))
+    return result

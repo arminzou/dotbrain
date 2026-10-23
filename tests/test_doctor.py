@@ -11,7 +11,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import cli, doctor, paths, projects, skills, subagents
+from dotbrain import assets, cli, cursor, doctor, opencode, owned_copy, paths, projects, runtimes, skills, subagents
 from dotbrain.cli import app
 
 
@@ -91,11 +91,22 @@ def test_disabled_components_do_not_require_bd_node_dolt(tmp_path, monkeypatch):
 def test_all_checks_runtime_project_delivery_only_for_present_checkouts(tmp_path, runtime):
     root = tmp_path / "home"
     repo = tmp_path / "repo"
-    make_project(root, "wired", repo=repo, runtimes=(runtime,))
+    write(root / "skills/example/SKILL.md", "# example")
+    make_project(root, "wired", repo=repo, runtimes=(runtime,), selected=("example",))
     absent = make_project(root, "absent", runtimes=(runtime,))
     write(absent / ".repo", str(tmp_path / "elsewhere"))
     unregistered = make_project(root, "unregistered", runtimes=(runtime,))
     (unregistered / ".repo").unlink()
+    # Incomplete owned delivery still needs diagnosis for present checkouts.
+    rt = runtimes.find(runtime)
+    directory = runtimes.user_dir(rt, tmp_path / "user")
+    bundle = (opencode.packaged_dir(directory) if runtime == "opencode" else
+              assets.HOME_DELIVERY[runtime].plugin_dir(root if runtime == "cursor" else directory))
+    write(bundle / owned_copy.MARKER)
+    if runtime == "opencode":
+        write(opencode.plugin_file(directory), "foreign plugin")
+    if runtime == "cursor":
+        write(bundle / cursor.GLOBAL)
 
     report = doctor.run_doctor(root, home=tmp_path / "user", all_projects=True,
                                run=recording_run(repo, []))

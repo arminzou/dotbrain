@@ -81,7 +81,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
 
 
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
-                   errors: list[str],
+                   errors: list[str], dotbrain_home: Path,
                    profiles: dict[str, list[str]] | None = None,
                    notices: list[str] | None = None) -> dict[str, tuple[Path, ...]]:
     """Resolve global folders, including existing profiles, before any delivery or pruning.
@@ -92,10 +92,15 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
     targets = dict(configured)
     selected = tuple(selected)
     for rt in selected:
+        if kind != "skills" or rt.name not in HOME_DELIVERY:
+            continue
         directory = runtimes.user_dir(rt, user_home)
-        if (rt.home_env and rt.key not in targets and kind == "skills"
-                and (explicit or HOME_DELIVERY[rt.name].owned(directory))):
-            targets[rt.key] = str(HOME_DELIVERY[rt.name].skills_dir(directory))
+        owned = cursor.global_delivery(dotbrain_home) if rt.name == "cursor" else HOME_DELIVERY[rt.name].owned(directory)
+        if not explicit and not owned:
+            targets.pop(rt.key, None)
+            continue
+        destination = HOME_DELIVERY[rt.name].skills_dir(directory) if rt.home_env else user_home / ".cursor/skills"
+        targets.setdefault(rt.key, str(destination))
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
     settings = {}
     for rt in selected:
@@ -119,12 +124,18 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
             settings[(rt.key, folder)] = setting
         destinations[rt.key] = tuple(folders)
     for rt in selected:
+        # Every runtime dotbrain installs into keeps files in its home (Cursor: hooks.json), not only its skills folder.
+        if rt.name in HOME_DELIVERY and rt.key in destinations:
+            directory = runtimes.user_dir(rt, user_home)
+            if paths.inside_wired_checkout(directory):
+                errors.append(f"{rt.home_env or '~/' + rt.workspace}: {directory} is inside a wired checkout; "
+                              "choose a runtime home outside it")
+                destinations[rt.key] = ()
+                continue
         safe = []
         for folder in destinations.get(rt.key, ()):
             # Check the home too: an asset symlink must not hide a checkout marker above it.
-            resolved_paths = (folder.parent.resolve(), folder.resolve())
-            if any(os.path.lexists(parent / ".brain") for resolved in resolved_paths
-                   for parent in (resolved, *resolved.parents)):
+            if paths.inside_wired_checkout(folder.parent) or paths.inside_wired_checkout(folder):
                 setting = settings.get((rt.key, folder), f"{kind}.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
                 errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:
@@ -145,10 +156,8 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     user_home = user_home or Path.home()
     notices = []
     errors = []
-    if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
-        cfg.targets.setdefault("cursor", str(user_home / ".cursor/skills"))
     targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
-                             profiles=profiles, notices=notices, errors=errors)
+                             profiles=profiles, notices=notices, errors=errors, dotbrain_home=home)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known
@@ -159,7 +168,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     if kind == "skills" and runtime == "all":
         # Installed but never set up: say how, rather than deliver unasked and undo a removal.
         result.notices += [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"
-                           for rt in selected if rt.home_env and rt.key not in targets and runtimes.installed(rt)]
+                           for rt in selected if rt.name in HOME_DELIVERY and rt.key not in targets and runtimes.installed(rt)]
     destinations = [(k, dest) for k in keys for dest in targets[k]]
     for _, dest in destinations:
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
@@ -173,12 +182,16 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             return result
         resolved = {name: subagents._resolve_subagent_files(home, name) for name in cfg.global_names}
     for k, dest in destinations:
-        if kind == "skills":
-            linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
-                      skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
-        else:
-            linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
-                                               label=k, preserve_collisions=True, runtime=k)
+        try:
+            if kind == "skills":
+                linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
+                          skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
+            else:
+                linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
+                                                   label=k, preserve_collisions=True, runtime=k)
+        except ValueError as exc:  # a write refused inside a wired checkout stops this runtime only
+            result.warnings.append(f"{k}: {exc}")
+            continue
         for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
         if kind == "skills" and k == "cursor":
@@ -188,7 +201,11 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         rt = runtimes.find(k)
         if kind == "skills" and rt.home_env:
             # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.
-            delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
+            try:
+                delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
+            except ValueError as exc:
+                result.warnings.append(f"{k}: {exc}")
+                continue
             result.linked += delivered.linked
             result.warnings += delivered.warnings
     return result

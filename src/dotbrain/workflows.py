@@ -19,9 +19,9 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, paths, runtimes, skills, subagents
+from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, hermes, paths, runtimes, skills, subagents
 from dotbrain.adopter_repos import UnwireResult, unwire_repo
-from dotbrain.results import TargetResult
+from dotbrain.results import CommandResult, TargetResult
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -63,6 +63,65 @@ class RefreshResult:
 def _tracker_changes(synced) -> list[str]:
     return list(dict.fromkeys([*synced.logs, *(entry for target in synced.targets
                     if target['status'] != 'skipped' for entry in target['changes'])]))
+
+
+def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = None,
+                   run=hermes._default_run) -> CommandResult:
+    """Remove owned machine delivery without visiting any project checkout."""
+    from dotbrain import cursor, opencode, owned_copy
+
+    selected = runtimes.select(runtime)
+    user_home = home or Path.home()
+    report = CommandResult("detach")
+    cfg = skills.load_global_config(dotbrain_home / "skills/skills.yaml")
+    for rt in selected:
+        target = TargetResult(scope="global", data={"runtime": rt.name})
+        report.targets.append(target)
+        directory = runtimes.user_dir(rt, user_home)
+        module = assets.HOME_DELIVERY.get(rt.name)
+        try:
+            destinations = assets.global_targets(cfg.targets, (rt,), "skills", user_home, explicit=True,
+                                                  errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
+            if target.errors:
+                target.status = "failure"
+            if rt.name in assets.HOME_DELIVERY and paths.inside_wired_checkout(directory):
+                continue
+            for dest in destinations.get(rt.key, ()):
+                if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
+                    target.findings.append({"severity": "warning", "message": f"{dest}: foreign skill directory; skipping"})
+                    continue
+                if not dest.is_dir():
+                    continue
+                roots = (cursor.plugin_dir(dotbrain_home),) if rt.name == "cursor" and cursor.owned(dotbrain_home) else ()
+                linked = skills.link_into(dotbrain_home, dest, (), label=rt.name,
+                                          prune_owned_only=True, owned_roots=roots, cleanup_cache=False)
+                target.changes += [f"removed {name}" for name in linked.pruned]
+                target.findings += [{"severity": "warning", "message": m} for m in linked.warnings]
+            removed = skills.LinkResult()
+            if rt.name == "cursor":
+                removed = cursor.reconcile_hooks(user_home, remove=True)
+                bundle = cursor.plugin_dir(dotbrain_home)
+                if owned_copy.remove(bundle):
+                    removed.pruned.append(str(bundle))
+            elif rt.name in ("hermes", "opencode"):
+                removed = hermes.remove(directory, run=run) if rt.name == "hermes" else opencode.remove(directory)
+            elif rt.name == "pi":
+                bundle = module.plugin_dir(directory)
+                if owned_copy.remove(bundle):
+                    removed.pruned.append(str(bundle))
+            target.changes += [f"removed {name}" for name in removed.pruned]
+            target.findings += [{"severity": "warning", "message": m} for m in removed.warnings]
+            if rt.name in ("claude", "codex"):
+                command = "/plugin uninstall dotbrain@dotbrain" if rt.name == "claude" else "codex plugin remove dotbrain@dotbrain"
+                target.findings.append({"severity": "info", "message": f"{rt.label}: remove the marketplace plugin with `{command}`"})
+            if not target.changes:
+                target.findings.append({"severity": "info", "message": f"{rt.label}: nothing to remove"})
+        except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
+            target.status = "failure"
+            target.errors.append(str(exc))
+    if any(t.errors for t in report.targets):
+        report.status = "partial" if any(t.changes for t in report.targets) else "failure"
+    return report
 
 
 def project_workspace_dirs(

@@ -202,6 +202,8 @@ def link_into(
     label: str = "",
     prune_owned_only: bool = False,
     preserve_collisions: bool = False,
+    owned_roots: Sequence[Path] = (),
+    cleanup_cache: bool = True,
 ) -> LinkResult:
     """Link skill paths into an agent runtime skills directory."""
 
@@ -220,7 +222,8 @@ def link_into(
     prefix = f"{label}/" if label else ""
     result = LinkResult()
     wanted: set[str] = set()
-    _remove_legacy_skill_cache(dotbrain_home)
+    if cleanup_cache:
+        _remove_legacy_skill_cache(dotbrain_home)
     cache_root = (dotbrain_home / ".cache" / "skills").resolve()
     private_root = (dotbrain_home / "skills").resolve()
 
@@ -234,7 +237,7 @@ def link_into(
         if dest.is_symlink() and dest.resolve() == src.resolve():
             continue
         owned = dest.is_symlink() and (
-            _points_into(dest, private_root) or _points_into(dest, cache_root)
+            any(_points_into(dest, root) for root in (private_root, cache_root, *owned_roots))
         )
         if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
             result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
@@ -256,7 +259,7 @@ def link_into(
         if not entry.is_symlink() or entry.name in wanted:
             continue
         if prune_owned_only and not any(
-            _points_into(entry, root) for root in (private_root, cache_root)
+            _points_into(entry, root) for root in (private_root, cache_root, *owned_roots)
         ):
             continue
         entry.unlink()

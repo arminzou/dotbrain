@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
-from dotbrain import resource_loader
+from dotbrain import paths, resource_loader
 
 MARKER = ".dotbrain-managed"
 
@@ -38,6 +38,15 @@ def owned(target: Path) -> bool:
     return not target.is_symlink() and (target / MARKER).is_file()
 
 
+def remove(target: Path) -> bool:
+    """Remove only a copy carrying our ownership marker."""
+    if not owned(target):
+        return False
+    paths.refuse_checkout(target)
+    shutil.rmtree(target)
+    return True
+
+
 def state(target: Path, names: Sequence[str]) -> str:
     """``missing``, ``foreign`` (not dotbrain's), ``stale``, or ``current``."""
     if not (target.exists() or target.is_symlink()):
@@ -52,6 +61,7 @@ def state(target: Path, names: Sequence[str]) -> str:
 
 def install(target: Path, names: Sequence[str]) -> None:
     """Replace ``target`` with a fresh copy; the caller has checked it is missing or owned."""
+    paths.refuse_checkout(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     # A fresh staging directory of our own: nothing already beside the target is touched.
     staging = Path(tempfile.mkdtemp(dir=target.parent, prefix=f".{target.name}-staging-"))

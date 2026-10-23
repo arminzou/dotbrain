@@ -370,12 +370,10 @@ def test_doctor_reports_stale_and_inactive_hermes_delivery(dotbrain_home, tmp_pa
     assert not [f for f in findings if "hermes" in f.message and "agents" in f.message]
 
 
-def test_doctor_expects_the_plugin_for_a_configured_global_hermes_target(dotbrain_home, tmp_path):
+def test_doctor_ignores_configured_hermes_target_without_owned_delivery(dotbrain_home, tmp_path):
     user = tmp_path / "user"
     (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  hermes: {user / 'hskills'}\nglobal_extra: []\n")
-    warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
-    assert "hermes: dotbrain plugin is not delivered" in warnings
+    assert not [f for f in doctor._check_machine(dotbrain_home, user) if "hermes" in f.message]
     foreign = hermes.plugin_dir(user / ".hermes")
     foreign.mkdir(parents=True)
-    warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
-    assert f"hermes: {foreign} is not dotbrain's plugin copy" in warnings
+    assert not [f for f in doctor._check_machine(dotbrain_home, user) if "hermes" in f.message]

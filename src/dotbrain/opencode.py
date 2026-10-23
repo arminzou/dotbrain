@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import owned_copy, resource_loader
+from dotbrain import owned_copy, paths, resource_loader
 from dotbrain.skills import LinkResult
 
 PLUGIN_FILE = "dotbrain.js"
@@ -127,6 +127,7 @@ def skill_index(roots, *, dot: bool = False) -> list[dict]:
 
 
 def _write_atomic(target: Path, data: bytes) -> None:
+    paths.refuse_checkout(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     # Written beside the target and moved over it, so OpenCode never reads half a file.
     handle, staging = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}-", suffix=".tmp")
@@ -195,6 +196,23 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
         if _file_state(config_dir, source) != "current":
             _write_atomic(plugin_file(config_dir), source.read_bytes())
             result.linked.append(f"opencode/plugins/{PLUGIN_FILE}")
+    return result
+
+
+def remove(config_dir: Path) -> LinkResult:
+    result = LinkResult()
+    target = packaged_dir(config_dir)
+    file_owned = _file_owned(config_dir)
+    # Check both before deleting either: a refusal must not leave a half-removed, unreported delivery.
+    if file_owned:
+        paths.refuse_checkout(plugin_file(config_dir))
+    if owned_copy.owned(target):
+        paths.refuse_checkout(target)
+    if file_owned:
+        plugin_file(config_dir).unlink()
+        result.pruned.append(str(plugin_file(config_dir)))
+    if owned_copy.remove(target):
+        result.pruned.append(str(target))
     return result
 
 

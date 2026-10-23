@@ -133,19 +133,15 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings = [_check_binary("git"), _check_dotbrain_config(root), _check_templates(root)]
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
-    configured: set[str] = set()  # runtimes with a configured global target
     for kind in ("skills", "agents"):
         try:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
             profiles = cfg.profiles if kind == "skills" else skills.load_global_config(root / "skills/skills.yaml").profiles
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
-            configured.update(cfg.targets)
             notices = []
             errors = []
-            if kind == "skills" and cursor.global_delivery(root):
-                cfg.targets.setdefault("cursor", str(home / ".cursor/skills"))
             targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False,
-                                            profiles=profiles, notices=notices, errors=errors)
+                                            profiles=profiles, notices=notices, errors=errors, dotbrain_home=root)
             findings.extend(Finding("info", notice) for notice in notices)
             findings.extend(Finding("error", error, f"correct the global {kind} destination") for error in errors)
             for runtime, destination in ((key, folder) for key, folders in targets.items() for folder in folders):
@@ -167,13 +163,11 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     for rt in runtimes.RUNTIMES.values():
         if rt.hooks and not rt.home_env and rt.name not in ("cursor", "claude"):
             findings.extend(_check_plugin(home, rt.key))
-        # An owned copy or a configured global target both mean this machine expects the plugin;
-        # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.
-        if rt.home_env and (rt.key in configured or assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home))):
+        if rt.home_env and assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home)):
             directory = runtimes.user_dir(rt, home)
             findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
                             else _check_home_plugin(rt, directory))
-    if "cursor" in configured or cursor.owned(root):
+    if cursor.global_delivery(root):
         findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
         findings.extend(_check_cursor_hooks(home))
     return findings
@@ -422,6 +416,13 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
     findings = []
     beads = config.load_project_config(root, target.project)
     workspaces = assets.project_workspaces(root, target, "all")
+    for rt in runtimes.recognized(config.load_project_agents(root, target.project)):
+        setup = (cursor.global_delivery(root) if rt.name == "cursor" else
+                 assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home or Path.home()))
+                 if rt.name in assets.HOME_DELIVERY else runtimes.installed(rt))
+        if not setup:
+            findings.append(Finding("info", f"{rt.label} is declared but not set up on this machine; "
+                                    f"run `dotbrain bootstrap --runtime {rt.name}` to set it up."))
     findings.extend(Finding("warn", message, "correct project.yaml agents or upgrade dotbrain")
                     for message in brainspaces.unknown_agent_warnings(target.brainspace, root))
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
@@ -468,15 +469,17 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_agent_pointer(repo))
         for workspace in workspaces:
             rt = runtimes.for_workspace(workspace)
+            directory = runtimes.user_dir(rt, home or Path.home())
+            if rt.home_env and not assets.HOME_DELIVERY[rt.name].owned(directory):
+                continue
             if rt.name == "opencode":
-                config_dir = runtimes.user_dir(rt, home or Path.home())
                 try:
-                    findings.extend(_opencode_absent(config_dir, opencode.state(config_dir)))
+                    findings.extend(_opencode_absent(directory, opencode.state(directory)))
                 except DIAGNOSIS_ERRORS as exc:
                     findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
             elif rt.home_env:
-                findings.extend(_check_home_project(rt, runtimes.user_dir(rt, home or Path.home()), repo, selected))
-            if rt.name == "cursor":
+                findings.extend(_check_home_project(rt, directory, repo, selected))
+            if rt.name == "cursor" and cursor.global_delivery(root):
                 findings.extend(_check_home_plugin(rt, root))
                 findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))

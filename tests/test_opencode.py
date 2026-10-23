@@ -146,9 +146,9 @@ def test_doctor_reports_opencode_delivery(dotbrain_home, user):
     assert warnings() == set()  # not opted in
     (dotbrain_home / "skills/skills.yaml").write_text(
         f"targets:\n  opencode: {opencode.skills_dir(config_dir)}\nglobal_extra: []\n")
-    assert warnings() == {"opencode: dotbrain plugin is not delivered"}
+    assert warnings() == set()  # a shared target does not opt this machine in
     opencode.plugin_file(config_dir).write_text("export default {}\n", encoding="utf-8")
-    assert warnings() == {f"opencode: {opencode.plugin_file(config_dir)} is not dotbrain's"}
+    assert warnings() == set()
     opencode.plugin_file(config_dir).unlink()
 
     assets.link_global(dotbrain_home, "skills", "opencode", user_home=home)

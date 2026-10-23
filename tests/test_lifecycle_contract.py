@@ -389,8 +389,8 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
                     if f.status == 'warn' and f.message.startswith('hermes:')}
 
         (hermes_home / 'config.yaml').unlink(missing_ok=True)
-        assert hermes_warnings() >= {'hermes: project skills load only from a trusted checkout'}
         assets.link_global(home, 'skills', 'hermes', user_home=user)
+        assert hermes_warnings() >= {'hermes: project skills load only from a trusted checkout'}
         (hermes_home / 'config.yaml').write_text(
             f'plugins:\n  enabled: [dotbrain]\nskills:\n  trusted_project_dirs: [{json.dumps(str(checkout))}]\n',
             encoding='utf-8')
@@ -435,9 +435,8 @@ def test_pi_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         assert not workflows.wire_project(dotbrain_home=home, repo=checkout).errors
         assert linked(checkout) == ['one']
         assert not (checkout / '.pi' / 'agents').exists()
-        undelivered = {'pi: dotbrain extension is not delivered'} if checkout is main else set()
-        assert pi_warnings(checkout) == {'pi: project skills load only from a trusted checkout'} | undelivered
         assets.link_global(home, 'skills', 'pi', user_home=user)
+        assert pi_warnings(checkout) == {'pi: project skills load only from a trusted checkout'}
         (agent_dir / 'trust.json').write_text(json.dumps({str(checkout): True}), encoding='utf-8')
         assert pi_warnings(checkout) == set()
 
@@ -524,17 +523,17 @@ def test_unwire_preserves_foreign_cursor_cache_links(lifecycle, monkeypatch, tmp
     assert not cursor.owned(home)
 
 
-def test_doctor_reports_undelivered_hermes_plugin_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
+def test_doctor_ignores_unowned_hermes_delivery_for_a_declaring_project(lifecycle, monkeypatch, tmp_path):
     home, brainspace, main, _ = lifecycle
     (brainspace / '.brain' / 'project.yaml').write_text('agents: [hermes]\nskills: []\nbeads:\n  mode: none\n',
                                                          encoding='utf-8')
     user = tmp_path / 'user'
     report = doctor.run_doctor(home, home=user, cwd=main)
-    assert 'hermes: dotbrain plugin is not delivered' in {f.message for f in report.projects['custom']}
+    assert not [f for f in report.projects['custom'] if f.message.startswith('hermes:')]
     foreign = hermes.plugin_dir(user / '.hermes')
     foreign.mkdir(parents=True)
     report = doctor.run_doctor(home, home=user, cwd=main)
-    assert f'hermes: {foreign} is not dotbrain\'s plugin copy' in {f.message for f in report.projects['custom']}
+    assert not [f for f in report.projects['custom'] if f.message.startswith('hermes:')]
 
 
 def test_opencode_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
@@ -587,8 +586,7 @@ def test_opencode_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         (tmp_path / f'aside-{checkout.name}').rename(checkout / '.opencode' / 'skills' / 'mine')
 
         findings = doctor.run_doctor(home, home=user, cwd=checkout).projects['custom']
-        delivered = (user / '.config' / 'opencode').exists()
-        assert ('opencode: dotbrain plugin is not delivered' in {f.message for f in findings}) is not delivered
+        assert 'opencode: dotbrain plugin is not delivered' not in {f.message for f in findings}
         assets.link_global(home, 'skills', 'opencode', user_home=user)
         findings = doctor.run_doctor(home, home=user, cwd=checkout).projects['custom']
         assert not [f.message for f in findings if f.status != 'ok' and f.message.startswith('opencode:')]
