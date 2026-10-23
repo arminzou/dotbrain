@@ -89,7 +89,8 @@ extra skill looks like this:
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
 execution-engine: beads
 
-agents:            # which agent workspaces dotbrain wires
+# Omit agents to follow this machine; an explicit list is exact.
+agents:            # claude, codex, hermes, opencode, pi, cursor
   - claude
   - codex
 
@@ -111,7 +112,7 @@ skills:                       # extra skills for this project's workspaces
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `execution-engine` | `beads` | The private execution backend |
-| `agents` | `[claude, codex]` | Agent workspaces to wire into the repo: `claude`, `codex`, [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), or [`cursor`](getting-started.md#cursor) |
+| `agents` | Runtimes set up on this machine | Claude and Codex when their CLI is on PATH; [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), and [`cursor`](getting-started.md#cursor) when their dotbrain-owned delivery exists. An explicit list is exact; `[]` disables all. New projects leave this key commented out; existing lists are preserved. |
 | `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
 | `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
@@ -121,6 +122,8 @@ skills:                       # extra skills for this project's workspaces
 | `subagents` | `[]` | Project-only subagents in addition to the packaged subagents |
 | `retro.promotion.auto-deliver` | `false` | Skill-read setting: allow unattended commit/push/PR delivery of rule proposals |
 | `retro.promotion.destinations` | `[]` | Allowed existing public guides as repo-relative paths; a nonempty array is required for auto-delivery |
+
+Refresh warns about existing workspaces outside the resolved `agents` set and leaves everything in them untouched.
 
 `public-tracker` sets up public issue intake and contributor collaboration. It never mirrors the
 private work graph or turns private work into public issues; see the `triage-public` skill.

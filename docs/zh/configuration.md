@@ -85,7 +85,8 @@ sync:
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
 execution-engine: beads
 
-agents:            # which agent workspaces dotbrain wires
+# 省略 agents 则跟随本机配置；显式列表只启用所列项。
+agents:            # claude, codex, hermes, opencode, pi, cursor
   - claude
   - codex
 
@@ -107,7 +108,7 @@ skills:                       # extra skills for this project's workspaces
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
 | `execution-engine` | `beads` | 私有的执行后端 |
-| `agents` | `[claude, codex]` | 要连接到仓库的 Agent 工作区：`claude`、`codex`、[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi) 或 [`cursor`](getting-started.md#cursor) |
+| `agents` | 本机已配置的 runtime | Claude、Codex 按 CLI 是否在 PATH 上判断；[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi)、[`cursor`](getting-started.md#cursor) 按 dotbrain 自己分发的副本是否存在判断。显式列表只启用所列项；`[]` 全部禁用。新项目默认注释掉此键，已有列表保持不变。 |
 | `public-tracker` | `none` | 公开的任务入口：`none`、`gh` 或 `linear` |
 | `public-tracker-id` | — | 任务跟踪的标识，比如 GitHub 的 `owner/repo` |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |
@@ -117,6 +118,8 @@ skills:                       # extra skills for this project's workspaces
 | `subagents` | `[]` | 在自带子 Agent 之外，只给这个项目用的子 Agent |
 | `retro.promotion.auto-deliver` | `false` | 由 skill 读取：允许自动提交、推送规则提案并创建 PR |
 | `retro.promotion.destinations` | `[]` | 允许修改的已有公开指南，相对仓库的路径数组；启用自动交付时不能为空 |
+
+刷新时，已存在但不在 `agents` 解析结果中的工作区会触发警告，里面的文件和链接都保持不变。
 
 `public-tracker` 用来设置公开的任务入口和与贡献者的协作。它从不镜像私有的工作图，也不会把私有工作变成
 公开任务；见 `triage-public` 技能。

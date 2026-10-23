@@ -192,7 +192,7 @@ def test_wire_project_does_not_seed_project_default_subagents(
     assert config.load_project_subagents(dotbrain_home, "project-default-subagent") == ()
     project_yaml = paths.brainspace(dotbrain_home, "project-default-subagent") / ".brain" / "project.yaml"
     declaration = yaml.safe_load(project_yaml.read_text())
-    assert declaration["agents"] == ["claude", "codex"]
+    assert "agents" not in declaration
     assert "subagents" not in declaration
 
 
@@ -258,6 +258,7 @@ def test_link_global_skills_warns_when_config_missing(dotbrain_home: Path, fake_
 # --------------------------------------------------------------------------- per-project skills
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_skills_link_project_creates_selected_symlinks_after_wire(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -276,6 +277,7 @@ def test_skills_link_project_creates_selected_symlinks_after_wire(
     assert (repo / ".codex" / "skills" / "discovery-test").is_symlink()
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_skills_link_project_prunes_stale_selection(
     dotbrain_home: Path, fake_home: Path, tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

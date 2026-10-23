@@ -132,8 +132,9 @@ def test_load_project_config_reads_project_yaml(tmp_path: Path):
     assert beads.database == "fork"  # default
 
 
-def test_load_project_agents_defaults_to_legacy_workspaces(tmp_path: Path):
-    assert config.load_project_agents(tmp_path, "acme") == ("claude", "codex")
+def test_load_project_agents_uses_supplied_machine_defaults(tmp_path: Path):
+    assert config.load_project_agents(tmp_path, "acme") == ()
+    assert config.load_project_agents(tmp_path, "acme", defaults=("opencode",)) == ("opencode",)
 
 
 def test_load_project_agents_reads_project_yaml(tmp_path: Path):

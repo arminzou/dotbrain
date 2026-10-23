@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from dotbrain import paths, runtimes
+from dotbrain import paths
 
 
 # ---------------------------------------------------------------------------
@@ -242,23 +242,23 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
     return skills._clean(data.get("subagents"))
 
 
-def load_project_agents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
+def load_project_agents(dotbrain_home: Path, name: str, *, defaults: tuple[str, ...] = ()) -> tuple[str, ...]:
     """Read declared agent workspaces from ``brainspaces/<name>/.brain/project.yaml``.
 
-    Missing ``agents`` preserves legacy behavior by enabling the default runtimes.
+    Missing ``agents`` uses the supplied machine defaults.
     An explicit empty list disables agent workspace seeding.
     """
     import yaml
 
     path = _project_config_path(dotbrain_home, name)
     if not path.is_file():
-        return runtimes.default_names()
+        return defaults
 
     data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
 
     raw_agents = data.get("agents")
     if raw_agents is None:
-        return runtimes.default_names()
+        return defaults
 
     entries = raw_agents if isinstance(raw_agents, list) else [raw_agents]
     cleaned: list[str] = []

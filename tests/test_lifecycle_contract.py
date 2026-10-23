@@ -280,7 +280,7 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
 
 
 @pytest.mark.parametrize('runtime', runtimes.RUNTIMES)
-def test_refresh_prunes_removed_runtime_skills(lifecycle, monkeypatch, tmp_path, runtime):
+def test_refresh_preserves_undeclared_workspace_and_warns(lifecycle, monkeypatch, tmp_path, runtime):
     home, brainspace, main, worktree = lifecycle
     monkeypatch.setattr(workflows.beads, 'pull_beads_for_all', lambda *a, **k: beads.BootstrapResult())
     monkeypatch.setattr(Path, 'home', lambda: tmp_path / 'user')
@@ -300,19 +300,28 @@ def test_refresh_prunes_removed_runtime_skills(lifecycle, monkeypatch, tmp_path,
         (receiver / 'foreign').symlink_to(foreign, target_is_directory=True)
         (checkout / workspace / 'settings.json').write_text('{}', encoding='utf-8')
 
+    before = {checkout: sorted(p.name for p in (checkout / workspace / 'skills').iterdir())
+              for checkout in (main, worktree)}
     declaration.write_text('agents: []\nskills: [one]\nbeads: {mode: none}\n', encoding='utf-8')
     for checkout, sibling in ((worktree, main), (main, None)):
         result = workflows.refresh_projects(home, cwd=checkout)
         assert not result.errors
         receiver = checkout / workspace / 'skills'
-        assert not (receiver / 'one').is_symlink()
-        assert sorted(p.name for p in receiver.iterdir()) == ['foreign', 'mine']
+        assert (receiver / 'one').is_symlink()
+        assert sorted(p.name for p in receiver.iterdir()) == before[checkout]
         assert (receiver / 'foreign').resolve() == foreign.resolve()
         assert (checkout / workspace / 'settings.json').read_text() == '{}'
-        assert f'pruned {workspace}/skills/one' in result.targets[0].data['checkout_changes']
+        assert not result.targets[0].data['checkout_changes']
+        assert any(f['severity'] == 'warning' and f['message'] ==
+                   f'{workspace} exists but {runtime} is not in agents:; dotbrain will not link project skills there'
+                   for f in result.targets[0].findings)
         if sibling:
             assert (sibling / workspace / 'skills/one').is_symlink()
-    assert f'/{workspace}/skills/one' not in adopter_repos.git_exclude_file(main).read_text().splitlines()
+    assert f'/{workspace}/skills/one' in adopter_repos.git_exclude_file(main).read_text().splitlines()
+    # Explicit removal still cleans dotbrain's links, including undeclared workspaces.
+    assert not workflows.unwire_project(dotbrain_home=home, repo=main).errors
+    assert not (main / workspace / 'skills/one').is_symlink()
+    assert (main / workspace / 'skills/mine').is_dir()
 
 
 def _refresh_prune_unwire_skills(lifecycle, runtime, delivery_home):

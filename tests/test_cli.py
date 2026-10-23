@@ -306,6 +306,7 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
     assert not (checkout / ".codex" / "agents" / "dotbrain-reviewer.toml").is_symlink()
 
 
+@pytest.mark.usefixtures("claude_codex_on_path")
 def test_agents_link_repo_links_into_target_checkout(
     dotbrain_home: Path, brainspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

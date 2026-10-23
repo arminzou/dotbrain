@@ -3,9 +3,10 @@ import json
 import subprocess
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
-from dotbrain import beads, brainspaces, paths, workflows
+from dotbrain import assets, beads, brainspaces, doctor, opencode, paths, projects, runtimes, workflows
 from dotbrain.cli import app
 
 
@@ -39,6 +40,60 @@ def setup(tmp_path):
     checkout = tmp_path / 'different-name'
     brainspace = project(home, checkout)
     return home, brainspace, checkout
+
+
+@pytest.mark.parametrize('set_up', [False, True])
+@pytest.mark.parametrize('cli_installed', [False, True])
+@pytest.mark.parametrize('agents', [None, '[]', '[hermes]', '[codex]', '[claude, codex]', '[claude, codex, opencode]', '[codex, claude]'])
+def test_refresh_follows_machine_only_without_agents_and_notices_old_defaults(setup, monkeypatch, tmp_path, set_up, cli_installed, agents):
+    home, brainspace, checkout = setup
+    monkeypatch.setattr(runtimes, 'installed', lambda rt: cli_installed and rt.name in ('claude', 'codex'))
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
+    runtime_home = runtimes.user_dir(runtimes.find('opencode'), tmp_path / 'user-home')
+    if set_up:
+        assert not opencode.deliver(runtime_home).warnings
+    declaration = brainspace / '.brain/project.yaml'
+    content = 'skills: [sample]\nbeads: {mode: none}\n'
+    if agents is not None:
+        content += f'agents: {agents}\n'
+    declaration.write_text(content, encoding='utf-8')
+    source = home / 'skills/sample'
+    source.mkdir(parents=True)
+    (source / 'SKILL.md').write_text('sample', encoding='utf-8')
+    before = declaration.read_bytes()
+
+    result = CliRunner().invoke(app, ['refresh', '--project', 'custom', '--home', str(home), '--json'])
+    assert result.exit_code == 0, result.output
+    report = json.loads(result.stdout)['targets'][0]
+    expected_link = (set_up if agents is None else 'opencode' in agents)
+    assert (checkout / '.opencode/skills/sample').is_symlink() == expected_link
+    expected_agents = (['claude', 'codex'] if cli_installed else []) + (['opencode'] if set_up else [])
+    if agents is not None:
+        expected_agents = yaml.safe_load(agents)
+    for rt in runtimes.RUNTIMES.values():
+        assert (checkout / rt.workspace).exists() == (rt.name in expected_agents)
+    assert declaration.read_bytes() == before
+    notices = [f for f in report['findings'] if 'follow the machine' in f['message']]
+    assert bool(notices) == (set_up and agents == '[claude, codex]')
+    if notices:
+        assert len(notices) == 1 and notices[0]['severity'] == 'warning'
+        assert 'custom: opencode' in notices[0]['message']
+        assert 'add to agents: or delete the agents: list' in notices[0]['message']
+    target = projects.ProjectTarget('custom', brainspace, checkout)
+    expected_workspaces = assets.project_workspaces(home, target, 'all')
+    assert brainspaces.active_agent_workspaces(brainspace, home) == expected_workspaces
+    assert projects.inspect_project(home, target)['runtimes'] == [runtimes.for_workspace(ws).name for ws in expected_workspaces]
+    checked = set()
+
+    def check_assets(root, receiver, selected, kind, runtime):
+        checked.add(receiver.parent.name)
+        return []
+
+    monkeypatch.setattr(doctor, '_check_assets', check_assets)
+    doctor._check_project(target, home, run=workflows._default_run)
+    assert checked == set(expected_workspaces)
+    assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
+    assert all(not (checkout / ws / 'skills/sample').is_symlink() for ws in expected_workspaces)
 
 
 def test_nested_worktree_refresh_preserves_shared_identity_and_repeats(setup, tmp_path, monkeypatch):

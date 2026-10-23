@@ -29,7 +29,7 @@ def test_named_detach_rejects_another_projects_wiring(tmp_path, monkeypatch):
     assert link.is_symlink() and link.resolve() == foreign
 
 
-def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch):
+def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch, claude_codex_on_path):
     runtime_home = tmp_path / "runtime-home"
     runtime_home.mkdir()
     set_fake_home(monkeypatch, runtime_home)

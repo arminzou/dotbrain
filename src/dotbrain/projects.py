@@ -69,13 +69,15 @@ def select_projects(
 
 def inspect_project(home: Path, target: ProjectTarget, *, expand_assets: bool = True) -> dict:
     """Report declarations and wiring without probing the tracker."""
+    from dotbrain import assets
+
     declaration_path = paths.confined_path(target.brainspace, ".brain/project.yaml")
     declarations = (yaml.safe_load(declaration_path.read_text(encoding="utf-8")) or {}
                     if declaration_path.is_file() else {})
     if not isinstance(declarations, dict):
         raise ValueError(f"{declaration_path}: expected a YAML mapping")
     beads = config.load_project_config(home, target.project)
-    runtimes = config.load_project_agents(home, target.project)
+    runtimes = assets.project_agents(home, target.project)
     wiring: dict[str, str] = {}
     if target.checkout is not None:
         for name in (".brain", *((".beads",) if beads.mode != "none" else ())):

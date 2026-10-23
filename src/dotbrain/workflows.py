@@ -330,11 +330,21 @@ def refresh_projects(
             workspaces = _refresh_preflight(dotbrain_home, selected, runtime, run)
             target.findings += [{'severity': 'warning', 'message': entry}
                                 for entry in brainspaces.unknown_agent_warnings(selected.brainspace, dotbrain_home)]
+            extra = [name for name in assets.machine_agents(dotbrain_home) if name not in ('claude', 'codex')]
+            if extra and config.load_project_agents(dotbrain_home, selected.project, defaults=()) == ('claude', 'codex'):
+                target.findings.append({'severity': 'warning', 'message':
+                    f"{selected.project}: {', '.join(extra)} set up on this machine; add to agents: or delete the agents: list to follow the machine"})
             shared = brainspaces.seed_brain(selected.brainspace, dotbrain_home, create_missing=False)
             target.data['shared_brain_changes'] += shared
             target.changes += [f'shared Brain: updated {entry}' for entry in shared]
             if selected.checkout is not None:
                 repo = selected.checkout
+                resolved = assets.project_workspaces(dotbrain_home, selected, 'all')
+                for rt in runtimes.RUNTIMES.values():
+                    directory = repo / rt.workspace
+                    if rt.workspace not in resolved and (directory.exists() or directory.is_symlink()):
+                        target.findings.append({'severity': 'warning', 'message':
+                            f'{rt.workspace} exists but {rt.name} is not in agents:; dotbrain will not link project skills there'})
                 for ws in workspaces:
                     was_local = (repo / ws).is_dir() and not (repo / ws).is_symlink()
                     warning = adopter_repos.materialize_workspace(repo, selected.brainspace, ws, run)

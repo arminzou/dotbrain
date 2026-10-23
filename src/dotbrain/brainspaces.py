@@ -7,30 +7,19 @@ its whole lifecycle except the adopter-repo links (``adopter_repos``) and beads 
 - Brain skeleton seeding from packaged ``templates/brain/`` resources;
 - agent-workspace preparation for selected Claude/Codex assets;
 
-It depends only on ``paths``. It is intentionally not split into ``brain_seed.py`` /
-``agent_workspaces.py`` yet.
+Runtime selection shares the asset delivery resolver.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-from dotbrain import config, paths, resource_loader, runtimes
+from dotbrain import assets, paths, resource_loader, runtimes
 
 # --------------------------------------------------------------------------- brain & gitignore
 
 
 MANAGED_BRAIN_PATHS = {"DOTBRAIN.md", "adr/README.md", "designs/README.md", "docs/README.md"}
-
-
-def _seed_default_agents(template: str) -> str:
-    """List the default runtimes as the seeded project's ``agents:`` declaration."""
-    listed = "agents:\n" + "".join(f"  - {name}\n" for name in runtimes.default_names())
-    seeded, count = re.subn(r"^agents:\n(?:  - .*\n)*", lambda _: listed, template, flags=re.M)
-    if count != 1:
-        raise ValueError("package resource templates/brain/project.yaml: expected one agents list")
-    return seeded
 
 
 def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = True) -> list[str]:
@@ -66,8 +55,6 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
         if not managed and dest.exists():
             continue
         content = src.read_text(encoding="utf-8")
-        if relative == "project.yaml":
-            content = _seed_default_agents(content)
         files.append((relative, dest, content))
     if not (brain / "CLAUDE.md").is_symlink():
         paths.confined_path(brain, "CLAUDE.md")
@@ -100,7 +87,7 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
 
 def active_agent_workspaces(brainspace: Path, dotbrain_home: Path) -> tuple[str, ...]:
     """Return the declared, recognized workspace directory names for a project."""
-    agents = config.load_project_agents(dotbrain_home, Path(brainspace).name)
+    agents = assets.project_agents(dotbrain_home, Path(brainspace).name)
     return tuple(rt.workspace for rt in runtimes.recognized(agents))
 
 
@@ -108,5 +95,5 @@ def unknown_agent_warnings(brainspace: Path, dotbrain_home: Path) -> list[str]:
     """Warn on unrecognized agents: a typo in ``project.yaml`` should not be silent."""
     brainspace = Path(brainspace)
     return [f"ignored unknown agent workspace in {brainspace / '.brain' / 'project.yaml'}: {agent}"
-            for agent in config.load_project_agents(dotbrain_home, brainspace.name)
+            for agent in assets.project_agents(dotbrain_home, brainspace.name)
             if runtimes.find(agent) is None]

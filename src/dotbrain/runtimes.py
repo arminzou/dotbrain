@@ -23,7 +23,7 @@ class Runtime:
     # does not deliver native subagents to this runtime.
     subagents: tuple[str, str] | None = None
     hooks: bool = False  # the dotbrain plugin supplies session hooks
-    default: bool = False  # selected when project.yaml declares no agents, and a default global target
+    default: bool = False  # a default global target
     # Environment variable that relocates the runtime's user home; dotbrain copies its plugin there
     # and opts in by the presence of that owned copy rather than by a default global target.
     home_env: str | None = None

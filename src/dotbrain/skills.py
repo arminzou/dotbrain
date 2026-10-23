@@ -196,7 +196,6 @@ def link_into(
     label: str = "",
     prune_owned_only: bool = False,
     preserve_collisions: bool = False,
-    owned_roots: Sequence[Path] = (),
 ) -> LinkResult:
     """Link skill paths into an agent runtime skills directory."""
 
@@ -251,7 +250,7 @@ def link_into(
         if not entry.is_symlink() or entry.name in wanted:
             continue
         if prune_owned_only and not any(
-            _points_into(entry, root) for root in (private_root, cache_root, *owned_roots)
+            _points_into(entry, root) for root in (private_root, cache_root)
         ):
             continue
         entry.unlink()
