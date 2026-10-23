@@ -332,11 +332,11 @@ def test_relocated_checkout_home_preserved_during_detach(runtime, configured, do
     rt = runtimes.find(runtime)
     checkout = tmp_path / "checkout"
     checkout.mkdir()
-    (checkout / ".brain").touch()
     monkeypatch.setenv(rt.home_env, str(checkout / "nested/runtime"))
     directory = runtimes.user_dir(rt, fake_home)
     module = assets.HOME_DELIVERY[runtime]
-    module.deliver(directory, run=lambda *args, **kwargs: None)
+    module.deliver(directory, run=lambda *args, **kwargs: None)  # delivered before the folder became a checkout
+    (checkout / ".brain").touch()
     before = {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()}
     safe = fake_home / ".claude/skills"
     safe.mkdir(parents=True)
@@ -420,3 +420,80 @@ def test_bootstrap_writes_no_cursor_hooks_into_a_checkout_home(configured, dotbr
     assert not (checkout / ".cursor/hooks.json").exists()
     assert list((checkout / ".cursor").iterdir()) == []
     assert not (tmp_path / "global-skills").exists()
+
+
+# A safe runtime home whose plugin folder links into a wired checkout: (runtime, linked folder below the home).
+LINKED_BELOW_HOME = (("hermes", "plugins"), ("pi", "extensions"), ("opencode", "plugins"), ("opencode", "dotbrain"))
+
+
+def _linked_below_home(runtime, folder, fake_home, tmp_path):
+    checkout = tmp_path / "checkout"
+    (checkout / folder).mkdir(parents=True)
+    home = runtimes.user_dir(runtimes.find(runtime), fake_home)
+    home.mkdir(parents=True, exist_ok=True)
+    (home / folder).symlink_to(checkout / folder, target_is_directory=True)
+    return checkout, home
+
+
+def _snapshot(root):
+    return {p.relative_to(root): (p.read_bytes() if p.is_file() else None) for p in root.rglob("*")}
+
+
+@pytest.mark.parametrize("runtime, folder", LINKED_BELOW_HOME)
+def test_bootstrap_refuses_writes_through_a_link_below_a_safe_home(runtime, folder, dotbrain_home, fake_home, tmp_path):
+    checkout, _ = _linked_below_home(runtime, folder, fake_home, tmp_path)
+    (checkout / ".brain").touch()
+    before = _snapshot(checkout)
+
+    result = bootstrap.link_global_skills(dotbrain_home, runtime, home=fake_home)
+
+    assert any("inside a wired checkout" in warning for warning in result.warnings)
+    assert _snapshot(checkout) == before
+
+
+@pytest.mark.parametrize("runtime, folder", LINKED_BELOW_HOME)
+def test_detach_refuses_deletes_through_a_link_below_a_safe_home(runtime, folder, dotbrain_home, fake_home, tmp_path):
+    checkout, home = _linked_below_home(runtime, folder, fake_home, tmp_path)
+    assets.HOME_DELIVERY[runtime].deliver(home, run=lambda *args, **kwargs: None)  # before it became a checkout
+    (checkout / ".brain").touch()
+    before = _snapshot(checkout)
+    assert any(path.is_file() for path in (checkout / folder).rglob("*"))
+
+    result = workflows.detach_runtime(dotbrain_home, runtime, home=fake_home)
+
+    target = result.targets[0]
+    assert any("inside a wired checkout" in error for error in target.errors)
+    assert _snapshot(checkout) == before
+
+
+def _cursor_hooks_file_in_checkout(fake_home, tmp_path):
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    (checkout / "hooks.json").write_text('{"version": 1, "hooks": {}}\n', encoding="utf-8")
+    (fake_home / ".cursor").mkdir()
+    (fake_home / ".cursor/hooks.json").symlink_to(checkout / "hooks.json")
+    return checkout
+
+
+def test_bootstrap_refuses_a_cursor_hooks_file_linked_into_a_checkout(dotbrain_home, fake_home, tmp_path):
+    checkout = _cursor_hooks_file_in_checkout(fake_home, tmp_path)
+    (checkout / ".brain").touch()
+    before = _snapshot(checkout)
+
+    result = bootstrap.link_global_skills(dotbrain_home, "cursor", home=fake_home)
+
+    assert any("inside a wired checkout" in warning for warning in result.warnings)
+    assert _snapshot(checkout) == before
+
+
+def test_detach_refuses_a_cursor_hooks_file_linked_into_a_checkout(dotbrain_home, fake_home, tmp_path):
+    checkout = _cursor_hooks_file_in_checkout(fake_home, tmp_path)
+    assert cursor.reconcile_hooks(fake_home).linked  # entries written through the link, before it became a checkout
+    (checkout / ".brain").touch()
+    before = _snapshot(checkout)
+
+    result = workflows.detach_runtime(dotbrain_home, "cursor", home=fake_home)
+
+    messages = [f["message"] for f in result.targets[0].findings] + result.targets[0].errors
+    assert any("inside a wired checkout" in message for message in messages)
+    assert _snapshot(checkout) == before

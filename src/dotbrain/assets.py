@@ -80,12 +80,6 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
-def inside_wired_checkout(path: Path) -> bool:
-    """Whether the resolved path or an ancestor has a checkout's Brain entry."""
-    resolved = path.resolve()
-    return any(os.path.lexists(parent / ".brain") for parent in (resolved, *resolved.parents))
-
-
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
                    errors: list[str], dotbrain_home: Path,
                    profiles: dict[str, list[str]] | None = None,
@@ -133,7 +127,7 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         # Every runtime dotbrain installs into keeps files in its home (Cursor: hooks.json), not only its skills folder.
         if rt.name in HOME_DELIVERY and rt.key in destinations:
             directory = runtimes.user_dir(rt, user_home)
-            if inside_wired_checkout(directory):
+            if paths.inside_wired_checkout(directory):
                 errors.append(f"{rt.home_env or '~/' + rt.workspace}: {directory} is inside a wired checkout; "
                               "choose a runtime home outside it")
                 destinations[rt.key] = ()
@@ -141,7 +135,7 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         safe = []
         for folder in destinations.get(rt.key, ()):
             # Check the home too: an asset symlink must not hide a checkout marker above it.
-            if inside_wired_checkout(folder.parent) or inside_wired_checkout(folder):
+            if paths.inside_wired_checkout(folder.parent) or paths.inside_wired_checkout(folder):
                 setting = settings.get((rt.key, folder), f"{kind}.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
                 errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:
@@ -188,12 +182,16 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             return result
         resolved = {name: subagents._resolve_subagent_files(home, name) for name in cfg.global_names}
     for k, dest in destinations:
-        if kind == "skills":
-            linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
-                      skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
-        else:
-            linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
-                                               label=k, preserve_collisions=True, runtime=k)
+        try:
+            if kind == "skills":
+                linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
+                          skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
+            else:
+                linked = subagents.link_files_into(home, dest, [files[k] for files in resolved.values() if k in files],
+                                                   label=k, preserve_collisions=True, runtime=k)
+        except ValueError as exc:  # a write refused inside a wired checkout stops this runtime only
+            result.warnings.append(f"{k}: {exc}")
+            continue
         for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
         if kind == "skills" and k == "cursor":
@@ -203,7 +201,11 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         rt = runtimes.find(k)
         if kind == "skills" and rt.home_env:
             # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.
-            delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
+            try:
+                delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
+            except ValueError as exc:
+                result.warnings.append(f"{k}: {exc}")
+                continue
             result.linked += delivered.linked
             result.warnings += delivered.warnings
     return result

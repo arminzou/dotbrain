@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import claude_plugins, owned_copy, resource_loader, skills
+from dotbrain import claude_plugins, owned_copy, paths, resource_loader, skills
 
 KIND = "skill bundle"
 ROOTS = (".cursor/skills", ".claude/skills", ".codex/skills", ".grok/skills", ".agents/skills")
@@ -63,6 +63,7 @@ def reconcile_hooks(user_home: Path, *, remove: bool = False) -> skills.LinkResu
                 hooks.setdefault(event, []).extend(entries)
         if data == original or (remove and not path.exists()):
             return result
+        paths.refuse_checkout(path)
         if remove and not hooks and not (data.keys() - {"version", "hooks"}):
             path.unlink()
         else:

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import owned_copy, resource_loader
+from dotbrain import owned_copy, paths, resource_loader
 from dotbrain.skills import LinkResult
 
 PLUGIN_FILE = "dotbrain.js"
@@ -127,6 +127,7 @@ def skill_index(roots, *, dot: bool = False) -> list[dict]:
 
 
 def _write_atomic(target: Path, data: bytes) -> None:
+    paths.refuse_checkout(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     # Written beside the target and moved over it, so OpenCode never reads half a file.
     handle, staging = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}-", suffix=".tmp")
@@ -201,6 +202,7 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
 def remove(config_dir: Path) -> LinkResult:
     result = LinkResult()
     if _file_owned(config_dir):
+        paths.refuse_checkout(plugin_file(config_dir))
         plugin_file(config_dir).unlink()
         result.pruned.append(str(plugin_file(config_dir)))
     target = packaged_dir(config_dir)

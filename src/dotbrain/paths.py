@@ -167,3 +167,16 @@ def exclude_entries(repo: Path) -> set[str]:
         for line in exclude_file.read_text(encoding="utf-8").splitlines()
         if line.strip()
     }
+
+
+def inside_wired_checkout(path: Path) -> bool:
+    """Whether the resolved path or an ancestor has a checkout's Brain entry."""
+    resolved = Path(path).resolve()
+    return any(os.path.lexists(parent / ".brain") for parent in (resolved, *resolved.parents))
+
+
+def refuse_checkout(path: Path) -> None:
+    """Stop a machine-wide write or delete that would land inside a wired checkout."""
+    # Resolving follows links in every existing parent, so a linked subfolder is caught too.
+    if inside_wired_checkout(path):
+        raise ValueError(f"{path} is inside a wired checkout; dotbrain will not write there")
