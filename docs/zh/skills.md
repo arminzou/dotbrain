@@ -120,6 +120,10 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 除了技能，dotbrain 还自带能读 Brain 的子 Agent：`worker`、`reviewer`、`verifier` 和 `researcher`。见
 [会话上下文](session-context.md#subagents)。
 
+`agents/agents.yaml` 选中的全局额外 Agent 共用默认主目录和 `skills/skills.yaml` 的 `profiles:`，
+分发到 Claude Code 和 Codex 各主目录下的 `agents/`。旧 `targets:` 的迁移方式见
+[配置](configuration.md#agents-agents-yaml)。
+
 ## 安装 {#installing-them}
 
 技能随插件一起提供，每个 Agent 运行时装一次，而不是每个仓库装一次。安装命令见[快速开始](getting-started.md)。

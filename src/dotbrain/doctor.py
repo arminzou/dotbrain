@@ -137,6 +137,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     for kind in ("skills", "agents"):
         try:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
+            profiles = cfg.profiles if kind == "skills" else skills.load_global_config(root / "skills/skills.yaml").profiles
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
             configured.update(cfg.targets)
             notices = []
@@ -144,9 +145,9 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             if kind == "skills" and cursor.global_delivery(root):
                 cfg.targets.setdefault("cursor", str(home / ".cursor/skills"))
             targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False,
-                                            profiles=cfg.profiles if kind == "skills" else None, notices=notices, errors=errors)
+                                            profiles=profiles, notices=notices, errors=errors)
             findings.extend(Finding("info", notice) for notice in notices)
-            findings.extend(Finding("error", error, "correct the global skills destination") for error in errors)
+            findings.extend(Finding("error", error, f"correct the global {kind} destination") for error in errors)
             for runtime, destination in ((key, folder) for key, folders in targets.items() for folder in folders):
                 recognized = runtimes.find(runtime)
                 if recognized is None or recognized.key != runtime or (kind == "agents" and not recognized.subagents):

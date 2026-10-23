@@ -179,11 +179,13 @@ Claude Code 和 Codex 的技能会链接到默认主目录（`~/.claude` 和 `~/
 分发到你个人 Agent 主目录的全局子 Agent。删除一个条目后，下次运行 `dotbrain agents link --scope global`
 时会清理它对应的资源。
 
+Claude Code 和 Codex 会将 Agent 分发到默认主目录及 `skills/skills.yaml` 的 `profiles:` 所列主目录下的
+`agents/`。不存在的 profile 会跳过；位于已连接 checkout 内的目标会报错并跳过。旧 `targets:` 中与默认值
+相同的条目会静默忽略；自定义目标的父目录会作为额外主目录，并提示迁移到 `skills.yaml` 的 `profiles:`。
+
 ```yaml
 # ~/dotbrain/agents/agents.yaml
-# targets:
-#   claude-code: ~/.claude/agents
-#   codex: ~/.codex/agents
+# 额外运行时主目录在 skills/skills.yaml 的 profiles 中配置。
 global:
   - some-shared-subagent
 ```
