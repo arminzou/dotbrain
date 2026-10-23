@@ -29,7 +29,17 @@ cites. The reviewer supplements the gate, never replaces it. Simplify uses the b
 If no independent reviewer is available, skip that optional pass with a note; it does not block
 delivery.
 
+Read [Run Execution's review verdicts](../run-execution/SKILL.md#review-verdicts),
+including the automatic-behavior severity default, before judging findings.
+
 ## Final branch review
+
+A **goal shortfall** shows that an in-scope design goal or success criterion is unmet
+in a case the design does not exclude; non-goals delimit the judgment. In the final
+whole-branch review, return `CHANGES` for a goal shortfall in either workflow, whatever
+its severity label. Item and integration review thresholds are unchanged.
+Apply this final verdict rule when reusing an item/integration report too: it must
+explicitly assess goal shortfalls, or the final review needs a refreshed report.
 
 Before it is offered for merge in either workflow, a branch carrying more than one work item requires a final `code` review
 of the whole branch diff against its agreed base at the exact final head. Reuse the final
@@ -59,9 +69,10 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    human decision follows. Read the target's relevant context and decisions. For readiness, read
    [the procedure](references/readiness.md) before pass 1. For simplify, read the bundled
    [simplification procedure](references/simplify.md) before reviewing.
-2. Keep the reviewed tree read-only. The reviewer returns a complete report to the lead without
-   tracker writes. The lead records findings and provenance on the review bead; item/integration
-   reports go to member execution records through `run-execution`. Include affected consumers and
+2. Keep the reviewed tree read-only: the reviewer inspects it with `git diff` and `git show` only.
+   An item/integration reviewer records its report on member execution records itself, as
+   `run-execution` specifies. For a review bead, the reviewer returns its complete report and the
+   lead records findings and provenance on the bead. Include affected consumers and
    interactions, including unchanged files: change-caused regressions can block wherever their
    symptom appears; unrelated existing defects remain discovered work. Gather executed or traced
    evidence (`verifier` for the
@@ -72,21 +83,11 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    the append-only record.
 4. Record the mode's result: `code` returns `APPROVE | CHANGES`, `readiness` returns
    `READY | NOT-READY`, and `simplify` reports findings only, with no verdict. Write matching
-   verdict metadata as the shared contract specifies. A bare `GO` means only the human's
+   `dotbrain_verdict` metadata as the shared contract specifies. A bare `GO` means only the human's
    handoff authorization. No review result authorizes merge or release. Record findings,
    evidence, and any uncovered area.
 
-5. Apply the shared contract's closing rules. The lead closes `code`/`readiness` reviews on
-   passing required verdict and evidence at the exact integrated revision, resolved blocking
-   findings, and recorded dispositions for other findings, before PR merge. Failed, missing, or
-   stale evidence holds affected work; changed integrated heads require refreshed review/checks.
-   Required UAT records revision, environment, journeys, checks/results, and gaps; an unexercised
-   journey is a gap, never a pass or an automatic request for the human to check.
-   A `simplify` bead closes once every finding is applied, filed, or declined with a reason;
-   it stays non-blocking for PR readiness. A `simplify` bead does not close on merge.
-   Preserve explicit unresolved-decision gates and stricter instructions; add no blanket `human`
-   label for reviews. Closure never merges the target branch and never automatically invokes
-   `close-design`. Record closeout and evidence, preserving the assignee and finite repair limits.
+5. Apply [review-bead closing](../manage-work-graph/references/review-beads.md#closing).
 
 ## Completion
 

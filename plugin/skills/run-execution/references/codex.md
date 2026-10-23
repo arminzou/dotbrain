@@ -7,11 +7,8 @@ writing worktrees; do not treat an assigned shell directory as worktree isolatio
 runtime can use the Prepare through Stop and recover sections to run Codex workers; Explorer role
 and Nested agents apply only to a Codex lead.
 
-Before launch, inspect actual CLI and native-agent capacity and apply the shared dispatch cap,
-reserving capacity for the lead and required review and verification. Count direct CLI writers
-and nested writers together. Use separate worktrees for concurrent writers, including separable
-changes to overlapping files; allocate separate mutable outputs, databases, and ports or schedule
-shared resources exclusively. Native conversation IDs and assigned paths do not prove isolation.
+Apply [capacity and isolation](parallel-execution.md#capacity-and-isolation).
+This reference supplies the runtime mechanisms only.
 
 ## Explorer role
 
@@ -36,9 +33,8 @@ Read the relevant subcommand help only when an option is unknown or rejected. La
 codex exec --cd <worktree> --sandbox danger-full-access -c model_reasoning_effort=medium --json -o <final-response-file> -
 ```
 
-Use the permission policy authorized for this execution; the example is the explicitly authorized
-full-access path, not permission to broaden another execution's policy. Worktrees isolate edits,
-not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
+Workers and reviewers launch with full access, as shown; their role definitions, not the sandbox,
+keep them within their roles. Worktrees isolate edits, not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
 configured authentication. Keep stdout JSONL, stderr diagnostics and the final response separate.
 On Windows use `pwsh -NoProfile`; background helpers started through `Start-Process` must be hidden.
 
@@ -56,12 +52,13 @@ and stop before claiming.
 Retain the process handle/PID and the session ID from `thread.started`, plus paths to events,
 diagnostics, final response and exit evidence. Record dispatch before waiting, with the process
 identity if the session ID has not arrived yet. When `thread.started` arrives, add the session ID
-to the worker's `work` entry in `dotbrain_artifacts`, where a fix round or takeover finds it.
+to the worker's `work` entry in `dotbrain_artifacts`, where a fix round or takeover finds it, and
+record it in `Dispatched` as a CLI session.
 Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
 
-Apply the shared [completion handling](../SKILL.md#completion-handling) rules when processing
+Apply the shared [completion handling](execution-record.md#completion-handling) rules when processing
 available results. The process checks below establish completion, not item acceptance.
 
 Wait on the retained process handle. Check process exit, session ID from `thread.started`,
@@ -71,14 +68,12 @@ Read the final response file as the worker's report. Read transcript prose and t
 when diagnosing a failure revealed by these signals. A zero exit is process evidence only;
 acceptance follows the shared contract.
 
-Once completion and termination are established, the candidate frees its writing slot for another
-eligible ready item in the fixed scope; keep the candidate's claim and original session for fixes.
-Acquire a writing slot before resume, and serialize target integration as the shared contract
-requires. These instructions do not qualify higher-fan-out or native-writer isolation.
+Apply [capacity rules](parallel-execution.md#capacity-and-isolation)
+before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 When the installed CLI supports it, continue a stopped session with
-`codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original
-worktree, reapply the authorized permission policy using supported flags/configuration, and
+`codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix-round message through stdin. Run from the original
+worktree, reapply full access using supported flags/configuration, and
 verify the resumed session ID, actual checkout, branch and claim. Do not use `--last`, which can
 select another worker's session, or `--worktree`, which creates a different checkout. Keep the
 original assignment and reference paths available. If resume is unavailable, report that fact
@@ -98,7 +93,7 @@ through `Start-Process` was already outside the worker's process tree, and stopp
 worker's handle left it running and writing. Before cancelling, record every nested writer's
 PID and creation time; the worker must report them. Stop each recorded identity's tree, then
 confirm that no recorded identity remains and that its activity and tracker writes have stopped.
-Move the claim only after that. A quiet window and an empty worker tree do not establish
+Apply manage-work-graph's claim-move rule after that. A quiet window and an empty worker tree do not establish
 termination: a writer with no recorded identity kept writing after both checks passed. Keep its
 claim, report the uncertainty and wait for the human decision. Beads refuses an unforced
 reassign of a live claim.
@@ -124,16 +119,18 @@ Omit the spawn tool's model option unless the user explicitly requests a differe
 the custom role file supplies effort.
 The packaged reviewer disables cross-session memory with `features.memories = false`.
 Project instructions, assigned acceptance criteria, relevant Brain records, and explicitly
-assigned skills still supply review authority; include the needed context in its assignment.
-Keep fix rounds in the same worker or reviewer session with findings and the changed diff.
+assigned skills still supply the review's Sources; include the needed context in its assignment.
+Point a nested reviewer at the detached review worktree the lead created, and record a native
+subagent's ID in `Dispatched` as an in-session subagent. Keep fix rounds in the same worker or
+reviewer session, sending the shared fix-round message.
 Collect native results with the runtime's blocking agent-wait tool and a long supported wait
 interval, respecting the session's wait limit. Repeated short status polls each spend another
 lead model call while the reviewer is still working. Keep lifecycle and error checks; read
 transcript content only to investigate a reported failure or evidence gap.
 
 If an assignment requires a custom agent, verify its availability by actually spawning that role
-in this CLI session. A delivered TOML file is insufficient. Count nested writing agents toward
-the shared writing-worker cap and track their termination; avoid nested writers when direct CLI
+in this CLI session. A delivered TOML file is insufficient. Apply the parallel reference's
+capacity rule to nested writers and track their termination; avoid nested writers when direct CLI
 workers cover the assignment. Packaged subagents are spawned as `dotbrain-<role>`, for example
 a nested reviewer as `dotbrain-reviewer`, and follow the shared item-review rules. A `codex exec`
 writer cannot select an agent, so its assignment points it to the packaged worker's definition,

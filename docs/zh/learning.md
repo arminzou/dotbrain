@@ -3,9 +3,12 @@
 Dotbrain 能帮你跨多个会话学习自己在做的项目。`teach-me` 技能会根据项目的 Brain 和当前代码来讲解，
 检查你的理解，并保存足够的私有学习状态，让下一个会话能从你上次停下的地方接着来。
 
-先在装好 dotbrain 插件的[已连接项目](getting-started.md)里，对 Agent 说：
+先在装好 dotbrain 插件的[已连接项目](getting-started.md)里调用技能：Claude Code 用 `/dotbrain:teach-me`，
+Codex 用 `$teach-me`，再告诉 Agent 你想学什么：
 
-> Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
+> 教我理解这个项目怎么处理投递失败。我希望学完能自己排查。
+
+只说“teach me”不再启动这个技能。每次开新会话学习，都要先按名称调用。
 
 Agent 会先确认主题和你的目标，然后在对话中讲解。实现过程中的一个小问题，简单回答就行，
 不需要学习路径，也不需要保存成课程。

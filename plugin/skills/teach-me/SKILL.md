@@ -1,6 +1,7 @@
 ---
 name: teach-me
-description: "Teaches the user a code project over multiple sessions from its private Brain: explains concepts in conversation, walks a learning path through a topic, and captures agreed lessons and references into `.brain/learning/`. Use when the user says 'teach me', 'help me learn/understand X', 'walk me through', 'quiz me', 'continue my learning path', or 'write a lesson on'."
+description: "Teaches the user a code project over multiple sessions from its private Brain: explains concepts in conversation, walks a learning path through a topic, and captures agreed lessons and references into `.brain/learning/`. Invoke by name to start or continue learning, practice, or capture a lesson."
+disable-model-invocation: true
 ---
 
 # Teach Me

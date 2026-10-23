@@ -10,7 +10,7 @@ pageClass: prompt-examples
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
 不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
-`iterate-design`、`review-architecture`、`run-retro` 和 `close-design` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
+`iterate-design`、`review-architecture`、`run-retro`、`close-design`、`teach-me`、`triage-public`、`brain-site` 和 `dotbrain` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
 `/dotbrain:iterate-design`。
 
 ## 配置 {#set-up}
@@ -225,6 +225,9 @@ outlive it to ADRs and CONTEXT.md.
 
 ## 学习 {#learn}
 
+开始或继续学习前，先调用技能：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
+把问题先存起来则不用调用。
+
 ### 开始学一个主题 {#start-learning-a-topic}
 
 ```text
@@ -248,7 +251,7 @@ Continue my learning path on retries. Read my progress and learning records, the
 Park this for learning: why does retrying this operation require an idempotency key?
 ```
 
-**什么时候用：** 做事途中冒出一个问题，但现在不想切换到学习。**技能：** `teach-me`。
+**什么时候用：** 做事途中冒出一个问题，但现在不想切换到学习。**技能：** `manage-work-graph`。
 见[学习你的项目](learning.md#park-a-question-while-working)。
 
 ## 维护 Brain {#maintain-the-brain}
@@ -286,6 +289,8 @@ Use write-agent-docs to tighten this project's AGENTS.md.
 **技能：** `write-agent-docs`。
 
 ### 分诊公开任务 {#triage-public-issues}
+
+先调用技能：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

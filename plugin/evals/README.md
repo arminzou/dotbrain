@@ -14,11 +14,26 @@ rule-bearing skill. They do not run in CI.
 | `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `closure-on-fresh-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
 | `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
+| `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
+| `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
+| `dispatch-records` | `worker-rejects-missing-label`, `worker-stores-candidate-report`, `fix-round-from-stored-assignment`, `observed-revision-mismatch-held`, `reviewer-records-review-comment` | The two `worker-*` cases as `phase-2`; others are decision exercises; cases unrun |
+| `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that
 log every call to `.eval/calls.log` and answer from `.eval/fixtures/`. Nothing reaches a real
 tracker, GitHub, or network.
+
+The `execution-rules` and `workflow-owners` cases cover moved workflow instructions.
+Decision exercises check the agent's selected next operations; they do not qualify
+runtime concurrency. For `parallel-reference-before-dispatch`, also inspect the
+kept transcript: the Read of `parallel-execution.md` must precede the first writing
+worker's Agent call. The native tool-presence and response graders alone cannot prove
+that ordering. All new cases remain unrun until a paid eval is authorized separately.
+
+In `worker-rejects-missing-label` a correct worker returns before any tracker or Git call,
+so the prompt has the lead run `git status --porcelain` afterwards. That logged call lets
+the checker grade `no-public-change`, which catches an edit the worker made anyway.
 
 ## Running
 
@@ -82,6 +97,11 @@ read-only sandbox proves no must-not result. Stubs exit on log-write failure;
 neither they nor Git rely on writing the sandboxed home. The external checker
 disables tracing for its own Git reads, so it cannot supply this evidence.
 Native graders alone are never a state-case pass.
+
+Review beads store their metadata as the flat top-level keys `dotbrain_verdict`,
+`dotbrain_target`, `dotbrain_range`, and `dotbrain_modes`. The fixtures, graders, and
+`_shared/check.py` match only these names: they were renamed from the unprefixed `verdict`,
+`target`, `range`, and `modes`, and a run that writes the old keys gets no credit for them.
 
 The retro cases invoke `/dotbrain:run-retro` directly. Slash invocation loads the
 skill without a `Skill` tool call, so these cases grade state rather than requiring

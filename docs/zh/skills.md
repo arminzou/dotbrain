@@ -49,13 +49,17 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 在选中的技能包里增删技能，下次同步时就会生效，声明本身不变。被移除的、dotbrain 自己的链接会被清理，
 其他来源的条目会保留。`projects show`、技能目录和 doctor 都使用同样的展开结果。
 
-## 配置 {#setup}
+## 核心工作流程 {#core-workflow}
+
+从连接项目、明确决策、设计和拆分任务，到执行、审阅、收尾，再到整理项目上下文。
+`write-agent-docs` 为这些环节提供写作规范，Agent 仍可按需自动调用。
+
+### 配置 {#setup}
 
 - **`wire-brain`**：创建或修复仓库与其私有 Brain 之间的 Brainspace 连接，包括恢复链接出来的 worktree 的
   `.brain` 和 `.beads`。第一次使用时，如果缺少 `dotbrain` CLI 会自动安装。
-- **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的运行时里，可以直接调用它。
 
-## 规划 {#planning}
+### 规划 {#planning}
 
 - **`to-design`**：把一项多步骤的工作写成一份持续更新的 active 设计文档，存进 Brain，并创建一个 epic bead。
   适合在拆分之前需要明确设计、或需要一个地方跟踪未知项的工作。
@@ -63,19 +67,30 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   `--spec-id design:<slug>` 把每个 bead 关联回设计。
 - **`grill-decisions`**：对照项目的术语和决策对计划做压力测试，再把长期有效的结论写进 `CONTEXT.md` 和 `adr/`。
 - **`find-unknowns`**：在确定设计之前，找出陌生领域里的盲点和隐含假设。
-- **`close-design`**：手动把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
+- **`close-design`**（需按名称调用）：把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
   把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
 
-## 执行 {#execution}
+### 执行 {#execution}
 
 - **`manage-work-graph`**：在私有工作图里创建、查看、认领、拆分、更新和关闭工作项
 - **`run-execution`**：完成一个工作项或一批固定的工作项：分派 worker，让每个改动都经过独立审阅，合并，检查，
   在限度内修复，必要时上报或恢复
-- **`iterate-design`**：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
+- **`iterate-design`**（需按名称调用）：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
   draft PR 交付，完成后转为 ready 等你审阅，在成功或阻塞时停下
 
-## 分诊与审阅 {#triage-and-review}
+### 审阅与整理 {#review-and-curate}
 
+- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；必要证据覆盖准确版本、
+  各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
+- **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
+- **`write-agent-docs`**：为公开项目文档、私有 Brain 内容、用户自己的技能，以及 Agent 通过指针读到的指引
+  提供写作规范
+
+## 按名称调用的可选技能 {#optional-skills-invoked-by-name}
+
+这些技能仍随插件提供。在 Claude Code 中用 `/dotbrain:<name>`，在 Codex 中用 `$<name>`。
+
+- **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的运行时里，需按名称调用。
 - **`run-retro`**：检查新增或变化的证据，在私有 Brain 中记录 Agent 的发现、成功做法和已处理的范围。
   可手动调用，也可由外部定时任务调用。同一做法在三个不同证据日期得到支持后，默认只查找仓库已有的规则、标准或贡献指南，
   建议合适的文件和规则，由你决定是否创建 PR。它还会建议最有效的自动化约束（结构、类型、检查或 hook、测试），一旦违反规则就直接报错；
@@ -92,23 +107,15 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   贡献者范围从不在仓库中创建文件。
   后续按明确选定的贡献分支或 PR，或维护者选定的集成分支向前审阅，复用共享进度并读取当前适用的规则。
   未选定范围时会报告缺口，不会默认审阅整个仓库
-- **`review-gate`**：运行一次持久的审阅关卡（代码、简化或就绪性），并把结果记录在任务上；必要证据覆盖准确版本、
-  各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
-- **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
 - **`triage-public`**：对公开任务跟踪里的条目分类，把准备好的工作提升到私有执行中
 - **`review-architecture`**：审查代码库，寻找可以加深架构的机会
 
-## 写作 {#authoring}
-
-- **`write-agent-docs`**：为公开项目文档、私有 Brain 内容、用户自己的技能，以及 Agent 通过指针读到的指引
-  提供写作规范
-
-## Brain 站点 {#brain-site}
+### Brain 站点 {#brain-site}
 
 - **`brain-site`**：手动调用，用 `dotbrain site` 创建、维护、构建或预览 Brain 的私有站点，
   包括侧边栏、主题和页面渲染检查
 
-## 学习 {#learning}
+### 学习 {#learning}
 
 学习路径、暂存的概念和会话之间的延续，请看[学习你的项目](learning.md)。
 

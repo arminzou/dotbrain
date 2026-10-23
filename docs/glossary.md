@@ -181,6 +181,87 @@ To create a public-facing explanation or artifact from private source material w
 private source directly. dotbrain uses this boundary to keep Brains private while still publishing
 docs or tooling publicly.
 
+## Delivery and verification
+
+### Home sync
+
+The exchange of the dotbrain home's Git history with its own private remote through
+`dotbrain sync`. It records uncommitted home changes before exchanging history.
+Tracker sync (`dotbrain beads sync`) is separate and pulls only.
+
+### Plugin and packaged subagent
+
+A plugin is the runtime-native package delivering dotbrain's shared skills, convention,
+and runtime integration. A packaged subagent is an agent definition shipped by dotbrain:
+the writing `worker`, or the read-only `researcher`, `reviewer`, and `verifier`.
+The packaged worker carries out an assignment and commits its candidate; the lead handles delivery.
+See [Session context](session-context.md#subagents) for runtime discovery and delivery.
+
+### Review bead
+
+A work item recording a design-level or standalone review: its scope, standard, findings,
+evidence, verdict when applicable, and disposition of each finding. Item and integration
+reviews are recorded on their member work items instead of creating a separate review bead.
+
+### Integration review
+
+An independent code review of a group of provisionally combined work items at one exact
+revision. It covers each member's acceptance criteria, affected consumers, and interactions
+between the changes before those items close or release dependent work.
+
+### Integration candidate
+
+An isolated branch holding proposed changes based on an accepted revision. Review and checks
+cover its exact head before the lead promotes it onto the delivery branch. Changed patches
+or integration context require refreshed evidence.
+
+### Accepted head
+
+The commit covered by a passing review and its required checks: the head of a review bead's
+recorded range, or a verified work item's recorded integrated revision.
+
+### Delivery branch
+
+The dedicated branch containing accepted results. Promotion fast-forwards it to an accepted
+candidate's exact head; failed or uncovered candidates remain separate.
+
+### Checkpoint
+
+A bounded implementation step and its narrow check within an execution. Retry history is
+tracked separately for each named checkpoint, such as tests or item review. A checkpoint
+is not itself a work item or commit; its check belongs to the agent making the change.
+
+### Verifier gate and verification evidence
+
+A verifier gate is the agreed mechanical pass/fail check, such as tests, a build, or a metric.
+Verification evidence records what actually ran, its output and gaps, and the revision and
+environment it covers. The verifier role runs a gate and reports that evidence; review adds
+judgment. See [The workflow](workflow.md) for who runs each tier of checks.
+
+### Acceptance and UAT
+
+Acceptance means the agreed criteria and evidence permit accepting an item or integrated
+candidate onto the delivery branch. UAT (user acceptance testing) exercises agreed user
+journeys in a named runtime, version, and OS environment. Agents can run and record these
+checks; the human still owns PR approval and merge.
+
+### Review surface
+
+Where a change is presented for review: usually a PR, or the branch diff for a project
+without PR hosting. The full suite and audience-safe verification evidence belong there.
+
+### Oracle
+
+The written standard a review judges against: applicable decisions, design goals, criteria,
+and rules. It is fixed before the review so the result answers the original question.
+
+### Canon and durable residue
+
+Canon is the project's authoritative vocabulary, decisions, and rules, as distinct from
+derived explanations. Durable residue is knowledge from a completed design that remains
+useful beyond that initiative and is placed in the appropriate vocabulary, decision, or
+rules document. See [Design closeout](workflow.md) for the lifecycle.
+
 ## Excluded terms
 
 This glossary intentionally leaves out lower-level implementation jargon and private internal

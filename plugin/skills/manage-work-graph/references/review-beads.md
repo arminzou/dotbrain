@@ -4,42 +4,36 @@ How to persist any code review's findings as a bead and operate that bead afterw
 skill, tool, or ad hoc process produced them. A review's own methodology — what it checks, how
 rigorously, its finding vocabulary — stays owned by that review. This reference only covers turning
 its output into a bead and tracking remediation. `review-gate` selects the review mode; this
-file owns its shared record. Item and integration reviews return to the lead, who records them
-on member work items using `run-execution`'s
-[execution record](../../run-execution/references/execution-record.md), not a separate batch
-review bead. The independent reviewer writes no tracker records.
+file owns its shared record. The reviewer of an item or integration review records its report on
+member work items itself, as `run-execution`'s
+[execution record](../../run-execution/references/execution-record.md) specifies, not on a
+separate batch review bead; the lead confirms those records. A review bead's notes, metadata, and
+verdict comments stay the lead's records.
 
-For any returned review, the lead preserves reviewer identity, base/head revision references,
-covered items and acceptance coverage, verdicts, full finding wording, severity, stable finding
-IDs, and material evidence or coverage limits before dispatching repairs. Ownership and
-coordination notes are labeled as lead additions; disputes return to the reviewer or human
-without silently changing a verdict. Cross-item findings have one responsible worker, a full
-durable finding on that worker's item, and references to its comment and finding ID on all other
-affected items. Repair references go to the original workers.
+Report preservation and cross-item repair follow
+[the execution record](../../run-execution/references/execution-record.md); item review and
+verdict thresholds follow [Run Execution](../../run-execution/SKILL.md#item-review-and-acceptance).
+Final whole-branch review and simplify policy follow [review-gate](../../review-gate/SKILL.md).
 
-Code review includes change-caused consequences in unchanged consumers and interactions.
-Unmet acceptance or a blocker/high regression caused by the reviewed change produces `CHANGES`
-wherever its symptom appears; unrelated existing defects and medium/low findings remain
-non-blocking discovered work. Missing safety evidence is a reported gap, not a verified claim.
-
-A review bead records agent work. The lead applies the evidence and disposition rules in
-Closing below; independent review remains required. A genuine unresolved decision or explicit
-operator gate still binds, but being a review does not create a human gate.
+A review bead records agent work. The lead applies Closing below and the convention's
+human gates; independent review follows review-gate.
 
 ## Verdict vocabulary
 
-| Mode | Result | `verdict` metadata |
+| Mode | Result | `dotbrain_verdict` metadata |
 | --- | --- | --- |
 | `code` | `APPROVE` or `CHANGES` | `approve`, `changes` |
 | `readiness` | `READY` or `NOT-READY` | `ready`, `not-ready` |
 | `simplify` | Findings only, never blocking | none |
 
 A bare `GO` means only the human's handoff authorization. A single-pass review records its
-verdict metadata at creation; a multi-pass code or readiness review starts with `verdict=pending`
-and updates it when the verdict is recorded.
-Store `target`, `range`, and `modes` for both shapes. Each bead records one mode, so `modes`
-is a single-element array; separate modes get separate beads. A `simplify` bead has no `verdict` key;
-keep it separate from the `code` bead because their closure rules differ.
+verdict metadata at creation; a multi-pass code or readiness review starts with
+`dotbrain_verdict=pending` and updates it when the verdict is recorded.
+Store `dotbrain_target`, `dotbrain_range`, and `dotbrain_modes` for both shapes, as flat top-level
+keys: Beads merges metadata one level deep, and `--metadata-field` matches only top-level keys.
+Each bead records one mode, so `dotbrain_modes` is a single-element array; separate modes get
+separate beads. A `simplify` bead has no `dotbrain_verdict` key; keep it separate from the
+`code` bead because their closure rules differ.
 
 ## Pick the shape
 
@@ -100,17 +94,18 @@ relative to when the bead exists*, not of what produced the findings:
   comment, not a rewrite. The newest comment is the current state — there is no status header to
   maintain.
 - **`--metadata`** — the current queryable result, separate from the append-only record:
-  `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'`. Update `verdict` when the
-  call is made. Query `verdict=changes` or `verdict=not-ready` with
-  `bd list --metadata-field verdict=<value> --all`; verdict alone does not establish closure evidence.
-  A simplify pass records findings without a `## Verdict:` comment or `verdict` metadata.
+  `'{"dotbrain_verdict":"pending","dotbrain_target":"<commit>","dotbrain_range":"<base>..<head>","dotbrain_modes":["readiness"]}'`.
+  Update `dotbrain_verdict` when the call is made. Query `dotbrain_verdict=changes` or
+  `dotbrain_verdict=not-ready` with `bd list --metadata-field dotbrain_verdict=<value> --all`;
+  verdict alone does not establish closure evidence.
+  A simplify pass records findings without a `## Verdict:` comment or `dotbrain_verdict` metadata.
 
   ```bash
   bd create "<review title> @ <commit>" \
     --type task --priority 1 --parent <epic-id> \
     --description "Multi-pass readiness review: <the standard — the oracle>" \
     --acceptance "All passes recorded; required verdict and evidence pass at the exact integrated revision; blocking findings resolved and other findings dispositioned." \
-    --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'
+    --metadata '{"dotbrain_verdict":"pending","dotbrain_target":"<commit>","dotbrain_range":"<base>..<head>","dotbrain_modes":["readiness"]}'
   ```
   A review with no epic — a repo-wide audit, a release gate — is a top-level bead; use `--type
   milestone` if it qualifies a release.
@@ -134,10 +129,8 @@ comments, destroys the record the shape exists to protect.
 
 ## Closing
 
-The lead closes accepted reviews before PR merge, without routine human sign-off. Do not add
-the `human` label merely because a bead is a review. An explicit gate for a genuine unresolved
-decision and stricter operator instructions still bind; investigate within approved authority
-and return scope, authority, or acceptance changes to `grill-decisions`.
+The lead closes accepted reviews before PR merge. Apply the convention's human gates
+and criteria ownership; investigate within approved authority.
 
 - **Code/readiness** — require `APPROVE`/`READY`, respectively, and all required acceptance
   evidence at the exact integrated revision. Blocking findings must be resolved; filing or
@@ -148,20 +141,17 @@ and return scope, authority, or acceptance changes to `grill-decisions`.
   requires a new review record or reopening before that review counts as current evidence.
 - **Simplify** — close once every finding is applied, filed as its own item, or declined with a
   reason within approved scope. Record follow-up IDs and reasons. A clean pass has zero findings
-  to disposition. Simplify remains non-blocking for PR readiness; an open simplify bead never
-  holds the PR or `FINAL`. A `simplify` bead does not close on merge.
+  to disposition. PR readiness follows review-gate's simplify policy.
+  A `simplify` bead does not close on merge.
 - **Closeout record** — append `## Closeout @ <commit>` with reviewer provenance, exact base/head,
   required verdict and evidence references, every finding ID and disposition, surviving follow-up
   IDs, and coverage gaps. Confirm the current integrated head matches before native `bd close`.
-  Preserve the assignee: close under its actor, naming the lead in the reason; never force closure.
-- **UAT evidence** — record revision, environment, agreed user journeys, actual checks/results,
-  and gaps. An unexercised journey is a gap, never a pass. Missing UAT holds affected work when
-  required; it is not an automatic request for the human to check. Investigate and repair within
-  remaining limits; preserve containment, retry caps, and finite whole-loop limits on resume.
-- **Delivery boundary** — closure grants no PR approval or merge authority, never merges the
-  target branch, and never automatically invokes `close-design`. Neither PR approval nor merge
-  is a prerequisite for accepted review closure. The design and epic remain active until manually
-  invoked terminal closeout. Review-derived follow-up work uses ordinary work closure rules.
+  Apply [native closure and actor handling](../SKILL.md#ownership-and-closure).
+- **UAT evidence** — apply [Run Execution's acceptance/UAT evidence rules](../../run-execution/SKILL.md#item-review-and-acceptance).
+  Preserve the record and remaining limits on resume under iterate-design.
+- **Delivery boundary** — apply [manage-work-graph's closure boundary](../SKILL.md#ownership-and-closure).
+  Neither PR approval nor merge is a prerequisite for accepted review closure.
+  Review-derived follow-up work uses ordinary work closure rules.
 
 For an epic gate, make the review bead depend on every scoped implementation bead; it becomes
 claimable only after the graph reaches its final review step.

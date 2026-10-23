@@ -55,7 +55,8 @@ The authorized issue count is separate from this cap.
 ### Stay involved after each execution
 
 `run-execution` handles that bounded work. The lead proposes a dedicated branch at the first
-execution, checks the result, and returns to you. The same branch can hold later executions.
+execution, checks the result, and returns to you with one table row per issue: status, accepted
+revision, review verdict, and next step or blocker. The same branch can hold later executions.
 It asks before pushing or opening a PR; merging stays with you.
 
 The lead shows the issues, behavioral ownership, known file overlap, and integration branch before dispatch, and you can
@@ -120,11 +121,14 @@ For exploration, the workflows use the coding agent's built-in explorer where av
 not another packaged dotbrain role. Delegation is optional when the main agent can do the job
 more directly.
 
-The lead prepares complete assignments: checkout and branch, file ownership,
-issue and actor where needed, acceptance criteria, checks, and what evidence to return. A worker
-will stop on the default branch unless your explicit local-landing instruction was recorded.
-A review assignment identifies the reviewer, review number, exact base/head, included issues,
-and their acceptance criteria.
+The lead gives each writing worker a labelled assignment in a fixed order: item and actor,
+checkout, change, ownership, acceptance, checks, limits, constraints, overrides, and sources.
+Every label is required and `none` is a valid value; a worker missing a label returns without
+editing. The lead stores the full assignment in the issue's dispatch record, so a fix round or a
+replacement worker can rebuild it from the issue alone. A worker will stop on the default branch
+unless your explicit local-landing instruction was recorded. A review assignment identifies the
+reviewer and its Beads actor, review number and round, exact base/head, included issues, and their
+acceptance criteria.
 
 ### How the coding agent runs them
 
@@ -139,15 +143,17 @@ custom agent. Native Codex subagents can take focused assignments, but assigning
 one a directory does not establish worktree isolation.
 
 The coding agent runtime owns launching, waiting, and resuming agents. Dotbrain supplies context,
-roles, wiring, and workflow rules; Beads holds claims and execution state. Runtime support and
-permissions must allow the required operations. See [Session context](session-context.md#subagents)
+roles, wiring, and workflow rules; Beads holds claims and execution state. Workers and reviewers
+launch with full access; their role definitions, not runtime settings, keep them within their roles.
+Hermes, OpenCode, Cursor, and Pi run only as the lead: the lead does the writing itself and keeps
+the same records. See [Session context](session-context.md#subagents)
 for delivery and customization.
 
 For role names and ready-to-send requests, see [Example prompts](prompts.md#packaged-subagents).
 
 ### Keep assignments focused
 
-The lead supplies the constraints and exact authority sections each job needs, rather than copying
+The lead supplies the constraints and exact source sections each job needs, rather than copying
 the whole conversation. Where Codex exposes a history control, bounded jobs start without inherited
 conversation history; if the runtime cannot bound history, the lead reports that limitation.
 Assignments retain project rules, acceptance criteria, ownership, permissions, required skills,
@@ -162,15 +168,26 @@ For CLI workers, the lead checks process exit, session and turn outcomes, error 
 nested-process termination, and artifacts, then reads the final response. It reads transcript
 prose and tool output when those signals reveal a failure that needs diagnosis.
 
-Workers return the candidate revision and branch, one line per check, and discoveries, blockers,
-or design impact when present. Failed checks retain failing test names and error text; the lead
-checks claim state directly in Beads. Reviewers return complete structured reports and write no
-work-graph comments. Reports name base/head, included issues, acceptance coverage, per-issue
-verdicts, stable finding IDs, affected issues, severity, location, problem, and material limits.
-The lead preserves reviewer identity, revisions, wording, severity, and verdicts in member records
-before routing repairs. A cross-issue finding has one responsible worker and a full durable record
-on its issue; other affected issues reference that comment and finding ID. Ownership notes are
-the lead's additions; disagreements go back to the reviewer or you. Direct reviews return findings; approval without findings
+Every worker, reviewer, and verifier report opens with a status line and the revision it
+observed, such as `**Status:** DONE · **Observed:** <revision>`. Status values differ by role:
+a worker reports `DONE`, `PARTIAL`, or `BLOCKED`; a reviewer `APPROVE`, `CHANGES`, or
+`NO VERDICT`; a verifier `PASS`, `FAIL`, or `NOT RUN`. The lead holds a review or verification
+whose observed revision differs from the head it requested, and a worker result whose observed
+revision differs from its reported candidate or the actual branch head.
+
+Workers store their full report on their issue as a `Candidate` comment before returning: the
+candidate revision and branch, one line per check, and discoveries, blockers, or design impact
+when present. Failed checks retain failing test names and error text; the lead checks claim state
+directly in Beads. A reviewer works in a detached worktree at the reviewed head that the lead
+creates and later removes, and inspects it with `git diff` and `git show` only. Its full report
+names base/head, included issues, acceptance coverage, per-issue verdicts, stable finding IDs,
+affected issues, severity, location, problem, and material limits. The reviewer appends it as a
+`Review` comment to every issue it reviewed and returns only the status line and an index of
+verdicts and findings. The lead confirms every reviewed issue has the comment,
+copying a missing one from another issue, and records the report itself only when the reviewer
+could not. A cross-issue finding has one responsible worker, named in a lead note on every
+affected issue. Ownership notes are the lead's additions; disagreements go back to the reviewer
+or you. Direct reviews return findings; approval without findings
 returns `APPROVE`, with a brief evidence or scope caveat only when material.
 Simplification reviews retain their findings-only format.
 
@@ -203,11 +220,14 @@ keep the full record and public Verification block, with passing logs summarized
 
 The lead sends the integrated group to an independent reviewer. An unmet acceptance criterion or
 a change-caused blocker/high regression produces `CHANGES`, even in an unchanged consumer.
-Unrelated existing defects are discovered work; medium/low findings remain non-blocking. Safety
+A change-caused failure in automatic behavior defaults to high severity if it goes unreported
+or leaves state that blocks later runs, unless the design explicitly accepts that failure mode.
+Unrelated existing defects are discovered work; other medium/low findings remain non-blocking. Safety
 claims need evidence, a concrete trace, or a small targeted check; missing evidence is a gap.
-If the reviewer returns `CHANGES`, the lead records the report before sending the durable finding
-references back to the original responsible worker, which fixes the change in the same checkout,
-reruns its checks, and commits the fix. The lead then asks the same reviewer to review it again.
+If the reviewer returns `CHANGES`, the lead resumes the original responsible worker with the
+stored assignment, the durable finding references, and what changed since the last round, and
+records that fix round. The worker fixes the change in the same checkout, reruns its checks, and
+commits the fix. A fresh replacement is used only when the worker cannot be resumed. The lead then asks the same reviewer to review it again.
 The same reviewer checks the fixes and affected interactions. Passing worker checks alone do not
 resolve findings. Three consecutive `CHANGES` verdicts hold the affected group for your decision.
 Group records retain revision ranges, member coverage, review provenance, checks, and finding
@@ -229,6 +249,12 @@ reviewed changes, but need not be fresh. Otherwise arrange a whole-branch review
 checks, the final human PR review, and your merge gate remain.
 A single-item branch reuses its item review only if it covers the whole final diff; otherwise it
 also needs a whole-branch review.
+In either workflow, a final review returns `CHANGES` for an unmet in-scope design goal or
+success criterion in a case the design does not exclude, whatever its severity. Reused
+reports must assess this too. Item and integration review thresholds stay the same.
+In a handoff, the lead files the goal-shortfall fix under the epic with its reason and
+adds it to the loop's fixed set within the existing finite budget. If that budget runs
+out with the fix open, the handoff ends `BLOCKED`. A fix needing a new decision still asks you.
 A handoff also gets a non-blocking simplification pass when an independent reviewer is available;
 the lead records finding dispositions within approved scope and returns new consequential decisions to you.
 
@@ -256,6 +282,9 @@ cannot be met. It also stops after two cycles without progress, or when you canc
 Cancellation preserves unfinished files, branches, worktrees, and evidence. A replacement takes
 over a claim only after the previous worker is confirmed stopped; a returned result or expired
 lease does not prove that. Recovery keeps the original scope, checks, and attempt history.
+A new lead session finds work by issue, then branch or worktree, then revision. It never resumes
+a subagent launched inside an ended lead session, and resumes a CLI session only after confirming
+that session is not running.
 
 ## Investigate Before Asking
 

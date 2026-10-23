@@ -1,0 +1,7 @@
+verdict-recorded
+no-approval=demo-1
+no-approval=demo-r2
+no-close=demo-r2
+no-push
+no-merge
+branch-unchanged=theme-support

@@ -120,7 +120,7 @@ or repairing an `AGENTS.md`/`CLAUDE.md` relationship. Back up a meaningful regul
 before replacing it with a symlink.
 
 After a move, update every pointer that should still reach the material. Keep public edits safe for
-publication and scan the final public files for private Brain paths and identifiers. Re-run the
+publication and scan the final public files against the convention's public/private boundary. Re-run the
 check against every changed surface and report any findings routed to other skills.
 
 Completion: all authorized repairs are verified, unapproved findings remain untouched, and each

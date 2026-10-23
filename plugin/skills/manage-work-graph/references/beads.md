@@ -30,12 +30,7 @@ bd close <id> --reason "..." --json --quiet             # only the assignee may 
 bd dolt pull --json --quiet   /   bd dolt push --json --quiet  # sync the shared store
 ```
 
-Beads 1.3 guards ownership: an actor other than the assignee cannot close, unclaim, reassign, or
-claim an `in_progress` item, and a claim's lease expiring does not release it. Comments, metadata,
-notes, labels, dependencies, and status changes stay open to every actor. To close an item another
-actor holds, close under the holder's actor and name yourself in the reason:
-`bd close <id> --actor <holder> --reason "<reason> (closed by <you>)"`. Do not use `bd close --force`,
-which also overrides gates and open children, or `bd reclaim` on work someone still holds.
+Claims, actors, and closure follow [the ownership rules](../SKILL.md#ownership-and-closure).
 
 ## Choose `--type` deliberately
 
@@ -86,7 +81,7 @@ sure its blockers are closed; if it should not, add the dependency. Let `bd read
 
 `open → in_progress → closed`, with `blocked` and `deferred` as side states.
 
-- Claim before working: `bd update <id> --claim` (sets `in_progress` and ownership).
+- Apply [claim ownership](../SKILL.md#ownership-and-closure) before working.
 - `blocked` is *derived from dependencies*. Do not hand-set a blocked status or a blocked label;
   add the dependency and let the engine compute it.
 - `deferred` (`bd defer <id> --until=...`) parks work that is real but not now. Prefer this over a

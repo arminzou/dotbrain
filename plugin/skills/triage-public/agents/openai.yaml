@@ -1,3 +1,6 @@
 interface:
   display_name: "Triage Public Issues"
   short_description: "Triage public issues into private execution"
+
+policy:
+  allow_implicit_invocation: false

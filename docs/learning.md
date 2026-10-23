@@ -4,9 +4,12 @@ Dotbrain helps you learn the project you work on across sessions. The `teach-me`
 from your project's Brain and current code, checks your understanding, and keeps enough private
 learning state for the next session to pick up where you left off.
 
-Start in a [wired project](getting-started.md) with the dotbrain plugin installed. Ask your agent:
+Start in a [wired project](getting-started.md) with the dotbrain plugin installed. Invoke
+`/dotbrain:teach-me` in Claude Code or `$teach-me` in Codex, then give your learning goal:
 
 > Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
+
+Saying "teach me" alone no longer starts the skill. Invoke it by name in each new learning session.
 
 The agent confirms the topic and your goal, then teaches in conversation. A quick question during
 implementation can stay a quick answer; it doesn't need a learning path or a saved lesson.

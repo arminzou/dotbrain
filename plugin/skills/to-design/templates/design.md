@@ -66,11 +66,10 @@ decision gate rather than dressing it up as mechanical.
 For each outcome, state the verification boundary: what the check proves, what it leaves unproven,
 and any interface or resource prerequisites needed to run it independently.
 
-These are human-owned, which makes them changeable but not silently. A criterion that turns out to
+Apply the dotbrain convention's criteria ownership rule. A criterion that turns out to
 be wrong, ambiguous, or unmeetable gets raised under `Human Decisions Needed` with what it should
 become and why; once the human approves, the new wording lands here and the before/after goes under
-`Deviations`. What is ruled out is an agent relaxing a criterion on its own to match what the build
-happens to do.
+`Deviations`.
 -->
 
 ## Verification Evidence

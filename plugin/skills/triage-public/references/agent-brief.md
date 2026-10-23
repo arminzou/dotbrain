@@ -6,8 +6,8 @@ contributor) can see what "ready" means without reading the private Brain.
 
 The binding execution contract is the **private work item** in the engine (acceptance criteria,
 design notes, dependencies), authored via `manage-work-graph`. The brief derives from it; when they
-disagree, the work item wins. Keep the brief public-safe: no private Brain paths, ADR numbers, or
-internal vocabulary that only makes sense inside the Brainspace.
+disagree, the work item wins. Apply the dotbrain convention's public/private boundary
+to the brief; use vocabulary its public audience can understand.
 
 ## Principles
 

@@ -118,8 +118,8 @@ the marker `# dotbrain-managed-agent: v1`; customize their source in the private
 overwrites or prunes marked copies and preserves unmarked files and foreign links.
 
 The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public
-repo context routes making or reviewing changes to tracked root `RULES.md`. Private Brain paths,
-records, and tracker operations stay out of public repo files. Private project rules live in
+repo context routes making or reviewing changes to tracked root `RULES.md`. Apply the convention's
+public/private boundary to public repo files. Private project rules live in
 `.brain/AGENTS.md`, with `CLAUDE.md` as its alias. Wiring preserves existing context pointers
 and user instructions; it never authors repository rules.
 

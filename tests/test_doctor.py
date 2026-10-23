@@ -11,7 +11,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import assets, cli, cursor, doctor, opencode, owned_copy, paths, projects, runtimes, skills, subagents
+from dotbrain import __version__, assets, cli, cursor, doctor, opencode, owned_copy, paths, projects, runtimes, skills, subagents, workflows
 from dotbrain.cli import app
 
 
@@ -63,6 +63,134 @@ def snapshot(root):
 
 def errors(findings):
     return [f.message for f in findings if f.status == "error"]
+
+
+def plugin_registry(home, version):
+    write(home / ".claude/plugins/installed_plugins.json", json.dumps({"plugins": {
+        "dotbrain@dotbrain": [{"installPath": str(home / "plugin"), "version": version}]}}))
+
+
+def test_plugin_version_skew_is_warning_and_names_fix(tmp_path):
+    plugin_registry(tmp_path, "0.0.0")
+    before = snapshot(tmp_path)
+    findings = doctor._check_plugin_version(tmp_path / ".claude")
+    assert len(findings) == 1 and findings[0].status == "warn"
+    assert "0.0.0" in findings[0].message and __version__ in findings[0].message
+    assert "upgrade both" in findings[0].suggestion
+    assert doctor.as_result(doctor.DoctorReport(machine=findings)).status == "success"
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("registry", [None, "{broken", "{}", '{"plugins": []}',
+                                      '{"plugins": {"dotbrain@dotbrain": [{"installPath": "unused"}]}}'])
+def test_plugin_version_input_skips(tmp_path, registry):
+    if registry is not None:
+        write(tmp_path / ".claude/plugins/installed_plugins.json", registry)
+    findings = doctor._check_plugin_version(tmp_path / ".claude")
+    assert findings[0].status == "info" and "skipped" in findings[0].message
+    assert "unavailable" in findings[0].message
+
+
+def test_plugin_version_reads_the_configured_claude_profile(tmp_path):
+    root, home, profile = tmp_path / "root", tmp_path / "home", tmp_path / "work-profile"
+    write(root / "skills/skills.yaml", f"profiles:\n  claude-code: [{profile.as_posix()}]\n")
+    write(profile / "plugins/installed_plugins.json", json.dumps({"plugins": {
+        "dotbrain@dotbrain": [{"installPath": str(profile / "plugin"), "version": "0.0.0"}]}}))
+    findings = doctor._check_machine(root, home)
+    assert any(f.status == "warn" and "0.0.0" in f.message for f in findings)
+
+
+def test_convention_drift_and_absent_input(tmp_path, monkeypatch):
+    assert "skipped" in doctor._check_convention(tmp_path)[0].message
+    write(tmp_path / ".brain/DOTBRAIN.md", "old convention\n")
+    before = snapshot(tmp_path)
+    finding = doctor._check_convention(tmp_path)[0]
+    assert finding.status == "warn" and finding.suggestion == "run dotbrain refresh"
+    assert doctor.as_result(doctor.DoctorReport(machine=[finding])).status == "success"
+    assert snapshot(tmp_path) == before
+    def unavailable(_):
+        raise FileNotFoundError("packaged convention missing")
+    monkeypatch.setattr(doctor.resource_loader, "resource", unavailable)
+    assert "skipped" in doctor._check_convention(tmp_path)[0].message
+
+
+def test_design_lifecycle_matches_spec_link_only_and_reads_only(tmp_path):
+    write(tmp_path / ".brain/designs/example.md", "---\nlifecycle: active\n---\n# Example\n")
+    write(tmp_path / ".brain/designs/finished.md", "---\nlifecycle: shipped\n---\n")
+    write(tmp_path / ".brain/designs/open.md", "---\nlifecycle: active\n---\n")
+    write(tmp_path / ".beads/metadata.json", "{}")
+    calls = []
+    def run(argv, **kwargs):
+        calls.append(argv)
+        assert argv == ["bd", "--readonly", "list", "--all", "--type", "epic", "--limit", "0", "--json"]
+        assert kwargs["cwd"] == tmp_path and kwargs["timeout"] == doctor.PROBE_TIMEOUT
+        assert kwargs["env"]["BEADS_DIR"] == str(tmp_path / ".beads")
+        return subprocess.CompletedProcess(argv, 0, json.dumps([
+            {"status": "closed", "spec_id": "design:example"},
+            {"status": "closed", "spec_id": "design:open"},
+            {"status": "closed", "spec_id": "design:finished"},
+            {"status": "open", "spec_id": "design:open"},
+            {"status": "closed", "title": "open", "spec_id": "design:unrelated"},
+        ]), "")
+    before = snapshot(tmp_path)
+    findings = doctor._check_design_lifecycle(tmp_path, "embedded", run)
+    assert len(calls) == 1 and len(findings) == 1
+    assert findings[0].status == "warn" and "example.md" in findings[0].message
+    assert "close-design" in findings[0].suggestion and "correct" in findings[0].suggestion
+    assert doctor.as_result(doctor.DoctorReport(machine=findings)).status == "success"
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("problem", ["disabled", "uninitialized", "missing", "timeout", "nonzero", "malformed", "shape"])
+def test_design_lifecycle_tracker_skips(tmp_path, problem):
+    write(tmp_path / ".brain/designs/example.md", "---\nlifecycle: active\n---\n")
+    if problem != "uninitialized":
+        write(tmp_path / ".beads/metadata.json", "{}")
+    def run(argv, **kwargs):
+        assert "--readonly" in argv
+        assert problem not in ("disabled", "uninitialized")
+        if problem == "missing":
+            raise FileNotFoundError("bd absent")
+        if problem == "timeout":
+            raise subprocess.TimeoutExpired(argv, doctor.PROBE_TIMEOUT)
+        return subprocess.CompletedProcess(argv, 1 if problem == "nonzero" else 0,
+                                           "{}" if problem == "shape" else "{broken", "unavailable")
+    findings = doctor._check_design_lifecycle(tmp_path, "none" if problem == "disabled" else "embedded", run)
+    assert len(findings) == 1 and findings[0].status == "info"
+    assert "skipped" in findings[0].message and "tracker" in findings[0].message
+
+
+def test_design_lifecycle_absent_or_no_active_designs_needs_no_tracker(tmp_path):
+    def run(*args, **kwargs):
+        pytest.fail("no tracker input needed")
+    assert "skipped" in doctor._check_design_lifecycle(tmp_path, "none", run)[0].message
+    write(tmp_path / ".brain/designs/example.md", "---\nlifecycle: shipped\n---\n")
+    assert "no active designs" in doctor._check_design_lifecycle(tmp_path, "none", run)[0].message
+
+
+def test_isolated_upgrade_and_refresh_clear_version_and_convention_drift(tmp_path, monkeypatch):
+    root, home = tmp_path / "root", tmp_path / "user"
+    brainspace = make_project(root)
+    (root / ".git").mkdir()
+    write(root / "config.yaml", "sync:\n  enabled: false\n")
+    write(brainspace / ".brain/DOTBRAIN.md", "stale convention\n")
+    plugin_registry(home, __version__)
+    monkeypatch.setattr(doctor, "__version__", "0.0.0")
+    run = recording_run(tmp_path, [])
+    before = snapshot(tmp_path)
+    report = doctor.run_doctor(root, home=home, project="example", run=run)
+    assert snapshot(tmp_path) == before
+    assert any(f.status == "warn" and "CLI 0.0.0" in f.message for f in report.machine)
+    assert any(f.status == "warn" and "DOTBRAIN.md" in f.message for f in report.projects["example"])
+    assert doctor.as_result(report).status == "success"
+    # Upgrading the CLI to the plugin's version and refreshing are separate operations.
+    monkeypatch.setattr(doctor, "__version__", __version__)
+    refreshed = workflows.refresh_projects(root, project="example", run=run)
+    assert not refreshed.errors
+    assert "DOTBRAIN.md" in refreshed.targets[0].data["shared_brain_changes"]
+    report = doctor.run_doctor(root, home=home, project="example", run=run)
+    assert not any(f.status == "warn" and ("CLI" in f.message or "DOTBRAIN.md" in f.message)
+                   for f in report.machine + report.projects["example"])
 
 
 def test_empty_all_checks_machine_once_and_unknown_session_information(tmp_path, monkeypatch):

@@ -5,194 +5,88 @@ description: Carries out one work item or a finite batch from the private work g
 
 # Run Execution
 
-Run one bounded execution: one work item by default, or an explicit finite batch of item IDs. The
-work graph says what depends on what; this skill owns the **execution graph** — how an agent team
-carries out the fixed item set — and each item's **execution record**. Graph maintenance and
-closure rules stay with [`manage-work-graph`](../manage-work-graph/SKILL.md).
+Run one work item by default, or an explicit finite batch of item IDs. A plain action
+request starts this skill; spawning another agent is optional. The lead may be the sole
+writer and assignee, or delegate to one writer. Both are sequential execution.
+Read-only agents do not change execution mode.
+The HITL workflow returns to the human after each bounded execution. The handoff
+workflow chains executions through iterate-design's approved contract.
 
-A plain action request ("do X", "work the ready items under this epic") starts this skill.
-Calling it does not require spawning another agent.
+**Read [parallel execution](references/parallel-execution.md) before choosing or
+dispatching more than one concurrent writing worker, and before a replacement worker
+starts.** It owns capacity, isolation, group integration, containment, and replacement rules.
 
-The agent team is runtime-neutral: the lead and each worker may run in different agent runtimes.
-Workers run in the lead's runtime unless the human explicitly asks for another, in the request or
-in a project rule they wrote; the lead may suggest one but never switches on its own.
+The work graph and closure rules belong to [manage-work-graph](../manage-work-graph/SKILL.md).
+The handoff loop and its stop scopes belong to [iterate-design](../iterate-design/SKILL.md).
 
-Before worker preparation or dispatch, read the runtime reference of the lead and of each worker
-runtime: [Claude Code](references/claude-code.md), [Codex](references/codex.md), or, as a lead
-only, [Hermes](references/hermes.md), [OpenCode](references/opencode.md), [Pi](references/pi.md), or [Cursor](references/cursor.md). Read the
-worker's again before its fix rounds, cancellation, or recovery. These references supply
-mechanisms; the shared contract below governs every runtime. Prefer native subagents when the
-runtimes match. Where no reference covers an operation, choose a mechanism by judgment and record
-it in the execution record so a fix round or takeover can repeat it. Never change what the
-human set — worker runtime, scope, or checks — on your own: ask, or in an autonomous run stop blocked.
+Workers use the lead's runtime unless the human explicitly asks for another, in the request
+or in a project rule they wrote. Never change assigned runtime, scope, or checks on your own:
+ask, or stop blocked in an autonomous run. Before dispatch, read the runtime reference of the
+lead and of each worker runtime, and the worker's again before fix rounds, cancellation, or
+recovery: [Claude Code](references/claude-code.md), [Codex](references/codex.md), or lead-only
+[Hermes](references/hermes.md), [OpenCode](references/opencode.md), [Pi](references/pi.md),
+[Cursor](references/cursor.md). They supply mechanisms; this skill's contract governs every
+runtime. Prefer native subagents when runtimes match. Record any uncovered mechanism chosen by
+judgment so a fix round or takeover can repeat it.
 
-## Workflow and execution mode
-
-The **HITL workflow** returns to the human after each bounded execution. The **handoff workflow**
-chains bounded executions through `iterate-design` within the human's approved contract.
-Either workflow can use either **execution mode**: **sequential execution**, one writer at a time
-(the lead or one delegated writer), or **parallel execution**, two or more writing workers at once.
-Read-only workers do not change the execution mode. Neither setting is stored on a work item.
-
-Choose parallel execution when at least two items in the fixed set are ready and separable, their
-mutable outputs and resources can be isolated or exclusively scheduled, and actual worktree
-isolation and distinct Beads actors are available. Overlapping files are allowed when behavioral
-responsibilities are separable in separate worktrees; an unsettled shared interface is a
-prerequisite to settle before dispatch. Otherwise choose sequential execution. State the mode,
-behavioral ownership, known file overlap, and resource allocation before dispatch; the human may
-override.
+Never spawn an agent only to check a checkpoint. The writer runs its own checkpoint
+checks. The lead runs gate checks unless the caller names a verifier, at most one;
+iterate-design reserves its verifier for the once-only in-loop gate. Spawn a reviewer
+for item review. Keep exploration that feeds a design in the session that will use it.
 
 Both workflows run on a dedicated branch and land through a review surface: a PR, or the branch
 diff where the project hosts no PRs. At the first HITL bounded execution, propose the branch
 and its base: an unmerged branch only when the work depends on it, else a sibling on the shared
 base; one branch may span several bounded executions. Parallel workers integrate into that branch,
-never into `main`. Ask before pushing or opening a PR in the HITL workflow. Merge stays
-human-owned. Local HITL landing requires explicit human instruction, recorded by the lead;
+never into `main`. Ask before pushing or opening a PR in the HITL workflow. Apply the
+convention's human gates. Local HITL landing requires explicit human instruction, recorded by the lead;
 it is never the default.
 
-## Agent team
+## Select and work
 
-An agent team is the lead and the workers it dispatches for this execution. When the lead is the
-sole writer, it is also the assignee: a team of one. One delegated writer is sequential execution too.
+Fix the item set at invocation. Readiness filters it; unrelated ready work never expands
+it. A set may include waiting dependents. Dispatch only after prerequisite acceptance
+and closure, with a base containing its accepted result and human gates resolved.
+Establish checks, retry limits, capacity, and overall limits before work starts.
+For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, never
+`bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
-| Agent | Writes | Concurrency | Checkout |
-| --- | --- | --- | --- |
-| Lead | Execution record, work graph, design doc, integration | One per execution | The target checkout |
-| Writing worker | Its own claim, evidence comments, and its item's files | At most the announced finite writing-worker cap | Its own worktree whenever another agent can write at the same time; a sole writer may share the lead's checkout |
-| Read-only worker (explorer, reviewer, verifier) | Nothing; returns evidence and findings to the lead | Within actual runtime capacity and limits; at most one verifier | No worktree needed |
+Stop for missing authorized scope or required checks. Exclude `learn:` beads.
+Keep human-gated items in scope and their dependents waiting. A missing required
+capability blocks execution: worktree isolation for concurrent writers, a distinct Beads
+actor per worker, or an independent reviewer when review is required. Stop and report;
+never weaken the contract to fit the runtime. If only optional parallelism is missing,
+report the serial fallback before continuing, keeping scope, isolation, checks, and gates.
 
-- While delegated workers run, the lead is the only agent that edits the active design doc, changes
-  the work graph, or writes an item's `dotbrain_` metadata. A writing worker writes only its own claim and,
-  when assigned, evidence comments on its own item. It returns candidate results, check evidence,
-  discovered work, and design-relevant learning; the lead records them.
-- A work item has at most one active worker. When parts of one item could run concurrently, the
-  lead shapes the item through `manage-work-graph` before execution starts, preserving approved
-  scope, acceptance criteria, and finite limits; both parts join the fixed item set. An explicit
-  unresolved decision or stricter operator instruction still binds.
-- A writing worker's own checkpoint checks run in its checkout as part of its work and are not
-  verifier runs. It stops after 3 consecutive failed checks on one checkpoint unless the request
-  names another limit.
-- Send a read-only worker only when the verification economy and delegation boundary say it is
-  worth its cost.
+At most one active writer owns an item. Delegated workers return
+candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
+permissions and actor rules. Worker startup is defined only
+in the [worker role](../../agents/worker.md) and its Codex counterpart. An unwired linked
+worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
+never rely on where one began.
 
-## Stop before you start
+For code work, keep the delivery branch at its last accepted revision. Work and repairs
+stay on an isolated candidate branch even with one writer; the sole writer may use the
+lead's checkout. Preserve existing unaccepted changes as a candidate. If an accepted
+delivery head cannot be safely established, hold integration and report instead of
+resetting or rewriting it. For other work, name the accepted artifact and target.
+Use short branch slugs without work-item IDs: branch names reach public history.
 
-- No authorized scope: the request names no item, batch, or epic. Ask.
-- A `learn:` bead is not execution work. Leave it out. A human-gated scoped item blocks:
-  retain it in scope, leave its dependents waiting, and continue only proven independent items
-  under the containment rules below in either workflow.
-- The required checks cannot be stated. Ask.
-- A required capability is missing — worktree isolation for concurrent writers, a distinct Beads
-  actor per worker, or an independent reviewer when review is required. Stop and report; never
-  weaken the contract to fit the runtime. If only optional parallelism is missing, report the
-  serial fallback before continuing, keeping scope, isolation, checks, and gates.
+After passing writer checks, review and run combined checks against the candidate head.
+Only after
+required review, checks, member acceptance, and human gates pass at that revision,
+promote with `git merge --ff-only <candidate-branch>` and confirm the delivery head
+equals it. Then set `dotbrain_phase: verified` and apply native closure through
+manage-work-graph. A candidate alone never closes an item or releases dependents.
+For multi-worker integration use the parallel reference's group procedure.
 
-## Operations
+Remove only closed items' merged branches and clean worktrees with `git branch -d`
+and `git worktree remove`, including runtime-created branches and accepted candidate
+branches. Never force cleanup. Report dirty or unmerged artifacts and preserve them.
+Repairs stay inside scope and limits. Discoveries become facts or later work items;
+they never silently join this execution.
 
-Fix the item set at invocation. The set may include waiting dependents; readiness filters that
-set, and an unrelated ready item never expands it. Dispatch only from the actual ready frontier
-after prerequisite acceptance and closure, with human gates resolved and capacity available.
-Establish required checks, retry limits, the worker cap, and any overall limits before work
-starts. For an epic scope, `bd swarm validate <epic>` shows dependency waves and maximum
-parallelism and `bd swarm status <epic>` shows progress; never run `bd swarm create`.
-
-The lead holds live assignments, pending joins, and the next operation in its own session.
-
-### Completion handling
-
-A completion notification means a report is available, not that the item passed. Finish the
-current integration, promotion, or execution-record update before processing available reports.
-Cancellation and safety stops still take effect immediately. Collect available results before
-refilling worker slots, starting another integration, or reporting status or completion. Do not
-wait for every worker to finish.
-
-For each result:
-
-1. Match the item, runtime agent or session ID, dispatch or fix round, and reported revision to
-   the recorded assignment and actual artifacts. Arrival order does not establish which result
-   is current. Missing identity or artifacts hold the affected result pending reconciliation.
-2. Compare the result with the item's execution record. An already processed duplicate changes
-   no phase, claim, attempt count, or acceptance state and triggers no repeated follow-up.
-   If recording stopped partway, reconcile the saved evidence before completing the missing writes.
-3. Classify a result from an older round, superseded revision, replaced worker, cancelled execution,
-   or closed item as stale. Retain new evidence with its source. It cannot overwrite newer state,
-   restore a claim, reopen an item, or resume cancelled work. Route relevant findings through the
-   existing discovered-work and failure rules instead of silently discarding them.
-4. Record a new result and its disposition on the existing item before dispatching follow-up work
-   or integrating its candidate. Use the existing execution-record comments and artifact references,
-   including the source agent or session ID, dispatch or fix round, revision, evidence, and gaps.
-   Confirm the stored record matches the result. A returned candidate retains its claim and leaves dependents held.
-
-After recording results, choose integration groups, review, fixes, and eligible ready work under
-the existing acceptance and capacity rules. Keep pending results in the lead's session and
-recoverable facts on member beads. Use these records without a separate inbox directory or scheduler ledger.
-
-### Dispatch capacity and isolation
-
-The authorized item count and active writing-worker cap are separate. Unless the human specifies
-the cap, select and announce a finite cap from actual runtime capacity, resource isolation, and
-stated limits. Account for capacity consumed by the lead and required review and verification
-operations, including nested agents. Human gates and explicit budgets and caps remain binding.
-
-Fill available writing slots from eligible ready items inside the fixed scope; refill as workers
-finish. A returned candidate frees a writing slot without accepting its item or releasing its
-claim. Resume a worker for repair only when a writing slot is available. Reduce concurrency when
-integration, checks, or shared resources become bottlenecks; capacity never expands scope or
-releases a dependent whose prerequisite is not accepted.
-
-Give simultaneous writers separate worktrees and mutable outputs or resource instances where
-possible; schedule genuinely shared resources exclusively. Build outputs, databases, and ports
-still constrain parallelism. Actual worktrees, claims, resource ownership, and exclusive
-scheduling establish isolation; instructions to avoid collisions do not. Serialize integration
-into the target and route needed rebases to the original workers.
-
-| Operation | Required input or gate | Result and next operation |
-| --- | --- | --- |
-| Select | Authorized scope, ready frontier, human gates, routing hints, and limits. | Fixed item set and eligible members; in-scope shaping preserves acceptance criteria and limits. |
-| Dispatch and claim | Required capabilities, the worker cap, and resource constraints. | A `Dispatched` record and an item claimed under the worker's own actor, or a surfaced blocker. |
-| Work | Referenced design and unchanged acceptance criteria. | Candidate artifacts and check evidence. A failed check enters bounded repair. |
-| Integrate provisionally | Passing worker checks, coherent group membership, and the accepted delivery head; workers remain assignees. | Create an isolated group candidate branch from the accepted delivery head. For each candidate, rebase the item branch onto the current group candidate, then fast-forward the group candidate with `git merge --ff-only <item-branch>`; never create a merge commit. On conflict, resume the original worker and rerun checks. Keep all members open and dependents held. |
-| Integration review | Exact integrated revision, group base, included items, and acceptance criteria. | Required independent review, recorded exemptions, or bounded review-fix rounds; lead records the returned report on members. |
-| Check | Exact integrated group revision, combined checks covering every member, and no other verifier running. The lead runs checks unless the caller names a verifier; `iterate-design` reserves its verifier for the in-loop gate. | Revision-bound evidence. Failures or gaps hold the group; changed patches or context affecting acceptance require refreshed review and check coverage. |
-| Promote and apply closure rules | Combined checks, required independent review, each member's acceptance evidence, and resolved human gates at the exact integrated revision. | Fast-forward the agreed delivery branch with `git merge --ff-only <group-branch>` and confirm its head equals the reviewed and checked revision. Then write `dotbrain_phase: verified` and apply native item closure through `manage-work-graph`. Provisional integration alone is never acceptance. |
-| Clean up | A closed item whose worker branch is merged. | The worker's worktree and item branch removed without forcing; anything unmerged stays. |
-| Release dependents | Prerequisite acceptance and closure, and a base containing its accepted integrated result. | Eligible dependent members may start while independent siblings continue. |
-| Finish | All selected items resolved, or a stop or human gate reached. | Bounded result returned to the caller. Design-level verification and review remain separate. |
-
-- A candidate is not acceptance. A returned patch keeps its item open and its claim held; it
-  releases writing capacity only, never dependents.
-- For code work, keep the agreed delivery branch at its last accepted revision. Provisional
-  integration and repairs stay on isolated group candidate branches; review and checks run against
-  the exact candidate head. A sole writer may share the lead's checkout on a group candidate branch;
-  concurrent writers still need separate worktrees. Preserve existing unaccepted checkout changes
-  as a candidate; if a clean accepted delivery head cannot be established safely, hold integration
-  and report the blocker rather than reset or rewrite the delivery branch. For other work, name
-  the accepted artifact and its target explicitly.
-- If the delivery head advances before promotion, rebase or rebuild the group candidate from the
-  latest accepted delivery head, route conflicts to original workers, and refresh review and
-  combined checks before promotion. Serialize promotion and confirm the exact accepted head before
-  closing members or releasing dependents. Preserve held group branches and worktrees; independent
-  groups start from the accepted delivery head and can be promoted without the held changes.
-- A dependent starts only from a base that contains its prerequisite's integrated result, after the
-  prerequisite closes.
-- Name every branch with a short slug only, never a work-item ID: branch names and merge messages
-  reach the public repo, and the item's `Dispatched` record and `work` artifact already map the
-  item to its branch. The `Integrated` record names both the candidate and its rebased
-  revision, since rebasing changes commit hashes.
-- Clean up with `git worktree remove <path>` and, from the checkout holding the integration target,
-  `git branch -d <item-branch>`; never `--force` or `-D`. Remove an accepted group candidate's
-  worktree and merged group branch the same way. Also delete any merged branch the runtime
-  created for the worker's worktree. An unmerged branch or dirty worktree stays and is reported.
-- Repairs stay inside the item's scope and limits. Discoveries become item facts or new work items
-  for a later execution; they never join the current set silently.
-
-## Integration review and acceptance
-
-Passing candidates may be provisionally integrated, then reviewed as a coherent group at an exact
-integrated revision. Group boundaries follow features, shared interfaces, and independently
-verifiable results, not launch waves or whole epics. A group may contain one item. Review promptly
-when accepting a completed prerequisite unlocks dependent work; otherwise group related completed
-changes. Provisional integration closes no items and releases no dependents.
+## Item review and acceptance
 
 Every work item's behavior change gets required independent `code` review before closure, with
 combined checks and acceptance coverage for every member at the exact integrated revision.
@@ -210,57 +104,59 @@ override remains binding.
 
 Use a reviewer agent that authored none of the reviewed change. The lead never reviews changes
 it authored. Fix the boundary at the group base and exact integrated head, included items,
-acceptance criteria, affected consumers, and interactions. The reviewer returns its complete
-structured report without tracker writes; the lead records it on member beads before notifying
-workers, following [the execution record](references/execution-record.md). Preserve reviewer
-identity, revision references, acceptance coverage, per-item verdicts, findings, and evidence gaps.
-Assign each cross-item finding to one responsible original worker and link the finding from every
-affected member. Item and integration reviews never get a batch review bead.
+acceptance criteria, affected consumers, and interactions, and pass that boundary, the review
+number and round, the reviewer's Beads actor, and each item's acceptance criteria in the review
+request. Before dispatch, create the reviewer's checkout with `git worktree add --detach <path>
+<head>` and point the reviewer at it without runtime isolation, never at the lead's checkout;
+remove it with `git worktree remove` after recording the verdict. The reviewer records its report
+on every boundary item and returns an index; the lead confirms and routes it as
+[the execution record](references/execution-record.md) specifies.
+Item and integration reviews never get a batch review bead.
+
+### Review verdicts
 
 Return `CHANGES` for unmet acceptance or a `blocker` or `high` regression caused by the reviewed
 changes, including symptoms in unchanged consumers or interactions. Return `APPROVE` with
 `medium` or `low` findings and unrelated existing defects; the lead files those as discovered
-work for a later bounded execution. Missing coverage is a gap, never acceptance.
+work for a later bounded execution. Missing evidence is a gap, never a verified claim; missing
+coverage is a gap, never acceptance.
 
-On `CHANGES`, resume the same writing worker to fix its candidate using the worker runtime's
-reference. The lead sets `dotbrain_phase` to `working` and
-appends `## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)`.
-The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
+A change-caused failure in automatic behavior that goes unreported, or leaves state
+that blocks later runs, defaults to `high` in every review unless the design explicitly
+accepts that failure mode.
+
+On `CHANGES`, resume the original writing worker using the worker runtime's reference. The lead
+sets `dotbrain_phase` to `working` and appends
+`## Dispatched: <worker actor> in <checkout> on <branch> @ <base> (fix round <n>)` with the
+consolidated assignment and what changed since the last round; the resume message carries both
+and cites the `Review` comment for the findings. The resumed worker does not touch its claim. When the lead is the sole writer, it repairs its own
 work; a delegated sequential worker is resumed like a parallel worker. If the worker cannot
-resume, use the existing replacement rules.
+resume, load [the replacement rules](references/parallel-execution.md#claim-moves-and-replacements).
 The same reviewer re-reviews its earlier findings and the fix diff; a newly spotted `blocker`
 still counts. Each `CHANGES` is a failed check on the `item-review` checkpoint in
 `dotbrain_attempts`, which keeps a separate streak per checkpoint: a worker's passing checks
 during a fix round do not reset it. Only an `APPROVE` ends that streak. Three consecutive `CHANGES` block the item
 through the retry-exhaustion rules; neither a replacement nor a new reviewer resets the count.
 
-Both execution modes: passing worker checks, candidate, provisional integration, coherent group
-review and combined checks, member acceptance and resolved human gates, close as `verified`,
-clean up, release dependents. A conflict rebase does not count toward the `CHANGES` cap.
+A conflict rebase does not count toward the `CHANGES` cap.
 Any changed patch or integration context affecting acceptance or review/check coverage, including
 a conflict rebase or integrated-check repair, needs refreshed evidence before closure. An earlier
 `APPROVE` does not cover a stale revision. No item closes with an unreviewed behavior change.
 
+Acceptance/UAT records revision, environment, agreed journeys, actual checks/results,
+and gaps. An unexercised journey never passes or automatically becomes a request for
+human checking. Required UAT with failed, missing, or stale evidence holds affected work;
+investigate and repair within remaining limits. Record every finding's disposition: blocking
+findings resolved; others applied, filed with follow-up IDs, or declined with reasons.
+
 ## Worker assignment
 
-Every delegated worker receives a compact assignment in its runtime message:
-
-- work-item IDs and the assigned operation
-- the worker's Beads actor, passed as `--actor <worker-actor>` on every `bd` write; without it the
-  actor is the shared Git user, and a repeated claim by the same actor succeeds silently
-- project rules, acceptance criteria, task limits, permission boundaries, and named skills
-- allowed actions and file or resource ownership, behavioral responsibility, and known file overlap
-- checkout, item branch, and base revision, where applicable
-- relevant authority text or precise source sections, with source identity and enough context
-  to resolve conflicts; required project rules still apply
-- required checks and the artifacts, evidence, and blockers to return
-- any override of a role default, including retry, escalation, or commit-convention overrides
-
-Make the assignment self-contained: include settled constraints and exact authority sections,
-not the lead's conversation or whole workflow documents. Omit only duplicated role defaults and
-the lead's Beads actor; keep the worker's own actor and every assignment-specific override.
-The worker's role supplies the default retry/escalation rules and commit-convention fallback.
-The lead loads `run-execution`'s dispatch,
+Every delegated writing worker receives, in its runtime message, the labelled assignment that
+[the worker role](../../agents/worker.md#the-assignment) defines, with every label in order;
+reviewer requests keep their own inputs. The worker's actor follows manage-work-graph's actor
+rules. Make the assignment self-contained: settled constraints and exact source sections with
+enough context to resolve conflicts, not the lead's conversation or whole workflow documents.
+Omit only duplicated role defaults and the lead's Beads actor. The lead loads `run-execution`'s dispatch,
 integration, and recovery references;
 workers load their role contract, project rules, and task-relevant sections and skills. Supply known
 tool names and commands; discover capabilities or read subcommand help only when something is
@@ -272,104 +168,47 @@ user-requested model or that the model inherits the runtime setting in the assig
 Packaged definitions keep their role effort and no model pin.
 Runtime references own history controls and how to apply model and effort settings.
 
-Before substantive work, a writing worker:
-
-1. Reads the referenced authority.
-2. Confirms that `bd where` names the expected Brainspace store. For tracker access, an unwired
-   linked worktree needs no preparation: Beads resolves the shared store through the main
-   checkout's Git metadata. Runtime references may still prepare the checkout for other reasons.
-3. Runs `git switch -c <item-branch> <base>` in its fresh worktree and confirms `HEAD` is the base.
-   Runtimes start worktrees from different commits, so never rely on where the worktree began. A
-   replacement worker instead continues on the existing item branch in the stopped worker's
-   worktree.
-4. Claims its item under its own actor: `bd update <id> --claim --actor <worker-actor> --json --quiet`.
-
-A failed readiness step stops the worker and reaches the lead. Launch alone does not authorize edits.
-
 Launch each delegated writing worker in the background, so the launch returns before the worker
-finishes. As soon as the runtime identifies the worker, record `## Dispatched` with its checkout,
-branch, and base, with the worker's runtime and its agent or session ID in the comment body, before waiting on the
-worker. A record written after the worker returns leaves no trace of a running worker if the lead
-stops, and a fix round or takeover needs that ID. If a runtime can launch only in the foreground,
-record `Dispatched` before launching, naming the branch and base, and add the checkout to the
-`work` artifact once the worker reports it.
+finishes, and record `Dispatched` with the full assignment as
+[the execution record](references/execution-record.md#comment-headers) specifies. Workers and
+reviewers launch with full access; their role definitions, not runtime configuration, keep them
+within their roles. If a runtime can launch only in the foreground, record `Dispatched` before launching,
+naming the branch and base, and add the checkout to the `work` artifact once the worker reports it.
 
-A writing worker keeps its claim until the item closes, including every review-fix round.
-Its return supplies the candidate and evidence; it does not change the assignee. A claimed item
-stays out of `bd ready`, and a competing actor's claim is rejected, even after its lease expires.
-The lead integrates, checks, and writes `dotbrain_` metadata under its own actor. Beads lets only
-the assignee close an item, so the lead closes under the worker's actor and names itself in the
-reason, which keeps the worker as assignee:
-`bd close <id> --actor <worker-actor> --reason "<reason> (closed by <lead-actor>)" --json --quiet`.
-Never pass `--force` to `bd close`, which also overrides gates, and never run `bd reclaim` on a
-worker's item.
-Move a claim only for a replacement after the previous worker is confirmed stopped:
-`bd update <id> --assignee <new-actor> --force`, recording `Claim moved: <from actor> -> <to actor>`.
-Beads refuses to reassign a live claim without `--force`; the confirmed stop is what makes forcing
-it legitimate. When termination is uncertain, ask the human.
-
-A session the user launches in a worktree attaches with explicit `dotbrain wire` and is the lead of
-its own execution.
+A user-launched session in a worktree attaches with explicit `dotbrain wire` and leads its own execution.
 
 ## Execution record
 
-The lead keeps each item's recoverable facts on the existing bead: native status, assignee, and
-dependencies; flat `dotbrain_` metadata keys for current phase, attempts, and artifacts; and headed
-append-only evidence comments. The fields, write method, and comment headers are in
-[references/execution-record.md](references/execution-record.md). No execution-only or batch-anchor
-beads.
+Keep recoverable facts on each existing bead, without execution-only or batch-anchor
+beads. Use native status, assignee, dependencies, flat execution metadata and headed
+append-only comments as specified in [execution-record.md](references/execution-record.md).
 
-## Failure, cancellation, and recovery
+## Failure, cancellation, and resume
 
-An item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive item-review
-`CHANGES`, or a human gate. In both workflows, hold a failed or incompletely covered integration
-group and its dependents. Report accepted, failed, blocked, and uncovered work explicitly.
-Report every blocked item with its attempt trail and a recommended decision, including waiting
-dependents. Keep blocked items in the fixed scope; do not drop them to claim success. Missing
-results never count as passes. The conditions that end the whole handoff, and when a PR may be
-marked ready, belong to `iterate-design`.
+Apply [iterate-design's stop scopes](../iterate-design/SKILL.md#stop-scopes) in either workflow.
+Unless the assignment names another limit, an item blocks after 3 consecutive failed checks on one checkpoint, 3 consecutive
+item-review `CHANGES`, or a human gate. Record `Blocked`, add `human`, keep it open,
+and report the attempt trail, waiting dependents, remaining uncertainty, and a concrete
+decision with a recommendation. Missing results never pass. Keep blocked items in scope.
+Apply the convention's human decision and hard-stop invariants; record any authorized
+new limit without resetting history. For independent work and failed groups, apply the
+parallel reference's containment rules before continuing.
 
-Continue unrelated authorized work only with evidence of accepted bases and isolated integration
-candidates. A held contribution on a group candidate cannot silently become another item's base.
-Before continuing, record the accepted revision, affected files/resources and consumers, ownership,
-and containment checks. Preserve failed candidates and worktrees; use accepted bases and isolated
-integration candidates while retaining the held contribution and unrelated accepted work.
-Reconsidering a failed group as smaller groups requires a new explicit review boundary and fresh
-combined acceptance evidence; prior individual verdicts alone are insufficient.
-Serialize shared repair with an explicit file/resource boundary and recorded before/after revisions
-and checks. Stop affected writers while that resource is exclusively held. If containment cannot
-be proven, stop dispatch and integration; shared-state compromise or unresolved scope, safety, or
-acceptance decisions stop the entire execution. Cancellation remains a whole-execution stop.
+Cancellation stops dispatch and integration. Ask workers to stop, preserve unfinished
+changes and worktrees, record `Cancelled`, and leave items open. Report uncertain
+termination before any claim release. Cancellation authorizes no cleanup, reversal,
+or design abandonment.
 
-- **Retry exhaustion.** The affected worker stops and returns attempts, evidence, and remaining
-  uncertainty. The lead records a `Blocked` comment, adds the `human` label, keeps the item open,
-  and records a concrete decision needed with a recommendation. In either workflow, continue only
-  proven independent items under the containment rules above; blocked groups and their dependents
-  wait. Preserve candidates, worktrees, claims, original workers, budgets, attempt counts, and
-  review history. Resume original workers within remaining limits; replacements require confirmed
-  termination and retain those limits. Only the human authorizes more attempts or
-  changed criteria; record the decision and new limit, keeping the attempt history.
-- **Cancellation.** Stop new dispatch and integration and ask workers to stop. Preserve unfinished
-  changes and worktrees, record available progress with a `Cancelled` comment, and leave items
-  open. Report any worker whose termination is uncertain before releasing its claim. Cancellation
-  authorizes no cleanup, reversal, or design abandonment.
-- **Resume.** Only a user-requested resume establishes a replacement lead. Reconcile active
-  workers, claims, records, artifacts, and the target revision first. Keep scope, attempt counts,
-  checks, limits, and pending human gates; worker replacement and resume never reset a failure
-  streak. A replacement worker continues in the stopped worker's worktree named by the item's
-  `work` artifact, and the claim moves with a `Claim moved` comment. When ownership or limits
-  cannot be established, surface that instead of continuing. Reconstruct item-level next steps;
-  do not promise to restore the former batch exactly or pick a different one.
+Only a user-requested resume establishes a replacement lead. First reconcile active
+workers, claims, records, artifacts, and target revision. Keep scope, checks, limits,
+attempt counts, and pending gates. Resume original workers within remaining limits;
+load the parallel reference before any replacement. Resume never resets a streak.
+Surface unknown ownership or limits. Reconstruct item-level next steps rather than
+promising to restore the former batch or choosing a different one.
 
 ## Completion
 
-Within approved authority, the lead implements, commits locally, integrates candidates, runs
-checks and UAT, shapes tasks, and closes accepted work without routine human sign-off. Explicit
-operator overrides and stricter instructions remain binding. Closure never merges the target
-branch and never automatically invokes `close-design`; the design and epic remain active until
-manually invoked terminal closeout.
-
-Every item in the fixed set is closed with integrated acceptance evidence, or is open with a
-recorded blocker, human gate, or cancellation. Workers' merged worktrees and branches are removed.
-Return to the caller the closed items, open items with their state, discovered work, and
-design-relevant learning for the lead to record.
+Within approved authority, apply the convention's human gates and manage-work-graph's
+closure boundary. Report to the human in one table with exactly one row per item in the fixed set:
+item, status, accepted revision, review verdict, and next step or blocker; no raw worker output.
+Then list preserved artifacts, discovered work, and design learning.

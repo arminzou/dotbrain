@@ -3,11 +3,8 @@
 Use this reference with the shared contract in [Run Execution](../SKILL.md), before worker
 preparation or dispatch and before fix rounds, cancellation, or recovery.
 
-Inspect actual runtime capacity before dispatch and apply the shared writing-worker cap, reserving
-capacity for the lead and required review and verification. Each concurrent writer needs an actual
-isolated worktree, including separable changes to overlapping files. Give workers separate mutable
-outputs and resource instances or schedule shared resources exclusively; a worktree alone does
-not isolate build outputs, databases, or ports.
+Apply [capacity and isolation](parallel-execution.md#capacity-and-isolation).
+This reference supplies the runtime mechanisms only.
 
 ## Prepare and dispatch
 
@@ -15,13 +12,13 @@ Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
 `dotbrain:reviewer`, `dotbrain:verifier`, and `dotbrain:researcher`. For the explorer role,
 use Claude Code's built-in `Explore` agent. Dispatch packaged roles by name, never as a fork
 of the lead's conversation. The worker's definition always launches it in the
-background. For in-place work, dispatch it without isolation. For isolated work, which every
-concurrent writer needs, set worktree isolation on the `Agent` call; its definition never sets
+background. For in-place work, dispatch it without isolation. For isolated work,
+set worktree isolation on the `Agent` call; its definition never sets
 isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
 agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
 lead's working directory instead. Address the worker by its agent ID.
 
-Send the self-contained assignment in the `Agent` prompt, with exact authority sections and checks,
+Send the self-contained assignment in the `Agent` prompt, with exact source sections and checks,
 without pasting the lead's conversation or dispatch, integration, and recovery references.
 Omit the call's `model` option unless the user explicitly requests a different model;
 otherwise inherit the configured model.
@@ -32,11 +29,13 @@ Packaged subagents inherit the lead session's permission mode, and their permiss
 in the lead's session. In an unattended run nobody answers them, so the session must already allow
 the `git` and `bd` commands its workers and reviewers run.
 
-The launch returns the agent ID at once, and the worker's checkout is
-`.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
+Dispatch a reviewer without isolation, pointed at the detached review worktree the lead created.
+
+The launch returns the agent ID at once; record it in `Dispatched` as an in-session subagent.
+The worker's checkout is `.claude/worktrees/agent-<agent-id>` in the lead's checkout. Use the actual returned path when
 available. Record dispatch while the worker is still starting, before waiting for completion.
 Workers discover the shared tracker through Git metadata without wiring their subagent worktrees;
-their assignments carry precise authority sections and source references.
+their assignments carry precise source sections and references.
 
 Before the first dispatch, when `git check-ignore -q .claude/worktrees/` fails, add
 `/.claude/worktrees/` to `$(git rev-parse --git-common-dir)/info/exclude`, so the lead never stages
@@ -52,7 +51,7 @@ Git as plain, separate commands and set commit identity through the `GIT_AUTHOR_
 
 ## Collect and fix
 
-Apply the shared [completion handling](../SKILL.md#completion-handling) rules when processing
+Apply the shared [completion handling](execution-record.md#completion-handling) rules when processing
 available results. A native completion notification does not establish item acceptance.
 
 Collect the native task completion notification and the worker's candidate and check evidence.
@@ -60,10 +59,8 @@ Retain the agent ID for follow-up. A completed task can resume with `SendMessage
 ID in the lead session that spawned it; use this for item-review fixes and conflict rebases.
 The resumed worker continues in its original worktree.
 
-A confirmed completed candidate frees a writing slot for another eligible ready item in the fixed
-scope; retain its claim and agent ID for fixes. Acquire a writing slot before resume and serialize
-target integration under the shared contract. These instructions do not establish higher-fan-out
-runtime qualification.
+Apply [capacity rules](parallel-execution.md#capacity-and-isolation)
+before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 ## Stop and recover
 
@@ -85,11 +82,11 @@ The sections above assume a Claude Code lead using the `Agent` tool. A lead in a
 launches Claude Code workers as separate `claude -p` sessions instead. Prepare a worktree as the
 lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so the plugin and
 project resources resolve. Launch in the background from that worktree with the assignment on
-stdin, `--agent dotbrain:worker`, `--output-format json`, and the permission mode authorized for
-this execution; nobody answers prompts in an unattended run. Generate the worker's ID up front and
-pass it as `--session-id <uuid>`, so `Dispatched` records it before launch; the JSON result
+stdin, `--agent dotbrain:worker`, `--output-format json`, and full access
+(`--permission-mode bypassPermissions`); nobody answers prompts in an unattended run. Generate the worker's ID up front and
+pass it as `--session-id <uuid>`, so `Dispatched` records it as a CLI session before launch; the JSON result
 carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
-dotbrain:worker` from the same worktree, passing the authorized permission mode again, since a
+dotbrain:worker` from the same worktree, passing `--permission-mode bypassPermissions` again, since a
 resume starts in the default mode; the worker keeps its earlier turns. Stop a worker by
 ending its process tree. Check `claude --help` when an option is rejected.
 

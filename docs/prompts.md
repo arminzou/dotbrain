@@ -10,7 +10,7 @@ triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
 Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, `run-retro`,
-and `close-design` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
+`close-design`, `teach-me`, `triage-public`, `brain-site`, and `dotbrain` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
 Code.
 
 ## Set Up
@@ -242,6 +242,9 @@ never closed out. **Skill:** `close-design`, explicit only. See [The workflow](w
 
 ## Learn
 
+To start or continue learning, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
+in Codex. Parking a question needs no invocation.
+
 ### Start learning a topic
 
 ```text
@@ -267,7 +270,7 @@ Park this for learning: why does retrying this operation require an idempotency 
 ```
 
 **When:** a question comes up mid-task and you do not want to switch into teaching now.
-**Skill:** `teach-me`. See [Learning your project](learning.md#park-a-question-while-working).
+**Skill:** `manage-work-graph`. See [Learning your project](learning.md#park-a-question-while-working).
 
 ## Maintain the Brain
 
@@ -304,6 +307,8 @@ Use write-agent-docs to tighten this project's AGENTS.md.
 rely on. **Skill:** `write-agent-docs`.
 
 ### Triage public issues
+
+First invoke `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex, then give the scope:
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

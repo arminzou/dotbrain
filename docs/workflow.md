@@ -162,7 +162,11 @@ Reviews happen at two levels:
   reviewer checks the whole diff: how the issues fit together and whether they match the design.
   The final integration review can supply this only with explicit whole-branch coverage at the
   exact final revision; approval of the latest group alone is insufficient. Otherwise arrange a
-  whole-branch review. Later changes affecting coverage need refreshed evidence. A handoff
+  whole-branch review. Later changes affecting coverage need refreshed evidence. In either workflow,
+  an unmet in-scope design goal or success criterion blocks final approval regardless of severity;
+  reused reports must assess this too. In a handoff, the lead files the fix under the epic with its
+  reason and admits it to the current loop within the existing finite budget. Exhausting that
+  budget with the fix open ends `BLOCKED`; a fix needing a new decision still asks you. A handoff
   also runs a simplification pass. Its suggestions never block the pull request; the lead records
   dispositions within approved scope and returns new consequential decisions to you.
 

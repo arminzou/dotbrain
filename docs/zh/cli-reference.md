@@ -82,6 +82,8 @@ dotbrain detach [OPTIONS]
 
 只读检查机器是否就绪以及所选项目的配置。
 
+doctor 的偏差警告及处理方法见[故障排查与常见问题](troubleshooting.md)。
+
 ```text
 dotbrain doctor [OPTIONS]
 ```

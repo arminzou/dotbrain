@@ -15,8 +15,7 @@ Maintain private `RETRO.md` as plain Markdown. These are agent findings; human l
 to `teach-me`. Add no human learning entries, checkpoint hooks, handoff steps, or session-start
 injection. Public auto-delivery is disabled unless explicitly enabled in private `project.yaml`.
 Otherwise suggest rules and destinations for the user's decision. Enabled delivery or explicit
-proposal authorization permits its dedicated commit/push/PR; PR approval, merge, and release
-remain human-owned.
+proposal authorization permits its dedicated commit/push/PR. Apply the dotbrain convention's human gates.
 
 ## Stop before you start
 
