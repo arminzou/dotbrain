@@ -5,23 +5,30 @@ This module owns machine-global setup: data-root seeding and global runtime link
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+import yaml
+
 from dotbrain import assets, paths, resource_loader, runtimes, skills, subagents
+from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
 
 def _default_run(
-    argv: Sequence[str], *, cwd: Path | None = None, check: bool = True
+    argv: Sequence[str], *, cwd: Path | None = None, check: bool = True,
+    timeout: int | None = 60, env: dict | None = None,
 ) -> "subprocess.CompletedProcess[str]":
     return subprocess.run(
         list(argv), cwd=cwd, check=check,
         capture_output=True, encoding="utf-8", stdin=subprocess.DEVNULL,
+        timeout=timeout, env=env,
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
     )
 
 
@@ -143,11 +150,11 @@ class GlobalSkillBootstrapResult:
     notices: list[str] = field(default_factory=list)  # non-fatal warnings
 
 
-def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | None) -> GlobalSkillBootstrapResult:
+def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | None, **kwargs) -> GlobalSkillBootstrapResult:
     from dotbrain import assets
     if kind == "agents" and target != "all" and not runtimes.select(target)[0].subagents:
         return GlobalSkillBootstrapResult()  # this runtime receives no native subagents
-    linked = assets.link_global(Path(dotbrain_home), kind, target, user_home=home)
+    linked = assets.link_global(Path(dotbrain_home), kind, target, user_home=home, **kwargs)
     return GlobalSkillBootstrapResult(
         logs=[f"delivered global {name}" for name in linked.linked] + [f"pruned stale {name}" for name in linked.pruned],
         warnings=linked.warnings,
@@ -155,9 +162,77 @@ def _global_assets(dotbrain_home: Path, target: str, kind: str, home: Path | Non
     )
 
 
-def link_global_skills(dotbrain_home: Path, target: str = "all", *, home: Path | None = None) -> GlobalSkillBootstrapResult:
-    return _global_assets(dotbrain_home, target, "skills", home)
+def link_global_skills(dotbrain_home: Path, target: str = "all", *, home: Path | None = None, **kwargs) -> GlobalSkillBootstrapResult:
+    return _global_assets(dotbrain_home, target, "skills", home, **kwargs)
 
 
-def link_global_subagents(dotbrain_home: Path, target: str = "all", *, home: Path | None = None) -> GlobalSkillBootstrapResult:
-    return _global_assets(dotbrain_home, target, "agents", home)
+def link_global_subagents(dotbrain_home: Path, target: str = "all", *, home: Path | None = None, **kwargs) -> GlobalSkillBootstrapResult:
+    return _global_assets(dotbrain_home, target, "agents", home, **kwargs)
+
+
+def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = None,
+            run: Runner = _default_run, confirm=None) -> CommandResult:
+    """Seed this machine and reconcile its selected, runnable deliveries.
+
+    ``confirm`` renders the discovery list and reads one answer when a person is at a terminal.
+    """
+    from dotbrain import cursor
+
+    selected = runtimes.select(runtime)
+    user = home or Path.home()
+    owned = {name: (cursor.global_delivery(dotbrain_home) if name == "cursor" else
+                   module.owned(runtimes.user_dir(runtimes.find(name), user)))
+             for name, module in assets.HOME_DELIVERY.items()}
+    first = runtime == "all" and not any(owned.values())
+    report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
+    target = report.targets[0]
+    found = []
+    ready = []
+    for rt in selected:
+        if rt.name not in owned:
+            continue
+        present = runtimes.installed(rt)
+        if not present and not owned[rt.name] and runtime == "all":
+            continue
+        status = "ready"
+        try:
+            if not present:
+                raise OSError("command not on PATH")
+            completed = run([runtimes.command(rt), "--version"], timeout=5)
+            if completed.returncode:
+                raise RuntimeError(f"exit {completed.returncode}")
+        except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+            status = f"skipped ({exc})"
+        found.append(f"{rt.label}: {status}")
+        if status == "ready":
+            ready.append(rt)
+    target.findings += [{"severity": "info", "message": line} for line in found]
+    approved = not (first and ready and confirm is not None) or confirm(
+        found, f"Set up dotbrain for {', '.join(rt.label for rt in ready)}? [Y/n]"
+    )
+    chosen = [rt for rt in ready if runtime != "all" or owned[rt.name] or (first and approved)]
+    for rt in ready:
+        if rt not in chosen:
+            target.findings.append({"severity": "info", "message":
+                f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"})
+    try:
+        target.changes += ensure_data_root(dotbrain_home, run=run).logs
+        deliveries = (["all"] if runtime == "all" else
+                      [rt.name for rt in selected if rt.name not in owned]) + [rt.name for rt in chosen]
+        for delivery in deliveries:
+            errors_before = len(target.errors)
+            for linker in (link_global_skills, link_global_subagents):
+                linked = linker(dotbrain_home, delivery, home=user, run=run,
+                                skip=tuple(owned) if delivery == "all" else ())
+                target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
+                target.errors += linked.warnings
+                target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
+            if delivery in owned and len(target.errors) == errors_before:
+                target.changes.append(f"Set up dotbrain for {runtimes.find(delivery).label}; undo: dotbrain detach --runtime {delivery}")
+    except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
+        # Delivery and configuration errors use the normal command report.
+        target.errors.append(str(exc))
+    if target.errors:
+        target.status = "failure"
+        report.status = "partial" if target.changes else "failure"
+    return report

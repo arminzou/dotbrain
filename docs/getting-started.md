@@ -138,6 +138,20 @@ Either script installs `uv` and `bd` if they are missing, installs the pinned CL
 selected global skills and subagents. The plugin supplies the session-start hook. Running the
 installer a second time is safe.
 
+On this machine's first bootstrap, dotbrain checks Hermes, OpenCode, Pi, and Cursor by running
+their CLI's `--version` (`agent --version` for Cursor) with a short timeout. It lists each runtime
+found and skips commands that fail or time out, leaving their homes untouched. With stdin and
+stdout both at a terminal, it asks once whether to set up every working runtime; Enter accepts,
+and `n` skips setup and prints a command for each runtime. Without a terminal, or with `--json`,
+setup happens automatically. The result lists what was set up and each
+`dotbrain detach --runtime <name>` command to undo it.
+
+First run means none of those four runtimes has a dotbrain-owned delivery on this machine,
+even if you cloned an existing dotbrain home. Later bootstraps update existing deliveries and
+print `dotbrain bootstrap --runtime <name>` for newly found runtimes instead of setting them up.
+Use `--runtime <name>` to select exactly which runtime to set up, without a prompt. There is no
+stored opt-out list: detaching all four makes the next unfiltered bootstrap a first run again.
+
 ::: warning
 Keep the CLI and the plugin on the same version. The plugin's installer pins a matching CLI tag,
 so the two stay aligned as long as you let it do the install.
@@ -367,11 +381,11 @@ Hermes has no dotbrain marketplace install. The CLI copies the plugin into the H
 Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 
 ```bash
-dotbrain bootstrap --runtime hermes
+dotbrain bootstrap
 ```
 
-Use `dotbrain bootstrap --runtime hermes` for first setup. An unfiltered `dotbrain bootstrap`
-prints this command when Hermes is installed but not yet set up; it does not seed a target.
+On first run, this offers to set up Hermes along with the other working runtimes found on this
+machine. To select only Hermes, or add it later, run `dotbrain bootstrap --runtime hermes`.
 
 This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins/dotbrain`) and runs
 `hermes plugins enable dotbrain`. If `hermes` is not on `PATH`, or the command fails, run
@@ -432,8 +446,9 @@ dotbrain detach --runtime hermes
 ```
 
 This removes dotbrain's plugin copy and global skill links. It first tries to disable the
-plugin when Hermes is available; a failed disable warns and removal continues. Unfiltered bootstrap
-leaves Hermes alone until you run `dotbrain bootstrap --runtime hermes` again.
+plugin when Hermes is available; a failed disable warns and removal continues. While another
+dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves Hermes alone; run
+`dotbrain bootstrap --runtime hermes` to set it up again.
 
 ## OpenCode {#opencode}
 
@@ -459,11 +474,11 @@ OpenCode has no dotbrain marketplace install. The CLI copies the plugin into the
 directory instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 
 ```bash
-dotbrain bootstrap --runtime opencode
+dotbrain bootstrap
 ```
 
-Use `dotbrain bootstrap --runtime opencode` for first setup. An unfiltered `dotbrain bootstrap`
-prints this command when OpenCode is installed but not yet set up; it does not seed a target.
+On first run, this offers to set up OpenCode along with the other working runtimes found on this
+machine. To select only OpenCode, or add it later, run `dotbrain bootstrap --runtime opencode`.
 
 This copies the plugin to `~/.config/opencode/plugins/dotbrain.js` and the packaged skills to
 `~/.config/opencode/dotbrain/packaged/skills/`. On Windows, `~` is `%USERPROFILE%`; when
@@ -533,8 +548,9 @@ dotbrain detach --runtime opencode
 ```
 
 This removes dotbrain's owned plugin file, packaged skills, and global skill links, preserving
-your own files. Unfiltered bootstrap leaves OpenCode alone until you run
-`dotbrain bootstrap --runtime opencode` again. Restart OpenCode afterwards.
+your own files. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
+OpenCode alone; run `dotbrain bootstrap --runtime opencode` to set it up again. Restart OpenCode
+afterwards.
 
 ## Pi {#pi}
 
@@ -557,11 +573,11 @@ Pi has no dotbrain marketplace install. The CLI copies an extension into the Pi 
 instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 
 ```bash
-dotbrain bootstrap --runtime pi
+dotbrain bootstrap
 ```
 
-Use `dotbrain bootstrap --runtime pi` for first setup. An unfiltered `dotbrain bootstrap`
-prints this command when Pi is installed but not yet set up; it does not seed a target.
+On first run, this offers to set up Pi along with the other working runtimes found on this
+machine. To select only Pi, or add it later, run `dotbrain bootstrap --runtime pi`.
 
 This copies the extension, with the packaged skills, to `~/.pi/agent/extensions/dotbrain/`, or to
 `$PI_CODING_AGENT_DIR/extensions/dotbrain/` when `PI_CODING_AGENT_DIR` is set. On Windows, `~` is
@@ -624,8 +640,8 @@ dotbrain detach --runtime pi
 ```
 
 This removes dotbrain's owned extension copy and global skill links, preserving
-your own files. Unfiltered bootstrap leaves Pi alone until you run
-`dotbrain bootstrap --runtime pi` again. Restart Pi afterwards.
+your own files. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
+Pi alone; run `dotbrain bootstrap --runtime pi` to set it up again. Restart Pi afterwards.
 
 ## Cursor {#cursor}
 
@@ -651,16 +667,18 @@ Cursor has no dotbrain marketplace install. Install the CLI first (see
 [step 2](#_2-get-the-cli)), then run:
 
 ```bash
-dotbrain bootstrap --runtime cursor
+dotbrain bootstrap
 ```
+
+On first run, this offers to set up Cursor along with the other working runtimes found on this
+machine. To select only Cursor, or add it later, run `dotbrain bootstrap --runtime cursor`.
 
 This adds three dotbrain hooks to `~/.cursor/hooks.json`, creating the file when it is missing and
 keeping any hooks of your own. On Windows, `~` is `%USERPROFILE%`. Cursor gets dotbrain's packaged
 skills from your dotbrain Claude Code plugin when that plugin is installed, enabled, and current;
 otherwise from a copy dotbrain keeps in `~/dotbrain/.cache/cursor/`. Global skills you select in
 `skills/skills.yaml` are linked into `~/.cursor/skills/`, except those Cursor already finds in
-another folder it reads, such as `~/.claude/skills`. For first setup, run
-`dotbrain bootstrap --runtime cursor`.
+another folder it reads, such as `~/.claude/skills`.
 
 The hooks run the `dotbrain` they find on the `PATH` that Cursor started with. Without one,
 sessions still work, but they get no convention and no sync. When your dotbrain Claude Code plugin
@@ -719,8 +737,9 @@ dotbrain detach --runtime cursor
 ```
 
 This removes dotbrain's user hooks, owned skill bundle, and global skill links, preserving
-other entries. Unfiltered bootstrap leaves Cursor alone until you run
-`dotbrain bootstrap --runtime cursor` again. Project checkout wiring is unchanged.
+other entries. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
+Cursor alone; run `dotbrain bootstrap --runtime cursor` to set it up again. Project checkout wiring
+is unchanged.
 
 ## Edit Config Only When Needed
 

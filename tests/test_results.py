@@ -109,7 +109,7 @@ def test_bootstrap_escaping_seed_receiver_has_no_writes(tmp_path):
 
 
 def test_bootstrap_failure_json(monkeypatch, tmp_path):
-    def fail(root):
+    def fail(root, **kwargs):
         raise RuntimeError("Install git and retry bootstrap")
     monkeypatch.setattr(bootstrap, "ensure_data_root", fail)
     result = runner.invoke(app, ["bootstrap", "--home", str(tmp_path), "--json"])

@@ -128,6 +128,18 @@ pwsh -NoProfile -File "$env:USERPROFILE\.claude\plugins\cache\dotbrain\dotbrain\
 bootstrap 会用配置初始化全局的 dotbrain 主目录，并分发选定的全局技能和子 Agent。会话启动 hook
 由插件提供。重复运行安装脚本是安全的。
 
+本机首次运行 bootstrap 时，dotbrain 会限时运行 Hermes、OpenCode、Pi 和 Cursor 的 CLI
+`--version` 命令（Cursor 用 `agent --version`），列出找到的每个运行时及其状态。命令失败或超时的
+运行时会被跳过，其主目录不会被修改。stdin 和 stdout 都是终端时，会一次询问是否设置所有能运行的
+运行时；按 Enter 接受，输入 `n` 则全部跳过，并给出逐个设置的命令。非交互运行或使用 `--json` 时，
+会自动设置。结果会列出设置了哪些运行时，以及用于撤销的 `dotbrain detach --runtime <name>` 命令。
+
+首次运行指这四个运行时在本机都没有 dotbrain 自己的交付副本，即使你已经克隆了现有的 dotbrain
+主目录也一样。之后的 bootstrap 会更新已有交付；新发现的运行时只会提示
+`dotbrain bootstrap --runtime <name>`，不会自动设置。用 `--runtime <name>` 可以精确选择要设置的
+运行时，不会询问确认。Dotbrain 不保存退出列表：移除这四个运行时的全部交付后，下一次不带参数的
+bootstrap 又会按首次运行处理。
+
 ::: warning
 CLI 和插件要保持同一版本。插件的安装脚本会锁定匹配的 CLI 版本，只要让它来安装，两者就会保持一致。
 :::
@@ -347,11 +359,11 @@ Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目�
 然后运行：
 
 ```bash
-dotbrain bootstrap --runtime hermes
+dotbrain bootstrap
 ```
 
-首次设置请运行 `dotbrain bootstrap --runtime hermes`。不带参数的 `dotbrain bootstrap` 发现
-Hermes 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
+首次运行会询问是否设置 Hermes 及本机找到的其他能运行的运行时。只设置 Hermes，或之后再添加它，
+请运行 `dotbrain bootstrap --runtime hermes`。
 
 这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
 `hermes plugins enable dotbrain`。如果 `PATH` 里找不到 `hermes`，或者这条命令失败了，就自己运行
@@ -410,7 +422,8 @@ dotbrain detach --runtime hermes
 ```
 
 这会移除 dotbrain 的插件副本和全局技能链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
-之后不带参数的 bootstrap 不会再给 Hermes 交付，直到你再次运行 `dotbrain bootstrap --runtime hermes`。
+只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Hermes 交付；需要恢复时，
+运行 `dotbrain bootstrap --runtime hermes`。
 
 ## OpenCode {#opencode}
 
@@ -434,11 +447,11 @@ OpenCode 没有 dotbrain 的 marketplace，plugin 由 CLI 复制到 OpenCode 的
 然后运行：
 
 ```bash
-dotbrain bootstrap --runtime opencode
+dotbrain bootstrap
 ```
 
-首次设置请运行 `dotbrain bootstrap --runtime opencode`。不带参数的 `dotbrain bootstrap` 发现
-OpenCode 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
+首次运行会询问是否设置 OpenCode 及本机找到的其他能运行的运行时。只设置 OpenCode，或之后再添加它，
+请运行 `dotbrain bootstrap --runtime opencode`。
 
 这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
 `~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了
@@ -502,7 +515,8 @@ dotbrain detach --runtime opencode
 ```
 
 这会移除 dotbrain 的插件文件、技能副本及全局技能链接，保留你自己的文件。之后重启 OpenCode。
-之后不带参数的 bootstrap 不会再给 OpenCode 交付，直到你再次运行 `dotbrain bootstrap --runtime opencode`。
+只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 OpenCode 交付；需要恢复时，
+运行 `dotbrain bootstrap --runtime opencode`。
 
 ## Pi {#pi}
 
@@ -524,11 +538,11 @@ Pi 没有 dotbrain 的 marketplace，扩展由 CLI 复制到 Pi 的 Agent 目录
 然后运行：
 
 ```bash
-dotbrain bootstrap --runtime pi
+dotbrain bootstrap
 ```
 
-首次设置请运行 `dotbrain bootstrap --runtime pi`。不带参数的 `dotbrain bootstrap` 发现
-Pi 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
+首次运行会询问是否设置 Pi 及本机找到的其他能运行的运行时。只设置 Pi，或之后再添加它，
+请运行 `dotbrain bootstrap --runtime pi`。
 
 这会把扩展连同打包的技能复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
 则复制到 `$PI_CODING_AGENT_DIR/extensions/dotbrain/`。在 Windows 上，`~` 指 `%USERPROFILE%`。你在
@@ -585,7 +599,8 @@ dotbrain detach --runtime pi
 ```
 
 这会移除 dotbrain 的扩展副本及全局技能链接，保留你自己的文件。之后重启 Pi。
-之后不带参数的 bootstrap 不会再给 Pi 交付，直到你再次运行 `dotbrain bootstrap --runtime pi`。
+只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Pi 交付；需要恢复时，
+运行 `dotbrain bootstrap --runtime pi`。
 
 ## Cursor {#cursor}
 
@@ -607,14 +622,16 @@ Dotbrain 也支持 [Cursor](https://cursor.com) 的 CLI。
 Cursor 没有 dotbrain 的 marketplace。先安装 CLI（见[第 2 步](#_2-get-the-cli)），然后运行：
 
 ```bash
-dotbrain bootstrap --runtime cursor
+dotbrain bootstrap
 ```
+
+首次运行会询问是否设置 Cursor 及本机找到的其他能运行的运行时。只设置 Cursor，或之后再添加它，
+请运行 `dotbrain bootstrap --runtime cursor`。
 
 这会在 `~/.cursor/hooks.json` 里加入三个 dotbrain hook；文件不存在时会创建它，你自己的 hook 会保留。在 Windows 上，
 `~` 指 `%USERPROFILE%`。如果你的 dotbrain Claude Code plugin 已安装、已启用且是最新的，Cursor 从它那里获取 dotbrain
 打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `skills/skills.yaml` 里选的全局技能会
 链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。
-首次设置需要运行 `dotbrain bootstrap --runtime cursor`。
 
 hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了
 dotbrain Claude Code plugin 时，Cursor 也会加载它的 hook；dotbrain 让这些 hook 在 Cursor 下什么都不做，所以每个事件只运行一次。
@@ -668,7 +685,8 @@ dotbrain detach --runtime cursor
 ```
 
 这会移除 dotbrain 的用户 hook、技能副本和全局技能链接，保留其他条目。项目 checkout 的连接不变。
-之后不带参数的 bootstrap 不会再给 Cursor 交付，直到你再次运行 `dotbrain bootstrap --runtime cursor`。
+只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Cursor 交付；需要恢复时，
+运行 `dotbrain bootstrap --runtime cursor`。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

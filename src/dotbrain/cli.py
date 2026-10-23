@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import subprocess
+import sys
 from pathlib import Path
 from enum import Enum
 from typing import Optional
@@ -139,30 +140,20 @@ def bootstrap(
     json_output: JsonOption = False,
 ) -> None:
     """Prepare this machine for dotbrain: global skill and subagent links."""
-    report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
-    target = report.targets[0]
-    from dotbrain import runtimes
-    try:
-        runtimes.select(runtime)
-    except ValueError as exc:
-        report.status = "failure"
-        report.errors.append(str(exc))
-        render(report, json_output=json_output)
-        raise typer.Exit(2)
+    def confirm(found, prompt):
+        for line in found:
+            typer.echo(line)
+        typer.echo(prompt + " ", nl=False)
+        return input().strip().lower() in ("", "y", "yes")
+
     root = Path(home).expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        dr_result = bootstrap_mod.ensure_data_root(root)
-        target.changes.extend(dr_result.logs)
-        for linker in (bootstrap_mod.link_global_skills, bootstrap_mod.link_global_subagents):
-            linked = linker(root, runtime)
-            target.changes.extend(line for line in linked.logs if "linked 0 " not in line)
-            target.errors.extend(linked.warnings)
-            target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
-    except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
-        target.errors.append(str(exc))
-    if target.errors:
-        target.status = "failure"
-        report.status = "partial" if target.changes else "failure"
+        report = bootstrap_mod.prepare(
+            root, runtime, confirm=confirm if not json_output and sys.stdin.isatty() and sys.stdout.isatty() else None,
+        )
+    except ValueError as exc:
+        render(CommandResult("bootstrap", "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2)
     render(report, json_output=json_output)
     if report.status != "success":
         raise typer.Exit(1)

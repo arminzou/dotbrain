@@ -80,7 +80,11 @@ def global_targets(kind: str) -> dict[str, str]:
 
 def installed(rt: Runtime) -> bool:
     """The runtime's CLI is on PATH."""
-    return shutil.which(rt.name) is not None
+    return shutil.which(command(rt)) is not None
+
+
+def command(rt: Runtime) -> str:
+    return "agent" if rt.name == "cursor" else rt.name
 
 
 def user_dir(rt: Runtime, user_home: Path) -> Path:

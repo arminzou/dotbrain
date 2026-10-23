@@ -186,8 +186,10 @@ def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home
     assert later.notices == [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {runtime}` to deliver dotbrain to it"]
     assert not opted_in()
     assert not list(receiver.iterdir())
-    assert not [f for f in doctor._check_machine(dotbrain_home, fake_home)
+    findings = [f for f in doctor._check_machine(dotbrain_home, fake_home)
                 if runtime in f.message or str(receiver) in f.message]
+    assert [(f.status, f.message) for f in findings] == [
+        ("info", f"{rt.label} is installed; run `dotbrain bootstrap --runtime {runtime}` to deliver dotbrain to it")]
     explicit = assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run)
     assert not explicit.warnings
     assert opted_in()
