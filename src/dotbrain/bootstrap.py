@@ -170,6 +170,14 @@ def link_global_subagents(dotbrain_home: Path, target: str = "all", *, home: Pat
     return _global_assets(dotbrain_home, target, "agents", home, **kwargs)
 
 
+def mark_complete(dotbrain_home: Path) -> None:
+    """Record that this machine has finished or explicitly declined automatic setup."""
+    marker = paths.confined_path(dotbrain_home, ".cache/bootstrap-complete")
+    if not marker.is_file():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("First machine setup complete.\n", encoding="utf-8", newline="\n")
+
+
 def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = None,
             run: Runner = _default_run, confirm=None) -> CommandResult:
     """Seed this machine and reconcile its selected, runnable deliveries.
@@ -189,6 +197,7 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
     target = report.targets[0]
     found = []
     ready = []
+    probe_failed = False
     for rt in selected:
         if rt.name not in owned:
             continue
@@ -203,6 +212,7 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
             if completed.returncode:
                 raise RuntimeError(f"exit {completed.returncode}")
         except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+            probe_failed = True
             status = f"skipped ({exc})"
         found.append(f"{rt.label}: {status}")
         if status == "ready":
@@ -230,9 +240,8 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
                 target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
             if delivery in owned and len(target.errors) == errors_before:
                 target.changes.append(f"Set up dotbrain for {runtimes.find(delivery).label}; undo: dotbrain detach --runtime {delivery}")
-        if not target.errors and not marker.is_file():
-            marker.parent.mkdir(parents=True, exist_ok=True)
-            marker.write_text("First machine setup complete.\n", encoding="utf-8", newline="\n")
+        if not target.errors and not (first and probe_failed):
+            mark_complete(dotbrain_home)
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
         # Delivery and configuration errors use the normal command report.
         target.errors.append(str(exc))

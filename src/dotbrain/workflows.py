@@ -71,6 +71,7 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
     from dotbrain import cursor, opencode, owned_copy
 
     selected = runtimes.select(runtime)
+    bootstrap.mark_complete(dotbrain_home)
     user_home = home or Path.home()
     report = CommandResult("detach")
     cfg = skills.load_global_config(dotbrain_home / "skills/skills.yaml")

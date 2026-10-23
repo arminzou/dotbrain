@@ -10,6 +10,28 @@ from dotbrain import assets, bootstrap, cursor, doctor, hermes, opencode, owned_
 from dotbrain.cli import app
 
 
+@pytest.mark.parametrize("runtime", tuple(assets.HOME_DELIVERY))
+def test_legacy_detach_all_ends_first_run(dotbrain_home, fake_home, monkeypatch, runtime):
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    module = assets.HOME_DELIVERY[runtime]
+    directory = dotbrain_home if runtime == "cursor" else runtimes.user_dir(runtimes.find(runtime), fake_home)
+    assert not assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run).warnings
+    assert module.owned(directory)
+    marker = dotbrain_home / ".cache/bootstrap-complete"
+    assert not marker.exists()
+
+    detached = workflows.detach_runtime(dotbrain_home, "all", home=fake_home, run=run)
+    assert detached.status == "success", detached
+    assert marker.is_file()
+    result = bootstrap.prepare(dotbrain_home, home=fake_home, run=run)
+    assert result.status == "success", result
+    for name, adapter in assets.HOME_DELIVERY.items():
+        receiver = dotbrain_home if name == "cursor" else runtimes.user_dir(runtimes.find(name), fake_home)
+        assert not adapter.owned(receiver)
+        assert f"dotbrain bootstrap --runtime {name}" in str(result)
+
+
 @pytest.mark.parametrize("runtime", runtimes.RUNTIMES)
 def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, tmp_path, monkeypatch):
     set_fake_home(monkeypatch, fake_home)
@@ -53,6 +75,7 @@ def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, t
         (marketplace / "data").write_text("marketplace")
 
     result = workflows.detach_runtime(dotbrain_home, runtime, home=fake_home)
+    assert (dotbrain_home / ".cache/bootstrap-complete").is_file()
     assert result.status == "success"
     assert result.targets[0].changes
     if runtime == "hermes":

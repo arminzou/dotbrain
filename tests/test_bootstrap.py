@@ -89,6 +89,7 @@ def test_bootstrap_skips_broken_runtime(tmp_path, monkeypatch, name, failure):
     result = bootstrap_mod.prepare(root, home=user, run=run)
     assert result.status == "success"
     assert "skipped" in str(result)
+    assert not (root / ".cache/bootstrap-complete").exists()
     assert not runtimes.user_dir(runtimes.find(name), user).exists()
     assert not assets.HOME_DELIVERY[name].owned(root if name == "cursor" else user)
 
