@@ -36,6 +36,9 @@ dev = [
     "pytest>=8",
     "pytest-xdist>=3.8.0",
 ]
+uat = [
+    "testcontainers>=4.15.0",
+]
 
 [build-system]
 requires = ["hatchling"]

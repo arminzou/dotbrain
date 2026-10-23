@@ -31,6 +31,36 @@ The manifest starts at the published `0.6.1` release. Do not advance it by hand
 each cycle. Before 1.0, breaking changes bump the minor version. Use Conventional
 Commit PR titles so squash merges contribute accurate versions and release notes.
 
+## Runtime delivery UAT
+
+`uat/` holds an opt-in suite that checks, in disposable sandboxes, what agent runtimes actually
+load from dotbrain: packaged and selected skills, the convention before the first request, one
+hook call per event, and home sync that does not block on an unreachable remote. CI and plain
+`uv run pytest` never run it, and it makes paid model calls.
+
+Run it before a release PR that touches runtime delivery, the hooks, or a runtime adapter
+(`plugin/`), and after upgrading a runtime it covers:
+
+```bash
+uv run --group uat pytest uat
+```
+
+Run it on native Windows with the runtime installed and these variables set:
+
+| Runtime | Variables |
+| --- | --- |
+| OpenCode | `UAT_OPENCODE_MODEL` as `<provider>/<model>`, and the provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY` |
+
+Only that key is passed, and only to the runtime process; a journey fails if it finds the key in
+any sandbox file. A journey whose runtime or variables are missing skips and names what to set.
+
+Each journey fingerprints the live runtime config and the live data root before and after, and
+fails if they changed. Quit the runtime and other agent sessions on the machine first: their own
+writes and home sync would fail the run.
+
+Results, stamped with runtime version, OS, and dotbrain revision, print at the end of the run and
+are written to `uat/results.json`. Cite them in the release PR.
+
 ## Failure recovery
 
 If the GitHub release exists but PyPI publication fails, inspect the Release
