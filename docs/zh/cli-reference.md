@@ -85,7 +85,7 @@ dotbrain detach [OPTIONS]
 
 以下三种情况会给出警告：CLI 和已注册的 Claude Code 插件版本不一致（两者一起升级）；
 Brain 的 DOTBRAIN.md 与当前 CLI 自带的约定不同（运行 `dotbrain refresh`）；
-设计仍为 active，但通过 spec 关联的 epic 已关闭（运行 `close-design` 或修正 lifecycle）。
+设计仍为 active，但通过 spec 关联的 epic 已全部关闭（运行 `close-design` 或修正 lifecycle）。
 缺少检查所需的数据时会跳过并说明原因。这些警告不影响退出码。
 
 ```text
@@ -103,25 +103,6 @@ dotbrain doctor [OPTIONS]
 ## 项目 {#projects}
 
 把代码仓库连接到 Brainspace 并保持同步。见[项目连接](wiring.md)。
-
-### `dotbrain check-head` {#dotbrain-check-head}
-
-检查分支 head 是否与通过审核的 review bead 或已验证任务中记录的版本一致。命令只读取 Git 和 Beads。
-
-```text
-dotbrain check-head [OPTIONS] ITEM
-```
-
-`ITEM` 是 review bead 或单个任务的 ID。review 需要 `code` 模式的 `approve` 或 `readiness` 模式的 `ready`，
-以 `range` 的末端为准；任务需要 `dotbrain_phase: verified` 和一个 `integrated` artifact。
-版本缩写通过 Git 解析后再比较。分支名如果包含任务 ID，也会检查失败；前缀来自 tracker 返回的 ID。
-检查失败时退出码为 `1`，并提示重新审核和检查，或重命名分支。
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--branch` *text* | 当前分支 | 要检查的本地分支。 |
-| `--repo` *path* | 当前目录 | 要检查的 checkout。 |
-| `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain wire` {#dotbrain-wire}
 
@@ -200,6 +181,27 @@ dotbrain projects show [OPTIONS]
 | --- | --- | --- |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain check-head` {#dotbrain-check-head}
+
+检查分支 head 是否与通过审核的 review bead 或已验证任务中记录的版本一致。命令只读取 Git 和 Beads。
+
+```text
+dotbrain check-head [OPTIONS] ITEM
+```
+
+`ITEM` 是 review bead 或单个任务的 ID。review 需要 `code` 模式的 `approve` 或 `readiness` 模式的 `ready`，
+以 `range` 的末端为准；任务需要 `dotbrain_phase: verified` 和一个 `integrated` artifact。
+版本缩写通过 Git 解析后再比较。分支名如果包含任务 ID，也会检查失败；前缀来自 tracker 返回的 ID。
+只有确实存在的任务 ID 才算；`fix/<前缀>-login` 这类普通分支名不受影响。
+integrated artifact 是 `git-branch` 时必须写成 `<分支>@<版本>`。
+检查失败时退出码为 `1`。版本不一致或缺少通过记录时，会提示重新审核和检查；HEAD 处于 detached 状态时，需要用 `--branch` 指定分支。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--branch` *text* | 当前分支 | 要检查的本地分支。 |
+| `--repo` *path* | 当前目录 | 要检查的 checkout。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ## 技能和 Agent {#skills-and-agents}

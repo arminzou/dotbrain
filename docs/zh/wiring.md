@@ -1,11 +1,5 @@
 # 项目连接
 
-推送已审核的分支或把 PR 标记为 ready 前，运行 `dotbrain check-head <item> [--branch <name>]`。
-它会比较本地分支 head 和 review bead 中通过审核的 range 末端，或单个已验证任务的 integrated 版本。
-版本缩写会先通过 Git 解析。版本不一致或缺少通过记录时，命令会失败并提示重新审核和检查。
-分支名包含任务 ID 时也会失败，需要重命名；ID 前缀来自 tracker 返回的任务。
-命令只读取 Git 和 Beads。用 `--repo <path>` 选择 checkout，用 `--json` 输出结构化结果。
-
 连接（wiring）把代码仓库连到一个私有的 Brainspace。本页介绍会链接哪些东西、哪些保持私有，以及什么时候用
 `wire`、`refresh` 或 `unwire`。第一次使用，请从[快速开始](getting-started.md)开始。
 
@@ -50,6 +44,13 @@ Brainspace 放在 `~/dotbrain/brainspaces/<name>/` 下。旧的 `~/dotbrain/proj
 新的 Brainspace 会建在 `brainspaces/` 下。
 
 ## 该用哪个命令 {#which-command-to-use}
+
+推送已审核的分支或把 PR 标记为 ready 前，运行 `dotbrain check-head <item> [--branch <name>]`。
+它会比较本地分支 head 和 review bead 中通过审核的 range 末端，或单个已验证任务的 integrated 版本。
+版本缩写会先通过 Git 解析。版本不一致或缺少通过记录时，命令会失败并提示重新审核和检查。
+分支名包含已存在的任务 ID 时也会失败，需要重命名；`fix/<前缀>-login` 这类普通分支名不受影响。
+HEAD 处于 detached 状态时，用 `--branch` 指定分支。
+命令只读取 Git 和 Beads。用 `--repo <path>` 选择 checkout，用 `--json` 输出结构化结果。
 
 ```mermaid
 flowchart TD

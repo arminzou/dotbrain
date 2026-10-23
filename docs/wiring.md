@@ -51,8 +51,9 @@ Before pushing a reviewed branch or marking its PR ready, run
 `dotbrain check-head <item> [--branch <name>]`. It compares the local branch head with a passing
 review bead's range head or a verified single work item's integrated revision. Abbreviated
 revisions are resolved through Git. A mismatch or missing acceptance fails with a reminder to
-refresh review and checks. Branch names containing a work-item ID also fail: rename the branch.
-The ID prefix comes from the tracker-returned item. The command only reads Git and Beads;
+refresh review and checks. A branch name containing an existing work-item ID also fails: rename
+the branch. Ordinary names that share the tracker prefix, such as `fix/<prefix>-login`, pass.
+On a detached HEAD, name the branch with `--branch`. The command only reads Git and Beads;
 `--repo <path>` selects the checkout and `--json` produces the standard structured result.
 
 ```mermaid
