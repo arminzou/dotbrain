@@ -61,12 +61,13 @@ def test_checkout_profile_rejected_without_pruning_links(tmp_path, checkout_name
     old.parent.mkdir()
     old.symlink_to(root / "skills/collection/example", target_is_directory=True)
 
-    with pytest.raises(ValueError, match=rf"profiles\.{runtime}"):
-        assets.link_global(root, "skills", runtime, user_home=user)
+    result = assets.link_global(root, "skills", runtime, user_home=user)
+    assert len(result.warnings) == 1
+    assert f"profiles.{runtime}" in result.warnings[0]
 
     assert old.is_symlink()
     assert old.resolve() == (root / "skills/collection/example").resolve()
-    assert not (user / folder / "skills").exists()
+    assert (user / folder / "skills").is_dir()
 
 
 def test_default_home_redirected_into_checkout_is_rejected(tmp_path):
@@ -82,10 +83,87 @@ def test_default_home_redirected_into_checkout_is_rejected(tmp_path):
     old.parent.mkdir()
     old.symlink_to(root / "skills/collection/example", target_is_directory=True)
 
-    with pytest.raises(ValueError, match="default claude-code home"):
-        assets.link_global(root, "skills", "claude-code", user_home=user)
+    result = assets.link_global(root, "skills", "claude-code", user_home=user)
+    assert len(result.warnings) == 1
+    assert "default claude-code home" in result.warnings[0]
 
     assert old.is_symlink()
+
+
+@pytest.mark.parametrize("runtime", ["hermes", "opencode", "pi", "cursor"])
+def test_checkout_target_rejected_for_every_runtime(tmp_path, runtime):
+    root, user = tmp_path / "data", tmp_path / "user"
+    destination = tmp_path / "checkout" / f".{runtime}/skills"
+    configure(root, targets={runtime: str(destination)}, global_extra=[])
+    destination.mkdir(parents=True)
+    (tmp_path / "checkout/.brain").symlink_to(tmp_path / "missing", target_is_directory=True)
+    old = destination / "example"
+    old.symlink_to(root / "skills/collection/example", target_is_directory=True)
+
+    result = assets.link_global(root, "skills", runtime, user_home=user)
+
+    assert len(result.warnings) == 1
+    assert f"targets.{runtime}" in result.warnings[0]
+    assert old.is_symlink()
+    assert result.linked == [] and result.pruned == []
+
+
+def test_checkout_home_cannot_hide_behind_duplicate_skill_destination(tmp_path):
+    root, user = tmp_path / "data", tmp_path / "user"
+    profile = tmp_path / "checkout/.claude"
+    profile.mkdir(parents=True)
+    (profile.parent / ".brain").touch()
+    default_skills = user / ".claude/skills"
+    default_skills.mkdir(parents=True)
+    (profile / "skills").symlink_to(default_skills, target_is_directory=True)
+    configure(root, profiles={"claude-code": [str(profile)]})
+
+    result = assets.link_global(root, "skills", "claude", user_home=user)
+
+    assert len(result.warnings) == 1
+    assert "profiles.claude-code" in result.warnings[0]
+    assert (default_skills / "example").is_symlink()
+
+
+@pytest.mark.parametrize("command", ["bootstrap", "skills"])
+def test_rejected_profile_does_not_stop_safe_delivery_or_diagnosis(tmp_path, monkeypatch, command):
+    from conftest import set_fake_home
+    from typer.testing import CliRunner
+    from dotbrain.cli import app
+
+    root, user = tmp_path / "data", tmp_path / "user"
+    set_fake_home(monkeypatch, user)
+    bad = tmp_path / "checkout/.claude"
+    good = user / ".claude-work"
+    bad.mkdir(parents=True)
+    good.mkdir(parents=True)
+    (bad.parent / ".brain").touch()
+    configure(root, profiles={"claude-code": [str(bad), str(good)]})
+    # Bootstrap must still reach the subsequent global subagent pass.
+    write(root / "agents/agents.yaml", "global: [custom]\n")
+    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
+    write(root / "agents/claude/custom.md", "custom")
+
+    args = [command, "--home", str(root), "--json"]
+    if command == "skills":
+        args[1:1] = ["link", "--scope", "global"]
+    result = CliRunner().invoke(app, args)
+
+    assert result.exit_code == 1, result.output
+    payload = json.loads(result.stdout)
+    assert payload["status"] in ("failure", "partial")
+    assert any("profiles.claude-code" in error for target in payload["targets"] for error in target["errors"])
+    for directory in (user / ".claude", user / ".codex", good):
+        assert (directory / "skills/example").is_symlink()
+    assert not (bad / "skills").exists()
+    if command == "bootstrap":
+        assert (user / ".codex/agents/custom.toml").is_file()
+
+    findings = doctor._check_machine(root, user)
+    assert any(f.status == "error" and "profiles.claude-code" in f.message for f in findings)
+    for directory in (user / ".claude", good):
+        assert any(str(directory) in f.message and "plugin installation" in f.message for f in findings)
+    assert any(str(user / ".codex/skills") in f.message and "healthy" in f.message for f in findings)
 
 
 def test_symlinked_home_ancestor_allows_profile_linking(tmp_path):

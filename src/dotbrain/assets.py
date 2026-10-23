@@ -81,6 +81,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
 
 
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
+                   errors: list[str],
                    profiles: dict[str, list[str]] | None = None,
                    notices: list[str] | None = None) -> dict[str, tuple[Path, ...]]:
     """Resolve global folders, including existing profiles, before any delivery or pruning.
@@ -98,6 +99,7 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
     if kind != "skills":
         return destinations
+    settings = {}
     for rt in selected:
         if rt.key not in ("claude-code", "codex"):
             continue
@@ -114,13 +116,23 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         for directory, setting in homes:
             if directory != default and not directory.is_dir():
                 continue
-            resolved = directory.resolve()
-            if any(os.path.lexists(parent / ".brain") for parent in (resolved, *resolved.parents)):
-                raise ValueError(f"{setting}: {directory} is inside a wired checkout; choose a runtime home outside it")
             folder = directory / "skills"
-            if folder.resolve() not in {p.resolve() for p in folders}:
-                folders.append(folder)
+            folders.append(folder)
+            settings[(rt.key, folder)] = setting
         destinations[rt.key] = tuple(folders)
+    for rt in selected:
+        safe = []
+        for folder in destinations.get(rt.key, ()):
+            # Check the home too: a skills symlink must not hide a checkout marker above it.
+            resolved_paths = (folder.parent.resolve(), folder.resolve())
+            if any(os.path.lexists(parent / ".brain") for resolved in resolved_paths
+                   for parent in (resolved, *resolved.parents)):
+                setting = settings.get((rt.key, folder), f"skills.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
+                errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global skills destination outside it")
+            elif folder.resolve() not in {p.resolve() for p in safe}:
+                safe.append(folder)
+        if rt.key in destinations:
+            destinations[rt.key] = tuple(safe)
     return destinations
 
 
@@ -133,16 +145,17 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
            else subagents.load_global_config(home))
     user_home = user_home or Path.home()
     notices = []
-    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
-                             profiles=cfg.profiles if kind == "skills" else None, notices=notices)
+    errors = []
     if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
-        targets.setdefault("cursor", (user_home / ".cursor/skills",))
+        cfg.targets.setdefault("cursor", str(user_home / ".cursor/skills"))
+    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
+                             profiles=cfg.profiles if kind == "skills" else None, notices=notices, errors=errors)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known
     if any(k not in targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
-    result = skills.LinkResult(notices=notices + [f"unsupported global {kind} runtime skipped: {k}"
+    result = skills.LinkResult(warnings=errors, notices=notices + [f"unsupported global {kind} runtime skipped: {k}"
                                         for k in targets if runtime == "all" and k not in keys])
     if kind == "skills" and runtime == "all":
         # Installed but never set up: say how, rather than deliver unasked and undo a removal.

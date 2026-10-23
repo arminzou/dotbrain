@@ -355,10 +355,8 @@ Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 dotbrain bootstrap --runtime hermes
 ```
 
-If `hermes` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
-Hermes on its own and adds `hermes` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
-does not add a runtime unasked: when it finds `hermes` installed but not set up, it prints this
-command instead.
+Use `dotbrain bootstrap --runtime hermes` for first setup. An unfiltered `dotbrain bootstrap`
+prints this command when Hermes is installed but not yet set up; it does not seed a target.
 
 This copies the plugin to `~/.hermes/plugins/dotbrain` (or `$HERMES_HOME/plugins/dotbrain`) and runs
 `hermes plugins enable dotbrain`. If `hermes` is not on `PATH`, or the command fails, run
@@ -451,10 +449,8 @@ directory instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then r
 dotbrain bootstrap --runtime opencode
 ```
 
-If `opencode` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up
-OpenCode on its own and adds `opencode` to the `targets:` in `skills/skills.yaml`. After that, bootstrap
-does not add a runtime unasked: when it finds `opencode` installed but not set up, it prints this
-command instead.
+Use `dotbrain bootstrap --runtime opencode` for first setup. An unfiltered `dotbrain bootstrap`
+prints this command when OpenCode is installed but not yet set up; it does not seed a target.
 
 This copies the plugin to `~/.config/opencode/plugins/dotbrain.js` and the packaged skills to
 `~/.config/opencode/dotbrain/packaged/skills/`. On Windows, `~` is `%USERPROFILE%`; when
@@ -565,9 +561,8 @@ instead. Install the CLI first (see [step 2](#_2-get-the-cli)), then run:
 dotbrain bootstrap --runtime pi
 ```
 
-If `pi` is already on `PATH` the first time you run `dotbrain bootstrap`, bootstrap sets up Pi on
-its own and adds `pi` to the `targets:` in `skills/skills.yaml`. After that, bootstrap does not add
-a runtime unasked: when it finds `pi` installed but not set up, it prints this command instead.
+Use `dotbrain bootstrap --runtime pi` for first setup. An unfiltered `dotbrain bootstrap`
+prints this command when Pi is installed but not yet set up; it does not seed a target.
 
 This copies the extension, with the packaged skills, to `~/.pi/agent/extensions/dotbrain/`, or to
 `$PI_CODING_AGENT_DIR/extensions/dotbrain/` when `PI_CODING_AGENT_DIR` is set. On Windows, `~` is
@@ -678,8 +673,8 @@ keeping any hooks of your own. On Windows, `~` is `%USERPROFILE%`. Cursor gets d
 skills from your dotbrain Claude Code plugin when that plugin is installed, enabled, and current;
 otherwise from a copy dotbrain keeps in `~/dotbrain/.cache/cursor/`. Global skills you select in
 `skills/skills.yaml` are linked into `~/.cursor/skills/`, except those Cursor already finds in
-another folder it reads, such as `~/.claude/skills`. Unlike Hermes, OpenCode, and Pi, a first
-`dotbrain bootstrap` does not set up Cursor on its own; run it with `--runtime cursor` once.
+another folder it reads, such as `~/.claude/skills`. For first setup, run
+`dotbrain bootstrap --runtime cursor`.
 
 The hooks run the `dotbrain` they find on the `PATH` that Cursor started with. Without one,
 sessions still work, but they get no convention and no sync. When your dotbrain Claude Code plugin
