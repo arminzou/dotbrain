@@ -183,7 +183,8 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
     owned = {name: (cursor.global_delivery(dotbrain_home) if name == "cursor" else
                    module.owned(runtimes.user_dir(runtimes.find(name), user)))
              for name, module in assets.HOME_DELIVERY.items()}
-    first = runtime == "all" and not any(owned.values())
+    marker = paths.confined_path(dotbrain_home, ".cache/bootstrap-complete")
+    first = runtime == "all" and not marker.is_file() and not any(owned.values())
     report = CommandResult("bootstrap", targets=[TargetResult(scope="global")])
     target = report.targets[0]
     found = []
@@ -229,6 +230,9 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
                 target.findings += [{"severity": "warning", "message": m} for m in linked.notices]
             if delivery in owned and len(target.errors) == errors_before:
                 target.changes.append(f"Set up dotbrain for {runtimes.find(delivery).label}; undo: dotbrain detach --runtime {delivery}")
+        if not target.errors and not marker.is_file():
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text("First machine setup complete.\n", encoding="utf-8", newline="\n")
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:
         # Delivery and configuration errors use the normal command report.
         target.errors.append(str(exc))

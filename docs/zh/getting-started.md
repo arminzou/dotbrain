@@ -134,11 +134,13 @@ bootstrap 会用配置初始化全局的 dotbrain 主目录，并分发选定的
 运行时；按 Enter 接受，输入 `n` 则全部跳过，并给出逐个设置的命令。非交互运行或使用 `--json` 时，
 会自动设置。结果会列出设置了哪些运行时，以及用于撤销的 `dotbrain detach --runtime <name>` 命令。
 
-首次运行指这四个运行时在本机都没有 dotbrain 自己的交付副本，即使你已经克隆了现有的 dotbrain
-主目录也一样。之后的 bootstrap 会更新已有交付；新发现的运行时只会提示
+首次运行指本机既没有 bootstrap 完成标记，也没有这四个运行时的任何 dotbrain 交付副本。
+克隆 dotbrain 主目录时不会带上本机缓存，因此新机器仍按首次运行处理。Bootstrap 会在被 gitignore
+忽略的 `.cache/bootstrap-complete` 中记录完成状态，包括你拒绝设置或没有找到能运行的运行时的情况。
+已有交付副本也算完成过设置。之后的 bootstrap 会更新已有交付；新发现的运行时只会提示
 `dotbrain bootstrap --runtime <name>`，不会自动设置。用 `--runtime <name>` 可以精确选择要设置的
-运行时，不会询问确认。Dotbrain 不保存退出列表：移除这四个运行时的全部交付后，下一次不带参数的
-bootstrap 又会按首次运行处理。
+运行时，不会询问确认。Dotbrain 不保存退出列表。Detach 会保留完成标记，即使移除所有交付，
+bootstrap 也不会再次自动设置。
 
 ::: warning
 CLI 和插件要保持同一版本。插件的安装脚本会锁定匹配的 CLI 版本，只要让它来安装，两者就会保持一致。
@@ -422,7 +424,7 @@ dotbrain detach --runtime hermes
 ```
 
 这会移除 dotbrain 的插件副本和全局技能链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
-只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Hermes 交付；需要恢复时，
+不带参数的 bootstrap 不会再给 Hermes 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime hermes`。
 
 ## OpenCode {#opencode}
@@ -515,7 +517,7 @@ dotbrain detach --runtime opencode
 ```
 
 这会移除 dotbrain 的插件文件、技能副本及全局技能链接，保留你自己的文件。之后重启 OpenCode。
-只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 OpenCode 交付；需要恢复时，
+不带参数的 bootstrap 不会再给 OpenCode 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime opencode`。
 
 ## Pi {#pi}
@@ -599,7 +601,7 @@ dotbrain detach --runtime pi
 ```
 
 这会移除 dotbrain 的扩展副本及全局技能链接，保留你自己的文件。之后重启 Pi。
-只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Pi 交付；需要恢复时，
+不带参数的 bootstrap 不会再给 Pi 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime pi`。
 
 ## Cursor {#cursor}
@@ -685,7 +687,7 @@ dotbrain detach --runtime cursor
 ```
 
 这会移除 dotbrain 的用户 hook、技能副本和全局技能链接，保留其他条目。项目 checkout 的连接不变。
-只要还保留另一个运行时的 dotbrain 交付，不带参数的 bootstrap 就不会再给 Cursor 交付；需要恢复时，
+不带参数的 bootstrap 不会再给 Cursor 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime cursor`。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}

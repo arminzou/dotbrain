@@ -146,11 +146,14 @@ and `n` skips setup and prints a command for each runtime. Without a terminal, o
 setup happens automatically. The result lists what was set up and each
 `dotbrain detach --runtime <name>` command to undo it.
 
-First run means none of those four runtimes has a dotbrain-owned delivery on this machine,
-even if you cloned an existing dotbrain home. Later bootstraps update existing deliveries and
-print `dotbrain bootstrap --runtime <name>` for newly found runtimes instead of setting them up.
+First run means this machine has neither a completed-bootstrap marker nor a dotbrain-owned
+delivery for any of those four runtimes. A cloned dotbrain home without local cache is a first run.
+Bootstrap records completion in the gitignored `.cache/bootstrap-complete`, including when you
+decline or no working runtimes are found. Existing owned delivery also counts as completed setup.
+Later bootstraps update existing deliveries and print `dotbrain bootstrap --runtime <name>` for
+newly found runtimes instead of setting them up.
 Use `--runtime <name>` to select exactly which runtime to set up, without a prompt. There is no
-stored opt-out list: detaching all four makes the next unfiltered bootstrap a first run again.
+stored opt-out list. Detach preserves the marker, so even detaching all four keeps automatic setup off.
 
 ::: warning
 Keep the CLI and the plugin on the same version. The plugin's installer pins a matching CLI tag,
@@ -446,9 +449,8 @@ dotbrain detach --runtime hermes
 ```
 
 This removes dotbrain's plugin copy and global skill links. It first tries to disable the
-plugin when Hermes is available; a failed disable warns and removal continues. While another
-dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves Hermes alone; run
-`dotbrain bootstrap --runtime hermes` to set it up again.
+plugin when Hermes is available; a failed disable warns and removal continues. Unfiltered
+bootstrap leaves Hermes alone; run `dotbrain bootstrap --runtime hermes` to set it up again.
 
 ## OpenCode {#opencode}
 
@@ -548,9 +550,8 @@ dotbrain detach --runtime opencode
 ```
 
 This removes dotbrain's owned plugin file, packaged skills, and global skill links, preserving
-your own files. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
-OpenCode alone; run `dotbrain bootstrap --runtime opencode` to set it up again. Restart OpenCode
-afterwards.
+your own files. Unfiltered bootstrap leaves OpenCode alone; run
+`dotbrain bootstrap --runtime opencode` to set it up again. Restart OpenCode afterwards.
 
 ## Pi {#pi}
 
@@ -640,8 +641,8 @@ dotbrain detach --runtime pi
 ```
 
 This removes dotbrain's owned extension copy and global skill links, preserving
-your own files. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
-Pi alone; run `dotbrain bootstrap --runtime pi` to set it up again. Restart Pi afterwards.
+your own files. Unfiltered bootstrap leaves Pi alone; run `dotbrain bootstrap --runtime pi` to set
+it up again. Restart Pi afterwards.
 
 ## Cursor {#cursor}
 
@@ -737,9 +738,8 @@ dotbrain detach --runtime cursor
 ```
 
 This removes dotbrain's user hooks, owned skill bundle, and global skill links, preserving
-other entries. While another dotbrain-owned runtime delivery remains, unfiltered bootstrap leaves
-Cursor alone; run `dotbrain bootstrap --runtime cursor` to set it up again. Project checkout wiring
-is unchanged.
+other entries. Unfiltered bootstrap leaves Cursor alone; run `dotbrain bootstrap --runtime cursor`
+to set it up again. Project checkout wiring is unchanged.
 
 ## Edit Config Only When Needed
 

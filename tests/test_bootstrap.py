@@ -105,6 +105,66 @@ def test_later_bootstrap_hints_without_prompt_or_setup(tmp_path, monkeypatch):
     assert not (user / ".cursor").exists()
 
 
+@pytest.mark.parametrize("initial", ["detach", "decline", "empty", "upgrade"])
+@pytest.mark.parametrize("terminal", [False, True])
+def test_bootstrap_completion_survives_no_owned_delivery(tmp_path, monkeypatch, initial, terminal):
+    root, user = tmp_path / "data", tmp_path / "user"
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    marker = root / ".cache/bootstrap-complete"
+    if initial == "upgrade":
+        bootstrap_mod.ensure_data_root(root, run=run)
+        assets.link_global(root, "skills", "pi", user_home=user, run=run)
+        assert not marker.exists()
+        result = bootstrap_mod.prepare(root, home=user, run=run,
+            confirm=lambda *args: pytest.fail("upgraded machine prompted"))
+        assert "dotbrain bootstrap --runtime cursor" in str(result)
+        assert not (user / ".cursor").exists()
+    else:
+        if initial == "empty":
+            monkeypatch.setattr(runtimes, "installed", lambda rt: False)
+        result = bootstrap_mod.prepare(root, home=user, run=run,
+                                       confirm=(lambda *args: False) if initial == "decline" else None)
+    assert result.status == "success", result
+    assert marker.is_file()
+    assert "/.cache/" in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    if initial in ("detach", "upgrade"):
+        assert workflows.detach_runtime(root, "all", home=user, run=run).status == "success"
+    assert marker.is_file()
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    result = bootstrap_mod.prepare(root, home=user, run=run,
+        confirm=(lambda *args: pytest.fail("completed machine prompted")) if terminal else None)
+    assert result.status == "success", result
+    for name, module in assets.HOME_DELIVERY.items():
+        directory = root if name == "cursor" else runtimes.user_dir(runtimes.find(name), user)
+        assert not module.owned(directory)
+        assert f"dotbrain bootstrap --runtime {name}" in str(result)
+    # Explicit setup remains available after completion, including after declining.
+    result = bootstrap_mod.prepare(root, "pi", home=user, run=run,
+                                  confirm=lambda *args: pytest.fail("explicit setup prompted"))
+    assert result.status == "success", result
+    assert assets.HOME_DELIVERY["pi"].owned(runtimes.user_dir(runtimes.find("pi"), user))
+
+
+def test_cloned_home_without_cache_is_first_machine_run(dotbrain_home, tmp_path, monkeypatch):
+    import shutil
+
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    bootstrap_mod.prepare(dotbrain_home, home=tmp_path / "first-user", run=run)
+    assert (dotbrain_home / ".cache/bootstrap-complete").is_file()
+    assert subprocess.run(["git", "check-ignore", ".cache/bootstrap-complete"], cwd=dotbrain_home,
+                          capture_output=True, check=True).returncode == 0
+    clone = tmp_path / "cloned-data"
+    shutil.copytree(dotbrain_home, clone, ignore=shutil.ignore_patterns(".cache"), symlinks=True)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "pi")
+    prompts = []
+    result = bootstrap_mod.prepare(clone, home=tmp_path / "second-user", run=run,
+                                  confirm=lambda *args: prompts.append(args) or True)
+    assert result.status == "success", result
+    assert len(prompts) == 1
+    assert "dotbrain detach --runtime pi" in str(result)
+
+
 @pytest.mark.parametrize("runtime", ["hermes", "opencode", "pi", "cursor"])
 def test_explicit_bootstrap_never_prompts(tmp_path, monkeypatch, runtime):
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
