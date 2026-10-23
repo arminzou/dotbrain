@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import config
+from dotbrain import config, skills
 
 
 def _extract_yaml_block(doc: str, heading: str) -> str:
@@ -42,3 +42,11 @@ def test_configuration_doc_examples_match_runtime_config(tmp_path: Path):
 
     assert config.load_project_agents(dotbrain_home, "demo") == tuple(project_doc["agents"])
     assert config.load_project_skills(dotbrain_home, "demo") == tuple(project_doc["skills"])
+
+    skills_yaml = _extract_yaml_block(doc, "skills/skills.yaml")
+    skills_path = dotbrain_home / "skills/skills.yaml"
+    skills_path.parent.mkdir()
+    skills_path.write_text(skills_yaml, encoding="utf-8")
+    loaded_skills = skills.load_global_config(skills_path)
+    assert loaded_skills.profiles == yaml.safe_load(skills_yaml)["profiles"]
+    assert loaded_skills.global_extra == tuple(yaml.safe_load(skills_yaml)["global_extra"])

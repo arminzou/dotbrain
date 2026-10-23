@@ -101,11 +101,12 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
     return findings
 
 
-def _check_plugin(home: Path, runtime: str) -> list[Finding]:
-    runtime_home = home / runtimes.find(runtime).workspace
+def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None) -> list[Finding]:
+    runtime_home = runtime_home or home / runtimes.find(runtime).workspace
+    label = f"{runtime} ({runtime_home})"
     registry = runtime_home / "plugins/installed_plugins.json"
     if not registry.is_file():
-        return [Finding("info", f"{runtime}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
+        return [Finding("info", f"{label}: plugin installation is not locally verified", "inspect the runtime plugin manager; current session consumption is unknown")]
     try:
         for entry in claude_plugins.installed(runtime_home).get("dotbrain@dotbrain", []):
             location = entry["installPath"]
@@ -114,18 +115,18 @@ def _check_plugin(home: Path, runtime: str) -> list[Finding]:
                 continue
             hooks = json.loads(hook_file.read_text(encoding="utf-8"))
             if isinstance(hooks, dict) and (hooks.get("hooks") or {}).get("SessionStart"):
-                findings = [Finding("ok", f"{runtime}: registered dotbrain plugin has SessionStart hook files"),
-                            Finding("info", f"{runtime}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
+                findings = [Finding("ok", f"{label}: registered dotbrain plugin has SessionStart hook files"),
+                            Finding("info", f"{label}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
                 # Linking leaves packaged Claude Code agents to the plugin, so an older plugin leaves them undelivered.
                 missing = [name for name in subagents.PROJECT_BASELINE if subagents.plugin_delivered(name, runtime)
                            and not (Path(location).expanduser() / "agents" / f"{name}.md").is_file()]
                 if missing:
-                    findings.append(Finding("warn", f"{runtime}: registered dotbrain plugin lacks packaged agents: {', '.join(missing)}",
+                    findings.append(Finding("warn", f"{label}: registered dotbrain plugin lacks packaged agents: {', '.join(missing)}",
                                             "update the dotbrain plugin"))
                 return findings
-        return [Finding("warn", f"{runtime}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
+        return [Finding("warn", f"{label}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
     except DIAGNOSIS_ERRORS as exc:
-        return [Finding("warn", f"{runtime}: plugin installation check unavailable: {exc}", "inspect the runtime plugin manager")]
+        return [Finding("warn", f"{label}: plugin installation check unavailable: {exc}", "inspect the runtime plugin manager")]
 
 
 def _check_machine(root: Path, home: Path) -> list[Finding]:
@@ -138,17 +139,24 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
             configured.update(cfg.targets)
-            targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False)
+            notices = []
+            errors = []
             if kind == "skills" and cursor.global_delivery(root):
-                targets.setdefault("cursor", str(home / ".cursor/skills"))
-            for runtime, destination in targets.items():
+                cfg.targets.setdefault("cursor", str(home / ".cursor/skills"))
+            targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False,
+                                            profiles=cfg.profiles if kind == "skills" else None, notices=notices, errors=errors)
+            findings.extend(Finding("info", notice) for notice in notices)
+            findings.extend(Finding("error", error, "correct the global skills destination") for error in errors)
+            for runtime, destination in ((key, folder) for key, folders in targets.items() for folder in folders):
                 recognized = runtimes.find(runtime)
                 if recognized is None or recognized.key != runtime or (kind == "agents" and not recognized.subagents):
                     # A newer dotbrain sharing this home may know it; delivery skips it.
                     findings.append(Finding("warn", f"unsupported global {kind} runtime skipped: {runtime}",
                                             "correct global asset targets or upgrade dotbrain"))
                     continue
-                receiver = adopter_repos.expand_path(destination, home=home)
+                receiver = destination
+                if kind == "skills" and runtime == "claude-code":
+                    findings.extend(_check_plugin(home, runtime, runtime_home=receiver.parent))
                 if runtime == "cursor" and kind == "skills":
                     findings.extend(_check_cursor_skills(root, cfg.global_extra, (home,)))
                 else:
@@ -156,7 +164,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
-        if rt.hooks and not rt.home_env and rt.name != "cursor":
+        if rt.hooks and not rt.home_env and rt.name not in ("cursor", "claude"):
             findings.extend(_check_plugin(home, rt.key))
         # An owned copy or a configured global target both mean this machine expects the plugin;
         # that copy, current (and enabled, for Hermes), is also what delivers the session hooks.

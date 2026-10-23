@@ -163,13 +163,23 @@ under `~/dotbrain/skills/`:
 ```yaml
 # ~/dotbrain/skills/skills.yaml
 version: 1
-targets:
-  claude-code: ~/.claude/skills
-  codex: ~/.codex/skills
+profiles:
+  claude-code: [~/.claude-work]
+  codex: [~/.codex-work]
 global_extra:
   - my-collection/my-skill
   - another-collection        # select every descendant skill
 ```
+
+Claude Code and Codex receive skills in `<home>/skills` for their default homes (`~/.claude`
+and `~/.codex`) and each extra home listed in `profiles`. Missing profile homes are silently
+skipped, so the file can be shared across machines. Other runtimes retain their existing
+relocation and plugin installation requirements and do not accept profiles.
+
+Homes inside a wired checkout or worktree are rejected before their links are changed; symlinked
+home directories are supported. Doctor also checks the dotbrain plugin in each Claude Code home.
+Legacy `targets` entries matching the default skills folder are ignored. A custom skills target
+uses its parent as an extra home and prints a notice to move that home to `profiles`.
 
 An entry containing `SKILL.md` selects that one skill. Otherwise its directory expands recursively
 to descendants containing `SKILL.md`, excluding `node_modules`. Overlapping entries selecting the

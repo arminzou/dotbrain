@@ -335,9 +335,8 @@ Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目�
 dotbrain bootstrap --runtime hermes
 ```
 
-如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `hermes`，bootstrap 会自动设置 Hermes，
-并把 `hermes` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
-`hermes` 但还没设置时，它只会提示这条命令。
+首次设置请运行 `dotbrain bootstrap --runtime hermes`。不带参数的 `dotbrain bootstrap` 发现
+Hermes 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
 
 这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
 `hermes plugins enable dotbrain`。如果 `PATH` 里找不到 `hermes`，或者这条命令失败了，就自己运行
@@ -424,9 +423,8 @@ OpenCode 没有 dotbrain 的 marketplace，plugin 由 CLI 复制到 OpenCode 的
 dotbrain bootstrap --runtime opencode
 ```
 
-如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `opencode`，bootstrap 会自动设置 OpenCode，
-并把 `opencode` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
-`opencode` 但还没设置时，它只会提示这条命令。
+首次设置请运行 `dotbrain bootstrap --runtime opencode`。不带参数的 `dotbrain bootstrap` 发现
+OpenCode 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
 
 这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
 `~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了
@@ -528,9 +526,8 @@ Pi 没有 dotbrain 的 marketplace，扩展由 CLI 复制到 Pi 的 Agent 目录
 dotbrain bootstrap --runtime pi
 ```
 
-如果第一次运行 `dotbrain bootstrap` 时 `PATH` 里已经有 `pi`，bootstrap 会自动设置 Pi，
-并把 `pi` 加进 `skills/skills.yaml` 的 `targets:`。之后 bootstrap 不会擅自添加运行时：发现已安装
-`pi` 但还没设置时，它只会提示这条命令。
+首次设置请运行 `dotbrain bootstrap --runtime pi`。不带参数的 `dotbrain bootstrap` 发现
+Pi 已安装但还没设置时，会提示这条命令，不会在配置中写入目标。
 
 这会把扩展连同打包的技能复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
 则复制到 `$PI_CODING_AGENT_DIR/extensions/dotbrain/`。在 Windows 上，`~` 指 `%USERPROFILE%`。你在
@@ -627,8 +624,8 @@ dotbrain bootstrap --runtime cursor
 这会在 `~/.cursor/hooks.json` 里加入三个 dotbrain hook；文件不存在时会创建它，你自己的 hook 会保留。在 Windows 上，
 `~` 指 `%USERPROFILE%`。如果你的 dotbrain Claude Code plugin 已安装、已启用且是最新的，Cursor 从它那里获取 dotbrain
 打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `skills/skills.yaml` 里选的全局技能会
-链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。和 Hermes、
-OpenCode、Pi 不同，第一次运行 `dotbrain bootstrap` 不会自动设置 Cursor；需要用 `--runtime cursor` 运行一次。
+链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。
+首次设置需要运行 `dotbrain bootstrap --runtime cursor`。
 
 hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了
 dotbrain Claude Code plugin 时，Cursor 也会加载它的 hook；dotbrain 让这些 hook 在 Cursor 下什么都不做，所以每个事件只运行一次。

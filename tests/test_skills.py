@@ -88,7 +88,8 @@ def test_load_global_config_rejects_bad_targets(tmp_path: Path):
 
 
 def test_render_global_config_empty_global_extra():
-    text = skills.render_global_config({"codex": "~/.codex/skills"}, [])
+    text = skills.render_global_config([])
+    assert "targets:" not in text
     assert "global_baseline:" not in text
     assert "project_baseline:" not in text
     assert "global_extra: []" in text

@@ -1,4 +1,5 @@
 """Scoped asset reconciliation and local catalogs shared by CLI and lifecycle callers."""
+import os
 from pathlib import Path
 
 from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, runtimes, skills, subagents
@@ -79,32 +80,60 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
-def detected_targets(user_home: Path) -> dict[str, str]:
-    """Global skill targets of the installed runtimes that opt in by plugin copy, as seeded config lines."""
-    targets = {}
-    for rt in runtimes.RUNTIMES.values():
-        if rt.home_env and runtimes.installed(rt):
-            directory = HOME_DELIVERY[rt.name].skills_dir(runtimes.user_dir(rt, user_home))
-            try:
-                targets[rt.key] = "~/" + directory.relative_to(user_home).as_posix()
-            except ValueError:  # relocated outside the home
-                targets[rt.key] = str(directory)
-    return targets
-
-
-def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool) -> dict[str, str]:
-    """Configured global targets, plus the home target of each opted-in relocatable runtime.
+def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
+                   errors: list[str],
+                   profiles: dict[str, list[str]] | None = None,
+                   notices: list[str] | None = None) -> dict[str, tuple[Path, ...]]:
+    """Resolve global folders, including existing profiles, before any delivery or pruning.
 
     Such a runtime (Hermes, OpenCode, Pi) is opted in by an explicit --runtime request or by an
     existing owned plugin copy, so later unfiltered runs keep its delivery current.
     """
     targets = dict(configured)
+    selected = tuple(selected)
     for rt in selected:
         directory = runtimes.user_dir(rt, user_home)
         if (rt.home_env and rt.key not in targets and kind == "skills"
                 and (explicit or HOME_DELIVERY[rt.name].owned(directory))):
             targets[rt.key] = str(HOME_DELIVERY[rt.name].skills_dir(directory))
-    return targets
+    destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
+    if kind != "skills":
+        return destinations
+    settings = {}
+    for rt in selected:
+        if rt.key not in ("claude-code", "codex"):
+            continue
+        default = runtimes.user_dir(rt, user_home)
+        homes = [(default, f"default {rt.key} home")]
+        legacy = adopter_repos.expand_path(configured.get(rt.key, f"~/{rt.workspace}/skills").replace("\\", "/"), home=user_home)
+        if legacy.resolve() != (default / "skills").resolve():
+            homes.append((legacy.parent, f"skills.yaml targets.{rt.key}"))
+            if notices is not None:
+                notices.append(f"skills.yaml targets.{rt.key}: move {legacy.parent} to profiles.{rt.key}")
+        homes.extend((adopter_repos.expand_path(value, home=user_home), f"skills.yaml profiles.{rt.key}")
+                     for value in (profiles or {}).get(rt.key, ()))
+        folders = []
+        for directory, setting in homes:
+            if directory != default and not directory.is_dir():
+                continue
+            folder = directory / "skills"
+            folders.append(folder)
+            settings[(rt.key, folder)] = setting
+        destinations[rt.key] = tuple(folders)
+    for rt in selected:
+        safe = []
+        for folder in destinations.get(rt.key, ()):
+            # Check the home too: a skills symlink must not hide a checkout marker above it.
+            resolved_paths = (folder.parent.resolve(), folder.resolve())
+            if any(os.path.lexists(parent / ".brain") for resolved in resolved_paths
+                   for parent in (resolved, *resolved.parents)):
+                setting = settings.get((rt.key, folder), f"skills.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
+                errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global skills destination outside it")
+            elif folder.resolve() not in {p.resolve() for p in safe}:
+                safe.append(folder)
+        if rt.key in destinations:
+            destinations[rt.key] = tuple(safe)
+    return destinations
 
 
 def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path | None = None,
@@ -115,22 +144,25 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
            else subagents.load_global_config(home))
     user_home = user_home or Path.home()
-    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all")
+    notices = []
+    errors = []
     if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
-        targets.setdefault("cursor", str(user_home / ".cursor/skills"))
+        cfg.targets.setdefault("cursor", str(user_home / ".cursor/skills"))
+    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
+                             profiles=cfg.profiles if kind == "skills" else None, notices=notices, errors=errors)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known
     if any(k not in targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
-    result = skills.LinkResult(notices=[f"unsupported global {kind} runtime skipped: {k}"
+    result = skills.LinkResult(warnings=errors, notices=notices + [f"unsupported global {kind} runtime skipped: {k}"
                                         for k in targets if runtime == "all" and k not in keys])
     if kind == "skills" and runtime == "all":
         # Installed but never set up: say how, rather than deliver unasked and undo a removal.
         result.notices += [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"
                            for rt in selected if rt.home_env and rt.key not in targets and runtimes.installed(rt)]
-    destinations = {k: adopter_repos.expand_path(targets[k], home=user_home) for k in keys}
-    for dest in destinations.values():
+    destinations = [(k, dest) for k in keys for dest in targets[k]]
+    for _, dest in destinations:
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
             result.warnings.append(f"{dest}: foreign asset directory conflicts with delivery")
             return result
@@ -141,8 +173,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             result.warnings.extend(errors)
             return result
         resolved = {name: subagents._resolve_subagent_files(home, name) for name in cfg.global_names}
-    for k in keys:
-        dest = destinations[k]
+    for k, dest in destinations:
         if kind == "skills":
             linked = (cursor.deliver(home, dest, cfg.global_extra, scopes=(user_home,), global_scope=True) if k == "cursor" else
                       skills.link_into(home, dest, cfg.global_extra, label=k, prune_owned_only=True, preserve_collisions=True))
