@@ -23,6 +23,8 @@ def check(item: str, branch: str | None = None, *, repo: Path | None = None,
         return response.stdout.strip()
 
     try:
+        repo = Path(read(["git", "rev-parse", "--show-toplevel"])).resolve()
+        target.checkout = str(repo)
         branch = branch or read(["git", "symbolic-ref", "--quiet", "--short", "HEAD"])
         target.data["branch"] = branch
         records = json.loads(read(["bd", "--readonly", "show", "--json", "--", item]))

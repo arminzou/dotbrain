@@ -15,13 +15,18 @@ def pushed_sequence():
 
 
 class ReadOnlyRunner:
-    def __init__(self, metadata, head="a" * 40, branch="feature/search"):
+    def __init__(self, metadata, head="a" * 40, branch="feature/search", root=None):
         self.metadata, self.head, self.branch = metadata, head, branch
+        self.root = root
         self.calls = []
+        self.locations = []
 
     def __call__(self, argv, **kwargs):
         self.calls.append(argv)
-        if argv[:3] == ["bd", "--readonly", "show"]:
+        self.locations.append((kwargs["cwd"], kwargs["env"]["BEADS_DIR"]))
+        if argv == ["git", "rev-parse", "--show-toplevel"]:
+            output = str(self.root or kwargs["cwd"])
+        elif argv[:3] == ["bd", "--readonly", "show"]:
             output = json.dumps([{"id": "sample-ab12", "metadata": self.metadata}])
         elif argv == ["git", "symbolic-ref", "--quiet", "--short", "HEAD"]:
             output = self.branch
@@ -73,6 +78,17 @@ def test_first_and_second_pushed_commit_fail(tmp_path, pushed_sequence):
             assert "refresh review and checks" in result.targets[0].errors[0]
 
 
+def test_nested_checkout_resolves_tracker_root(tmp_path):
+    nested = tmp_path / "src"
+    nested.mkdir()
+    run = ReadOnlyRunner(review(), root=tmp_path)
+    result = accepted_head.check("sample-ab12", repo=nested, run=run)
+    assert result.status == "success"
+    assert result.targets[0].checkout == str(tmp_path)
+    assert all(cwd == tmp_path and directory == str(tmp_path / ".beads")
+               for cwd, directory in run.locations[1:])
+
+
 @pytest.mark.parametrize("branch", ["sample-ab12", "fix/sample-ab12.2-search", "repair-sample-ab12"])
 def test_private_branch_name(tmp_path, branch):
     result = accepted_head.check("sample-ab12", branch, repo=tmp_path, run=ReadOnlyRunner(review()))
@@ -97,6 +113,8 @@ def test_explicit_branch_and_cli_json(tmp_path, monkeypatch):
 @pytest.mark.parametrize("output,code", [("broken", 0), ("[]", 0), ("", 1)])
 def test_unavailable_inputs(tmp_path, output, code):
     def run(argv, **kwargs):
+        if argv == ["git", "rev-parse", "--show-toplevel"]:
+            return subprocess.CompletedProcess(argv, 0, str(tmp_path), "")
         assert argv[0] == "bd"
         return subprocess.CompletedProcess(argv, code, output, "unavailable" if code else "")
     result = accepted_head.check("sample-ab12", "feature/search", repo=tmp_path, run=run)
