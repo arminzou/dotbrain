@@ -321,8 +321,9 @@ dotbrain detach --runtime claude
 dotbrain detach --runtime codex
 ```
 
-之后从 `skills/skills.yaml` 里删掉对应目标，避免以后 bootstrap 恢复链接。
-这只会移除 dotbrain 创建的全局技能链接。插件仍需通过 marketplace 卸载：Claude Code 使用
+这会移除默认 home 和已配置且存在的 profile home 里 dotbrain 创建的全局技能链接。
+之后运行 bootstrap 仍会链接选中的 `global_extra` 技能；要停止向额外的 profile 交付，从
+`skills/skills.yaml` 中移除该 profile。插件仍需通过 marketplace 卸载：Claude Code 使用
 `/plugin uninstall dotbrain@dotbrain`，Codex 使用 `codex plugin remove dotbrain@dotbrain`。
 项目 checkout 的连接不变；需要移除时，对每个 checkout 运行 `dotbrain unwire`。
 
@@ -408,8 +409,8 @@ hermes skills untrust ~/repos/my-app
 dotbrain detach --runtime hermes
 ```
 
-之后从 `skills/skills.yaml` 里删掉 `hermes` 目标（如果有），避免以后 bootstrap 又把它装回来。
 这会移除 dotbrain 的插件副本和全局技能链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
+之后不带参数的 bootstrap 不会再给 Hermes 交付，直到你再次运行 `dotbrain bootstrap --runtime hermes`。
 
 ## OpenCode {#opencode}
 
@@ -500,8 +501,8 @@ OpenCode 在启动时加载 plugin，所以要重启 OpenCode 才能用上更新
 dotbrain detach --runtime opencode
 ```
 
-之后从 `skills/skills.yaml` 里删掉 `opencode` 目标（如果有），避免以后 bootstrap 又把它装回来。
 这会移除 dotbrain 的插件文件、技能副本及全局技能链接，保留你自己的文件。之后重启 OpenCode。
+之后不带参数的 bootstrap 不会再给 OpenCode 交付，直到你再次运行 `dotbrain bootstrap --runtime opencode`。
 
 ## Pi {#pi}
 
@@ -583,8 +584,8 @@ Pi 在启动时加载扩展，所以要重启 Pi 才能用上更新。
 dotbrain detach --runtime pi
 ```
 
-之后从 `skills/skills.yaml` 里删掉 `pi` 目标（如果有），避免以后 bootstrap 又把它装回来。
 这会移除 dotbrain 的扩展副本及全局技能链接，保留你自己的文件。之后重启 Pi。
+之后不带参数的 bootstrap 不会再给 Pi 交付，直到你再次运行 `dotbrain bootstrap --runtime pi`。
 
 ## Cursor {#cursor}
 
@@ -666,8 +667,8 @@ dotbrain refresh --all
 dotbrain detach --runtime cursor
 ```
 
-之后从 `skills/skills.yaml` 里删掉 `cursor` 目标（如果有），避免以后 bootstrap 又把它装回来。
 这会移除 dotbrain 的用户 hook、技能副本和全局技能链接，保留其他条目。项目 checkout 的连接不变。
+之后不带参数的 bootstrap 不会再给 Cursor 交付，直到你再次运行 `dotbrain bootstrap --runtime cursor`。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

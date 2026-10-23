@@ -12,7 +12,6 @@ The subprocess seams take an injected ``run`` callable so tests record argv inst
 
 from __future__ import annotations
 
-import os
 import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
@@ -80,14 +79,12 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
         report.targets.append(target)
         directory = runtimes.user_dir(rt, user_home)
         module = assets.HOME_DELIVERY.get(rt.name)
-        default = module.skills_dir(directory) if rt.home_env else user_home / rt.workspace / "skills"
-        destinations = dict.fromkeys((default, adopter_repos.expand_path(cfg.targets.get(rt.key, str(default)), home=user_home)))
         try:
-            for dest in destinations:
-                resolved = dest.resolve()
-                if os.path.lexists(resolved.parent.parent / ".brain"):
-                    target.findings.append({"severity": "warning", "message": f"{dest}: project checkout; skipping"})
-                    continue
+            destinations = assets.global_targets(cfg.targets, (rt,), "skills", user_home, explicit=True,
+                                                  errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
+            if target.errors:
+                target.status = "failure"
+            for dest in destinations.get(rt.key, ()):
                 if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
                     target.findings.append({"severity": "warning", "message": f"{dest}: foreign skill directory; skipping"})
                     continue

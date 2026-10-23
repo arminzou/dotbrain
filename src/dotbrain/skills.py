@@ -237,7 +237,7 @@ def link_into(
         if dest.is_symlink() and dest.resolve() == src.resolve():
             continue
         owned = dest.is_symlink() and (
-            _points_into(dest, private_root) or _points_into(dest, cache_root)
+            any(_points_into(dest, root) for root in (private_root, cache_root, *owned_roots))
         )
         if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
             result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
@@ -259,7 +259,7 @@ def link_into(
         if not entry.is_symlink() or entry.name in wanted:
             continue
         if prune_owned_only and not any(
-            _points_into(entry, root) for root in (private_root, cache_root)
+            _points_into(entry, root) for root in (private_root, cache_root, *owned_roots)
         ):
             continue
         entry.unlink()

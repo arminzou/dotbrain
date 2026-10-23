@@ -340,8 +340,9 @@ dotbrain detach --runtime claude
 dotbrain detach --runtime codex
 ```
 
-Afterwards, remove its target from `skills/skills.yaml` to prevent a later bootstrap from restoring
-links. This removes only dotbrain's global skill links. Remove the marketplace plugin separately:
+This removes dotbrain's global skill links from the default home and existing configured profiles.
+A later bootstrap links selected `global_extra` skills again; remove an extra profile from
+`skills/skills.yaml` to stop delivery to that profile. Remove the marketplace plugin separately:
 `/plugin uninstall dotbrain@dotbrain` in Claude Code, or `codex plugin remove dotbrain@dotbrain`
 for Codex. Project checkout wiring is unchanged; run `dotbrain unwire` in each checkout to remove it.
 
@@ -430,9 +431,9 @@ To remove machine-wide delivery from Hermes, run:
 dotbrain detach --runtime hermes
 ```
 
-Afterwards, remove any `hermes` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
 This removes dotbrain's plugin copy and global skill links. It first tries to disable the
-plugin when Hermes is available; a failed disable warns and removal continues.
+plugin when Hermes is available; a failed disable warns and removal continues. Unfiltered bootstrap
+leaves Hermes alone until you run `dotbrain bootstrap --runtime hermes` again.
 
 ## OpenCode {#opencode}
 
@@ -531,9 +532,9 @@ To remove machine-wide delivery from OpenCode, run:
 dotbrain detach --runtime opencode
 ```
 
-Afterwards, remove any `opencode` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
 This removes dotbrain's owned plugin file, packaged skills, and global skill links, preserving
-your own files. Restart OpenCode afterwards.
+your own files. Unfiltered bootstrap leaves OpenCode alone until you run
+`dotbrain bootstrap --runtime opencode` again. Restart OpenCode afterwards.
 
 ## Pi {#pi}
 
@@ -622,9 +623,9 @@ To remove machine-wide delivery from Pi, run:
 dotbrain detach --runtime pi
 ```
 
-Afterwards, remove any `pi` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
 This removes dotbrain's owned extension copy and global skill links, preserving
-your own files. Restart Pi afterwards.
+your own files. Unfiltered bootstrap leaves Pi alone until you run
+`dotbrain bootstrap --runtime pi` again. Restart Pi afterwards.
 
 ## Cursor {#cursor}
 
@@ -717,9 +718,9 @@ To remove machine-wide delivery from Cursor, run:
 dotbrain detach --runtime cursor
 ```
 
-Afterwards, remove any `cursor` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
 This removes dotbrain's user hooks, owned skill bundle, and global skill links, preserving
-other entries. Project checkout wiring is unchanged.
+other entries. Unfiltered bootstrap leaves Cursor alone until you run
+`dotbrain bootstrap --runtime cursor` again. Project checkout wiring is unchanged.
 
 ## Edit Config Only When Needed
 

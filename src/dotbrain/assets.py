@@ -81,7 +81,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
 
 
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
-                   errors: list[str],
+                   errors: list[str], dotbrain_home: Path,
                    profiles: dict[str, list[str]] | None = None,
                    notices: list[str] | None = None) -> dict[str, tuple[Path, ...]]:
     """Resolve global folders, including existing profiles, before any delivery or pruning.
@@ -92,10 +92,15 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
     targets = dict(configured)
     selected = tuple(selected)
     for rt in selected:
+        if kind != "skills" or rt.name not in HOME_DELIVERY:
+            continue
         directory = runtimes.user_dir(rt, user_home)
-        if (rt.home_env and rt.key not in targets and kind == "skills"
-                and (explicit or HOME_DELIVERY[rt.name].owned(directory))):
-            targets[rt.key] = str(HOME_DELIVERY[rt.name].skills_dir(directory))
+        owned = cursor.global_delivery(dotbrain_home) if rt.name == "cursor" else HOME_DELIVERY[rt.name].owned(directory)
+        if not explicit and not owned:
+            targets.pop(rt.key, None)
+            continue
+        destination = HOME_DELIVERY[rt.name].skills_dir(directory) if rt.home_env else user_home / ".cursor/skills"
+        targets.setdefault(rt.key, str(destination))
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
     settings = {}
     for rt in selected:
@@ -145,10 +150,8 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     user_home = user_home or Path.home()
     notices = []
     errors = []
-    if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
-        cfg.targets.setdefault("cursor", str(user_home / ".cursor/skills"))
     targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
-                             profiles=profiles, notices=notices, errors=errors)
+                             profiles=profiles, notices=notices, errors=errors, dotbrain_home=home)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known
@@ -159,7 +162,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     if kind == "skills" and runtime == "all":
         # Installed but never set up: say how, rather than deliver unasked and undo a removal.
         result.notices += [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"
-                           for rt in selected if rt.home_env and rt.key not in targets and runtimes.installed(rt)]
+                           for rt in selected if rt.name in HOME_DELIVERY and rt.key not in targets and runtimes.installed(rt)]
     destinations = [(k, dest) for k in keys for dest in targets[k]]
     for _, dest in destinations:
         if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
