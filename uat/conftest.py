@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from backends import Backend, HostBackend
+from backends import Backend, HostBackend, remove_tree
 from observe import changed, fingerprint, nonce
 
 REPO = Path(__file__).resolve().parent.parent
@@ -141,21 +141,43 @@ def sandbox(request, tmp_path):
 
     roots = live_roots(runtime)
     before = fingerprint(roots)
-    backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv)
+    root = tmp_path / "sandbox"
+
+    # Registered before the sandbox exists, so a failing construction, preparation or journey still
+    # removes it and still reports every isolation violation, beside the original failure.
+    def finalize():
+        problems = close_sandbox(root, credentials.values(), roots, before)
+        assert not problems, "\n".join(problems)
+
+    request.addfinalizer(finalize)
+    backend = HostBackend(root, repo=REPO, uv=uv, credential_vars=PROVIDER_KEYS.values())
     session = Sandbox(backend, exe, model, credentials, nonce("convention"), nonce("reference"))
+    prepared = backend.run([backend.python, str(PREPARE), "--runtime", runtime, "--checkout", backend.checkout,
+                            "--convention-nonce", session.convention_nonce,
+                            "--reference-nonce", session.reference_nonce], timeout=300)
+    assert prepared.returncode == 0, prepared.stdout + prepared.stderr
+    props.append(("runtime_version", backend.run([exe, "--version"]).stdout.strip()))
+    return session
+
+
+def close_sandbox(root: Path, secrets, roots, before) -> list[str]:
+    """Scan for leaked credentials, remove the sandbox, and compare the live roots; each step runs
+    whatever the others did. Returns every violation found."""
     problems = []
     try:
-        backend.run([backend.python, str(PREPARE), "--runtime", runtime, "--checkout", backend.checkout,
-                     "--convention-nonce", session.convention_nonce, "--reference-nonce", session.reference_nonce],
-                    timeout=300).check_returncode()
-        props.append(("runtime_version", backend.run([exe, "--version"]).stdout.strip()))
-        yield session
-    finally:
-        for secret in credentials.values():
-            problems += [f"credential written to {path}" for path in leaks(backend.root, secret)]
-        backend.teardown()
+        for secret in secrets:
+            problems += [f"credential written to {path}" for path in leaks(root, secret)]
+    except Exception as error:  # noqa: BLE001 - the remaining checks must still run
+        problems.append(f"credential scan failed: {error!r}")
+    try:
+        remove_tree(root)
+    except Exception as error:  # noqa: BLE001
+        problems.append(f"sandbox not removed: {root}: {error!r}")
+    try:
         problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots))]
-    assert not problems, "\n".join(problems)
+    except Exception as error:  # noqa: BLE001
+        problems.append(f"isolation guard failed: {error!r}")
+    return problems
 
 
 # Result stamping. Workers forward their reports to the controller, which writes the results file.
