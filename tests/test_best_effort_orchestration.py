@@ -74,7 +74,7 @@ def test_pull_beads_syncs_metadata_from_dotbrain_defaults(
 def test_pull_beads_syncs_repo_less_brainspace(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    # Regression (dotbrain-o71): a Brainspace with no wired code repo must still be synced.
+    # Regression: a Brainspace with no wired code repo must still be synced.
     _write_server_defaults(dotbrain_home, "brain-only")
     brainspace = paths.brainspace(dotbrain_home, "brain-only")
     beads = brainspace / ".beads"

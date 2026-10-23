@@ -152,7 +152,7 @@ Public `RULES.md` holds repository requirements; private preferences stay privat
 See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,
-`dotbrain refresh` maintains that checkout and `dotbrain unwire` detaches it while retaining the
+`dotbrain refresh` maintains that checkout and `dotbrain unwire` removes its wiring while retaining the
 shared Brainspace. From elsewhere, select `--project <name>`; use `refresh --all` for registered
 projects. Machine-global asset reconciliation is explicit: `skills link --scope global` or
 `agents link --scope global`.
