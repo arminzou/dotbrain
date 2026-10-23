@@ -324,3 +324,62 @@ def test_project_doctor_informs_only_about_explicit_unset_runtimes(explicit, dot
         ("info", f"{rt.label} is declared but not set up on this machine; "
          f"run `dotbrain bootstrap --runtime {rt.name}` to set it up.")
         for rt in runtimes.RUNTIMES.values() if explicit]
+
+
+@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi"))
+@pytest.mark.parametrize("configured", (False, True))
+def test_relocated_checkout_home_preserved_during_detach(runtime, configured, dotbrain_home, fake_home, tmp_path, monkeypatch):
+    rt = runtimes.find(runtime)
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    (checkout / ".brain").touch()
+    monkeypatch.setenv(rt.home_env, str(checkout / "nested/runtime"))
+    directory = runtimes.user_dir(rt, fake_home)
+    module = assets.HOME_DELIVERY[runtime]
+    module.deliver(directory, run=lambda *args, **kwargs: None)
+    before = {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()}
+    safe = fake_home / ".claude/skills"
+    safe.mkdir(parents=True)
+    (safe / "owned").symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
+    if configured:
+        (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  {runtime}: {tmp_path.as_posix()}/global-skills\n")
+
+    result = workflows.detach_runtime(dotbrain_home, "all", home=fake_home)
+
+    target = next(t for t in result.targets if t.data["runtime"] == runtime)
+    assert result.status == "partial"
+    assert target.status == "failure" and not target.changes
+    assert len(target.errors) == 1
+    assert rt.home_env in target.errors[0] and "inside a wired checkout" in target.errors[0]
+    assert {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()} == before
+    assert not (safe / "owned").is_symlink()
+
+
+@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi"))
+@pytest.mark.parametrize("configured", (False, True))
+def test_bootstrap_skips_owned_copy_in_relocated_checkout_home(runtime, configured, dotbrain_home, fake_home, tmp_path, monkeypatch):
+    rt = runtimes.find(runtime)
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    (checkout / ".brain").symlink_to(tmp_path / "missing-brain", target_is_directory=True)
+    monkeypatch.setenv(rt.home_env, str(checkout / "nested/runtime"))
+    directory = runtimes.user_dir(rt, fake_home)
+    config = f"targets:\n  {runtime}: {tmp_path.as_posix()}/global-skills\n" if configured else ""
+    (dotbrain_home / "skills/skills.yaml").write_text(config + "global_extra: [misc/discovery-test]\n")
+
+    explicit = bootstrap.link_global_skills(dotbrain_home, runtime, home=fake_home)
+
+    assert len(explicit.warnings) == 1
+    assert rt.home_env in explicit.warnings[0] and "inside a wired checkout" in explicit.warnings[0]
+    assert not directory.exists()  # Explicit setup must not create the owned copy.
+    # An existing owned copy opts an unfiltered bootstrap in, but must still be left alone.
+    module = assets.HOME_DELIVERY[runtime]
+    bundle = opencode.packaged_dir(directory) if runtime == "opencode" else module.plugin_dir(directory)
+    bundle.mkdir(parents=True)
+    (bundle / owned_copy.MARKER).touch()
+    result = bootstrap.link_global_skills(dotbrain_home, home=fake_home)
+
+    assert len(result.warnings) == 1 and rt.home_env in result.warnings[0]
+    assert list(bundle.iterdir()) == [bundle / owned_copy.MARKER]
+    assert (fake_home / ".claude/skills/discovery-test").is_symlink()
+    assert not (tmp_path / "global-skills").exists()

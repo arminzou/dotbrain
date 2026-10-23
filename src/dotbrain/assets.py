@@ -80,6 +80,12 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
+def inside_wired_checkout(path: Path) -> bool:
+    """Whether the resolved path or an ancestor has a checkout's Brain entry."""
+    resolved = path.resolve()
+    return any(os.path.lexists(parent / ".brain") for parent in (resolved, *resolved.parents))
+
+
 def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
                    errors: list[str], dotbrain_home: Path,
                    profiles: dict[str, list[str]] | None = None,
@@ -124,12 +130,16 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
             settings[(rt.key, folder)] = setting
         destinations[rt.key] = tuple(folders)
     for rt in selected:
+        if rt.home_env and rt.key in destinations:
+            directory = runtimes.user_dir(rt, user_home)
+            if inside_wired_checkout(directory):
+                errors.append(f"{rt.home_env}: {directory} is inside a wired checkout; choose a runtime home outside it")
+                destinations[rt.key] = ()
+                continue
         safe = []
         for folder in destinations.get(rt.key, ()):
             # Check the home too: an asset symlink must not hide a checkout marker above it.
-            resolved_paths = (folder.parent.resolve(), folder.resolve())
-            if any(os.path.lexists(parent / ".brain") for resolved in resolved_paths
-                   for parent in (resolved, *resolved.parents)):
+            if inside_wired_checkout(folder.parent) or inside_wired_checkout(folder):
                 setting = settings.get((rt.key, folder), f"{kind}.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
                 errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:

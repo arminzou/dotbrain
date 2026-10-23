@@ -84,6 +84,8 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
                                                   errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
             if target.errors:
                 target.status = "failure"
+            if rt.home_env and assets.inside_wired_checkout(directory):
+                continue
             for dest in destinations.get(rt.key, ()):
                 if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
                     target.findings.append({"severity": "warning", "message": f"{dest}: foreign skill directory; skipping"})
