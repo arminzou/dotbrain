@@ -15,27 +15,32 @@ def pushed_sequence():
 
 
 class ReadOnlyRunner:
-    def __init__(self, metadata, head="a" * 40, branch="feature/search", root=None):
+    def __init__(self, metadata, head="a" * 40, branch="feature/search", root=None,
+                 items=("sample-ab12", "sample-ab12.2", "sample-cd34")):
         self.metadata, self.head, self.branch = metadata, head, branch
-        self.root = root
+        self.root, self.items = root, items
         self.calls = []
         self.locations = []
 
     def __call__(self, argv, **kwargs):
         self.calls.append(argv)
         self.locations.append((kwargs["cwd"], kwargs["env"]["BEADS_DIR"]))
+        code = 0
         if argv == ["git", "rev-parse", "--show-toplevel"]:
             output = str(self.root or kwargs["cwd"])
         elif argv[:3] == ["bd", "--readonly", "show"]:
-            output = json.dumps([{"id": "sample-ab12", "metadata": self.metadata}])
+            found = argv[-1] in self.items
+            output = json.dumps([{"id": argv[-1], "metadata": self.metadata}] if found else {"error": "not found"})
+            code = 0 if found else 1
         elif argv == ["git", "symbolic-ref", "--quiet", "--short", "HEAD"]:
-            output = self.branch
+            output, code = self.branch or "", 0 if self.branch else 1
         elif argv[:4] == ["git", "rev-parse", "--verify", "--end-of-options"]:
             output = self.head if argv[-1].startswith("refs/heads/") else "a" * 40
+            code = 0 if output else 128
         else:
             pytest.fail(f"unexpected or mutating command: {argv}")
         assert kwargs["check"] is False
-        return subprocess.CompletedProcess(argv, 0, output, "")
+        return subprocess.CompletedProcess(argv, code, output, "fatal: needed a single revision" if code else "")
 
 
 def review(**overrides):
@@ -62,6 +67,12 @@ def test_accepted_head(tmp_path, metadata):
     review(verdict="ready"), review(modes=["simplify"]), review(range=""),
     {"dotbrain_phase": "working"}, {"dotbrain_phase": "verified"},
     {"dotbrain_phase": "verified", "dotbrain_artifacts": [{"purpose": "integrated"}]},
+    review(range="1234...aaaa"), review(range="aaaa"),
+    {"dotbrain_phase": "verified", "dotbrain_artifacts": [
+        {"kind": "git-commit", "purpose": "integrated", "ref": "aaaa"},
+        {"kind": "git-commit", "purpose": "integrated", "ref": "bbbb"}]},
+    {"dotbrain_phase": "verified", "dotbrain_artifacts": [
+        {"kind": "git-branch", "purpose": "integrated", "ref": "main"}]},
 ])
 def test_missing_acceptance(tmp_path, metadata):
     result = accepted_head.check("sample-ab12", repo=tmp_path, run=ReadOnlyRunner(metadata))
@@ -89,11 +100,31 @@ def test_nested_checkout_resolves_tracker_root(tmp_path):
                for cwd, directory in run.locations[1:])
 
 
-@pytest.mark.parametrize("branch", ["sample-ab12", "fix/sample-ab12.2-search", "repair-sample-ab12"])
+@pytest.mark.parametrize("branch", ["sample-ab12", "fix/sample-ab12.2-search", "repair-sample-ab12",
+                                    "fix/sample-cd34"])
 def test_private_branch_name(tmp_path, branch):
     result = accepted_head.check("sample-ab12", branch, repo=tmp_path, run=ReadOnlyRunner(review()))
     assert result.status == "failure"
-    assert "rename the branch" in result.targets[0].errors[0]
+    assert result.targets[0].errors == ["branch name contains a work-item ID; rename the branch"]
+
+
+@pytest.mark.parametrize("branch", ["sample-docs", "fix/sample-login", "sample-ab"])
+def test_ordinary_branch_with_tracker_prefix(tmp_path, branch):
+    run = ReadOnlyRunner(review(), branch=branch)
+    assert accepted_head.check("sample-ab12", repo=tmp_path, run=run).status == "success"
+    assert ["bd", "--readonly", "show", "--json", "--", branch.split("/")[-1]] in run.calls
+
+
+def test_detached_head_asks_for_branch(tmp_path):
+    result = accepted_head.check("sample-ab12", repo=tmp_path, run=ReadOnlyRunner(review(), branch=None))
+    assert result.status == "failure"
+    assert result.targets[0].errors == ["HEAD is detached; pass --branch to name the branch to check"]
+
+
+def test_missing_local_branch(tmp_path):
+    result = accepted_head.check("sample-ab12", "gone", repo=tmp_path, run=ReadOnlyRunner(review(), head=""))
+    assert result.status == "failure"
+    assert result.targets[0].errors == ["local branch gone does not exist"]
 
 
 def test_explicit_branch_and_cli_json(tmp_path, monkeypatch):
@@ -119,4 +150,4 @@ def test_unavailable_inputs(tmp_path, output, code):
         return subprocess.CompletedProcess(argv, code, output, "unavailable" if code else "")
     result = accepted_head.check("sample-ab12", "feature/search", repo=tmp_path, run=run)
     assert result.status == "failure"
-    assert "refresh review and checks" in result.targets[0].errors[0]
+    assert result.targets[0].errors and "refresh" not in result.targets[0].errors[0]
