@@ -17,6 +17,7 @@ rule-bearing skill. They do not run in CI.
 | `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
 | `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
 | `workflow-owners` | `accepted-head-before-delivery` | Decision exercise for promotion, each reviewed-branch push, PR readiness, and check failure; unrun |
+| `workflow-owners` | `accepted-head-delivery-actions` | State scaffold observes actual check invocations before push and PR-ready actions; unrun |
 | `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
