@@ -7,11 +7,8 @@ writing worktrees; do not treat an assigned shell directory as worktree isolatio
 runtime can use the Prepare through Stop and recover sections to run Codex workers; Explorer role
 and Nested agents apply only to a Codex lead.
 
-Before launch, inspect actual CLI and native-agent capacity and apply the shared dispatch cap,
-reserving capacity for the lead and required review and verification. Count direct CLI writers
-and nested writers together. Use separate worktrees for concurrent writers, including separable
-changes to overlapping files; allocate separate mutable outputs, databases, and ports or schedule
-shared resources exclusively. Native conversation IDs and assigned paths do not prove isolation.
+Apply [capacity and isolation](parallel-execution.md#capacity-and-isolation).
+This reference supplies the runtime mechanisms only.
 
 ## Explorer role
 
@@ -61,7 +58,7 @@ Do not use an ephemeral session when same-session resume is required.
 
 ## Collect and fix
 
-Apply the shared [completion handling](../SKILL.md#completion-handling) rules when processing
+Apply the shared [completion handling](parallel-execution.md#completion-handling) rules when processing
 available results. The process checks below establish completion, not item acceptance.
 
 Wait on the retained process handle. Check process exit, session ID from `thread.started`,
@@ -71,10 +68,8 @@ Read the final response file as the worker's report. Read transcript prose and t
 when diagnosing a failure revealed by these signals. A zero exit is process evidence only;
 acceptance follows the shared contract.
 
-Once completion and termination are established, the candidate frees its writing slot for another
-eligible ready item in the fixed scope; keep the candidate's claim and original session for fixes.
-Acquire a writing slot before resume, and serialize target integration as the shared contract
-requires. These instructions do not qualify higher-fan-out or native-writer isolation.
+Apply [completion and capacity rules](parallel-execution.md#completion-handling)
+before refilling or resuming a writer. This does not qualify higher-fan-out isolation.
 
 When the installed CLI supports it, continue a stopped session with
 `codex exec resume -c model_reasoning_effort=medium <session-id> -` and the fix assignment through stdin. Run from the original

@@ -14,6 +14,7 @@ rule-bearing skill. They do not run in CI.
 | `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `closure-on-fresh-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
 | `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
 | `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
+| `execution-rules` | `parallel-reference-before-second-writer`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
 
 Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
 repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that
