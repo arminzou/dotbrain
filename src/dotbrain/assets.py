@@ -146,8 +146,8 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
 
 
 def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path | None = None,
-                run=hermes._default_run) -> skills.LinkResult:
-    selected = runtimes.select(runtime)
+                run=hermes._default_run, skip: tuple[str, ...] = ()) -> skills.LinkResult:
+    selected = tuple(rt for rt in runtimes.select(runtime) if rt.name not in skip)
     if kind == "agents" and runtime != "all" and not selected[0].subagents:
         raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
     cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
@@ -158,6 +158,8 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     errors = []
     targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
                              profiles=profiles, notices=notices, errors=errors, dotbrain_home=home)
+    for name in skip:
+        targets.pop(runtimes.find(name).key, None)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known

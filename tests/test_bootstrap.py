@@ -15,6 +15,191 @@ from dotbrain.cli import app
 from conftest import set_fake_home
 
 runner = CliRunner()
+_installed_on_path = runtimes.installed
+
+
+def test_cursor_discovery_uses_agent_command(monkeypatch):
+    import shutil
+    monkeypatch.setattr(shutil, "which", lambda command: "/fake/agent" if command == "agent" else None)
+    assert runtimes.command(runtimes.find("cursor")) == "agent"
+    assert _installed_on_path(runtimes.find("cursor"))
+
+
+def test_bootstrap_runner_bounds_and_hides_version_probe(monkeypatch):
+    import os
+    captured = {}
+
+    def run(argv, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    bootstrap_mod._default_run(["agent", "--version"], timeout=5)
+    assert captured["timeout"] == 5
+    assert captured["stdin"] == subprocess.DEVNULL
+    assert captured["creationflags"] == (subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+
+
+@pytest.mark.parametrize("answer", ["", "Y", "n", None])
+@pytest.mark.parametrize("existing_root", [False, True])
+def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
+    root, user = tmp_path / "data", tmp_path / "user"
+    if existing_root:
+        root.mkdir()
+        (root / ".git").mkdir()
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    calls, prompts = [], []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    def confirm(found, prompt):
+        prompts.append(prompt)
+        assert found == ["Hermes: ready", "OpenCode: ready", "Pi: ready", "Cursor: ready"]
+        return answer.lower() in ("", "y")
+
+    result = bootstrap_mod.prepare(root, home=user, run=run, confirm=confirm if answer is not None else None)
+    assert result.status == "success", result
+    assert len(prompts) == (0 if answer is None else 1)
+    for name, module in assets.HOME_DELIVERY.items():
+        directory = root if name == "cursor" else runtimes.user_dir(runtimes.find(name), user)
+        assert module.owned(directory) == (answer != "n")
+        text = str(result)
+        assert (f"dotbrain bootstrap --runtime {name}" if answer == "n" else
+                f"dotbrain detach --runtime {name}") in text
+    assert [argv for argv, _ in calls if argv[-1] == "--version"] == [
+        ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"], ["agent", "--version"]]
+    assert all(kwargs["timeout"] == 5 for argv, kwargs in calls if argv[-1] == "--version")
+
+
+@pytest.mark.parametrize("name", tuple(assets.HOME_DELIVERY))
+@pytest.mark.parametrize("failure", ["exit", "timeout"])
+def test_bootstrap_skips_broken_runtime(tmp_path, monkeypatch, name, failure):
+    root, user = tmp_path / "data", tmp_path / "user"
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == name)
+
+    def run(argv, **kwargs):
+        if argv[-1] == "--version":
+            if failure == "timeout":
+                raise subprocess.TimeoutExpired(argv, 5)
+            return subprocess.CompletedProcess(argv, 1)
+        return subprocess.CompletedProcess(argv, 0)
+
+    result = bootstrap_mod.prepare(root, home=user, run=run)
+    assert result.status == "success"
+    assert "skipped" in str(result)
+    assert not (root / ".cache/bootstrap-complete").exists()
+    assert not runtimes.user_dir(runtimes.find(name), user).exists()
+    assert not assets.HOME_DELIVERY[name].owned(root if name == "cursor" else user)
+
+
+def test_later_bootstrap_hints_without_prompt_or_setup(tmp_path, monkeypatch):
+    root, user = tmp_path / "data", tmp_path / "user"
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "pi")
+    bootstrap_mod.prepare(root, home=user, run=run)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in ("pi", "cursor"))
+    result = bootstrap_mod.prepare(root, home=user, run=run,
+                                   confirm=lambda *args: pytest.fail("later run prompted"))
+    assert "dotbrain bootstrap --runtime cursor" in str(result)
+    assert not (user / ".cursor").exists()
+
+
+@pytest.mark.parametrize("initial", ["detach", "decline", "empty", "upgrade"])
+@pytest.mark.parametrize("terminal", [False, True])
+def test_bootstrap_completion_survives_no_owned_delivery(tmp_path, monkeypatch, initial, terminal):
+    root, user = tmp_path / "data", tmp_path / "user"
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    marker = root / ".cache/bootstrap-complete"
+    if initial == "upgrade":
+        bootstrap_mod.ensure_data_root(root, run=run)
+        assets.link_global(root, "skills", "pi", user_home=user, run=run)
+        assert not marker.exists()
+        result = bootstrap_mod.prepare(root, home=user, run=run,
+            confirm=lambda *args: pytest.fail("upgraded machine prompted"))
+        assert "dotbrain bootstrap --runtime cursor" in str(result)
+        assert not (user / ".cursor").exists()
+    else:
+        if initial == "empty":
+            monkeypatch.setattr(runtimes, "installed", lambda rt: False)
+        result = bootstrap_mod.prepare(root, home=user, run=run,
+                                       confirm=(lambda *args: False) if initial == "decline" else None)
+    assert result.status == "success", result
+    assert marker.is_file()
+    assert "/.cache/" in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    if initial in ("detach", "upgrade"):
+        assert workflows.detach_runtime(root, "all", home=user, run=run).status == "success"
+    assert marker.is_file()
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    result = bootstrap_mod.prepare(root, home=user, run=run,
+        confirm=(lambda *args: pytest.fail("completed machine prompted")) if terminal else None)
+    assert result.status == "success", result
+    for name, module in assets.HOME_DELIVERY.items():
+        directory = root if name == "cursor" else runtimes.user_dir(runtimes.find(name), user)
+        assert not module.owned(directory)
+        assert f"dotbrain bootstrap --runtime {name}" in str(result)
+    # Explicit setup remains available after completion, including after declining.
+    result = bootstrap_mod.prepare(root, "pi", home=user, run=run,
+                                  confirm=lambda *args: pytest.fail("explicit setup prompted"))
+    assert result.status == "success", result
+    assert assets.HOME_DELIVERY["pi"].owned(runtimes.user_dir(runtimes.find("pi"), user))
+
+
+def test_cloned_home_without_cache_is_first_machine_run(dotbrain_home, tmp_path, monkeypatch):
+    import shutil
+
+    run = lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0)
+    bootstrap_mod.prepare(dotbrain_home, home=tmp_path / "first-user", run=run)
+    assert (dotbrain_home / ".cache/bootstrap-complete").is_file()
+    assert subprocess.run(["git", "check-ignore", ".cache/bootstrap-complete"], cwd=dotbrain_home,
+                          capture_output=True, check=True).returncode == 0
+    clone = tmp_path / "cloned-data"
+    shutil.copytree(dotbrain_home, clone, ignore=shutil.ignore_patterns(".cache"), symlinks=True)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "pi")
+    prompts = []
+    result = bootstrap_mod.prepare(clone, home=tmp_path / "second-user", run=run,
+                                  confirm=lambda *args: prompts.append(args) or True)
+    assert result.status == "success", result
+    assert len(prompts) == 1
+    assert "dotbrain detach --runtime pi" in str(result)
+
+
+@pytest.mark.parametrize("runtime", ["hermes", "opencode", "pi", "cursor"])
+def test_explicit_bootstrap_never_prompts(tmp_path, monkeypatch, runtime):
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    result = bootstrap_mod.prepare(tmp_path / "data", runtime, home=tmp_path / "user",
+        run=lambda argv, **kwargs: subprocess.CompletedProcess(argv, 0),
+        confirm=lambda *args: pytest.fail("explicit runtime prompted"))
+    assert result.status == "success", result
+    assert f"dotbrain detach --runtime {runtime}" in str(result)
+    for other in assets.HOME_DELIVERY:
+        if other != runtime:
+            assert f"dotbrain detach --runtime {other}" not in str(result)
+
+
+@pytest.mark.parametrize("stdin,stdout,json_output,prompt", [
+    (True, True, False, True), (False, True, False, False),
+    (True, False, False, False), (True, True, True, False),
+])
+def test_bootstrap_terminal_and_json_prompt_routing(tmp_path, monkeypatch, stdin, stdout, json_output, prompt):
+    import sys
+    from dotbrain.results import CommandResult
+
+    def prepare(*args, confirm=None, **kwargs):
+        assert (confirm is not None) == prompt
+        if confirm:
+            assert confirm(["Pi: ready"], "Set up dotbrain for Pi? [Y/n]")
+        return CommandResult("bootstrap")
+
+    monkeypatch.setattr(bootstrap_mod, "prepare", prepare)
+    monkeypatch.setattr("builtins.input", lambda: "Y")
+    # Invoke directly so CliRunner's stream replacement does not mask terminal detection.
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: stdin)
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: stdout)
+    from dotbrain.cli import bootstrap
+    bootstrap(home=tmp_path, runtime="all", json_output=json_output)
 
 
 def _make_runner(calls=None):

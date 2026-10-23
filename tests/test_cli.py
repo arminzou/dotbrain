@@ -191,12 +191,12 @@ def test_bootstrap_links_global_only(
     monkeypatch.setattr(
         bootstrap_mod,
         "link_global_skills",
-        lambda root, target: (calls.append(("global", root, target)) or bootstrap_mod.GlobalSkillBootstrapResult()),
+        lambda root, target, **kwargs: (calls.append(("global", root, target)) or bootstrap_mod.GlobalSkillBootstrapResult()),
     )
     monkeypatch.setattr(
         bootstrap_mod,
         "link_global_subagents",
-        lambda root, target: (calls.append(("global-agent", root, target)) or bootstrap_mod.GlobalSkillBootstrapResult()),
+        lambda root, target, **kwargs: (calls.append(("global-agent", root, target)) or bootstrap_mod.GlobalSkillBootstrapResult()),
     )
     project_before = sorted(str(path.relative_to(brainspace)) for path in brainspace.rglob("*"))
 

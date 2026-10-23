@@ -161,6 +161,11 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for rt in runtimes.RUNTIMES.values():
+        if rt.name in assets.HOME_DELIVERY and runtimes.installed(rt):
+            owned = (cursor.global_delivery(root) if rt.name == "cursor" else
+                     assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home)))
+            if not owned:
+                findings.append(Finding("info", f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"))
         if rt.hooks and not rt.home_env and rt.name not in ("cursor", "claude"):
             findings.extend(_check_plugin(home, rt.key))
         if rt.home_env and assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home)):

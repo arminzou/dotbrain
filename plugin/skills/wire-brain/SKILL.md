@@ -59,7 +59,8 @@ Run the installer shipped beside this skill:
 
 The installer provides `uv`, `bd`, the CLI version pinned to this plugin release, and runs
 `dotbrain bootstrap` — which creates and git-initializes the dotbrain home when it is absent. Then
-resume this skill's normal wiring flow in the current repo.
+resume this skill's normal wiring flow in the current repo. Relay bootstrap's setup list to the user,
+including which runtimes were set up and each `dotbrain detach --runtime <name>` undo command.
 
 ## Command choice
 

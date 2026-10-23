@@ -31,4 +31,8 @@ log "installing dotbrain $DOTBRAIN_VERSION"
 uv tool install --force "$DOTBRAIN_REF"
 command -v dotbrain >/dev/null 2>&1 || die "dotbrain is not on PATH; open a new shell and retry"
 uv tool list | grep -Fqx "dotbrain v$DOTBRAIN_VERSION" || die "installed dotbrain version does not match this plugin"
-dotbrain bootstrap
+if [[ -t 1 ]] && { true </dev/tty; } 2>/dev/null; then
+  dotbrain bootstrap </dev/tty
+else
+  dotbrain bootstrap
+fi
