@@ -8,7 +8,7 @@ for catalogs and project inspection. Empty lists, previews, and skipped work are
 Doctor shows problems and warnings first; use `doctor -v` to include every healthy check.
 Doctor warns when CLI and registered Claude Code plugin versions differ (upgrade both), when
 the Brain's `DOTBRAIN.md` differs from the packaged convention (run `dotbrain refresh`), and
-when an active design has a closed spec-linked epic (run `close-design` or correct the lifecycle).
+when every spec-linked epic of an active design is closed (run `close-design` or correct the lifecycle).
 Unavailable drift inputs are skipped with an explanation in verbose and JSON output.
 Runtime activation and session uncertainty are informational, shown with `doctor -v` and in
 JSON; they do not count as passed checks. Missing registered hook files and failed plugin

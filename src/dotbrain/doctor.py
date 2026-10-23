@@ -132,7 +132,7 @@ def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None)
 
 def _check_machine(root: Path, home: Path) -> list[Finding]:
     findings = [_check_binary("git"), _check_dotbrain_config(root), _check_templates(root)]
-    findings.extend(_check_plugin_version(home))
+    claude_profiles = []
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
     for kind in ("skills", "agents"):
@@ -156,12 +156,15 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                 receiver = destination
                 if kind == "skills" and runtime == "claude-code":
                     findings.extend(_check_plugin(home, runtime, runtime_home=receiver.parent))
+                    claude_profiles.append(receiver.parent)
                 if runtime == "cursor" and kind == "skills":
                     findings.extend(_check_cursor_skills(root, cfg.global_extra, (home,)))
                 else:
                     findings.extend(_check_assets(root, receiver, selected, kind, runtime))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
+    for profile in dict.fromkeys(claude_profiles or [home / ".claude"]):
+        findings.extend(_check_plugin_version(profile))
     for rt in runtimes.RUNTIMES.values():
         if rt.name in assets.HOME_DELIVERY and runtimes.installed(rt):
             owned = (cursor.global_delivery(root) if rt.name == "cursor" else
@@ -180,9 +183,10 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     return findings
 
 
-def _check_plugin_version(home: Path) -> list[Finding]:
+def _check_plugin_version(profile: Path) -> list[Finding]:
+    """Compare the CLI with the plugin registered in a Claude Code profile directory."""
     try:
-        entries = claude_plugins.installed(home / ".claude").get("dotbrain@dotbrain", [])
+        entries = claude_plugins.installed(profile).get("dotbrain@dotbrain", [])
         if not entries:
             return [Finding("info", "CLI/plugin version check skipped: Claude Code plugin registry or dotbrain entry unavailable")]
         findings = []
@@ -229,10 +233,13 @@ def _check_design_lifecycle(brainspace: Path, mode: str, run: Runner) -> list[Fi
         epics = json.loads(response.stdout)
         if not isinstance(epics, list) or any(not isinstance(epic, dict) for epic in epics):
             raise ValueError("expected a list of epics")
-        closed_specs = {epic.get("spec_id") for epic in epics if epic.get("status") == "closed"}
-        findings = [Finding("warn", f"design {path.name} is active while its spec-linked epic is closed",
+        statuses = {}
+        for epic in epics:
+            statuses.setdefault(epic.get("spec_id"), set()).add(epic.get("status"))
+        # A design with an open follow-up epic is still active.
+        findings = [Finding("warn", f"design {path.name} is active while every spec-linked epic is closed",
                             "run close-design or correct the design lifecycle")
-                    for path in active if f"design:{path.stem}" in closed_specs]
+                    for path in active if statuses.get(f"design:{path.stem}") == {"closed"}]
         return findings or [Finding("ok", "active designs have no closed spec-linked epics")]
     except DIAGNOSIS_ERRORS as exc:
         return [Finding("info", f"design lifecycle check skipped: input or tracker unavailable: {exc}")]

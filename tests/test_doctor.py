@@ -73,7 +73,7 @@ def plugin_registry(home, version):
 def test_plugin_version_skew_is_warning_and_names_fix(tmp_path):
     plugin_registry(tmp_path, "0.0.0")
     before = snapshot(tmp_path)
-    findings = doctor._check_plugin_version(tmp_path)
+    findings = doctor._check_plugin_version(tmp_path / ".claude")
     assert len(findings) == 1 and findings[0].status == "warn"
     assert "0.0.0" in findings[0].message and __version__ in findings[0].message
     assert "upgrade both" in findings[0].suggestion
@@ -86,9 +86,18 @@ def test_plugin_version_skew_is_warning_and_names_fix(tmp_path):
 def test_plugin_version_input_skips(tmp_path, registry):
     if registry is not None:
         write(tmp_path / ".claude/plugins/installed_plugins.json", registry)
-    findings = doctor._check_plugin_version(tmp_path)
+    findings = doctor._check_plugin_version(tmp_path / ".claude")
     assert findings[0].status == "info" and "skipped" in findings[0].message
     assert "unavailable" in findings[0].message
+
+
+def test_plugin_version_reads_the_configured_claude_profile(tmp_path):
+    root, home, profile = tmp_path / "root", tmp_path / "home", tmp_path / "work-profile"
+    write(root / "skills/skills.yaml", f"profiles:\n  claude-code: [{profile.as_posix()}]\n")
+    write(profile / "plugins/installed_plugins.json", json.dumps({"plugins": {
+        "dotbrain@dotbrain": [{"installPath": str(profile / "plugin"), "version": "0.0.0"}]}}))
+    findings = doctor._check_machine(root, home)
+    assert any(f.status == "warn" and "0.0.0" in f.message for f in findings)
 
 
 def test_convention_drift_and_absent_input(tmp_path, monkeypatch):
@@ -118,6 +127,7 @@ def test_design_lifecycle_matches_spec_link_only_and_reads_only(tmp_path):
         assert kwargs["env"]["BEADS_DIR"] == str(tmp_path / ".beads")
         return subprocess.CompletedProcess(argv, 0, json.dumps([
             {"status": "closed", "spec_id": "design:example"},
+            {"status": "closed", "spec_id": "design:open"},
             {"status": "closed", "spec_id": "design:finished"},
             {"status": "open", "spec_id": "design:open"},
             {"status": "closed", "title": "open", "spec_id": "design:unrelated"},
