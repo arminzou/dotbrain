@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from conftest import set_fake_home
-from dotbrain import assets, cursor, hermes, opencode, owned_copy, runtimes, skills, workflows
+from dotbrain import assets, bootstrap, cursor, doctor, hermes, opencode, owned_copy, runtimes, skills, workflows
 from dotbrain.cli import app
 
 
@@ -158,3 +158,66 @@ def test_detach_configured_receiver_and_empty_hooks(dotbrain_home, fake_home, tm
     assert result.status == "success"
     assert not (dest / "owned").is_symlink()
     assert not (fake_home / ".cursor/hooks.json").exists()
+
+
+@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi", "cursor"))
+def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home, fake_home, monkeypatch):
+    set_fake_home(monkeypatch, fake_home)
+    for variable in ("HERMES_HOME", "XDG_CONFIG_HOME", "PI_CODING_AGENT_DIR"):
+        monkeypatch.delenv(variable, raising=False)
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == runtime)
+    rt = runtimes.find(runtime)
+    receiver = fake_home / "configured" / runtime
+    config = dotbrain_home / "skills/skills.yaml"
+    config.write_text(skills.render_global_config(
+        {rt.key: str(receiver)}, ("misc/discovery-test",)), encoding="utf-8")
+    before = config.read_bytes()
+    run = lambda *args, **kwargs: None
+
+    def opted_in():
+        return (cursor.global_delivery(dotbrain_home) if runtime == "cursor" else
+                assets.HOME_DELIVERY[runtime].owned(runtimes.user_dir(rt, fake_home)))
+
+    assert not assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run).warnings
+    assert opted_in()
+    assert workflows.detach_runtime(dotbrain_home, runtime, home=fake_home, run=run).status == "success"
+    assert not opted_in()
+    later = bootstrap.link_global_skills(dotbrain_home, home=fake_home)
+    assert not later.warnings
+    assert later.notices == [f"{rt.label} is installed; run `dotbrain bootstrap --runtime {runtime}` to deliver dotbrain to it"]
+    assert not opted_in()
+    assert not list(receiver.iterdir())
+    assert not [f for f in doctor._check_machine(dotbrain_home, fake_home)
+                if runtime in f.message or str(receiver) in f.message]
+    explicit = assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run)
+    assert not explicit.warnings
+    assert opted_in()
+    assert list(receiver.iterdir())
+    if runtime == "cursor":
+        assert cursor.hook_state(fake_home) == "current"
+    assert config.read_bytes() == before
+
+
+@pytest.mark.parametrize("destination", ("symlinked-parent", "configured-checkout"))
+def test_detach_skips_receivers_that_reach_project_checkouts(destination, dotbrain_home, fake_home, tmp_path, monkeypatch):
+    set_fake_home(monkeypatch, fake_home)
+    checkout = tmp_path / "checkout"
+    receiver = checkout / ".codex/skills"
+    receiver.mkdir(parents=True)
+    link = receiver / "owned"
+    link.symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
+    if destination == "symlinked-parent":
+        (fake_home / ".codex").symlink_to(checkout / ".codex", target_is_directory=True)
+    else:
+        project = dotbrain_home / "brainspaces/example"
+        (project / ".brain").mkdir(parents=True)
+        (project / ".repo").write_text(str(checkout))
+        (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  codex: {receiver.as_posix()}\n")
+
+    result = workflows.detach_runtime(dotbrain_home, "codex", home=fake_home)
+
+    assert result.status == "success"
+    assert result.targets[0].changes == []
+    assert link.is_symlink() and link.is_dir()
+    assert any(f["severity"] == "warning" and "project checkout" in f["message"]
+               for f in result.targets[0].findings)
