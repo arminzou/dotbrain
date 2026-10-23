@@ -82,7 +82,7 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
    the append-only record.
 4. Record the mode's result: `code` returns `APPROVE | CHANGES`, `readiness` returns
    `READY | NOT-READY`, and `simplify` reports findings only, with no verdict. Write matching
-   verdict metadata as the shared contract specifies. A bare `GO` means only the human's
+   `dotbrain_verdict` metadata as the shared contract specifies. A bare `GO` means only the human's
    handoff authorization. No review result authorizes merge or release. Record findings,
    evidence, and any uncovered area.
 

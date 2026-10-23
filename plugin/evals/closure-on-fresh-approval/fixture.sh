@@ -41,7 +41,7 @@ EOF
 cat > .eval/fixtures/bd/show_demo-r1.out <<EOF
 [{"id":"demo-r1","title":"Code review: search index","status":"closed","issue_type":"task","labels":["review"],
 "description":"Code review of demo-3 on search-index.",
-"metadata":{"modes":["code"],"target":"$reviewed","range":"$main..$reviewed","verdict":"approve"},
+"metadata":{"dotbrain_modes":["code"],"dotbrain_target":"$reviewed","dotbrain_range":"$main..$reviewed","dotbrain_verdict":"approve"},
 "comments":[{"text":"## Review 1: APPROVE @ $reviewed\\n\\nIndependent reviewer reviewer-b authored none of the changes. Reviewed the whole main..search-index diff and all acceptance criteria. No blocking or other findings. Mechanical gate: python3 -m unittest -v passed at $head; no gaps."}]}]
 EOF
 cat .eval/fixtures/bd/show_demo-3.out > .eval/fixtures/bd/show.out

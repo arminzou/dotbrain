@@ -93,6 +93,11 @@ neither they nor Git rely on writing the sandboxed home. The external checker
 disables tracing for its own Git reads, so it cannot supply this evidence.
 Native graders alone are never a state-case pass.
 
+Review beads store their metadata as the flat top-level keys `dotbrain_verdict`,
+`dotbrain_target`, `dotbrain_range`, and `dotbrain_modes`. The fixtures, graders, and
+`_shared/check.py` match only these names: they were renamed from the unprefixed `verdict`,
+`target`, `range`, and `modes`, and a run that writes the old keys gets no credit for them.
+
 The retro cases invoke `/dotbrain:run-retro` directly. Slash invocation loads the
 skill without a `Skill` tool call, so these cases grade state rather than requiring
 a `tool_used: Skill` record; `retro-rerun-changes-nothing` instead requires a logged Git

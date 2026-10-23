@@ -18,18 +18,20 @@ human gates; independent review follows review-gate.
 
 ## Verdict vocabulary
 
-| Mode | Result | `verdict` metadata |
+| Mode | Result | `dotbrain_verdict` metadata |
 | --- | --- | --- |
 | `code` | `APPROVE` or `CHANGES` | `approve`, `changes` |
 | `readiness` | `READY` or `NOT-READY` | `ready`, `not-ready` |
 | `simplify` | Findings only, never blocking | none |
 
 A bare `GO` means only the human's handoff authorization. A single-pass review records its
-verdict metadata at creation; a multi-pass code or readiness review starts with `verdict=pending`
-and updates it when the verdict is recorded.
-Store `target`, `range`, and `modes` for both shapes. Each bead records one mode, so `modes`
-is a single-element array; separate modes get separate beads. A `simplify` bead has no `verdict` key;
-keep it separate from the `code` bead because their closure rules differ.
+verdict metadata at creation; a multi-pass code or readiness review starts with
+`dotbrain_verdict=pending` and updates it when the verdict is recorded.
+Store `dotbrain_target`, `dotbrain_range`, and `dotbrain_modes` for both shapes, as flat top-level
+keys: Beads merges metadata one level deep, and `--metadata-field` matches only top-level keys.
+Each bead records one mode, so `dotbrain_modes` is a single-element array; separate modes get
+separate beads. A `simplify` bead has no `dotbrain_verdict` key; keep it separate from the
+`code` bead because their closure rules differ.
 
 ## Pick the shape
 
@@ -90,17 +92,18 @@ relative to when the bead exists*, not of what produced the findings:
   comment, not a rewrite. The newest comment is the current state — there is no status header to
   maintain.
 - **`--metadata`** — the current queryable result, separate from the append-only record:
-  `'{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'`. Update `verdict` when the
-  call is made. Query `verdict=changes` or `verdict=not-ready` with
-  `bd list --metadata-field verdict=<value> --all`; verdict alone does not establish closure evidence.
-  A simplify pass records findings without a `## Verdict:` comment or `verdict` metadata.
+  `'{"dotbrain_verdict":"pending","dotbrain_target":"<commit>","dotbrain_range":"<base>..<head>","dotbrain_modes":["readiness"]}'`.
+  Update `dotbrain_verdict` when the call is made. Query `dotbrain_verdict=changes` or
+  `dotbrain_verdict=not-ready` with `bd list --metadata-field dotbrain_verdict=<value> --all`;
+  verdict alone does not establish closure evidence.
+  A simplify pass records findings without a `## Verdict:` comment or `dotbrain_verdict` metadata.
 
   ```bash
   bd create "<review title> @ <commit>" \
     --type task --priority 1 --parent <epic-id> \
     --description "Multi-pass readiness review: <the standard — the oracle>" \
     --acceptance "All passes recorded; required verdict and evidence pass at the exact integrated revision; blocking findings resolved and other findings dispositioned." \
-    --metadata '{"verdict":"pending","target":"<commit>","range":"<base>..<head>","modes":["readiness"]}'
+    --metadata '{"dotbrain_verdict":"pending","dotbrain_target":"<commit>","dotbrain_range":"<base>..<head>","dotbrain_modes":["readiness"]}'
   ```
   A review with no epic — a repo-wide audit, a release gate — is a top-level bead; use `--type
   milestone` if it qualifies a release.
