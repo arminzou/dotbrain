@@ -23,7 +23,7 @@ REFERENCE_PATH = _REPO_ROOT / "docs" / "cli-reference.md"
 # new command cannot ship without a place on the page. A group is (title, intro, guide, commands).
 GROUPS: list[tuple[str, str, str | None, list[str]]] = [
     ("Setup", "Prepare a machine and check its health.", "getting-started",
-     ["bootstrap", "doctor"]),
+     ["bootstrap", "detach", "doctor"]),
     ("Projects", "Connect code repos to Brainspaces and keep them in sync.", "wiring",
      ["wire", "refresh", "unwire", "projects list", "projects show"]),
     ("Skills and agents", "Link skills and vendor-native subagents into agent runtimes.", "skills",

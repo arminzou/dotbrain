@@ -202,6 +202,8 @@ def link_into(
     label: str = "",
     prune_owned_only: bool = False,
     preserve_collisions: bool = False,
+    owned_roots: Sequence[Path] = (),
+    cleanup_cache: bool = True,
 ) -> LinkResult:
     """Link skill paths into an agent runtime skills directory."""
 
@@ -220,7 +222,8 @@ def link_into(
     prefix = f"{label}/" if label else ""
     result = LinkResult()
     wanted: set[str] = set()
-    _remove_legacy_skill_cache(dotbrain_home)
+    if cleanup_cache:
+        _remove_legacy_skill_cache(dotbrain_home)
     cache_root = (dotbrain_home / ".cache" / "skills").resolve()
     private_root = (dotbrain_home / "skills").resolve()
 

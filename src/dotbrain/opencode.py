@@ -198,6 +198,17 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
     return result
 
 
+def remove(config_dir: Path) -> LinkResult:
+    result = LinkResult()
+    if _file_owned(config_dir):
+        plugin_file(config_dir).unlink()
+        result.pruned.append(str(plugin_file(config_dir)))
+    target = packaged_dir(config_dir)
+    if owned_copy.remove(target):
+        result.pruned.append(str(target))
+    return result
+
+
 def duplicate_skills(config_dir: Path, user_home: Path) -> list[tuple[str, Path]]:
     """``(skill, other copy)`` for each dotbrain skill OpenCode also finds, under the same name, in a
     directory the user keeps, as a different file; OpenCode then loads one of the two at random."""

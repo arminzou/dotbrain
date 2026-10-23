@@ -275,12 +275,29 @@ def refresh(
 
 
 @app.command()
+def detach(runtime: RuntimeOption, home: HomeOption = None, json_output: JsonOption = False) -> None:
+    """Remove dotbrain's machine-wide delivery from a runtime."""
+    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
+    try:
+        report = workflows.detach_runtime(root, runtime)
+    except ValueError as exc:
+        render(CommandResult('detach', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (OSError, RuntimeError, yaml.YAMLError) as exc:
+        render(CommandResult('detach', 'failure', errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    render(report, json_output=json_output)
+    if report.status != 'success':
+        raise typer.Exit(1)
+
+
+@app.command()
 def unwire(
-    repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout to detach.'),
+    repo: Optional[Path] = typer.Option(None, '--repo', help='Checkout whose wiring to remove.'),
     project: Optional[str] = typer.Option(None, '--project', help='Select a named Brainspace.'),
     home: HomeOption = None, json_output: JsonOption = False,
 ) -> None:
-    """Detach a checkout while retaining its Brainspace and tracker databases."""
+    """Remove a checkout's wiring while retaining its Brainspace and tracker databases."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
         results = [workflows.unwire_project(dotbrain_home=root, repo=repo, project=project)]

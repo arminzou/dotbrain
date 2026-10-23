@@ -172,6 +172,8 @@ def render_operation(result, *, preview: bool = False) -> None:
     for target in sorted(result.targets, key=lambda item: item.status != "failure"):
         line(output)
         label = target.project or target.scope
+        if target.data and "runtime" in target.data:
+            label += " · " + runtimes.find(target.data["runtime"]).label
         if target.data and "database" in target.data:
             label += " · " + target.data["database"]
         if target.checkout:

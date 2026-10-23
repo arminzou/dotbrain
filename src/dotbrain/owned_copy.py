@@ -38,6 +38,14 @@ def owned(target: Path) -> bool:
     return not target.is_symlink() and (target / MARKER).is_file()
 
 
+def remove(target: Path) -> bool:
+    """Remove only a copy carrying our ownership marker."""
+    if not owned(target):
+        return False
+    shutil.rmtree(target)
+    return True
+
+
 def state(target: Path, names: Sequence[str]) -> str:
     """``missing``, ``foreign`` (not dotbrain's), ``stale``, or ``current``."""
     if not (target.exists() or target.is_symlink()):

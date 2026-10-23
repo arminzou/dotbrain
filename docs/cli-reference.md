@@ -26,10 +26,11 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | Command | Does |
 | --- | --- |
 | [`bootstrap`](#dotbrain-bootstrap) | Prepare this machine for dotbrain: global skill and subagent links. |
+| [`detach`](#dotbrain-detach) | Remove dotbrain's machine-wide delivery from a runtime. |
 | [`doctor`](#dotbrain-doctor) | Read-only health check of machine readiness and selected project setup. |
 | [`wire`](#dotbrain-wire) | Create a Brainspace or attach a checkout, including a linked worktree. |
 | [`refresh`](#dotbrain-refresh) | Repair setup while preserving project declarations and content. |
-| [`unwire`](#dotbrain-unwire) | Detach a checkout while retaining its Brainspace and tracker databases. |
+| [`unwire`](#dotbrain-unwire) | Remove a checkout's wiring while retaining its Brainspace and tracker databases. |
 | [`projects list`](#dotbrain-projects-list) | List every registered project using local declarations and wiring. |
 | [`projects show`](#dotbrain-projects-show) | Inspect the current wired project or a named project's registered checkout. |
 | [`skills list`](#dotbrain-skills-list) | Discover locally available skills. |
@@ -66,6 +67,20 @@ dotbrain bootstrap [OPTIONS]
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
 | `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain detach` {#dotbrain-detach}
+
+Remove dotbrain's machine-wide delivery from a runtime.
+
+```text
+dotbrain detach [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--runtime` *text* | — | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain doctor` {#dotbrain-doctor}
@@ -127,7 +142,7 @@ dotbrain refresh [OPTIONS]
 
 ### `dotbrain unwire` {#dotbrain-unwire}
 
-Detach a checkout while retaining its Brainspace and tracker databases.
+Remove a checkout's wiring while retaining its Brainspace and tracker databases.
 
 ```text
 dotbrain unwire [OPTIONS]
@@ -135,7 +150,7 @@ dotbrain unwire [OPTIONS]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--repo` *path* | — | Checkout to detach. |
+| `--repo` *path* | — | Checkout whose wiring to remove. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |

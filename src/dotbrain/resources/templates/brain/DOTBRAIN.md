@@ -18,7 +18,7 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
-- `dotbrain unwire` detaches one checkout, retaining data and other checkouts; retire Brainspaces via filesystem actions.
+- `dotbrain unwire` removes checkout wiring, retaining data and other checkouts; retire Brainspaces via filesystem actions.
 - Let the CLI compute relative links under `.claude` and `.codex`; hand-counted paths can dangle.
 
 ## Rules

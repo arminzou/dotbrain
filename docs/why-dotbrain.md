@@ -33,7 +33,7 @@ those files to new worktrees is all you need, the native mechanism may be enough
 
 Dotbrain puts the durable material in a separate private home and connects each checkout to the
 same source, so edits to shared context are visible across wired worktrees without updating copies.
-Detaching a checkout retains the Brainspace. Gitignore still protects the local links and delivered
+Removing a checkout's wiring retains the Brainspace. Gitignore still protects the local links and delivered
 resources from ordinary commits; the difference is where their source lives and how it is
 reconnected. This is a storage and workflow boundary, not an access-control barrier: an agent
 working in a wired checkout can read the linked material. See [Wiring](wiring.md).

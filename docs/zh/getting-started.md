@@ -312,6 +312,20 @@ JSON 结果中的严重级别 `advisory` 现在改为 `warning`，与已有的 w
 需要更新，因为旧值不会再输出。其他结果字段和退出码不变，只有 warning 时仍然以成功退出。
 详见 [CLI 参考](cli-reference.md)。
 
+## Claude Code 和 Codex 卸载 {#claude-codex-remove}
+
+先退出运行时，再运行对应的命令：
+
+```bash
+dotbrain detach --runtime claude
+dotbrain detach --runtime codex
+```
+
+之后从 `skills/skills.yaml` 里删掉对应目标，避免以后 bootstrap 恢复链接。
+这只会移除 dotbrain 创建的全局技能链接。插件仍需通过 marketplace 卸载：Claude Code 使用
+`/plugin uninstall dotbrain@dotbrain`，Codex 使用 `codex plugin remove dotbrain@dotbrain`。
+项目 checkout 的连接不变；需要移除时，对每个 checkout 运行 `dotbrain unwire`。
+
 ## Hermes {#hermes}
 
 Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 的 CLI。
@@ -323,7 +337,7 @@ Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 
 - Hermes 只从你信任过的 checkout 加载项目技能。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
 - 只能手动调用的技能（比如 `dotbrain:run-retro`）会出现在 Hermes 的技能列表里，但模型加载不了。
   要用时自己输入 `/dotbrain:<skill>`。
-- 从 Hermes 里卸载插件需要手动操作，见[卸载](#hermes-remove)。
+- 移除 Hermes 的机器级交付，见[卸载](#hermes-remove)。
 :::
 
 ### 安装 {#hermes-setup}
@@ -388,15 +402,14 @@ dotbrain refresh --all
 hermes skills untrust ~/repos/my-app
 ```
 
-要从 Hermes 里卸载插件，先禁用，再删除副本。插件目录删掉之后，Hermes 就没法再禁用它了。
+要移除 Hermes 的机器级交付，运行：
 
 ```bash
-hermes plugins disable dotbrain
-rm -rf ~/.hermes/plugins/dotbrain   # 或 $HERMES_HOME/plugins/dotbrain
+dotbrain detach --runtime hermes
 ```
 
-如果你选过全局技能，也要删掉 `~/.hermes/skills/` 下 dotbrain 的链接。没有插件副本之后，`dotbrain bootstrap`
-就不会再给 Hermes 交付，除非你再用 `--runtime hermes` 运行它，或者 `skills/skills.yaml` 里写了 `hermes` 目标。
+之后从 `skills/skills.yaml` 里删掉 `hermes` 目标（如果有），避免以后 bootstrap 又把它装回来。
+这会移除 dotbrain 的插件副本和全局技能链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
 
 ## OpenCode {#opencode}
 
@@ -411,7 +424,7 @@ Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
   `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
   也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的技能。
 - OpenCode 不限制只能手动调用的技能（比如 `run-retro`）：它们照样出现在技能列表里，模型也可以自己调用。
-- 从 OpenCode 里卸载 dotbrain 需要手动操作，见[卸载](#opencode-remove)。
+- 移除 OpenCode 的机器级交付，见[卸载](#opencode-remove)。
 :::
 
 ### 安装 {#opencode-setup}
@@ -481,27 +494,14 @@ OpenCode 在启动时加载 plugin，所以要重启 OpenCode 才能用上更新
 `dotbrain refresh` 不会删它们。`.opencode/` 里的其他文件属于 OpenCode，如果里面没有你
 自己的东西，可以整个删掉。
 
-要卸载 plugin，先从 `skills/skills.yaml` 里删掉 `opencode` 目标（如果有的话），再从 OpenCode 配置目录里删除 plugin 文件和
-dotbrain 的目录。设置了 `XDG_CONFIG_HOME` 时，下面的命令会用它：
+要移除 OpenCode 的机器级交付，运行：
 
-::: code-group
-
-```powershell [PowerShell 7]
-$oc = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\opencode" } else { "$env:USERPROFILE\.config\opencode" }
-Remove-Item "$oc\plugins\dotbrain.js"
-Remove-Item -Recurse "$oc\dotbrain"
+```bash
+dotbrain detach --runtime opencode
 ```
 
-```bash [Git Bash]
-oc="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-rm "$oc/plugins/dotbrain.js"
-rm -rf "$oc/dotbrain"
-```
-
-:::
-
-两样都删完再运行 `dotbrain bootstrap`：只要还剩一样，不带参数的 bootstrap 就会把另一样装回来。两样都删掉之后，
-`dotbrain bootstrap` 就不会再给 OpenCode 交付，除非你用 `--runtime opencode` 运行它。最后重启 OpenCode。
+之后从 `skills/skills.yaml` 里删掉 `opencode` 目标（如果有），避免以后 bootstrap 又把它装回来。
+这会移除 dotbrain 的插件文件、技能副本及全局技能链接，保留你自己的文件。之后重启 OpenCode。
 
 ## Pi {#pi}
 
@@ -514,7 +514,7 @@ Dotbrain 也支持 [Pi](https://github.com/earendil-works/pi) coding agent 的 C
   不会阻止模型直接读取这类技能的文件。
 - 直接关掉控制台窗口很可能会跳过 Pi 的关闭事件，也就跳过了退出时的完整同步。每次运行后的推送照常进行，
   下次会话启动时的同步会补上剩下的部分。
-- 从 Pi 里卸载 dotbrain 需要手动操作，见[卸载](#pi-remove)。
+- 移除 Pi 的机器级交付，见[卸载](#pi-remove)。
 :::
 
 ### 安装 {#pi-setup}
@@ -577,26 +577,14 @@ Pi 在启动时加载扩展，所以要重启 Pi 才能用上更新。
 对单个 checkout，`dotbrain unwire` 会删掉它的 Pi 技能链接。如果想保留连接、只去掉 Pi，就从 `agents:` 里删掉
 `pi`，再手动删除 checkout 里 `.pi/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
 
-要卸载扩展，先从 `skills/skills.yaml` 里删掉 `pi` 目标（如果有的话），再从 Pi 的 Agent 目录里删除扩展目录和
-dotbrain 的全局技能链接。设置了 `PI_CODING_AGENT_DIR` 时，下面的命令会用它，你自己的技能不受影响：
+要移除 Pi 的机器级交付，运行：
 
-::: code-group
-
-```powershell [PowerShell 7]
-$pi = if ($env:PI_CODING_AGENT_DIR) { $env:PI_CODING_AGENT_DIR } else { "$env:USERPROFILE\.pi\agent" }
-Remove-Item -Recurse "$pi\extensions\dotbrain"
-Get-ChildItem "$pi\skills" | Where-Object { $_.LinkTarget -like '*dotbrain*skills*' } | Remove-Item
+```bash
+dotbrain detach --runtime pi
 ```
 
-```bash [Git Bash]
-pi="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-rm -rf "$pi/extensions/dotbrain"
-find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
-```
-
-:::
-
-扩展删掉、`pi` 目标也没有了之后，`dotbrain bootstrap` 就不会再给 Pi 交付，除非你用 `--runtime pi` 运行它。最后重启 Pi。
+之后从 `skills/skills.yaml` 里删掉 `pi` 目标（如果有），避免以后 bootstrap 又把它装回来。
+这会移除 dotbrain 的扩展副本及全局技能链接，保留你自己的文件。之后重启 Pi。
 
 ## Cursor {#cursor}
 
@@ -610,7 +598,7 @@ Dotbrain 也支持 [Cursor](https://cursor.com) 的 CLI。
 - 恢复会话后，Cursor 保留会话开始时的约定，但不会运行启动同步。
 - 直接关掉控制台窗口很可能会跳过 Cursor 的会话结束 hook，也就跳过了退出时的完整同步。每轮之后的推送照常进行，
   下次会话启动时的同步会补上剩下的部分。
-- 从 Cursor 里卸载 dotbrain 需要手动操作，见[卸载](#cursor-remove)。
+- 移除 Cursor 的机器级交付，见[卸载](#cursor-remove)。
 :::
 
 ### 安装 {#cursor-setup}
@@ -672,27 +660,14 @@ dotbrain refresh --all
 对单个 checkout，`dotbrain unwire` 会删掉它的 Cursor 技能链接。如果想保留连接、只去掉 Cursor，就从 `agents:` 里删掉
 `cursor`，再手动删除 checkout 里 `.cursor/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
 
-要在所有地方把 dotbrain 从 Cursor 里卸载，先从 `skills/skills.yaml` 里删掉 `cursor` 目标（如果有的话），然后：
+要移除 Cursor 的机器级交付，运行：
 
-1. 打开 `~/.cursor/hooks.json`，删掉命令以 `dotbrain hook run` 开头的三个条目。如果文件里没有别的内容了，就删掉整个文件。
-2. 删除 `~/.cursor/skills/` 里 dotbrain 创建的链接，以及 `~/dotbrain/.cache/cursor/` 里的副本：
-
-::: code-group
-
-```powershell [PowerShell 7]
-Get-ChildItem "$env:USERPROFILE\.cursor\skills" -ErrorAction SilentlyContinue |
-  Where-Object { $_.LinkTarget -like '*dotbrain*' } | Remove-Item
-Remove-Item -Recurse "$env:USERPROFILE\dotbrain\.cache\cursor"
+```bash
+dotbrain detach --runtime cursor
 ```
 
-```bash [Git Bash]
-find "$HOME/.cursor/skills" -maxdepth 1 -type l -lname '*dotbrain*' -delete
-rm -rf "$HOME/dotbrain/.cache/cursor"
-```
-
-:::
-
-副本删掉、`cursor` 目标也没有了之后，`dotbrain bootstrap` 就不会再给 Cursor 交付，除非你用 `--runtime cursor` 运行它。
+之后从 `skills/skills.yaml` 里删掉 `cursor` 目标（如果有），避免以后 bootstrap 又把它装回来。
+这会移除 dotbrain 的用户 hook、技能副本和全局技能链接，保留其他条目。项目 checkout 的连接不变。
 
 ## 需要时再改配置 {#edit-config-only-when-needed}
 

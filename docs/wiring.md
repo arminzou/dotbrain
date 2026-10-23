@@ -104,7 +104,7 @@ Run it after you:
 
 ## `unwire` {#unwire}
 
-Detaches the selected checkout and keeps its Brainspace and shared tracker.
+Removes the selected checkout's wiring and keeps its Brainspace and shared tracker.
 
 ```bash
 dotbrain unwire                          # current wired checkout
@@ -114,7 +114,7 @@ dotbrain unwire --project my-app         # registered checkout
 
 User-owned workspace files, main-checkout registration, and other worktrees remain. Shared Git
 exclusion entries are retained while another wired checkout needs them. Archive, restore, or
-delete Brainspace directories through your own filesystem workflow; detachment does none of these.
+delete Brainspace directories through your own filesystem workflow; `unwire` does none of these.
 
 `unwire` never touches a remote Beads database. For a server-backed project, dropping that database
 is a separate step: [`dotbrain beads drop-db`](beads-backend.md#cleaning-up).

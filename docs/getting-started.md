@@ -320,7 +320,7 @@ update existing scripts using this table.
 | Asset linking with implicit global scope | `skills link --scope global` or `agents link --scope global` |
 | `update` | Upgrade with the package manager that installed the CLI |
 | `unwire --all` | `unwire --project <name>` per project |
-| Unwire archival, deletion, or preview flags | `unwire` detaches; manage retained directories through filesystem actions |
+| Unwire archival, deletion, or preview flags | `unwire` removes checkout wiring; manage retained directories through filesystem actions |
 
 Hidden command aliases are removed. Bare project commands now target the current wired checkout;
 outside it, select `--project`. Existing configuration keys such as `targets.claude-code` keep
@@ -330,6 +330,20 @@ Codex agent symlinks into marked real files and preserves foreign entries.
 JSON finding severity `advisory` is now `warning`, matching the existing warning results.
 Update scripts that match the old value; it is no longer emitted. Other result fields and exit
 codes are unchanged, and warnings alone still exit successfully. See [CLI Reference](cli-reference.md).
+
+## Remove from Claude Code or Codex {#claude-codex-remove}
+
+Quit the runtime first, then run the command for your runtime:
+
+```bash
+dotbrain detach --runtime claude
+dotbrain detach --runtime codex
+```
+
+Afterwards, remove its target from `skills/skills.yaml` to prevent a later bootstrap from restoring
+links. This removes only dotbrain's global skill links. Remove the marketplace plugin separately:
+`/plugin uninstall dotbrain@dotbrain` in Claude Code, or `codex plugin remove dotbrain@dotbrain`
+for Codex. Project checkout wiring is unchanged; run `dotbrain unwire` in each checkout to remove it.
 
 ## Hermes {#hermes}
 
@@ -343,7 +357,7 @@ Dotbrain also delivers to the [Hermes Agent](https://github.com/NousResearch/her
   linked worktree.
 - Manual-only skills, such as `dotbrain:run-retro`, show up in Hermes's skill list, but the model
   cannot load them. Run them yourself with `/dotbrain:<skill>`.
-- Removing the plugin from Hermes is manual. See [Remove](#hermes-remove).
+- To remove machine-wide delivery from Hermes, see [Remove](#hermes-remove).
 :::
 
 ### Set up {#hermes-setup}
@@ -410,17 +424,15 @@ drop Hermes, remove `hermes` from `agents:` and delete dotbrain's links under th
 hermes skills untrust ~/repos/my-app
 ```
 
-To remove the plugin from Hermes, disable it first, then delete the copy. Hermes cannot disable a
-plugin whose directory is already gone.
+To remove machine-wide delivery from Hermes, run:
 
 ```bash
-hermes plugins disable dotbrain
-rm -rf ~/.hermes/plugins/dotbrain   # or $HERMES_HOME/plugins/dotbrain
+dotbrain detach --runtime hermes
 ```
 
-Also delete dotbrain's global skill links under `~/.hermes/skills/`, if you selected any. Without the
-plugin copy, `dotbrain bootstrap` no longer delivers to Hermes, unless you run it with
-`--runtime hermes` or `skills/skills.yaml` names a `hermes` target.
+Afterwards, remove any `hermes` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
+This removes dotbrain's plugin copy and global skill links. It first tries to disable the
+plugin when Hermes is available; a failed disable warns and removal continues.
 
 ## OpenCode {#opencode}
 
@@ -437,7 +449,7 @@ Dotbrain also delivers to the [OpenCode](https://opencode.ai) CLI.
   name, it loads one of them at random. `dotbrain doctor --verbose` lists each duplicate.
 - Manual-only skills, such as `run-retro`, are not enforced in OpenCode. OpenCode lists them,
   and the model can invoke them on its own.
-- Removing dotbrain from OpenCode is manual. See [Remove](#opencode-remove).
+- To remove machine-wide delivery from OpenCode, see [Remove](#opencode-remove).
 :::
 
 ### Set up {#opencode-setup}
@@ -513,29 +525,15 @@ but drop OpenCode, remove `opencode` from `agents:` and delete dotbrain's links 
 checkout's `.opencode/skills/`; `dotbrain refresh` does not remove them. The other files in
 `.opencode/` belong to OpenCode. Delete the folder if nothing of yours is in it.
 
-To remove the plugin, first remove any `opencode` target from `skills/skills.yaml`. Then delete
-the plugin file and dotbrain's folder from the OpenCode config directory. These commands use
-`XDG_CONFIG_HOME` when it is set:
+To remove machine-wide delivery from OpenCode, run:
 
-::: code-group
-
-```powershell [PowerShell 7]
-$oc = if ($env:XDG_CONFIG_HOME) { "$env:XDG_CONFIG_HOME\opencode" } else { "$env:USERPROFILE\.config\opencode" }
-Remove-Item "$oc\plugins\dotbrain.js"
-Remove-Item -Recurse "$oc\dotbrain"
+```bash
+dotbrain detach --runtime opencode
 ```
 
-```bash [Git Bash]
-oc="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-rm "$oc/plugins/dotbrain.js"
-rm -rf "$oc/dotbrain"
-```
-
-:::
-
-Delete both before you run `dotbrain bootstrap` again: while one of them is still there, an
-unfiltered bootstrap puts the other one back. Once both are gone, `dotbrain bootstrap` no longer
-delivers to OpenCode, unless you run it with `--runtime opencode`. Restart OpenCode afterwards.
+Afterwards, remove any `opencode` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
+This removes dotbrain's owned plugin file, packaged skills, and global skill links, preserving
+your own files. Restart OpenCode afterwards.
 
 ## Pi {#pi}
 
@@ -549,7 +547,7 @@ Dotbrain also delivers to the [Pi](https://github.com/earendil-works/pi) coding 
   `/skill:<name>`. Pi does not stop the model from reading such a skill's file directly.
 - Closing the console window probably skips Pi's shutdown event, and with it the full sync at exit.
   The push after each run still happens, and the next session start syncs what was left.
-- Removing dotbrain from Pi is manual. See [Remove](#pi-remove).
+- To remove machine-wide delivery from Pi, see [Remove](#pi-remove).
 :::
 
 ### Set up {#pi-setup}
@@ -618,28 +616,15 @@ For one checkout, `dotbrain unwire` removes its Pi skill links. To keep the chec
 Pi, remove `pi` from `agents:` and delete dotbrain's links under the checkout's `.pi/skills/`;
 `dotbrain refresh` does not remove them.
 
-To remove the extension, first remove any `pi` target from `skills/skills.yaml`. Then delete the
-extension folder and dotbrain's global skill links from the Pi agent directory. These commands use
-`PI_CODING_AGENT_DIR` when it is set, and leave your own skills in place:
+To remove machine-wide delivery from Pi, run:
 
-::: code-group
-
-```powershell [PowerShell 7]
-$pi = if ($env:PI_CODING_AGENT_DIR) { $env:PI_CODING_AGENT_DIR } else { "$env:USERPROFILE\.pi\agent" }
-Remove-Item -Recurse "$pi\extensions\dotbrain"
-Get-ChildItem "$pi\skills" | Where-Object { $_.LinkTarget -like '*dotbrain*skills*' } | Remove-Item
+```bash
+dotbrain detach --runtime pi
 ```
 
-```bash [Git Bash]
-pi="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-rm -rf "$pi/extensions/dotbrain"
-find "$pi/skills" -maxdepth 1 -type l -lname '*dotbrain/skills/*' -delete
-```
-
-:::
-
-Once the extension is gone and no `pi` target is left, `dotbrain bootstrap` no longer delivers to
-Pi, unless you run it with `--runtime pi`. Restart Pi afterwards.
+Afterwards, remove any `pi` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
+This removes dotbrain's owned extension copy and global skill links, preserving
+your own files. Restart Pi afterwards.
 
 ## Cursor {#cursor}
 
@@ -656,7 +641,7 @@ Dotbrain also delivers to the [Cursor](https://cursor.com) CLI.
 - After a resume, Cursor keeps the convention the session started with but runs no startup sync.
 - Closing the console window probably skips Cursor's session-end hook, and with it the full sync
   at exit. The push after each turn still happens, and the next session start syncs what was left.
-- Removing dotbrain from Cursor is manual. See [Remove](#cursor-remove).
+- To remove machine-wide delivery from Cursor, see [Remove](#cursor-remove).
 :::
 
 ### Set up {#cursor-setup}
@@ -726,30 +711,15 @@ For one checkout, `dotbrain unwire` removes its Cursor skill links. To keep the 
 drop Cursor, remove `cursor` from `agents:` and delete dotbrain's links under the checkout's
 `.cursor/skills/`; `dotbrain refresh` does not remove them.
 
-To remove dotbrain from Cursor everywhere, first remove any `cursor` target from
-`skills/skills.yaml`. Then:
+To remove machine-wide delivery from Cursor, run:
 
-1. Open `~/.cursor/hooks.json` and delete the three entries whose command starts with
-   `dotbrain hook run`. Delete the file if nothing else is left in it.
-2. Delete dotbrain's links in `~/.cursor/skills/` and its copy in `~/dotbrain/.cache/cursor/`:
-
-::: code-group
-
-```powershell [PowerShell 7]
-Get-ChildItem "$env:USERPROFILE\.cursor\skills" -ErrorAction SilentlyContinue |
-  Where-Object { $_.LinkTarget -like '*dotbrain*' } | Remove-Item
-Remove-Item -Recurse "$env:USERPROFILE\dotbrain\.cache\cursor"
+```bash
+dotbrain detach --runtime cursor
 ```
 
-```bash [Git Bash]
-find "$HOME/.cursor/skills" -maxdepth 1 -type l -lname '*dotbrain*' -delete
-rm -rf "$HOME/dotbrain/.cache/cursor"
-```
-
-:::
-
-Once the copy is gone and no `cursor` target is left, `dotbrain bootstrap` no longer delivers to
-Cursor, unless you run it with `--runtime cursor`.
+Afterwards, remove any `cursor` target from `skills/skills.yaml` to prevent bootstrap from restoring it.
+This removes dotbrain's user hooks, owned skill bundle, and global skill links, preserving
+other entries. Project checkout wiring is unchanged.
 
 ## Edit Config Only When Needed
 
