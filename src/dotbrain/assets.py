@@ -130,10 +130,12 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
             settings[(rt.key, folder)] = setting
         destinations[rt.key] = tuple(folders)
     for rt in selected:
-        if rt.home_env and rt.key in destinations:
+        # Every runtime dotbrain installs into keeps files in its home (Cursor: hooks.json), not only its skills folder.
+        if rt.name in HOME_DELIVERY and rt.key in destinations:
             directory = runtimes.user_dir(rt, user_home)
             if inside_wired_checkout(directory):
-                errors.append(f"{rt.home_env}: {directory} is inside a wired checkout; choose a runtime home outside it")
+                errors.append(f"{rt.home_env or '~/' + rt.workspace}: {directory} is inside a wired checkout; "
+                              "choose a runtime home outside it")
                 destinations[rt.key] = ()
                 continue
         safe = []

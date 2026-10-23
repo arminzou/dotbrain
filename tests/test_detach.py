@@ -383,3 +383,40 @@ def test_bootstrap_skips_owned_copy_in_relocated_checkout_home(runtime, configur
     assert list(bundle.iterdir()) == [bundle / owned_copy.MARKER]
     assert (fake_home / ".claude/skills/discovery-test").is_symlink()
     assert not (tmp_path / "global-skills").exists()
+
+
+def _cursor_home_in_checkout(fake_home, tmp_path):
+    """~/.cursor linked into a wired checkout's .cursor; returns that real folder."""
+    checkout = tmp_path / "checkout"
+    (checkout / ".cursor").mkdir(parents=True)
+    (fake_home / ".cursor").symlink_to(checkout / ".cursor", target_is_directory=True)
+    return checkout
+
+
+def test_detach_leaves_cursor_hooks_in_a_checkout_home(dotbrain_home, fake_home, tmp_path):
+    checkout = _cursor_home_in_checkout(fake_home, tmp_path)
+    assert cursor.reconcile_hooks(fake_home).linked  # dotbrain entries land in the checkout's hooks.json
+    (checkout / ".brain").touch()
+    before = {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()}
+
+    result = workflows.detach_runtime(dotbrain_home, "cursor", home=fake_home)
+
+    target = result.targets[0]
+    assert target.status == "failure" and not target.changes
+    assert any("~/.cursor" in error and "inside a wired checkout" in error for error in target.errors)
+    assert {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()} == before
+
+
+@pytest.mark.parametrize("configured", (False, True))
+def test_bootstrap_writes_no_cursor_hooks_into_a_checkout_home(configured, dotbrain_home, fake_home, tmp_path):
+    checkout = _cursor_home_in_checkout(fake_home, tmp_path)
+    (checkout / ".brain").touch()
+    config = f"targets:\n  cursor: {tmp_path.as_posix()}/global-skills\n" if configured else ""
+    (dotbrain_home / "skills/skills.yaml").write_text(config + "global_extra: [misc/discovery-test]\n")
+
+    result = bootstrap.link_global_skills(dotbrain_home, "cursor", home=fake_home)
+
+    assert any("~/.cursor" in warning and "inside a wired checkout" in warning for warning in result.warnings)
+    assert not (checkout / ".cursor/hooks.json").exists()
+    assert list((checkout / ".cursor").iterdir()) == []
+    assert not (tmp_path / "global-skills").exists()
