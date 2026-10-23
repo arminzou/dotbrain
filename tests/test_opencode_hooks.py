@@ -1,7 +1,8 @@
 """OpenCode session hooks: the packaged plugin maps OpenCode events onto `dotbrain hook run`.
 
 Each test drives the real plugin file under Node with a fake OpenCode input and a fake `dotbrain`
-on PATH that records every call. Spawn redirects the fake directly to Node to avoid shell grandchildren.
+on PATH that records every call. Spawn records what the plugin asked for, then redirects the fake directly to
+Node to avoid shell grandchildren.
 """
 
 import json
@@ -32,7 +33,7 @@ const { plugin, input, parents, lookup, fastTimers, steps, plainEnv } = JSON.par
 const spawns = []
 const realSpawn = cp.spawn
 cp.spawn = (cmd, args, opts) => {
-  spawns.push(opts)
+  spawns.push({ ...opts, cmd, args, shell: opts.shell ?? false })
   // Run the fake directly: a detached cmd.exe shim would give its Node child a visible console.
   const { shell, ...directOpts } = opts
   return realSpawn(process.execPath, [fileURLToPath(new URL("./bin/fake.mjs", import.meta.url)),
@@ -268,12 +269,19 @@ def test_cli_is_found_through_a_plain_windows_environment(opencode):
     out = opencode.play(created("s1"), message("s1"), request("s1"), plain_env=True)
     assert out["requests"] == [[CONVENTION]]
     assert opencode.calls(1) == ["startup"]
+    args = ["hook", "run", "--event", "startup", "--checkout", str(opencode.checkout)]
+    # The extension takes PATHEXT's case, usually `.CMD`.
+    assert [{"cmd": spawn["cmd"].lower(), "args": spawn["args"], "shell": spawn["shell"]} for spawn in out["spawns"]] == [
+        {"cmd": f'"{opencode.bin / "dotbrain.cmd"}"'.lower(), "args": [f'"{arg}"' for arg in args],
+         "shell": os.environ["COMSPEC"]},
+    ]
 
 
 def test_missing_cli_is_a_silent_no_op(opencode, tmp_path):
     out = opencode.play(created("s1"), message("s1"), request("s1"), event("session.idle", "s1"), {"op": "dispose"},
                         path=str(tmp_path / "empty"))
     assert out["requests"] == [[]]
+    assert out["spawns"] == []
     assert opencode.calls() == []
 
 
