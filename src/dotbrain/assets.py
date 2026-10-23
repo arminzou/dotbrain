@@ -97,38 +97,36 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
                 and (explicit or HOME_DELIVERY[rt.name].owned(directory))):
             targets[rt.key] = str(HOME_DELIVERY[rt.name].skills_dir(directory))
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
-    if kind != "skills":
-        return destinations
     settings = {}
     for rt in selected:
         if rt.key not in ("claude-code", "codex"):
             continue
         default = runtimes.user_dir(rt, user_home)
         homes = [(default, f"default {rt.key} home")]
-        legacy = adopter_repos.expand_path(configured.get(rt.key, f"~/{rt.workspace}/skills").replace("\\", "/"), home=user_home)
-        if legacy.resolve() != (default / "skills").resolve():
-            homes.append((legacy.parent, f"skills.yaml targets.{rt.key}"))
+        legacy = adopter_repos.expand_path(configured.get(rt.key, f"~/{rt.workspace}/{kind}").replace("\\", "/"), home=user_home)
+        if legacy.resolve() != (default / kind).resolve():
+            homes.append((legacy.parent, f"{kind}.yaml targets.{rt.key}"))
             if notices is not None:
-                notices.append(f"skills.yaml targets.{rt.key}: move {legacy.parent} to profiles.{rt.key}")
+                notices.append(f"{kind}.yaml targets.{rt.key}: move {legacy.parent} to skills.yaml profiles.{rt.key}")
         homes.extend((adopter_repos.expand_path(value, home=user_home), f"skills.yaml profiles.{rt.key}")
                      for value in (profiles or {}).get(rt.key, ()))
         folders = []
         for directory, setting in homes:
             if directory != default and not directory.is_dir():
                 continue
-            folder = directory / "skills"
+            folder = directory / kind
             folders.append(folder)
             settings[(rt.key, folder)] = setting
         destinations[rt.key] = tuple(folders)
     for rt in selected:
         safe = []
         for folder in destinations.get(rt.key, ()):
-            # Check the home too: a skills symlink must not hide a checkout marker above it.
+            # Check the home too: an asset symlink must not hide a checkout marker above it.
             resolved_paths = (folder.parent.resolve(), folder.resolve())
             if any(os.path.lexists(parent / ".brain") for resolved in resolved_paths
                    for parent in (resolved, *resolved.parents)):
-                setting = settings.get((rt.key, folder), f"skills.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
-                errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global skills destination outside it")
+                setting = settings.get((rt.key, folder), f"{kind}.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
+                errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:
                 safe.append(folder)
         if rt.key in destinations:
@@ -143,13 +141,14 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
     cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
            else subagents.load_global_config(home))
+    profiles = cfg.profiles if kind == "skills" else skills.load_global_config(home / "skills/skills.yaml").profiles
     user_home = user_home or Path.home()
     notices = []
     errors = []
     if kind == "skills" and runtimes.find("cursor") in selected and (runtime == "cursor" or cursor.global_delivery(home)):
         cfg.targets.setdefault("cursor", str(user_home / ".cursor/skills"))
     targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
-                             profiles=cfg.profiles if kind == "skills" else None, notices=notices, errors=errors)
+                             profiles=profiles, notices=notices, errors=errors)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
     # Targets for runtimes this version does not recognize are skipped, not failed.
     keys = [k for k in targets if k in known] if runtime == "all" else known

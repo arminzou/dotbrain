@@ -143,6 +143,10 @@ Alongside the skills, dotbrain ships Brain-aware subagents: `worker`, `reviewer`
 `verifier`, and `researcher`. See
 [Session context](session-context.md#subagents).
 
+Global extras selected in `agents/agents.yaml` use the same default homes and `skills/skills.yaml`
+`profiles:`, delivered into `<home>/agents` for Claude Code and Codex. See
+[configuration](configuration.md#agents-agents-yaml) for legacy `targets:` migration.
+
 ## Installing Them
 
 The skills arrive with the plugin, installed once per agent runtime rather than per repo. See

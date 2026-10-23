@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from dotbrain import assets, doctor, skills
+from dotbrain import assets, doctor, skills, subagents
 
 
 def write(path, text):
@@ -239,3 +239,77 @@ def test_invalid_or_unsupported_profiles_name_setting(tmp_path, profiles):
 
     with pytest.raises(ValueError, match="profiles"):
         skills.load_global_config(tmp_path / "skills/skills.yaml")
+
+
+@pytest.mark.parametrize("runtime,folder,suffix", [("claude-code", ".claude", ".md"), ("codex", ".codex", ".toml")])
+@pytest.mark.parametrize("legacy", [None, "default", "custom"])
+def test_global_agents_use_shared_profiles_and_migrate_targets(tmp_path, runtime, folder, suffix, legacy):
+    root, user = tmp_path / "data", tmp_path / "user"
+    profile = user / f"{folder}-work"
+    profile.mkdir(parents=True)
+    configure(root, profiles={runtime: [str(profile), str(user / "missing")]})
+    settings = {"global": ["custom"]}
+    if legacy:
+        settings["targets"] = {runtime: f"~/{folder}/agents" if legacy == "default" else f"~/{folder}-legacy/old-folder"}
+        if legacy == "custom":
+            (user / f"{folder}-legacy").mkdir()
+    write(root / "agents/agents.yaml", yaml.safe_dump(settings))
+    write(root / "agents/claude/custom.md", "custom")
+    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
+
+    result = assets.link_global(root, "agents", user_home=user)
+
+    assert not result.warnings
+    assert len(result.notices) == (1 if legacy == "custom" else 0)
+    if legacy == "custom":
+        assert "agents.yaml targets." + runtime in result.notices[0]
+        assert "skills.yaml profiles." + runtime in result.notices[0]
+        assert (user / f"{folder}-legacy/agents/custom{suffix}").is_file()
+        assert not (user / f"{folder}-legacy/old-folder").exists()
+    for directory in (user / folder, profile):
+        dest = directory / f"agents/custom{suffix}"
+        assert dest.is_file()
+        if runtime == "claude-code":
+            assert dest.is_symlink()
+        else:
+            assert subagents.is_managed_copy(dest)
+    assert not (user / "missing").exists()
+    for folder_name in (".hermes", ".opencode", ".pi", ".cursor"):
+        assert not (user / folder_name / "agents").exists()
+
+    findings = doctor._check_machine(root, user)
+    assert any(str(profile / "agents") in f.message and "healthy" in f.message for f in findings)
+    (profile / f"agents/custom{suffix}").unlink()
+    findings = doctor._check_machine(root, user)
+    assert any(f.status == "error" and str(profile / f"agents/custom{suffix}") in f.message for f in findings)
+
+
+@pytest.mark.parametrize("redirect", ["home", "destination", "home-with-external-destination"])
+def test_global_agents_reject_checkout_paths_and_continue(tmp_path, redirect):
+    root, user = tmp_path / "data", tmp_path / "user"
+    checkout = tmp_path / "checkout"
+    bad, good = user / ".codex-bad", user / ".codex-good"
+    checkout.mkdir()
+    good.mkdir(parents=True)
+    (checkout / ".brain").symlink_to(tmp_path / "unavailable", target_is_directory=True)
+    if redirect == "destination":
+        bad.mkdir()
+        (bad / "agents").symlink_to(checkout, target_is_directory=True)
+    else:
+        bad.symlink_to(checkout, target_is_directory=True)
+        if redirect == "home-with-external-destination":
+            (bad / "agents").symlink_to(good / "agents", target_is_directory=True)
+    configure(root, profiles={"codex": [str(bad), str(good)]})
+    write(root / "agents/agents.yaml", "global: [reviewer]\n")
+
+    result = assets.link_global(root, "agents", user_home=user)
+
+    assert len(result.warnings) == 1
+    assert "profiles.codex" in result.warnings[0] and "wired checkout" in result.warnings[0]
+    assert subagents.is_managed_copy(user / ".codex/agents/dotbrain-reviewer.toml")
+    assert subagents.is_managed_copy(good / "agents/dotbrain-reviewer.toml")
+    assert not (checkout / "dotbrain-reviewer.toml").exists()
+    if redirect != "home-with-external-destination":
+        assert not (checkout / "agents/dotbrain-reviewer.toml").exists()
+    assert any(f.status == "error" and "agents" in f.message and "profiles.codex" in f.message
+               for f in doctor._check_machine(root, user))

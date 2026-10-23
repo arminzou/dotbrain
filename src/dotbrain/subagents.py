@@ -81,9 +81,7 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
         "# Global vendor-native subagents linked into personal agent homes.",
         "# Remove entries to prune dotbrain-managed links on the next relink.",
         "# Project-scoped extras belong in project.yaml; this file is for personal-home reach and extras.",
-        "# Optional target overrides (defaults shown):",
-        "# targets:",
-        *(f"#   {key}: {value}" for key, value in runtimes.global_targets("agents").items()),
+        "# Extra runtime homes: set profiles in skills/skills.yaml; agents go into <home>/agents.",
     ]
     cleaned = skills._clean(names)
     if not cleaned:

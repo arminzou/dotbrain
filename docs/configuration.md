@@ -192,11 +192,14 @@ selected bundle takes effect on the next reconciliation without rewriting this d
 Global subagents delivered into your personal agent homes. Removing an entry prunes its managed
 resource on the next `dotbrain agents link --scope global`.
 
+Claude Code and Codex receive agents in `<home>/agents`, using their default homes and the
+`profiles:` in `skills/skills.yaml`. Missing profiles are skipped; destinations inside wired
+checkouts are reported and skipped. Legacy `targets:` matching the default are silently ignored;
+custom targets use their parent as an extra home, with a notice to move it to `skills.yaml` `profiles:`.
+
 ```yaml
 # ~/dotbrain/agents/agents.yaml
-# targets:
-#   claude-code: ~/.claude/agents
-#   codex: ~/.codex/agents
+# Extra runtime homes are configured in skills/skills.yaml under profiles.
 global:
   - some-shared-subagent
 ```
