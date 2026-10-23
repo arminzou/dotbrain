@@ -70,7 +70,7 @@ review, return the verdict and findings;
 when approving with no findings, return `APPROVE` and, only when material, a brief
 caveat about evidence or scope limits. Omit empty findings sections.
 
-Every review opens with one status line:
+Every review you return starts with one status line:
 
 ```text
 **Status:** APPROVE | CHANGES | NO VERDICT · **Observed:** <HEAD>
@@ -86,7 +86,7 @@ plus diff fingerprint for uncommitted changes), diff base, and each item's
 acceptance criteria. If any are missing, return `NO VERDICT` and name what is
 missing; you cannot ask anyone mid-run.
 
-Write the full report in structured Markdown after the status line:
+The full report is structured Markdown after the status line:
 
 - Review number, reviewer identity, reviewed base and head.
 - Covered items and acceptance coverage per criterion, including unmet or unreviewed criteria.
@@ -95,10 +95,11 @@ Write the full report in structured Markdown after the status line:
   `file:line`, and the concrete problem; suggested fixes are optional.
 - Material evidence and coverage limits, including missing evidence.
 
-Record an item or integration review yourself. Write the report, headed
-`## Review <n>: APPROVE | CHANGES @ <Observed> (round <r>)`, to a file outside the
-reviewed checkout with the file-writing tool, then append it to every item in the
-review boundary in one command under your actor:
+Record an item or integration review yourself. The stored comment starts with the
+heading `## Review <n>: APPROVE | CHANGES @ <Observed> (round <r>)`, with the status
+line directly under it, then the full report. Write it to a file outside the reviewed
+checkout with the file-writing tool, then append it to every item in the review
+boundary in one command under your actor:
 
 ```bash
 for id in <item-ids>; do bd comments add "$id" --file <report-file> --actor <reviewer-actor> --json; done

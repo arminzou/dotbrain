@@ -77,12 +77,15 @@ A writing worker appends its full report as `Candidate` before returning and ret
 status line. A lead that writes the change itself, including on a lead-only runtime, records the
 same `Candidate` shape.
 
-An item or integration reviewer appends its full report as `Review` to every item in its review
-boundary, in one command under its own actor, and returns a status line and an index; the lead
-routes from the index and reads a body only to dispute it. Before notifying workers or
+A launched item or integration reviewer appends its full report as `Review` to every item in its
+review boundary, in one command under its own actor, and returns a status line and an index; the
+lead routes from the index and reads a body only to dispute it. Before notifying workers or
 dispatching repairs, the lead confirms each boundary item has that round's `Review` comment,
 copies a missing one from a sibling item, and records the whole report itself only when the
-reviewer could not write. The report preserves reviewer identity, review number and round,
+reviewer could not write. A lead-only runtime that launches no reviewer agent needs none of this:
+its lead records the independent review it obtained, such as one the human ran in another
+session, in the same `Review` shape under its own actor. Recording another agent's review is not authoring it; the
+lead still never reviews changes it authored. The report preserves reviewer identity, review number and round,
 base/head references, covered items and per-criterion acceptance coverage (including unmet or
 unreviewed criteria), per-item verdicts, complete finding wording and severity (`blocker`,
 `high`, `medium`, `low`), `file:line`, and material evidence or coverage limits. For an

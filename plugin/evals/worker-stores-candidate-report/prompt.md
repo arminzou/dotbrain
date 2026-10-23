@@ -6,8 +6,9 @@ max_turns: 40
 timeout_seconds: 900
 ---
 
-Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged, then tell me
-what it returned. I'll handle review myself.
+Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged. When it
+returns, reply with only the text it returned, verbatim, and nothing else. I'll handle review
+myself.
 
 **Item:** demo-2 · implement · actor worker-a
 **Checkout:** in place, on the current branch `contributing-guide`

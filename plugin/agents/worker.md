@@ -103,11 +103,12 @@ Your report opens with one status line, then the sections in this order:
 
 The lead verifies claim state from Beads; omit a Claim line.
 
-When the assignment names a work item, store the full report before returning:
-append it as `## Candidate @ <Observed>` to each assigned item with
+When the assignment names a work item, store the full report before returning.
+The stored comment starts with the heading `## Candidate @ <Observed>`, with the
+status line directly under it, then the sections. Append it to each assigned item with
 `bd comments add <id> --file <report-file> --actor <worker-actor> --json`, then
 return only the status line. Without a work item, or when that write fails,
-return the full report and say why.
+return the full report, starting with the status line, and say why.
 
 When the lead resumes you for a fix round, its message carries the consolidated
 assignment, the findings by reference to the stored Review comment, and what

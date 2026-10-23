@@ -140,7 +140,8 @@ Agent 默认继承已配置的模型，只有你明确指定其他模型时才�
 Worker、reviewer 和 verifier 的报告都以一行状态开头，并写明实际看到的版本，例如
 `**Status:** DONE · **Observed:** <revision>`。状态值按角色区分：worker 用 `DONE`、`PARTIAL` 或 `BLOCKED`；
 reviewer 用 `APPROVE`、`CHANGES` 或 `NO VERDICT`；verifier 用 `PASS`、`FAIL` 或 `NOT RUN`。
-实际版本与分派或要求的版本不一致时，lead 暂不记录这个结果。
+审阅或验证看到的版本与 lead 要求的 head 不一致，或 worker 看到的版本与它报告的候选版本或实际分支 head 不一致时，
+lead 暂不记录这个结果。
 
 Worker 返回前先把完整报告作为 `Candidate` 评论存到自己的任务上：候选版本和分支，每项检查一行；
 有额外发现、阻塞或设计影响时才列出。检查失败时保留失败测试名称和错误文本；认领状态由 lead 直接查询 Beads。

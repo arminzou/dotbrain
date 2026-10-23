@@ -171,8 +171,9 @@ prose and tool output when those signals reveal a failure that needs diagnosis.
 Every worker, reviewer, and verifier report opens with a status line and the revision it
 observed, such as `**Status:** DONE · **Observed:** <revision>`. Status values differ by role:
 a worker reports `DONE`, `PARTIAL`, or `BLOCKED`; a reviewer `APPROVE`, `CHANGES`, or
-`NO VERDICT`; a verifier `PASS`, `FAIL`, or `NOT RUN`. The lead holds any result whose observed
-revision differs from the one it dispatched or requested.
+`NO VERDICT`; a verifier `PASS`, `FAIL`, or `NOT RUN`. The lead holds a review or verification
+whose observed revision differs from the head it requested, and a worker result whose observed
+revision differs from its reported candidate or the actual branch head.
 
 Workers store their full report on their issue as a `Candidate` comment before returning: the
 candidate revision and branch, one line per check, and discoveries, blockers, or design impact

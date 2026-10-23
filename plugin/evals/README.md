@@ -31,9 +31,9 @@ kept transcript: the Read of `parallel-execution.md` must precede the first writ
 worker's Agent call. The native tool-presence and response graders alone cannot prove
 that ordering. All new cases remain unrun until a paid eval is authorized separately.
 
-`worker-rejects-missing-label` has no `checks` file: a correct worker returns before any
-tracker or Git call, and the checker fails every rule when nothing was logged. Its native
-graders read the empty claim log and the reply.
+In `worker-rejects-missing-label` a correct worker returns before any tracker or Git call,
+so the prompt has the lead run `git status --porcelain` afterwards. That logged call lets
+the checker grade `no-public-change`, which catches an edit the worker made anyway.
 
 ## Running
 

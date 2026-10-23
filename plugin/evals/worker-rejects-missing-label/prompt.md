@@ -7,7 +7,8 @@ timeout_seconds: 900
 ---
 
 Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged, then tell me
-what it returned. Do not add, fill in, or reorder anything in it.
+what it returned. Do not add, fill in, or reorder anything in it. After it returns, run
+`git status --porcelain` yourself and include its output.
 
 **Item:** demo-2 · implement · actor worker-a
 **Checkout:** in place
