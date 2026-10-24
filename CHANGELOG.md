@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/arminzou/dotbrain/compare/v0.14.0...v0.14.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* probe .cmd runtime CLIs on Windows and add an opt-in delivery UAT suite ([#59](https://github.com/arminzou/dotbrain/issues/59)) ([949f71c](https://github.com/arminzou/dotbrain/commit/949f71c36944e3458895706aaa70b695702fb191))
+
 ## [0.14.0](https://github.com/arminzou/dotbrain/compare/v0.13.0...v0.14.0) (2026-10-23)
 
 
