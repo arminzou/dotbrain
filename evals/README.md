@@ -43,6 +43,17 @@ Not ported, by decision:
   `worker-stores-candidate-report`, and the optional `run-retro` skill's
   `retro-records-new-evidence` and `retro-rerun-changes-nothing`.
 
+Cases by capability:
+
+- **Skill loading:** `activation-review-gate`, `explicit-only-not-loaded-run-retro`.
+- **Worker boundaries:** `worker-never-pushes`, `lead-alone-changes-work-graph`.
+- **Review independence and verdicts:** `review-gate-blocks-self-review`,
+  `review-gate-lead-reviews-worker-change`, `observed-revision-mismatch-held`.
+- **Closure on fresh approval:** `closure-on-fresh-approval`, `no-closure-on-stale-approval`.
+- **Private IDs out of public PRs:** `public-pr-keeps-private-ids-out`.
+- **Parallel dispatch and role routing:** `parallel-reference-before-dispatch`,
+  `execution-role-routing`.
+
 ## Install and check without models
 
 Requires Node.js 22.22 or later, Git, Codex CLI, and the checkout's locked Python environment.

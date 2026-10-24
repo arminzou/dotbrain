@@ -1,7 +1,9 @@
 # Migration source inventory
 
 The `claude plugin eval` runner and setup are retired. The source cases and graders
-remain migration references for the [shared Promptfoo suite](../README.md).
+remain migration references for the [shared Promptfoo suite](../README.md), which
+ports only the cases that cover core capabilities. Its README lists every other case
+with the reason; an untranslated entry is a decision, not a backlog.
 Promptfoo is **not qualified yet**.
 Source accounting and Python tests do not establish agent behavior, native skill
 loading, packaged-role dispatch, fixture isolation, or parity between runtimes.

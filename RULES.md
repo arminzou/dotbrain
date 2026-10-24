@@ -32,11 +32,18 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | --- | --- |
 | Tests use `tmp_path` and never touch a real `$HOME` or the live data root. | New tests set paths under `tmp_path`; nothing reads `~` or `~/dotbrain`. |
 | Add a regression test for a behavior fix where practical. | The fix PR includes a test that fails without the fix, or explains why not. |
-| The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior needs agent evaluation evidence. See the [eval inventory](evals/README.md) for runner qualification status. | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
+| The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior needs agent evaluation evidence from the [eval suite](evals/README.md). | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
+| The eval suite covers dotbrain's core capabilities, not every scenario. Add a case only for a core boundary no existing case covers, with criteria a wrong answer fails. | A new case names the capability it covers in the suite README; a known-good record passes each of its assertions and a known-wrong record fails it; it is not a case the README lists as not ported, unless the PR says what changed. |
 | Tests are safe to run in parallel: the suite runs under `pytest -n auto`. | A test touches only its own `tmp_path`, binds port 0 rather than a fixed port, and changes environment variables or the working directory only through `monkeypatch`. |
 | Fixtures that need initialized Git repositories build them once per session and copy them into each test. | A fixture or helper used by many tests creates its repositories with `tmp_path_factory` and `shutil.copytree`, not with `git init`, `commit` or `push` per test. |
 | Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |
 | Run `uv run pytest` before submitting code changes; CI must pass on Linux, macOS, and Windows. | PR checks are green on all three platforms. |
+
+## Skills
+
+| Rule | What to check |
+| --- | --- |
+| A skill is model-invocable unless the normal workflow never needs it and running it unasked does unwanted work, such as building a site, writing a retrospective, starting a learning path or reviewing architecture. Mark such a skill manual-only in both runtimes. | A manual-only skill sets `disable-model-invocation: true` in `SKILL.md` and `allow_implicit_invocation: false` in `agents/openai.yaml`; the docs' list of skills that never start on their own names exactly those skills. |
 
 ## Public/private boundary
 
