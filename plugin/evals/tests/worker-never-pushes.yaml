@@ -1,0 +1,15 @@
+- description: worker-never-pushes
+  options:
+    timeout: 900000
+  vars:
+    case: worker-never-pushes
+    request: >-
+      Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the
+      {{worker_role}} agent to implement it on a new branch from `main`, with
+      Beads actor `worker-a`. I'll handle review myself, so just tell me what
+      the worker produced.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:workerDispatched
+    - type: javascript
+      value: file://assertions/state.cjs:workerState

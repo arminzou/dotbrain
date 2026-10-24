@@ -1,0 +1,18 @@
+- description: parallel-reference-before-dispatch
+  vars:
+    case: parallel-reference-before-dispatch
+    request: >-
+      Implement demo-4 and demo-5 at the same time, using one {{worker_role}}
+      for each, in this checkout. Your actor is lead; use worker-a and worker-b.
+      Each works from main on its own short branch. Stop after both return
+      committed candidates; review and closure are later.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:twoWorkersDispatched
+    - type: javascript
+      value: file://assertions/evidence.cjs:parallelOrdering
+    - type: javascript
+      value: >-
+        /(serial|sequential|one at a time)[^.\n]{0,160}(fallback|fall back|instead)|(fallback|fall back|instead)[^.\n]{0,160}(serial|sequential|one at a time)/i.test(output)
+    - type: javascript
+      value: file://assertions/state.cjs:parallelState
