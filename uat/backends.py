@@ -66,46 +66,59 @@ def redact(text: str, secrets) -> str:
     return text
 
 
-def shim_script(log: str, real: str, credential_vars) -> str:
-    """The recording `dotbrain` shim: drop the credentials, log the argv, run the real CLI.
-
-    The runtime's credential stops here, so dotbrain, its detached sync and git never see it.
-    """
-    lines = ["@echo off", "setlocal", *(f'set "{name}="' for name in credential_vars),
-             f'>>"{log}" echo %*', f'"{real}" %*']
-    return "\r\n".join(lines) + "\r\n"
-
-
-# Node's spawn without a shell (Pi's adapter) finds only `<name>.exe` or `.com` on Windows and
-# refuses a .cmd, so `dotbrain.exe` beside the shim hands its raw arguments to the same-named .cmd.
-LAUNCHER_SOURCE = r"""
-using System; using System.Diagnostics; using System.IO; using System.Reflection;
-class Launcher {
+# The host's recording `dotbrain` shim is an .exe: Node's spawn without a shell (Pi's adapter) finds
+# only `<name>.exe` or `.com`, and a .cmd would pass the arguments through cmd.exe, which reads `&`,
+# `^` and `%VAR%` in them as syntax. It logs the argv, drops the credentials, and runs the real CLI
+# with each argument re-quoted for the Windows argv parser, so every argument arrives literally.
+SHIM_SOURCE = r"""
+using System; using System.Diagnostics; using System.IO; using System.Text; using System.Threading;
+class Shim {
+    static string Quote(string arg) {
+        if (arg.Length > 0 && arg.IndexOfAny(new[] { ' ', '\t', '\n', '\v', '"' }) < 0) return arg;
+        var quoted = new StringBuilder("\"");
+        int slashes = 0;
+        foreach (char c in arg) {
+            if (c == '\\') { slashes++; continue; }
+            quoted.Append('\\', c == '"' ? slashes * 2 + 1 : slashes).Append(c);
+            slashes = 0;
+        }
+        return quoted.Append('\\', slashes * 2).Append('"').ToString();
+    }
     static int Main() {
-        string line = Environment.CommandLine;
-        int end = line.StartsWith("\"") ? line.IndexOf('"', 1) + 1 : line.IndexOf(' ');
-        string rest = end <= 0 || end >= line.Length ? "" : line.Substring(end);
-        string cmd = Path.ChangeExtension(Assembly.GetEntryAssembly().Location, ".cmd");
-        var info = new ProcessStartInfo(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe",
-                                        "/d /s /c \"\"" + cmd + "\"" + rest + "\"");
+        string[] argv = Environment.GetCommandLineArgs();
+        string[] args = new string[argv.Length - 1];
+        Array.Copy(argv, 1, args, 0, args.Length);
+        for (int attempt = 0; ; attempt++) {
+            try { File.AppendAllText(__LOG__, string.Join(" ", args) + "\n"); break; }
+            catch (IOException) { if (attempt > 50) throw; Thread.Sleep(20); }  // a concurrent call holds the log
+        }
+        var info = new ProcessStartInfo(__REAL__, string.Join(" ", Array.ConvertAll(args, Quote)));
         info.UseShellExecute = false;
+        foreach (string name in new string[] { __CREDENTIALS__ }) info.EnvironmentVariables.Remove(name);
         using (var child = Process.Start(info)) { child.WaitForExit(); return child.ExitCode; }
     }
 }
 """
 
 
-def build_launcher(shim_dir: Path) -> None:
-    """Compile ``dotbrain.exe`` for the ``dotbrain.cmd`` shim in ``shim_dir`` with Windows' own C# compiler."""
+def build_shim(shim_dir: Path, log: str, real: str, credential_vars) -> None:
+    """Compile the recording shim to ``shim_dir/dotbrain.exe`` with Windows' own C# compiler.
+
+    The runtime's credential stops here, so dotbrain, its detached sync and git never see it.
+    """
+    def literal(text):
+        return '@"' + str(text).replace('"', '""') + '"'
+
+    source = (SHIM_SOURCE.replace("__LOG__", literal(log)).replace("__REAL__", literal(real))
+              .replace("__CREDENTIALS__", ", ".join(map(literal, credential_vars))))
+    (shim_dir / "shim.cs").write_text(source, encoding="utf-8")
     csc = Path(os.environ.get("WINDIR", r"C:\Windows"), "Microsoft.NET", "Framework64", "v4.0.30319", "csc.exe")
-    source = shim_dir / "launcher.cs"
-    source.write_text(LAUNCHER_SOURCE, encoding="utf-8")
-    subprocess.run([str(csc), "/nologo", f"/out:{shim_dir / 'dotbrain.exe'}", str(source)], env=sanitized(os.environ),
-                   check=True, capture_output=True)
+    subprocess.run([str(csc), "/nologo", f"/out:{shim_dir / 'dotbrain.exe'}", str(shim_dir / "shim.cs")],
+                   env=sanitized(os.environ), check=True, capture_output=True)
 
 
 def sh_shim_script(log: str, real: str, credential_vars) -> str:
-    """``shim_script`` as a POSIX ``sh`` script, for the container."""
+    """The host's recording shim as a POSIX ``sh`` script, for the container."""
     lines = ["#!/bin/sh", *(f"unset {name}" for name in credential_vars),
              f'printf "%s\\n" "$*" >> {shlex.quote(log)}', f'exec {shlex.quote(real)} "$@"']
     return "\n".join(lines) + "\n"
@@ -209,9 +222,7 @@ class HostBackend:
         real = tools / "bin" / "dotbrain.exe"
         Path(self.hook_log).touch()
         # First on PATH, ahead of any live dotbrain: adapters resolve `dotbrain` + PATHEXT from PATH.
-        (shim_dir / "dotbrain.cmd").write_text(shim_script(self.hook_log, str(real), credential_vars),
-                                               encoding="utf-8")
-        build_launcher(shim_dir)
+        build_shim(shim_dir, self.hook_log, str(real), credential_vars)
 
         env = sanitized(os.environ)
         env.update({

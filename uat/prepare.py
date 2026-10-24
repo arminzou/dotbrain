@@ -28,7 +28,7 @@ UNREACHABLE_REMOTE = "git://192.0.2.1/dotbrain.git"
 
 def run(*argv: str, cwd: str | None = None) -> str:
     # Resolved through PATHEXT, as the adapters do, so `dotbrain` is the sandbox's recording shim;
-    # Windows' own lookup would skip a .cmd and could find a live dotbrain.exe instead.
+    # Windows' own lookup searches the interpreter's directory before PATH and could find a live dotbrain.exe.
     argv = (shutil.which(argv[0]) or argv[0], *argv[1:])
     done = subprocess.run(argv, cwd=cwd, capture_output=True, encoding="utf-8", errors="replace",
                           stdin=subprocess.DEVNULL)

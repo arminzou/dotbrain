@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -14,7 +15,7 @@ import pytest
 
 import backends
 import conftest
-from backends import ContainerBackend, HostBackend, redact, run_process, sanitized, sh_shim_script, shim_script
+from backends import ContainerBackend, HostBackend, redact, run_process, sanitized, sh_shim_script
 from observe import fingerprint
 
 SECRET = "sk-synthetic-uat-secret"
@@ -42,35 +43,42 @@ def test_failed_construction_installs_without_credentials_and_removes_the_sandbo
     assert not root.exists()
 
 
-@pytest.mark.skipif(sys.platform != "win32", reason="the shim is a Windows .cmd")
-def test_shim_drops_credentials_before_running_dotbrain(tmp_path):
-    probe = tmp_path / "probe.py"
-    probe.write_text("import os\nprint(os.environ.get('OPENAI_API_KEY'))\n")
-    shim = tmp_path / "dotbrain.cmd"
-    log = tmp_path / "calls.log"
-    shim.write_text(shim_script(str(log), sys.executable, ["OPENAI_API_KEY"]), encoding="utf-8")
-    done = run_process([str(shim), str(probe)], env={**os.environ, "OPENAI_API_KEY": SECRET}, cwd=tmp_path,
-                       timeout=60)
-    assert done.returncode == 0 and done.stdout.strip() == "None"
-    assert str(probe) in log.read_text()
+# How each caller reaches `dotbrain` on PATH: Pi's adapter spawns the bare name without a shell;
+# OpenCode's adapter walks PATH with PATHEXT and spawns the file it finds; prepare.py and the
+# backends resolve through shutil.which.
+_NODE_SPAWNS = {
+    "node-shell-free": "const cli = 'dotbrain';",
+    "node-pathext": ("const path = require('node:path'); const fs = require('node:fs');"
+                     "const cli = process.env.PATH.split(path.delimiter).flatMap((dir) =>"
+                     "  process.env.PATHEXT.split(';').map((ext) => path.join(dir, 'dotbrain' + ext)))"
+                     "  .find((file) => fs.existsSync(file));"),
+}
+# Shell syntax, an expandable variable, and a spaced path ending in a backslash must all arrive literally.
+_LITERAL_ARGS = ["hook", "run", "--checkout", "C:\\a&echo.INJECTED", "C:\\a^b", "C:\\a%UAT_MARKER% b",
+                 "C:\\a b\\", 'say "hi"', ""]
 
 
 @pytest.mark.skipif(sys.platform != "win32" or shutil.which("node") is None, reason="needs Windows and node")
-def test_shell_free_spawn_finds_the_shim_through_its_launcher(tmp_path):
-    """Pi's adapter spawns `dotbrain` from PATH without a shell, which never runs a .cmd."""
+@pytest.mark.parametrize("caller", [*_NODE_SPAWNS, "python-which"])
+def test_shim_passes_arguments_literally_without_credentials_and_logs_once(tmp_path, caller):
+    shim_dir = tmp_path / "shim"
+    shim_dir.mkdir()
     probe = tmp_path / "probe.py"
-    probe.write_text("import os, sys\nprint(os.environ.get('OPENAI_API_KEY'), sys.argv[1:])\n")
+    probe.write_text("import json, os, sys\nprint(json.dumps([os.environ.get('OPENAI_API_KEY'), sys.argv[2:]]))\n")
     log = tmp_path / "calls.log"
-    (tmp_path / "dotbrain.cmd").write_text(shim_script(str(log), sys.executable, ["OPENAI_API_KEY"]), encoding="utf-8")
-    backends.build_launcher(tmp_path)
-    spawning = ("const c = require('node:child_process').spawn('dotbrain', process.argv.slice(1));"
-                "c.stdout.pipe(process.stdout); c.on('close', (code) => process.exit(code));")
-    env = {**os.environ, "PATH": os.pathsep.join([str(tmp_path), os.environ["PATH"]]), "OPENAI_API_KEY": SECRET}
-    done = run_process(["node", "-e", spawning, str(probe), "--checkout", "C:\\a b"], env=env, cwd=tmp_path,
-                       timeout=60)
+    backends.build_shim(shim_dir, str(log), sys.executable, ["OPENAI_API_KEY"])
+    env = {**os.environ, "PATH": os.pathsep.join([str(shim_dir), os.environ["PATH"]]), "OPENAI_API_KEY": SECRET,
+           "UAT_MARKER": "EXPANDED"}
+    argv = [str(probe), "--", *_LITERAL_ARGS]  # the probe drops its own path and the separator
+    if caller == "python-which":
+        done = run_process(["dotbrain", *argv], env=env, cwd=tmp_path, timeout=60)
+    else:
+        spawning = (_NODE_SPAWNS[caller] + "const c = require('node:child_process').spawn(cli, process.argv.slice(1));"
+                    "c.stdout.pipe(process.stdout); c.on('close', (code) => process.exit(code));")
+        done = run_process(["node", "-e", spawning, *argv], env=env, cwd=tmp_path, timeout=60)
     assert done.returncode == 0, done.stderr
-    assert done.stdout.strip() == "None ['--checkout', 'C:\\\\a b']"
-    assert str(probe) in log.read_text()
+    assert done.stdout.splitlines() == [json.dumps([None, _LITERAL_ARGS])]  # nothing else ran or printed
+    assert len(log.read_text().splitlines()) == 1 and "hook run --checkout" in log.read_text()
 
 
 @pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX sh")
