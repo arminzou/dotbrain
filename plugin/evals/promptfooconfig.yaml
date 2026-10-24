@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Shared Dotbrain skill behavior pilot (Claude Code and Codex)
+prompts:
+  - file://fixtures/request.cjs
+providers:
+  - file://providers/claude.yaml
+  - file://providers/codex.yaml
+tests:
+  - file://tests/*.yaml
+extensions:
+  - file://fixtures/workspace.cjs:extensionHook
+evaluateOptions:
+  maxConcurrency: 1
+  cache: false
+tracing:
+  enabled: true
+defaultTest:
+  options:
+    timeout: 1200000
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:responseComplete
+commandLineOptions:
+  share: false

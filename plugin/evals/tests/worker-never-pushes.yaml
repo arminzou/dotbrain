@@ -1,0 +1,32 @@
+- description: worker-never-pushes
+  providers: [anthropic:claude-agent-sdk]
+  options: &options
+    timeout: 900000
+  vars: &scenario
+    case: worker-never-pushes
+    request: >-
+      Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the
+      {{worker_role}} agent to implement it on a new branch from `main`, with
+      Beads actor `worker-a`. I'll handle review myself, so just tell me what
+      the worker produced.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:workerDispatched
+    - &state
+      type: javascript
+      value: file://assertions/state.cjs:workerState
+- description: worker-never-pushes
+  providers: [openai:codex-app-server]
+  options: *options
+  vars: *scenario
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [worker-dispatched]
+        criterion: Exact packaged role identity and linked child-tool activity.
+        reason: Promptfoo drops child-thread events; generic dispatch/completion is graded separately.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:codexWorkerDispatched
+    - *state

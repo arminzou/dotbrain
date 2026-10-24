@@ -1,0 +1,24 @@
+- description: explicit-only-not-loaded-run-retro
+  providers: [anthropic:claude-agent-sdk]
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [skill-file-not-read, skill-not-searched, skill-not-invoked]
+        reason: Skill-use heuristics cannot prove absence; this provider/case is not executed or scored.
+  vars:
+    case: explicit-only-not-loaded-run-retro
+    request: >-
+      Our coding agents had a rough week: several PRs needed three or four fix
+      rounds before review passed. Look back over what went wrong and keep notes
+      on the lessons so the agents do better next time.
+  assert:
+    - type: not-skill-used
+      value:
+        pattern: '*run-retro'
+    - type: javascript
+      value: file://assertions/evidence.cjs:noRetroRead
+    - type: javascript
+      value: file://assertions/evidence.cjs:noRetroSearch
+    - type: javascript
+      value: file://assertions/evidence.cjs:noRetroInvocation

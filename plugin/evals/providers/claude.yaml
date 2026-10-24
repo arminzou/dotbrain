@@ -1,0 +1,8 @@
+id: anthropic:claude-agent-sdk
+label: Claude Code
+config:
+  setting_sources: [project]
+  persist_session: false
+  permission_mode: default
+  max_turns: 60
+  # Model, authentication and sandbox qualification are chosen before live runs.

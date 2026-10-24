@@ -46,9 +46,11 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     for ws, directory in workspace_dirs.items():
         if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
             raise ValueError(f"{directory}: workspace must be a checkout-local directory; run dotbrain refresh to migrate legacy workspace links")
-        receiver = directory / kind
-        if receiver.is_symlink() or (receiver.exists() and not receiver.is_dir()):
-            raise ValueError(f"{receiver}: foreign asset directory conflicts with delivery")
+        receiver = (target.checkout / runtimes.for_workspace(ws).skill_path if kind == "skills"
+                    else directory / kind)
+        conflict = skills.project_directory_conflict(target.checkout, receiver.relative_to(target.checkout).as_posix())
+        if conflict:
+            raise ValueError(conflict)
     legacy = target.brainspace / ".brain/agents/skills.yaml"
     if kind == "skills" and legacy.exists():
         raise ValueError(f"{legacy}: legacy selection; move skills into .brain/project.yaml")
@@ -67,14 +69,15 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names, workspace_dirs=workspace_dirs)
     linked_entries = []
     for workspace in workspaces:
-        directory = workspace_dirs[workspace] / ("skills" if kind == "skills" else "agents")
+        relative = runtimes.for_workspace(workspace).skill_path if kind == "skills" else f"{workspace}/agents"
+        directory = target.checkout / relative
         if directory.is_dir():
             for entry in directory.iterdir():
                 roots = (home / "skills", home / ".cache/skills") if kind == "skills" else (home / "agents", home / ".cache/agents")
                 if kind == "skills" and cursor.owned(home):
                     roots += (cursor.plugin_dir(home),)
                 if (entry.is_symlink() and any(skills._points_into(entry, root) for root in roots)) or (kind == "agents" and subagents.is_managed_copy(entry)):
-                    linked_entries.append(f"{workspace}/{kind}/{entry.name}")
+                    linked_entries.append(f"{relative}/{entry.name}")
     if linked_entries or result.pruned:
         adopter_repos.reconcile_link_excludes(target.checkout, linked=tuple(linked_entries), pruned=tuple(result.pruned), run=run)
     return result

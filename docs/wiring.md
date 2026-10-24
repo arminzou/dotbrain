@@ -6,41 +6,25 @@ private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start 
 
 ## What Gets Linked
 
-```mermaid
-flowchart LR
-  accTitle: What wiring links into a code repo
-  subgraph repo["`*~/repos/my-app* (code repo)`"]
-    rb["`*.brain*`"]
-    rbd["`*.beads*`"]
-    rc["`***.claude/***
-  skills and agents`"]
-    rx["`***.codex/***
-  skills and agents`"]
-  end
-  subgraph space["`*~/dotbrain/brainspaces/my-app*`"]
-    sb["`*.brain/*`"]
-    sbd["`*.beads/*`"]
-  end
-  subgraph home["`*~/dotbrain*`"]
-    sk["`***skills/*** and ***agents/***`"]
-  end
-  rb -- symlink --> sb
-  rbd -- symlink --> sbd
-  rc -. per-resource links .-> sk
-  rx -. links and generated copies .-> sk
-```
-
 | Entry | Kind | Points at |
 | --- | --- | --- |
 | `.brain` | Symlink | The Brainspace's Brain |
 | `.beads` | Symlink | The Brainspace's execution store |
-| `.claude/`, `.codex/` | Real directories | Contain individually ignored selected runtime resources |
+| `.claude/skills/` | Real directory containing symlinks | Selected private skills under `~/dotbrain/skills/` |
+| `.agents/skills/` | Real directory containing symlinks | Codex's selected private skills under `~/dotbrain/skills/` |
+| `.claude/agents/` | Real directory containing symlinks | Selected private Claude agents under `~/dotbrain/agents/` |
+| `.codex/agents/` | Real directory containing generated TOML files | Packaged roles and selected private Codex agents |
 
 `.claude` and `.codex` stay real directories so anything the project already keeps there (settings,
 commands) is untouched. Skills and Claude agents are symlinks. Codex agents are generated real
 TOML files, marked `# dotbrain-managed-agent: v1`. Dotbrain can overwrite and prune its marked
 copies; customize their source in the private home. Unmarked files and foreign links are preserved.
 Each delivered resource is ignored individually.
+
+Codex project skills go in `.agents/skills/`; its configuration and agents stay under `.codex/`.
+`wire`, `refresh`, and `skills link` migrate owned legacy `.codex/skills/` links after successful
+replacement, preserving and reporting foreign entries and collisions. See [Skills](skills.md#select-and-reconcile-skills)
+for migration behavior. Global skill homes keep their existing destinations.
 
 Brainspaces live under `~/dotbrain/brainspaces/<name>/`. An older `~/dotbrain/projects/<name>/`
 layout is still recognized; new Brainspaces are created under `brainspaces/`.
@@ -154,7 +138,7 @@ exit codes are 0 for success, 1 for an unmet operation, and 2 for invalid select
 Runtime filters select declared runtimes and never enable an undeclared workspace.
 
 ::: danger Do not hand-create links
-Links under `.claude` and `.codex` use relative targets computed from the checkout's real location.
+Links under `.claude` and `.agents/skills` use relative targets computed from the checkout's real location.
 A hand-counted `../` depth dangles without any error.
 :::
 

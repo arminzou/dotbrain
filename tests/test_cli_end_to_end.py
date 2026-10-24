@@ -79,7 +79,7 @@ def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch, claude_
     refreshed = invoke("refresh")
     assert refreshed["targets"][0]["project"] == "sample"
     assert invoke("refresh")["targets"][0]["changes"] == []
-    for workspace in (".claude", ".codex"):
+    for workspace in (".claude", ".agents"):
         for name in ("alpha", "beta"):
             link = worktree / workspace / "skills" / name
             assert link.is_symlink()
