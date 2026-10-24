@@ -6,6 +6,7 @@ This module owns machine-global setup: data-root seeding and global runtime link
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -208,7 +209,9 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
         try:
             if not present:
                 raise OSError("command not on PATH")
-            completed = run([runtimes.command(rt), "--version"], timeout=5)
+            # Probe the resolved path: without a shell, Windows cannot launch a bare name that exists only as .cmd.
+            executable = shutil.which(runtimes.command(rt)) or runtimes.command(rt)
+            completed = run([executable, "--version"], timeout=30)  # a cold first launch can take several seconds
             if completed.returncode:
                 raise RuntimeError(f"exit {completed.returncode}")
         except (OSError, subprocess.SubprocessError, RuntimeError) as exc:

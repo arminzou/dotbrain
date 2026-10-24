@@ -40,6 +40,25 @@ def test_bootstrap_runner_bounds_and_hides_version_probe(monkeypatch):
     assert captured["creationflags"] == (subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
 
 
+
+@pytest.mark.parametrize("resolved", ["/fake/bin/pi.cmd", None])
+def test_bootstrap_probes_resolved_runtime_path(tmp_path, monkeypatch, resolved):
+    import shutil
+    root, user = tmp_path / "data", tmp_path / "user"
+    monkeypatch.setattr(shutil, "which", lambda command: resolved if command == "pi" else None)
+    monkeypatch.setattr(runtimes, "installed", _installed_on_path)
+    probes = []
+
+    def run(argv, **kwargs):
+        if argv[-1] == "--version":
+            probes.append(argv[0])
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    result = bootstrap_mod.prepare(root, "pi", home=user, run=run)
+    assert probes == ([resolved] if resolved else [])
+    assert ("Pi: ready" if resolved else "Pi: skipped (command not on PATH)") in str(result)
+    assert assets.HOME_DELIVERY["pi"].owned(runtimes.user_dir(runtimes.find("pi"), user)) == bool(resolved)
+
 @pytest.mark.parametrize("answer", ["", "Y", "n", None])
 @pytest.mark.parametrize("existing_root", [False, True])
 def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
@@ -48,6 +67,7 @@ def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
         root.mkdir()
         (root / ".git").mkdir()
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    monkeypatch.setattr(bootstrap_mod.shutil, "which", lambda command: None)  # probe bare names, not this machine's CLIs
     calls, prompts = [], []
 
     def run(argv, **kwargs):
@@ -70,7 +90,7 @@ def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
                 f"dotbrain detach --runtime {name}") in text
     assert [argv for argv, _ in calls if argv[-1] == "--version"] == [
         ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"], ["agent", "--version"]]
-    assert all(kwargs["timeout"] == 5 for argv, kwargs in calls if argv[-1] == "--version")
+    assert all(kwargs["timeout"] == 30 for argv, kwargs in calls if argv[-1] == "--version")
 
 
 @pytest.mark.parametrize("name", tuple(assets.HOME_DELIVERY))
