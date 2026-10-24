@@ -53,7 +53,10 @@ the output criterion, subject only to the explicit provider exclusions above.
 
 Seeded good/bad records and real disposable Git trials calibrate the implemented
 checks. Claude ordering uses trace spans with matching tool-call IDs, successful
-completion and lead context. The installed Codex app-server provider does not
+completion and lead context. Codex ordering requires native read actions that
+resolve to the staged reference, and successful command output containing its
+full contents before the first spawn. Unclassified commands, print-only path mentions, wrong paths,
+missing or truncated output earn no credit. The installed provider does not
 retain child role/activity events; exact-role criteria are excluded on Codex.
 Shell command strings cannot prove absence of indirect skill reads/searches or
 invocation, so the Codex explicit-only combination is excluded too. The unused

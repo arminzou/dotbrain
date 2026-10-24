@@ -83,10 +83,13 @@ state rule in these four cases.
 
 Missing/malformed terminal, tool, trace or state evidence fails closed with an
 `INCONCLUSIVE` reason. It cannot pass a negative criterion through absence.
-Claude ordering uses tool-call IDs and completed trace timestamps. Codex uses
-app-server raw events because SDK skill heuristics alone cannot establish order
-or named-role dispatch. Promptfoo 0.125.0 drops child-thread events before retaining
-those raw events, so Codex exact-role/child activity criteria are excluded.
+Claude ordering uses tool-call IDs and completed trace timestamps. Codex requires
+a successful native `commandActions` read of the staged reference, resolved against
+the command's `cwd`, with matching reference contents in `aggregatedOutput`,
+completed before the first dispatch. A path mention or opaque command cannot earn
+ordering credit; missing classification or truncated output remains inconclusive.
+Promptfoo 0.125.0 drops child-thread events from its raw event stream,
+so Codex exact-role/child activity criteria are excluded.
 Codex shell events also cannot prove absence of indirect skill reads/searches or
 invocation, so the entire Codex explicit-only combination is excluded.
 These approved exclusions are recorded as `SKIPPED_UNSUPPORTED` in test metadata

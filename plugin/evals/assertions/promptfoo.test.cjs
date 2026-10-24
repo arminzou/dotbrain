@@ -100,7 +100,10 @@ test('native provider filters execute seven combinations and keep exclusions out
         ]).flat()}};
       const item = (method, item) => ({method, params: {threadId: 'lead', item}});
       const notifications = [item('item/completed', {id: 'read', type: 'commandExecution',
-        command: 'cat .agents/skills/run-execution/references/parallel-execution.md', status: 'completed', exitCode: 0})];
+        command: 'cat .agents/skills/run-execution/references/parallel-execution.md', status: 'completed', exitCode: 0,
+        cwd: path.join(root, 'workspace'),
+        commandActions: [{type: 'read', path: '.agents/skills/run-execution/references/parallel-execution.md'}],
+        aggregatedOutput: fs.readFileSync(path.join(root, 'workspace/.agents/skills/run-execution/references/parallel-execution.md'), 'utf8')})];
       for (let i = 0; i < count; i++) {
         const spawn = {id: 'spawn-' + i, type: 'collabAgentToolCall', tool: 'spawnAgent',
           status: 'completed', senderThreadId: 'lead', receiverThreadIds: ['child-' + i],

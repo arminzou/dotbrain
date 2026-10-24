@@ -1,3 +1,6 @@
+const fs = require('node:fs');
+const path = require('node:path');
+
 function verdict(pass, reason) { return {pass, score: pass ? 1 : 0, reason}; }
 
 function evidence(context) {
@@ -157,14 +160,30 @@ function parallelOrdering(output, context) {
     const firstDispatch = events.findIndex(event => event.method === 'item/started' &&
       event.params?.threadId === trace.lead && event.params?.item?.type === 'collabAgentToolCall' &&
       event.params.item.tool === 'spawnAgent');
-    return firstDispatch > 0 && events.slice(0, firstDispatch).some(event => {
+    const root = context.vars?.fixtureRoot;
+    if (!root) throw new Error('INCONCLUSIVE: staged reference path required');
+    const reference = path.join(root, 'workspace/.agents/skills/run-execution/references/parallel-execution.md');
+    const target = fs.realpathSync(reference);
+    const normalize = text => text.replaceAll('\r\n', '\n').trim();
+    const contents = normalize(fs.readFileSync(reference, 'utf8'));
+    if (!contents) throw new Error('INCONCLUSIVE: staged reference is empty');
+    const readBeforeDispatch = firstDispatch > 0 && events.slice(0, firstDispatch).some(event => {
       const item = event.params?.item;
-      return event.method === 'item/completed' && event.params?.threadId === trace.lead &&
-        item?.type === 'commandExecution' && item.status === 'completed' && item.exitCode === 0 &&
-        /run-execution[\\/]+references[\\/]+parallel-execution\.md/.test(item.command || '') &&
-        /\b(cat|type|Get-Content|readFile|read_text)\b/i.test(item.command || '');
+      if (event.method !== 'item/completed' || event.params?.threadId !== trace.lead ||
+        item?.type !== 'commandExecution' || item.status !== 'completed' || item.exitCode !== 0) return false;
+      if (!Array.isArray(item.commandActions) || typeof item.cwd !== 'string' ||
+        typeof item.aggregatedOutput !== 'string') {
+        throw new Error('INCONCLUSIVE: native read actions, cwd and complete output required');
+      }
+      return item.commandActions.some(action => {
+        if (action.type !== 'read' || typeof action.path !== 'string') return false;
+        try { return fs.realpathSync(path.resolve(item.cwd, action.path)) === target; }
+        catch { return false; }
+      }) && normalize(item.aggregatedOutput).includes(contents);
     });
-  }, 'A successful lead reference read must complete before the first writing dispatch');
+    if (!readBeforeDispatch) throw new Error('INCONCLUSIVE: no corroborated native reference read before dispatch');
+    return true;
+  }, 'A successful lead reference read must complete before the first writing dispatch; Codex requires a native read action and matching reference output');
 }
 
 module.exports = {evidence, responseComplete, noRetroRead, noRetroSearch, noRetroInvocation,

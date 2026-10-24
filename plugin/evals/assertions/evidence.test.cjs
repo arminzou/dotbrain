@@ -1,5 +1,8 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const checks = require('./evidence.cjs');
 
 const call = (name, input, extra = {}) => ({id: 'call-' + name, name, input, output: 'ok', is_error: false, ...extra});
@@ -90,15 +93,39 @@ test('packaged-role dispatch requires a successful named invocation and child ac
   assert.match(checks.workerDispatched('', codex([])).reason, /INCONCLUSIVE.*child-thread/);
 });
 
-test('completion order rejects child reads, failed reads and reads after dispatch', () => {
-  const read = event('item/completed', {type: 'commandExecution', command: 'cat .agents/skills/run-execution/references/parallel-execution.md', exitCode: 0, status: 'completed'});
+test('completion order requires a native reference read with corroborating output before dispatch', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'order-evidence-'));
+  t.after(() => {
+    assert.ok(fs.realpathSync(root).startsWith(fs.realpathSync(os.tmpdir()) + path.sep));
+    fs.rmSync(root, {recursive: true, force: true});
+  });
+  const relative = '.agents/skills/run-execution/references/parallel-execution.md';
+  const cwd = path.join(root, 'workspace');
+  const reference = path.join(cwd, relative);
+  fs.mkdirSync(path.dirname(reference), {recursive: true});
+  const contents = 'Full synthetic parallel reference\n';
+  fs.writeFileSync(reference, contents);
+  fs.writeFileSync(path.join(cwd, 'other.md'), contents);
+  const context = events => ({...codex(events), vars: {fixtureRoot: root}});
+  const read = event('item/completed', {type: 'commandExecution', command: 'cat ' + relative,
+    commandActions: [{type: 'read', path: relative}], cwd, aggregatedOutput: contents, exitCode: 0, status: 'completed'});
   const dispatch = event('item/started', {type: 'collabAgentToolCall', tool: 'spawnAgent'});
-  assert.ok(checks.parallelOrdering('', codex([read, dispatch])).pass);
+  assert.ok(checks.parallelOrdering('', context([read, dispatch])).pass);
+  const print = {...read.params.item, command: "printf '%s\\n' 'cat " + relative + "'",
+    commandActions: [{type: 'unknown'}], aggregatedOutput: 'cat ' + relative};
   for (const events of [[dispatch, read], [dispatch], [read],
+    [event(read.method, print), dispatch],
+    [event(read.method, {...print, commandActions: read.params.item.commandActions}), dispatch],
+    [event(read.method, {...read.params.item, commandActions: [{type: 'unknown'}]}), dispatch],
+    [event(read.method, {...read.params.item, commandActions: [{type: 'read', path: 'other.md'}]}), dispatch],
+    [event(read.method, {...read.params.item, commandActions: undefined}), dispatch],
+    [event(read.method, {...read.params.item, aggregatedOutput: undefined}), dispatch],
+    [event(read.method, {...read.params.item, aggregatedOutput: 'truncated'}), dispatch],
+    [event(read.method, {...read.params.item, cwd: root}), dispatch],
     [event(read.method, {...read.params.item, exitCode: 1}), dispatch],
     [event(read.method, read.params.item, 'child'), dispatch],
     [event('item/started', read.params.item), dispatch]]) {
-    assert.equal(checks.parallelOrdering('', codex(events)).pass, false);
+    assert.equal(checks.parallelOrdering('', context(events)).pass, false, JSON.stringify(events));
   }
   assert.match(checks.parallelOrdering('', claude([])).reason, /INCONCLUSIVE.*completion order/);
 });
