@@ -32,14 +32,14 @@ RESULTS = Path(__file__).resolve().parent / "results.json"
 
 # The only variables a journey treats as a credential. A runtime's model variable names
 # provider/model; the provider's key variable must be set too, and only that one reaches the runtime.
-MODEL_VARS = {"opencode": "UAT_OPENCODE_MODEL"}
+MODEL_VARS = {"opencode": "UAT_OPENCODE_MODEL", "pi": "UAT_PI_MODEL"}
 PROVIDER_KEYS = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "deepseek": "DEEPSEEK_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
 }
-COMMANDS = {"opencode": "opencode"}
+COMMANDS = {"opencode": "opencode", "pi": "pi"}
 
 
 @cache
@@ -80,6 +80,7 @@ def live_roots(runtime: str) -> list[Path]:
     runtime_dirs = {
         "opencode": [xdg("XDG_CONFIG_HOME", ".config") / "opencode", xdg("XDG_DATA_HOME", ".local/share") / "opencode",
                      xdg("XDG_STATE_HOME", ".local/state") / "opencode", xdg("XDG_CACHE_HOME", ".cache") / "opencode"],
+        "pi": [Path(os.environ.get("PI_CODING_AGENT_DIR") or home / ".pi" / "agent")],
     }[runtime]
     return runtime_dirs + [Path(os.environ.get("DOTBRAIN_HOME") or home / "dotbrain")]
 
@@ -99,8 +100,7 @@ class Sandbox:
 
 
 @pytest.fixture(params=["host", "container"])
-def sandbox(request, tmp_path, tmp_path_factory):
-    runtime = request.module.RUNTIME
+def sandbox(request, runtime, tmp_path, tmp_path_factory):
     props = request.node.user_properties
     props += [("runtime", runtime), ("backend", request.param)]
     container = request.param == "container"

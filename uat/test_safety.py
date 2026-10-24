@@ -55,6 +55,24 @@ def test_shim_drops_credentials_before_running_dotbrain(tmp_path):
     assert str(probe) in log.read_text()
 
 
+@pytest.mark.skipif(sys.platform != "win32" or shutil.which("node") is None, reason="needs Windows and node")
+def test_shell_free_spawn_finds_the_shim_through_its_launcher(tmp_path):
+    """Pi's adapter spawns `dotbrain` from PATH without a shell, which never runs a .cmd."""
+    probe = tmp_path / "probe.py"
+    probe.write_text("import os, sys\nprint(os.environ.get('OPENAI_API_KEY'), sys.argv[1:])\n")
+    log = tmp_path / "calls.log"
+    (tmp_path / "dotbrain.cmd").write_text(shim_script(str(log), sys.executable, ["OPENAI_API_KEY"]), encoding="utf-8")
+    backends.build_launcher(tmp_path)
+    spawning = ("const c = require('node:child_process').spawn('dotbrain', process.argv.slice(1));"
+                "c.stdout.pipe(process.stdout); c.on('close', (code) => process.exit(code));")
+    env = {**os.environ, "PATH": os.pathsep.join([str(tmp_path), os.environ["PATH"]]), "OPENAI_API_KEY": SECRET}
+    done = run_process(["node", "-e", spawning, str(probe), "--checkout", "C:\\a b"], env=env, cwd=tmp_path,
+                       timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == "None ['--checkout', 'C:\\\\a b']"
+    assert str(probe) in log.read_text()
+
+
 @pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX sh")
 def test_sh_shim_drops_credentials_before_running_dotbrain(tmp_path):
     probe = tmp_path / "probe.py"

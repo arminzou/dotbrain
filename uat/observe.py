@@ -40,6 +40,18 @@ def opencode_answer(events: list[dict]) -> str:
     return "\n".join(str((event.get("part") or {}).get("text", "")) for event in events if event.get("type") == "text")
 
 
+def pi_tool_calls(events: list[dict]) -> list[str]:
+    """Tool names from `pi -p --mode json`: one `tool_execution_start` event per tool call."""
+    return [str(event.get("toolName")) for event in events if event.get("type") == "tool_execution_start"]
+
+
+def pi_answer(events: list[dict]) -> str:
+    """The text of the assistant's finished messages, from the stream's `message_end` events."""
+    messages = [event.get("message") or {} for event in events if event.get("type") == "message_end"]
+    return "\n".join(str(part.get("text", "")) for message in messages if message.get("role") == "assistant"
+                     for part in message.get("content") or [] if part.get("type") == "text")
+
+
 # A shim log line holds the argv the adapter passed, quoted or not: hook run --event <event> --checkout <path>
 _HOOK_EVENT = re.compile(r'\bhook"?\s+"?run"?\s.*?--event"?\s+"?([a-z-]+)')
 

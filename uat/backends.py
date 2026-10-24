@@ -76,6 +76,34 @@ def shim_script(log: str, real: str, credential_vars) -> str:
     return "\r\n".join(lines) + "\r\n"
 
 
+# Node's spawn without a shell (Pi's adapter) finds only `<name>.exe` or `.com` on Windows and
+# refuses a .cmd, so `dotbrain.exe` beside the shim hands its raw arguments to the same-named .cmd.
+LAUNCHER_SOURCE = r"""
+using System; using System.Diagnostics; using System.IO; using System.Reflection;
+class Launcher {
+    static int Main() {
+        string line = Environment.CommandLine;
+        int end = line.StartsWith("\"") ? line.IndexOf('"', 1) + 1 : line.IndexOf(' ');
+        string rest = end <= 0 || end >= line.Length ? "" : line.Substring(end);
+        string cmd = Path.ChangeExtension(Assembly.GetEntryAssembly().Location, ".cmd");
+        var info = new ProcessStartInfo(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe",
+                                        "/d /s /c \"\"" + cmd + "\"" + rest + "\"");
+        info.UseShellExecute = false;
+        using (var child = Process.Start(info)) { child.WaitForExit(); return child.ExitCode; }
+    }
+}
+"""
+
+
+def build_launcher(shim_dir: Path) -> None:
+    """Compile ``dotbrain.exe`` for the ``dotbrain.cmd`` shim in ``shim_dir`` with Windows' own C# compiler."""
+    csc = Path(os.environ.get("WINDIR", r"C:\Windows"), "Microsoft.NET", "Framework64", "v4.0.30319", "csc.exe")
+    source = shim_dir / "launcher.cs"
+    source.write_text(LAUNCHER_SOURCE, encoding="utf-8")
+    subprocess.run([str(csc), "/nologo", f"/out:{shim_dir / 'dotbrain.exe'}", str(source)], env=sanitized(os.environ),
+                   check=True, capture_output=True)
+
+
 def sh_shim_script(log: str, real: str, credential_vars) -> str:
     """``shim_script`` as a POSIX ``sh`` script, for the container."""
     lines = ["#!/bin/sh", *(f"unset {name}" for name in credential_vars),
@@ -183,6 +211,7 @@ class HostBackend:
         # First on PATH, ahead of any live dotbrain: adapters resolve `dotbrain` + PATHEXT from PATH.
         (shim_dir / "dotbrain.cmd").write_text(shim_script(self.hook_log, str(real), credential_vars),
                                                encoding="utf-8")
+        build_launcher(shim_dir)
 
         env = sanitized(os.environ)
         env.update({
@@ -194,6 +223,7 @@ class HostBackend:
             "DOTBRAIN_HOME": self.data_root,
             # Runtime homes default below the swapped home; set the relocatable ones explicitly.
             "PI_CODING_AGENT_DIR": str(home / ".pi" / "agent"), "HERMES_HOME": str(home / ".hermes"),
+            "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0",
             "OPENCODE_TEST_HOME": self.home, "OPENCODE_DISABLE_CLAUDE_CODE": "1", "OPENCODE_DISABLE_AUTOUPDATE": "1",
             "GIT_AUTHOR_NAME": "dotbrain uat", "GIT_AUTHOR_EMAIL": "uat@dotbrain.invalid",
             "GIT_COMMITTER_NAME": "dotbrain uat", "GIT_COMMITTER_EMAIL": "uat@dotbrain.invalid",
@@ -300,6 +330,7 @@ class ContainerBackend:
 
         self._container = DockerContainer(image).with_command("sleep infinity").with_envs(
             DOTBRAIN_HOME=self.data_root, OPENCODE_DISABLE_CLAUDE_CODE="1", OPENCODE_DISABLE_AUTOUPDATE="1",
+            PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0",
             GIT_AUTHOR_NAME="dotbrain uat", GIT_AUTHOR_EMAIL="uat@dotbrain.invalid",
             GIT_COMMITTER_NAME="dotbrain uat", GIT_COMMITTER_EMAIL="uat@dotbrain.invalid", GIT_TERMINAL_PROMPT="0")
         self._started = False

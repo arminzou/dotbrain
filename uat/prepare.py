@@ -13,6 +13,7 @@ root has one uncommitted change and an upstream on an unreachable remote.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -44,7 +45,11 @@ def main() -> None:
     data_root = Path(os.environ["DOTBRAIN_HOME"])
     checkout = args.checkout
 
-    run("dotbrain", "bootstrap", "--runtime", args.runtime)
+    # Bootstrap reports a runtime it could not probe as skipped and still succeeds; nothing is delivered then.
+    report = json.loads(run("dotbrain", "bootstrap", "--runtime", args.runtime, "--json"))
+    skipped = [f["message"] for t in report["targets"] for f in t["findings"] if "skipped" in f["message"]]
+    if skipped:
+        raise SystemExit(f"dotbrain bootstrap did not deliver: {'; '.join(skipped)}")
     run("git", "init", "-q", checkout)
     run("git", "-C", checkout, "commit", "--allow-empty", "-q", "-m", "seed")
     run("dotbrain", "wire", "--repo", checkout, "--project", PROJECT, "--skip-beads")
