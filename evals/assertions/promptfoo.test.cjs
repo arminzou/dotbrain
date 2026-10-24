@@ -69,7 +69,7 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute seven combinations and keep exclusions outside grading', async () => {
+test('native provider filters execute nine combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
     .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
@@ -85,8 +85,9 @@ test('native provider filters execute seven combinations and keep exclusions out
       roots.push(root);
       combinations.push([id, caseName]);
       const count = caseName === 'parallel-reference-before-dispatch' ? 2 : caseName === 'worker-never-pushes' ? 1 : 0;
-      // Each writing case seeds one tracker item per worker through its `fixture.items` var.
-      assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8')).length, count);
+      // The real hook seeds each case's tracker items from its `fixture.items` var.
+      assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8')).length, (context.vars.fixture?.items ?? []).length);
+      if (caseName === 'closure-on-fresh-approval') fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['close', 'demo-3']}) + '\n');
       if (count) fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-2']}) + '\n');
       if (caseName === 'worker-never-pushes') {
         git(root, 'checkout', '-qb', 'candidate');
@@ -121,19 +122,19 @@ test('native provider filters execute seven combinations and keep exclusions out
     const record = await evaluate({...config, tracing: {enabled: false}, writeLatestResults: false,
       tests, providers}, {cache: false, maxConcurrency: 1});
     const summary = JSON.parse(JSON.stringify(await record.toEvaluateSummary()));
-    assert.equal(summary.results.length, 7);
-    assert.equal(summary.stats.successes, 6);
+    assert.equal(summary.results.length, 9);
+    assert.equal(summary.stats.successes, 8);
     assert.equal(summary.stats.failures, 1);
-    assert.equal(new Set(roots).size, 7);
-    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 4);
-    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 3);
+    assert.equal(new Set(roots).size, 9);
+    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 5);
+    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 4);
     assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') && name.startsWith('explicit-only')));
     for (const result of summary.results) {
       const codex = result.provider.id.startsWith('openai:');
       const name = result.testCase.vars.case;
       const components = result.gradingResult.componentResults;
       const exclusions = result.testCase.metadata?.capabilityExclusions || [];
-      assert.equal(components.length, name === 'activation-review-gate' ? 2 : name === 'worker-never-pushes' ? 3 : 5);
+      assert.equal(components.length, ['activation-review-gate', 'closure-on-fresh-approval'].includes(name) ? 2 : name === 'worker-never-pushes' ? 3 : 5);
       if (codex && ['worker-never-pushes', 'parallel-reference-before-dispatch'].includes(name)) {
         assert.equal(exclusions[0].status, 'SKIPPED_UNSUPPORTED');
         assert.ok(components.some(part => /CodexWorkers?Dispatched|codexWorkerDispatched/.test(part.assertion.value)));

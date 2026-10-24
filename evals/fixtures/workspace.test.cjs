@@ -119,7 +119,7 @@ test('provider configuration binds the same scenario to separate fixture resourc
 
 test('per-test tracker items reach the bd stub, comments included', () => {
   const comments = [{author: 'lead', text: 'Approved at abc123'}];
-  const root = prepare('data-driven-items', parent, [{id: 'demo-9', title: 'Seeded', comments}]);
+  const root = prepare('data-driven-items', parent, {items: [{id: 'demo-9', title: 'Seeded', comments}]});
   const bd = args => JSON.parse(execFileSync(process.execPath, [path.join(root, 'stub.cjs'), 'bd', ...args], {encoding: 'utf8'}));
   assert.deepEqual(bd(['show', 'demo-9'])[0].comments, comments);
   assert.deepEqual(bd(['comments', 'demo-9']), comments);

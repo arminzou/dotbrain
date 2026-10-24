@@ -1,7 +1,7 @@
 # Shared skill evals
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
-suite on Claude Code and Codex. The first four scenarios are prepared; live
+suite on Claude Code and Codex. Five scenarios are prepared; live
 qualification and the remaining migration are pending.
 
 ## Files
@@ -21,7 +21,7 @@ The retired runner's case directories are no longer checked out. Their criteria
 live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
 with `git show <source-revision>:plugin/evals/<path>`. See
 [legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
-four prepared cases do not establish parity.
+five prepared cases do not establish parity.
 
 ## Install and check without models
 
@@ -72,7 +72,7 @@ live run must use a dedicated environment containing only approved credentials.
 
 These mappings preserve the criteria in the frozen inventory. They record
 prepared assertions, not accepted live coverage. Source identity is the case ID
-plus grader ID; all four tests also require `responseComplete`.
+plus grader ID; every test also requires `responseComplete`.
 
 | Source case / grader | Promptfoo assertion |
 | --- | --- |
@@ -86,6 +86,7 @@ plus grader ID; all four tests also require `responseComplete`.
 | `parallel-reference-before-dispatch` / `reference-read` and supplemental completion-before-dispatch criterion | `parallelOrdering` |
 | Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
 | Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
+| `closure-on-fresh-approval` / `item-closed` | `checkedState` (`fixture.checks.closed`) |
 
 Custom runtime checks live in `assertions/evidence.cjs`; state checks live in
 `assertions/state.cjs`. The built-in skill patterns are globs so they accept both
@@ -100,13 +101,21 @@ The local `main` ref must equal its fixture baseline; the active branch may diff
 `no-merge`. The original parallel state contract does not require `main` to remain
 the active branch.
 
+`checkedState` covers rules declared in a test's `fixture.checks` on top of the
+always-on `no-push` and `no-merge`: `closed: <id>` requires a `bd close` or
+`--status closed` whose item operand is that ID, and `branchUnchanged: <branch>`
+requires the branch to still point at its fixture head. For
+`closure-on-fresh-approval` that is `closed=demo-3`, `no-push`, `no-merge`, and
+`branch-unchanged=search-index`. Its tracker items name the fixture's commits
+through `$main` and `$head`, which the workspace hook replaces with real SHAs.
+
 ### Provider capability exclusions
 
 `SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
 They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
 JSON report, outside scoring. Provider filters omit the Codex explicit-only
-combination entirely, so the normal matrix executes seven combinations per
-repeat: four Claude and three Codex. An omitted combination has no result row.
+combination entirely, so the normal matrix executes nine combinations per
+repeat: five Claude and four Codex. An omitted combination has no result row.
 
 | Provider | Source case / grader | Excluded criterion | Retained scoring |
 | --- | --- | --- | --- |

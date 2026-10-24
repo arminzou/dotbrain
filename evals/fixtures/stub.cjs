@@ -7,6 +7,10 @@ function positionals(args) {
     actor: {type: 'string'}, db: {type: 'string'}, database: {type: 'string'},
     directory: {type: 'string', short: 'C'}, 'dolt-auto-commit': {type: 'string'},
     'mem-profile': {type: 'string'}, repo: {type: 'string', short: 'R'},
+    // Value flags, so a reason or status value is never mistaken for the item operand.
+    status: {type: 'string', short: 's'}, reason: {type: 'string'}, notes: {type: 'string'},
+    file: {type: 'string'}, metadata: {type: 'string'}, title: {type: 'string'},
+    description: {type: 'string'}, assignee: {type: 'string'},
   }}).positionals;
 }
 
@@ -27,10 +31,14 @@ function main() {
     const verb = operands[0];
     if (verb === 'where') console.log(path.join(root, 'workspace/.beads'));
     else if (['show', 'ready', 'list'].includes(verb)) {
-      console.log(JSON.stringify(verb === 'show' ? items.filter(item => args.includes(item.id)) : items));
+      const shown = verb === 'show' ? items.filter(item => args.includes(item.id))
+        : verb === 'ready' ? items.filter(item => item.status === 'open') : items;
+      console.log(JSON.stringify(shown));
     } else if (verb === 'comments' && operands[1] !== 'add') {
       console.log(JSON.stringify(items.find(item => item.id === operands[1])?.comments ?? []));
-    } else if (['update', 'comments', 'close', 'create'].includes(verb)) console.log(JSON.stringify({id: operands[1], status: 'in_progress'}));
+    } else if (['update', 'comments', 'close', 'create'].includes(verb)) {
+      console.log(JSON.stringify({id: operands[1], status: verb === 'close' ? 'closed' : 'in_progress'}));
+    }
     else if (verb === 'prime') console.log('Synthetic tracker. Use bd show, ready, update and comments.');
     else {
       console.error('Unsupported synthetic bd operation: ' + args.join(' '));

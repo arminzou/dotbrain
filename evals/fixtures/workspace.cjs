@@ -38,8 +38,9 @@ function git(root, ...args) {
     encoding: 'utf8', windowsHide: true}).trim();
 }
 
-// Per-case tracker state comes from the test's `fixture.items` var; the stub serves it verbatim.
-function prepare(caseName, parent = path.join(evals, 'results'), items = []) {
+// Per-case state comes from the test's `fixture` var: optional `branch` and `commits` history, then
+// tracker `items`, whose text may name the resulting `$main` and `$head` revisions.
+function prepare(caseName, parent = path.join(evals, 'results'), {items = [], branch, commits = []} = {}) {
   if (!/^[a-z0-9-]+$/.test(caseName)) throw new Error('Invalid case name: ' + caseName);
   fs.mkdirSync(parent, {recursive: true});
   const root = fs.mkdtempSync(path.join(parent, caseName + '-'));
@@ -65,7 +66,15 @@ function prepare(caseName, parent = path.join(evals, 'results'), items = []) {
   execFileSync('git', ['init', '--bare', '-q', path.join(root, 'origin.git')], {env, windowsHide: true});
   git(root, 'remote', 'add', 'origin', path.join(root, 'origin.git'));
   git(root, 'push', '-q', 'origin', 'main');
-  write(path.join(root, 'items.json'), JSON.stringify(items.map(item => ({status: 'open', issue_type: 'task', priority: 2, ...item}))));
+  if (branch) git(root, 'checkout', '-qb', branch);
+  for (const {message, files} of commits) {
+    for (const [file, content] of Object.entries(files)) write(path.join(root, 'workspace', file), content);
+    git(root, 'add', '.');
+    git(root, 'commit', '-qm', message);
+  }
+  const revisions = {main: git(root, 'rev-parse', 'main'), head: git(root, 'rev-parse', 'HEAD')};
+  const seeded = JSON.stringify(items.map(item => ({status: 'open', issue_type: 'task', priority: 2, ...item})));
+  write(path.join(root, 'items.json'), seeded.replace(/\$(main|head)\b/g, (_, name) => revisions[name]));
   fs.copyFileSync(path.join(__dirname, 'stub.cjs'), path.join(root, 'stub.cjs'));
   for (const tool of ['bd', 'gh']) {
     const stub = path.join(root, 'stub.cjs');
@@ -79,7 +88,9 @@ function prepare(caseName, parent = path.join(evals, 'results'), items = []) {
   const python = path.join(repo, process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python');
   execFileSync(python, [path.join(__dirname, 'deliver.py'), root], {cwd: repo, env, windowsHide: true});
   write(path.join(root, 'home/.codex/config.toml'), '[features]\nmulti_agent = true\n');
-  write(path.join(root, 'base.json'), JSON.stringify({base: git(root, 'rev-parse', 'HEAD'), caseName}));
+  const refs = Object.fromEntries(git(root, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads')
+    .split('\n').map(line => line.split(' ')));
+  write(path.join(root, 'base.json'), JSON.stringify({base: revisions.main, refs, caseName}));
   const receive = path.join(root, 'origin.git/hooks/post-receive');
   const shellQuote = text => "'" + text.replaceAll("'", "'\\''") + "'";
   write(receive, `#!/bin/sh\nexec ${shellQuote(process.execPath.replaceAll('\\', '/'))} ${shellQuote(path.join(root, 'stub.cjs').replaceAll('\\', '/'))} receive-push\n`);
@@ -93,7 +104,7 @@ async function extensionHook(hookName, context) {
     if (process.env.DOTBRAIN_EVAL_LIVE !== '1') {
       throw new Error('Live agent evaluations require DOTBRAIN_EVAL_LIVE=1 and an agreed model/auth/budget contract');
     }
-    const root = prepare(context.test.vars.case, undefined, context.test.vars.fixture?.items);
+    const root = prepare(context.test.vars.case, undefined, context.test.vars.fixture);
     return {test: {...context.test, vars: {...context.test.vars, fixtureRoot: root}}};
   }
   if (hookName === 'afterEach' && context.test.vars.fixtureRoot) {
