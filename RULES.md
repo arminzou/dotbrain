@@ -32,7 +32,7 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | --- | --- |
 | Tests use `tmp_path` and never touch a real `$HOME` or the live data root. | New tests set paths under `tmp_path`; nothing reads `~` or `~/dotbrain`. |
 | Add a regression test for a behavior fix where practical. | The fix PR includes a test that fails without the fix, or explains why not. |
-| The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior needs agent evaluation evidence. See the [eval inventory](plugin/evals/README.md) for runner qualification status. | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
+| The Python suite tests the CLI and plugin delivery, not skill wording; skill behavior needs agent evaluation evidence. See the [eval inventory](evals/README.md) for runner qualification status. | Skill tests parse, resolve, or compare packaged files; none asserts that a phrase appears in a skill or agent prompt. |
 | Tests are safe to run in parallel: the suite runs under `pytest -n auto`. | A test touches only its own `tmp_path`, binds port 0 rather than a fixed port, and changes environment variables or the working directory only through `monkeypatch`. |
 | Fixtures that need initialized Git repositories build them once per session and copy them into each test. | A fixture or helper used by many tests creates its repositories with `tmp_path_factory` and `shutil.copytree`, not with `git init`, `commit` or `push` per test. |
 | Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |

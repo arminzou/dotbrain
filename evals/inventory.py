@@ -1,6 +1,6 @@
 """Account for the retired runner's source without invoking an agent or a fixture.
 
-Run from any directory: uv run python plugin/evals/inventory.py [--check].
+Run from any directory: uv run python evals/inventory.py [--check].
 The JSON is a frozen migration starting point, not a runtime qualification report.
 """
 
@@ -16,7 +16,7 @@ import subprocess
 import yaml
 
 SOURCE_REVISION = "c9c4570534c39f84207e25f8ea47f0446b88a07e"
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = Path(__file__).with_name("inventory.json")
 PREFIX = "plugin/evals/"
 DECISION_CASES = frozenset({

@@ -27,12 +27,12 @@ for the replacement's pilot to pass.
 From the repository root, with the existing Python dependencies installed:
 
 ```bash
-uv run python plugin/evals/inventory.py --check
+uv run python evals/inventory.py --check
 uv run pytest tests/test_eval_inventory.py
 ```
 
 To regenerate this frozen source snapshot, run
-`uv run python plugin/evals/inventory.py`. Generation reads only the selected
+`uv run python evals/inventory.py`. Generation reads only the selected
 commit's blobs and writes only `inventory.json`; `--check` writes no files.
 Neither operation executes fixtures, agents, graders, or model judges. The check
 compares every entry and hash with the source, so omissions and changed criteria

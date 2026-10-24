@@ -3,7 +3,7 @@ const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 
 const evals = path.resolve(__dirname, '..');
-const repo = path.resolve(evals, '../..');
+const repo = path.resolve(evals, '..');
 const cases = new Set(['activation-review-gate', 'explicit-only-not-loaded-run-retro',
   'worker-never-pushes', 'parallel-reference-before-dispatch']);
 

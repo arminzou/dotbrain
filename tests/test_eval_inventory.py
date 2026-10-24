@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "plugin/evals/inventory.py"
+_SCRIPT = Path(__file__).resolve().parents[1] / "evals/inventory.py"
 _SPEC = importlib.util.spec_from_file_location("eval_inventory", _SCRIPT)
 inventory = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(inventory)

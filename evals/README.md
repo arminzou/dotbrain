@@ -31,7 +31,7 @@ From the repository root:
 
 ```sh
 uv sync --locked
-cd plugin/evals
+cd evals
 npm ci
 npm run validate
 npm test
