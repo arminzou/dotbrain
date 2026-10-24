@@ -180,7 +180,7 @@ closure grants no PR approval, merge, or release authority.
 
 ## 7. Close the Design
 
-You manually invoke `close-design` to move the design to a terminal state. For shipped work it
+You ask for `close-design`, by name or in words, to move the design to a terminal state. For shipped work it
 checks the actual PR, target branch, merge commit and merge date; closed-unmerged never establishes
 shipment. A ready PR leaves the design and epic active. Work/review closure never invokes closeout
 automatically, and no merge polling is added. It records the evidence that the success

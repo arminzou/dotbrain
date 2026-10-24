@@ -19,7 +19,7 @@ approved contract. From then
 on this doc is the living design authority, and criteria changes are human decisions recorded under
 `Deviations` or `Human Decisions Needed`.
 
-Reaching a terminal state requires manual invocation of `close-design` after human merge for
+Reaching a terminal state requires a human request for `close-design` after human merge for
 shipped work. A ready PR leaves the design and epic active. It records the verification evidence actually
 achieved under `Verification Evidence`, so a later reader can check the gate still catches the
 failure it was written for (gates rot), then promotes durable residue — decisions to

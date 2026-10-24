@@ -1,7 +1,6 @@
 ---
 name: close-design
-description: Manually closes a shipped, abandoned or superseded design — checks shipment evidence, promotes durable residue, stamps frontmatter and closes the epic.
-disable-model-invocation: true
+description: Closes a shipped, abandoned or superseded design — checks shipment evidence, promotes durable residue, stamps frontmatter and closes the epic. Use when the human asks to close out, wrap up or finish a design.
 ---
 
 # Close Design
@@ -10,9 +9,9 @@ A design doc is `active` only while it is the living design authority. Once the 
 dropped, or is replaced, the doc freezes and its durable residue belongs in canon. This skill owns
 that transition.
 
-This skill is only manually invoked by the human, including sweep and retroactive cases.
-Closing implementation or review work and delivering a ready PR never invokes it automatically.
-The design and epic remain active until manual terminal closeout. Do not poll for merge.
+Run it only when the human asks for closeout, by name or in words, including sweep and retroactive cases.
+Closing implementation or review work and delivering a ready PR never invokes it on its own.
+The design and epic remain active until the human asks for terminal closeout. Do not poll for merge.
 
 ## Stop before you start
 

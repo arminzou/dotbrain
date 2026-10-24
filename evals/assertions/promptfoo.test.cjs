@@ -32,9 +32,6 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
     const workGraph = cases('activation-manage-work-graph.yaml').assert[0];
     assert.equal((await run(workGraph)).pass, false);
     assert.ok((await run(workGraph, skills('dotbrain:manage-work-graph'))).pass);
-    const closeDesign = cases('explicit-only-close-design.yaml');
-    for (const assertion of closeDesign.assert) assert.ok((await run(assertion, terminal, closeDesign.vars)).pass);
-    assert.equal((await run(closeDesign.assert[0], skills('dotbrain:close-design'))).pass, false);
     const unrelated = cases('no-skill-for-unrelated-request.yaml');
     for (const assertion of unrelated.assert) assert.ok((await run(assertion, terminal, unrelated.vars)).pass);
     for (const assertion of unrelated.assert) {
@@ -88,7 +85,7 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute fifteen combinations and keep exclusions outside grading', async () => {
+test('native provider filters execute fourteen combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
     .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
@@ -144,11 +141,11 @@ test('native provider filters execute fifteen combinations and keep exclusions o
     const record = await evaluate({...config, tracing: {enabled: false}, writeLatestResults: false,
       tests, providers}, {cache: false, maxConcurrency: 1});
     const summary = JSON.parse(JSON.stringify(await record.toEvaluateSummary()));
-    assert.equal(summary.results.length, 15);
-    assert.equal(summary.stats.successes, 14);
+    assert.equal(summary.results.length, 14);
+    assert.equal(summary.stats.successes, 13);
     assert.equal(summary.stats.failures, 1);
-    assert.equal(new Set(roots).size, 15);
-    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 9);
+    assert.equal(new Set(roots).size, 14);
+    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 8);
     assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 6);
     assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') &&
       (name.startsWith('explicit-only') || name === 'no-skill-for-unrelated-request')));

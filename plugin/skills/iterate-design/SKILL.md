@@ -1,7 +1,6 @@
 ---
 name: iterate-design
 description: Iterates from an active design doc in Goal mode for an explicit automation handoff with a mechanical verifier and hard stop.
-disable-model-invocation: true
 ---
 
 # Iterate Design
@@ -13,8 +12,8 @@ reflection rules; the coding agent runs the loop.
 
 ## When to use
 
-This loop drives the handoff workflow and is human-triggered: the human explicitly hands off to it as an automation handoff (for
-example via `/iterate-design`), and it runs on a dedicated branch — never directly on `main` — even
+This loop drives the handoff workflow and is human-triggered: the human explicitly hands a design off to it as an automation handoff, by name
+(`/iterate-design`) or in words, and it runs on a dedicated branch — never directly on `main` — even
 after a mid-loop return to the human.
 
 Use when:

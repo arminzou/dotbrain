@@ -16,10 +16,10 @@ active design records current intent, and Beads tracks private execution.
 - **Implement and learn:** [`manage-work-graph`](manage-work-graph/SKILL.md) keeps the work graph and
   its ready frontier; [`run-execution`](run-execution/SKILL.md) carries out an item or a
   finite batch. Discoveries feed back into the active design or work graph before the next work item.
-  Invoke [`iterate-design`](iterate-design/SKILL.md) by name for a bounded handoff loop.
+  Hand a design off to [`iterate-design`](iterate-design/SKILL.md), by name or in words, for a bounded handoff loop.
 - **Review:** [`review-gate`](review-gate/SKILL.md) records findings and verification evidence; the lead
   closes accepted reviews, and PR approval and merge stay human-owned.
-- **Close out:** invoke [`close-design`](close-design/SKILL.md) by name to record what was verified,
+- **Close out:** ask for [`close-design`](close-design/SKILL.md), by name or in words, to record what was verified,
   promote lasting knowledge, and freeze the design as shipped, abandoned, or superseded.
 - **Supporting writing guidance:** [`write-agent-docs`](write-agent-docs/SKILL.md) guides public docs,
   private Brain material, and agent instructions. It remains model-invocable.
@@ -30,14 +30,14 @@ needs to change rather than quietly redefining done.
 ## Optional skills invoked by name
 
 These skills stay shipped. Use `/dotbrain:<name>` in Claude Code or `$<name>` in Codex.
-The core workflow's `iterate-design` and `close-design` use the same invocation syntax.
+`dotbrain` and `triage-public` also start from a request in words; the others run only by name.
 
 - **Learn:** [`teach-me`](teach-me/SKILL.md) teaches the project from its Brain across sessions.
 - **Triage:** [`triage-public`](triage-public/SKILL.md) brings accepted public issues into private execution.
 - **Brain site:** [`brain-site`](brain-site/SKILL.md) sets up, builds, and previews the private site.
 - **Architecture:** [`review-architecture`](review-architecture/SKILL.md) looks for architectural deepening opportunities.
 - **Convention:** [`dotbrain`](dotbrain/SKILL.md) provides the operating convention. The session-start
-  hook injects it automatically; invoke it by name where that hook does not run.
+  hook injects it automatically; where that hook does not run, ask for it or invoke it by name.
 - **Retrospective:** [`run-retro`](run-retro/SKILL.md) reviews changed evidence in a separate manual or
   externally invoked pass, retaining private findings, successful practices, and source progress.
   In repository scope it offers once to create `RULES.md` when no rules or standards file

@@ -1,7 +1,7 @@
 # Shared skill evals
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
-suite on Claude Code and Codex. Nine scenarios are prepared; live
+suite on Claude Code and Codex. Eight scenarios are prepared; live
 qualification and the remaining migration are pending.
 
 ## Files
@@ -21,7 +21,9 @@ The retired runner's case directories are no longer checked out. Their criteria
 live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
 with `git show <source-revision>:plugin/evals/<path>`. See
 [legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
-nine prepared cases do not establish parity.
+eight prepared cases do not establish parity.
+`explicit-only-not-loaded-close-design` is retired: `close-design` now starts
+from a plain-words request, so its criterion no longer holds.
 
 ## Install and check without models
 
@@ -78,9 +80,9 @@ plus grader ID; every test also requires `responseComplete`.
 | --- | --- |
 | `activation-review-gate` / `skill-invoked` | `skill-used` in `tests/activation-review-gate.yaml` |
 | `activation-manage-work-graph` / `skill-invoked` | `skill-used` in `tests/activation-manage-work-graph.yaml` |
-| `explicit-only-not-loaded-run-retro` and `explicit-only-not-loaded-close-design` / `skill-file-not-read` | `noSkillRead` |
-| Same cases / `skill-not-searched` | `noSkillSearch` |
-| Same cases / `skill-not-invoked` | `noSkillInvocation` plus built-in `not-skill-used` |
+| `explicit-only-not-loaded-run-retro` / `skill-file-not-read` | `noSkillRead` |
+| Same case / `skill-not-searched` | `noSkillSearch` |
+| Same case / `skill-not-invoked` | `noSkillInvocation` plus built-in `not-skill-used` |
 | `no-skill-for-unrelated-request` / `no-skill-invoked` | `noSkillInvocation` with `skill: '*'` plus built-in `not-skill-used` with pattern `*` |
 | `worker-never-pushes` / `worker-dispatched` | `workerDispatched` |
 | Same case / `nothing-closed-or-merged` | `workerState` |
@@ -127,13 +129,13 @@ of some other item, which this scenario gives no reason to issue.
 `SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
 They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
 JSON report, outside scoring. Provider filters omit the Codex explicit-only and
-no-skill combinations entirely, so the normal matrix executes fifteen
-combinations per repeat: nine Claude and six Codex. An omitted combination has
+no-skill combinations entirely, so the normal matrix executes fourteen
+combinations per repeat: eight Claude and six Codex. An omitted combination has
 no result row.
 
 | Provider | Source case / grader | Excluded criterion | Retained scoring |
 | --- | --- | --- | --- |
-| `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` and `explicit-only-not-loaded-close-design` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for these combinations |
+| `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
 | `openai:codex-app-server` | `no-skill-for-unrelated-request` / `no-skill-invoked` | Absence of any skill use | None; no execution or result row for this combination |
 | `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
 | `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
