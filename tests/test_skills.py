@@ -117,7 +117,7 @@ def test_links_operator_selection(dotbrain_home: Path, brainspace: Path):
         dotbrain_home, brainspace, (".claude", ".codex"), ("misc/discovery-test",)
     )
     assert not result.warnings
-    for workspace in (".claude", ".codex"):
+    for workspace in (".claude", ".agents"):
         skills_dir = brainspace / workspace / "skills"
         link = skills_dir / "discovery-test"
         assert link.is_symlink()
@@ -176,13 +176,13 @@ def test_project_link_results_reconcile_per_entry_excludes(
     )
     adopter_repos.reconcile_link_excludes(repo, linked=linked.linked)
     exclude = repo / ".git" / "info" / "exclude"
-    assert "/.codex/skills/discovery-test" in exclude.read_text().splitlines()
+    assert "/.agents/skills/discovery-test" in exclude.read_text().splitlines()
     assert "/.codex" not in exclude.read_text().splitlines()
     assert "/.codex/" not in exclude.read_text().splitlines()
 
     pruned = skills.link_project(dotbrain_home, brainspace, (".codex",), ())
     adopter_repos.reconcile_link_excludes(repo, pruned=pruned.pruned)
-    assert "/.codex/skills/discovery-test" not in exclude.read_text().splitlines()
+    assert "/.agents/skills/discovery-test" not in exclude.read_text().splitlines()
 
 
 def test_missing_skill_warns(dotbrain_home: Path, brainspace: Path):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -363,7 +364,9 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
             return [Finding("info", "home sync inactive: the dotbrain home is not a Git repository",
                             "initialize Git in the dotbrain home to sync it")]
         # Only reads go through here, so the bounded doctor runner fits home sync's Git calls.
-        git = lambda argv, *, cwd=None, env=None, **_: run(argv, cwd=cwd, check=False, timeout=PROBE_TIMEOUT, env=env)
+        git = lambda argv, *, cwd=None, env=None, **_: run(
+            argv, cwd=cwd, check=False, timeout=PROBE_TIMEOUT,
+            env={**os.environ, **(env or {}), "GIT_OPTIONAL_LOCKS": "0"})
         state = home_sync._state(git, root)
         blockers = home_sync._blockers(home_sync._git_dir(root, git), state)
         findings = [Finding("error", f"home sync blocked: {blocker} in the dotbrain home",
@@ -522,14 +525,23 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 continue
             rt = runtimes.for_workspace(workspace)
             runtime = rt.key
+            skill_directory = repo / rt.skill_path
+            conflict = skills.project_directory_conflict(repo, rt.skill_path)
+            if conflict:
+                findings.append(Finding("error", conflict, "move the conflicting entry aside, then run dotbrain refresh"))
+            elif runtime != "cursor":
+                findings.extend(_check_assets(root, skill_directory, selected, "skills", runtime))
+                entries.extend(f"/{rt.skill_path}/{Path(name).name}" for name in selected)
+            if runtime == "codex":
+                legacy, warnings = skills.codex_legacy_entries(root, repo)
+                findings.extend(Finding("warn", warning, "inspect preserved legacy skills") for warning in warnings)
+                findings.extend(Finding("warn", f"{entry}: legacy managed skill remains", "run dotbrain refresh to migrate to .agents/skills")
+                                for entry in legacy)
             if runtime == "cursor":
                 findings.extend(_check_cursor_skills(root, selected, (repo, home or Path.home()), selected_only=True))
                 sources = (root / "skills",) + ((cursor.plugin_dir(root),) if cursor.owned(root) else ())
                 entries.extend(f"/{workspace}/skills/{entry.name}" for entry in (directory / "skills").glob("*")
                                if entry.is_symlink() and any(skills._points_into(entry, source) for source in sources))
-            else:
-                findings.extend(_check_assets(root, directory / "skills", selected, "skills", runtime))
-                entries.extend(f"/{workspace}/skills/{Path(name).name}" for name in selected)
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))

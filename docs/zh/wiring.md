@@ -5,40 +5,23 @@
 
 ## 会链接哪些东西 {#what-gets-linked}
 
-```mermaid
-flowchart LR
-  accTitle: What wiring links into a code repo
-  subgraph repo["`*~/repos/my-app* (code repo)`"]
-    rb["`*.brain*`"]
-    rbd["`*.beads*`"]
-    rc["`***.claude/***
-  skills and agents`"]
-    rx["`***.codex/***
-  skills and agents`"]
-  end
-  subgraph space["`*~/dotbrain/brainspaces/my-app*`"]
-    sb["`*.brain/*`"]
-    sbd["`*.beads/*`"]
-  end
-  subgraph home["`*~/dotbrain*`"]
-    sk["`***skills/*** and ***agents/***`"]
-  end
-  rb -- symlink --> sb
-  rbd -- symlink --> sbd
-  rc -. per-resource links .-> sk
-  rx -. links and generated copies .-> sk
-```
-
 | 条目 | 类型 | 指向 |
 | --- | --- | --- |
 | `.brain` | 符号链接 | Brainspace 的 Brain |
 | `.beads` | 符号链接 | Brainspace 的执行存储 |
-| `.claude/`、`.codex/` | 真实目录 | 存放逐个被忽略的选定运行时资源 |
+| `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有技能 |
+| `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有技能 |
+| `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/agents/` 下选中的私有 Claude Agent |
+| `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 内置角色和选中的私有 Codex Agent |
 
 `.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。技能和 Claude
 Agent 是符号链接。Codex Agent 是生成的真实 TOML 文件，带有 `# dotbrain-managed-agent: v1` 标记。
 dotbrain 可以覆盖和清理带标记的副本；要自定义，请改私有主目录里的源文件。没有标记的文件和其他来源的
 链接都会保留。每个分发的资源都单独被忽略。
+
+Codex 项目技能放在 `.agents/skills/`，配置和子 Agent 仍在 `.codex/` 下。`wire`、`refresh` 和
+`skills link` 会在新链接分发成功后移除自有的 `.codex/skills/` 旧链接，保留并报告其他来源的条目和冲突。
+迁移细节见[技能](skills.md#select-and-reconcile-skills)。全局技能主目录的位置不变。
 
 Brainspace 放在 `~/dotbrain/brainspaces/<name>/` 下。旧的 `~/dotbrain/projects/<name>/` 布局仍然能识别；
 新的 Brainspace 会建在 `brainspaces/` 下。
@@ -149,7 +132,7 @@ checkout 的操作；`doctor` 会给出警告，`--all` 链接资源时会跳过
 2 表示选择或调用无效。运行时过滤只会选择已声明的运行时，从不启用未声明的工作区。
 
 ::: danger 不要手动创建链接
-`.claude` 和 `.codex` 下的链接使用相对路径，是根据 checkout 的真实位置计算出来的。手数 `../` 层数写出来的
+`.claude` 和 `.agents/skills` 下的链接使用相对路径，是根据 checkout 的真实位置计算出来的。手数 `../` 层数写出来的
 链接会悄无声息地失效。
 :::
 

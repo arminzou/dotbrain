@@ -91,7 +91,10 @@ def test_refresh_follows_machine_only_without_agents_and_notices_old_defaults(se
 
     monkeypatch.setattr(doctor, '_check_assets', check_assets)
     doctor._check_project(target, home, run=workflows._default_run)
-    assert checked == set(expected_workspaces)
+    expected_receivers = set(expected_workspaces)
+    if '.codex' in expected_receivers:
+        expected_receivers.add('.agents')
+    assert checked == expected_receivers
     assert not workflows.unwire_project(dotbrain_home=home, repo=checkout).errors
     assert all(not (checkout / ws / 'skills/sample').is_symlink() for ws in expected_workspaces)
 

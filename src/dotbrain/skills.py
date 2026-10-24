@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
@@ -146,7 +148,7 @@ def stash_collision(target: Path) -> Path:
 def _points_into(link: Path, root: Path) -> bool:
     try:
         return link.resolve().is_relative_to(root.resolve())
-    except FileNotFoundError:
+    except (OSError, RuntimeError):
         return False
 
 
@@ -233,30 +235,47 @@ def link_into(
             continue
 
         dest = skills_dir / Path(skill_path).name
-        wanted.add(dest.name)
-        if dest.is_symlink() and dest.resolve() == src.resolve():
-            continue
+        wanted.add(os.path.normcase(dest.name))
         owned = dest.is_symlink() and (
             any(_points_into(dest, root) for root in (private_root, cache_root, *owned_roots))
         )
+        if owned and dest.resolve() == src.resolve():
+            continue
         if preserve_collisions and (dest.exists() or dest.is_symlink()) and not owned:
             result.warnings.append(f"{dest} exists and was not created by dotbrain; skipping")
             continue
         if dest.exists() and not dest.is_symlink():
             result.stashed.append(stash_collision(dest))
-        if dest.is_symlink() or dest.exists():
+        if not owned and (dest.is_symlink() or dest.exists()):
             dest.unlink()
+        # Build a replacement before changing an owned link, so failed delivery retains it.
+        staged = skills_dir / f".{dest.name}.{uuid.uuid4().hex}.tmp" if owned else dest
         try:
-            dest.symlink_to(os.path.relpath(src, skills_dir), target_is_directory=True)
+            staged.symlink_to(os.path.relpath(src, skills_dir), target_is_directory=True)
+            if owned:
+                # Windows cannot replace a directory symlink in place. Keep a recoverable
+                # link until promotion succeeds, on every platform.
+                backup = skills_dir / f".{dest.name}.{uuid.uuid4().hex}.backup"
+                dest.rename(backup)
+                try:
+                    os.replace(staged, dest)
+                except OSError:
+                    backup.rename(dest)
+                    raise
+                else:
+                    backup.unlink()
         except OSError as exc:
             message = paths.symlink_privilege_message(exc)
             if message is None:
                 raise
             raise RuntimeError(f"{dest}: {message}") from exc
+        finally:
+            if owned and staged.is_symlink():
+                staged.unlink()
         result.linked.append(f"{prefix}{dest.name}")
 
     for entry in sorted(skills_dir.iterdir()):
-        if not entry.is_symlink() or entry.name in wanted:
+        if not entry.is_symlink() or os.path.normcase(entry.name) in wanted:
             continue
         if prune_owned_only and not any(
             _points_into(entry, root) for root in (private_root, cache_root, *owned_roots)
@@ -278,19 +297,91 @@ def link_project(
 ) -> LinkResult:
     brainspace = Path(brainspace)
     result = LinkResult()
+    try:
+        skill_paths = resolve_selection(dotbrain_home, skill_paths)
+        paths.confined_path(dotbrain_home, ".cache/skills")
+    except ValueError as exc:
+        result.warnings.append(str(exc))
+        return result
     for workspace in workspaces:
         workspace_dir = workspace_dirs.get(workspace) if workspace_dirs else None
-        skills_dir = (workspace_dir or brainspace / workspace) / "skills"
+        base = (workspace_dir or brainspace / workspace).parent
+        rt = runtimes.for_workspace(workspace)
+        skills_dir = base / rt.skill_path
+        # A shared skill directory is never an ownership claim on its parent or receiver.
+        conflict = project_directory_conflict(base, rt.skill_path)
+        if conflict:
+            result.warnings.append(conflict)
+            continue
         ws_result = link_into(
             dotbrain_home,
             skills_dir,
             skill_paths,
-            label=f"{workspace}/skills",
+            label=rt.skill_path,
             prune_owned_only=True,
             preserve_collisions=True,
+            cleanup_cache=rt.name != "codex",
         )
+        if rt.name == "codex":
+            _prune_codex_legacy(dotbrain_home, base, skills_dir, skill_paths, ws_result)
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
         result.stashed += ws_result.stashed
         result.warnings += ws_result.warnings
     return result
+
+
+def _is_junction(directory: Path) -> bool:
+    """Recognize Windows junctions on every supported Python, including 3.11."""
+    if os.name != "nt":
+        return False
+    try:
+        return directory.lstat().st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT
+    except OSError:
+        return False
+
+
+def project_directory_conflict(base: Path, relative: str) -> str | None:
+    """Reject linked parents as well as linked receivers before any project writes."""
+    directory = base
+    for part in Path(relative).parts:
+        directory /= part
+        if (directory.is_symlink() or _is_junction(directory)
+                or (directory.exists() and not directory.is_dir())):
+            return f"{directory}: foreign asset directory conflicts with delivery"
+    return None
+
+
+def codex_legacy_entries(dotbrain_home: Path, base: Path) -> tuple[list[Path], list[str]]:
+    """Classify legacy entries using the same target-root ownership as skill delivery."""
+    legacy = base / ".codex/skills"
+    conflict = project_directory_conflict(base, ".codex/skills")
+    if conflict:
+        return [], [conflict]
+    owned, warnings = [], []
+    roots = (dotbrain_home / "skills", dotbrain_home / ".cache/skills")
+    if legacy.is_dir():
+        for entry in sorted(legacy.iterdir()):
+            if entry.is_symlink() and any(_points_into(entry, root) for root in roots):
+                owned.append(entry)
+            else:
+                warnings.append(f"{entry}: legacy skill ownership is ambiguous; leaving it unchanged")
+    return owned, warnings
+
+
+def _prune_codex_legacy(home: Path, base: Path, destination: Path,
+                       selection: Sequence[str], result: LinkResult) -> None:
+    owned, warnings = codex_legacy_entries(home, base)
+    result.warnings.extend(warnings)
+    selected = {os.path.normcase(Path(name).name): (Path(name).name, _resolve_skill_source(home, name))
+                for name in resolve_selection(home, selection)}
+    for entry in owned:
+        name, source = selected.get(os.path.normcase(entry.name), (entry.name, None))
+        replacement = destination / name
+        # Selected links leave the legacy discovery path only after a verified delivery.
+        if source is not None and not (replacement.is_symlink() and _points_into(replacement, source)
+                                       and replacement.resolve() == source.resolve()):
+            result.warnings.append(f"{entry}: replacement was not delivered; leaving legacy skill unchanged")
+            continue
+        entry.unlink()
+        result.pruned.append(entry.relative_to(base).as_posix())

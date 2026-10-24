@@ -131,7 +131,8 @@ dotbrain refresh --all
   <img src="docs/public/assets/how-it-works-light.png" alt="Claude Code 和 Codex 在代码仓库中工作，通过被 gitignore 的链接连到独立的私有 Brainspace，其中存放 Brain 和 Beads。" width="1000">
 </picture>
 
-连接项目时，你选的技能和子 Agent 也会一并放进仓库里的 Agent 工作区 `.claude/` 和 `.codex/`。
+连接项目时，你选的技能和子 Agent 也会一并放进仓库：Claude 资源在 `.claude/` 下，Codex 技能在
+`.agents/skills/` 下，Codex 子 Agent 在 `.codex/agents/` 下。Codex 配置仍留在 `.codex/` 下。
 技能和 Claude 子 Agent 是符号链接，Codex 子 Agent 则是自动生成、被 gitignore 的
 TOML 文件。连接 Git worktree 时，它会接到主 checkout 已有的 Brainspace 上，
 两边共用同一份项目知识和任务记录。
