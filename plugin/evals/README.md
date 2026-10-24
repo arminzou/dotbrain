@@ -1,116 +1,123 @@
-# Plugin evals
+# Skill eval source inventory
 
-These cases check dotbrain's skill rules as agent behavior with
-[`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals): each run is a fresh,
-headless Claude Code session with only this plugin loaded, graded on what the agent did.
-Runs are paid and nondeterministic, so they run locally before a release that changes a
-rule-bearing skill. They do not run in CI.
+The `claude plugin eval` runner is retired. The source cases and graders remain
+migration inputs for a shared Promptfoo suite on Claude Code and Codex. Promptfoo
+is **not qualified yet**: there is no replacement live-run command to recommend.
+Source accounting and Python tests do not establish agent behavior, native skill
+loading, packaged-role dispatch, fixture isolation, or parity between runtimes.
 
-## Cases
+## Frozen source and coverage
 
-| Tag | Cases | Needs |
+[`inventory.json`](inventory.json) accounts for all **32 cases and 87 graders** at
+source revision `c9c4570534c39f84207e25f8ea47f0446b88a07e`. Each case records its
+prompt and complete frontmatter, tags, fixture configuration and script reference,
+decision-exercise/live-behavior boundary, grader criteria and rubrics, state rules,
+supplemental checks, and migration status. All entries start as `untranslated`.
+The inventory is a frozen migration starting point; translated assertions must
+retain a mapping to these case and grader identities before claiming coverage.
+
+The `source_files` table hashes every tracked eval source file at that revision,
+including the shared scaffold/checker and the former README. Read an original
+file with `git show <source-revision>:plugin/evals/<path>`; the recorded hashes
+refer to Git blob bytes, independent of checkout line endings. Keep semantic
+source files recoverable until their criteria have translated assertions or a
+specific human-approved disposition. Retiring invocation guidance does not wait
+for the replacement's pilot to pass.
+
+From the repository root, with the existing Python dependencies installed:
+
+```bash
+uv run python plugin/evals/inventory.py --check
+uv run pytest tests/test_eval_inventory.py
+```
+
+To regenerate this frozen source snapshot, run
+`uv run python plugin/evals/inventory.py`. Generation reads only the selected
+commit's blobs and writes only `inventory.json`; `--check` writes no files.
+Neither operation executes fixtures, agents, graders, or model judges. The check
+compares every entry and hash with the source, so omissions and changed criteria
+fail. Regeneration resets the snapshot's statuses to `untranslated`; ongoing
+translation evidence belongs with the replacement suite's assertion mappings.
+
+## Cases and fixture needs
+
+| Tag | Cases | Source fixture / evidence needs |
 | --- | --- | --- |
-| `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Nothing beyond Claude Code |
-| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `closure-on-fresh-approval`, `review-gate-lead-reviews-worker-change` | `--scaffold`, a shell grant, a sandbox |
-| `no-subagents` | `review-gate-blocks-self-review` | As `phase-2`, plus `--disallow-tools Agent`; see the note below |
-| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | As `phase-2`. The harness gives subagents no worktree isolation, so delegation runs workers one at a time |
-| `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | The first uses the state scaffold; others are decision exercises |
-| `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; no host or tracker writes |
-| `dispatch-records` | `worker-rejects-missing-label`, `worker-stores-candidate-report`, `fix-round-from-stored-assignment`, `observed-revision-mismatch-held`, `reviewer-records-review-comment` | The two `worker-*` cases as `phase-2`; others are decision exercises; cases unrun |
-| `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise; cases unrun |
+| `phase-1` | `explicit-only-not-loaded-*`, `activation-*`, `no-skill-for-unrelated-request` | Runtime skill loading/non-loading observations; no state scaffold |
+| `phase-2` | `worker-never-pushes`, `no-closure-on-stale-approval`, `closure-on-fresh-approval`, `review-gate-lead-reviews-worker-change` | Synthetic state scaffold and runtime evidence |
+| `no-subagents` | `review-gate-blocks-self-review` | State scaffold; independently establish that reviewer dispatch is unavailable |
+| `phase-3` | `lead-alone-changes-work-graph`, `public-pr-keeps-private-ids-out`, `retro-rerun-changes-nothing`, `retro-records-new-evidence` | State scaffold; old harness supplied no subagent worktree isolation |
+| `execution-rules` | `parallel-reference-before-dispatch`, `execution-recovery-boundaries`, `parallel-group-promotion`, `execution-role-routing` | First case uses state scaffold; others are decision exercises |
+| `workflow-owners` | `final-review-coverage-and-dispositions`, `handoff-stop-scopes`, `metadata-preserves-checkpoint-state` | Decision exercises; do not qualify host/tracker writes |
+| `dispatch-records` | `worker-rejects-missing-label`, `worker-stores-candidate-report`, `fix-round-from-stored-assignment`, `observed-revision-mismatch-held`, `reviewer-records-review-comment` | Two `worker-*` cases use state scaffold; others are decision exercises |
+| `goal-shortfalls` | `goal-shortfall-blocks-final-review`, `handoff-goal-shortfall-final-review`, `unreported-automatic-failure-is-high`, `automatic-failure-blocks-later-runs`, `handoff-admits-goal-shortfall-within-budget`, `accepted-automatic-failure-mode` | State scaffold except the accepted-mode decision exercise |
 
-Cases tagged `state` build a synthetic workspace through `_shared/scaffold.sh`: a git
-repository whose local `origin` logs every push to `.eval/pushes.log`, and `bd`/`gh` stubs that
-log every call to `.eval/calls.log` and answer from `.eval/fixtures/`. Nothing reaches a real
-tracker, GitHub, or network.
+The original `case.yaml`, `fixture.sh`, and `checks` files describe each synthetic
+workspace. `_shared/scaffold.sh` supplies a repository, local logging origin,
+and `bd`/`gh` stubs. That source layout alone does not establish isolation: the
+replacement must verify final workspace bindings, synthetic homes, stub
+resolution, and separate setup/checker observations from agent evidence.
 
-The `execution-rules` and `workflow-owners` cases cover moved workflow instructions.
-Decision exercises check the agent's selected next operations; they do not qualify
-runtime concurrency. For `parallel-reference-before-dispatch`, also inspect the
-kept transcript: the Read of `parallel-execution.md` must precede the first writing
-worker's Agent call. The native tool-presence and response graders alone cannot prove
-that ordering. All new cases remain unrun until a paid eval is authorized separately.
+## Criteria that translation must preserve
 
-In `worker-rejects-missing-label` a correct worker returns before any tracker or Git call,
-so the prompt has the lead run `git status --porcelain` afterwards. That logged call lets
-the checker grade `no-public-change`, which catches an edit the worker made anyway.
-
-## Running
-
-From `plugin/`:
+A state case needs **all source graders and all state rules** to pass. The
+Python checker reads a captured workspace and prints JSON:
 
 ```bash
-claude plugin eval . --ablation none --runs 3 --no-publish --tag phase-1
+python -I plugin/evals/_shared/check.py <captured-workspace> --checks plugin/evals/<case>/checks
+python -I plugin/evals/_shared/check.py --selftest
 ```
 
-State cases grant a shell, which Claude Code runs only inside its OS sandbox: use Linux
-(with `bubblewrap` and `socat`), macOS, or WSL2. Native Windows has no sandbox backend.
-`--tag` takes several tags and runs a case that has any of them.
+The checker requires a logged agent call: an ordinary `bd`/`gh` call or a Git
+Trace2 command. Missing or empty logs never prove non-action. Setup and checker
+reads cannot satisfy this requirement. Native transcript/file graders alone
+cannot establish a state-case pass. Inspect captured workspaces as untrusted
+agent output; the checker disables hooks and uses scaffold-base attributes for
+its Git reads (Git 2.40 or later).
 
-```bash
-claude plugin eval . --ablation none --runs 3 --no-publish --scaffold --keep-temp \
-  --allow-tools Bash Write Edit --tag phase-2 phase-3
-claude plugin eval . --ablation none --runs 3 --no-publish --scaffold --keep-temp \
-  --allow-tools Bash Write Edit --disallow-tools Agent --tag no-subagents
-```
+Decision exercises check selected next operations, not live concurrency or
+effects. For `parallel-reference-before-dispatch`, a successful lead read of
+`parallel-execution.md` must precede the first writing worker dispatch; tool
+presence and answer regexes alone cannot prove the order. Named packaged-role
+dispatch requires evidence that the actual role loaded and ran. Filesystem
+presence or a generic worker completing the task is insufficient. Explicit-only
+cases retain no-read, no-search, and no-invocation criteria; a missing skill-use
+event alone cannot pass when observation is incomplete.
 
-On Windows, run every case under WSL2: it is the only setup there that can run them all, and
-running the suite twice on one machine shows no OS difference. The state cases have been run
-with Claude Code 2.1.283 under WSL2.
+`worker-rejects-missing-label` asks the lead for a later `git status --porcelain`
+call so the state checker can detect an unintended edit even when the worker
+correctly makes no tracker calls. Retro fixtures pre-seed lock/temp exclusions;
+they do not exercise the skill's step that adds those exclusions. Direct slash
+invocation of `run-retro` historically produced no `Skill` tool call; its cases
+grade state, with a Git history read required for `retro-rerun-changes-nothing`.
+Review metadata uses `dotbrain_verdict`, `dotbrain_target`, `dotbrain_range`, and
+`dotbrain_modes`; writes using earlier unprefixed names earn no credit.
 
-The runner refuses every Bash-granting run when `~/.docker` holds a symbolic link, as Docker
-Desktop's WSL integration creates. Setting `DOCKER_CONFIG` does not avoid this. Move
-`~/.docker` aside for the run and restore it after.
+## Historical evidence
 
-Version matters here:
+Keep existing reports and captured workspaces local, with their original runner,
+tested source revision, CLI/runtime and model versions, permissions, and judge
+settings. `results/` remains gitignored. Do not rewrite old reports as Promptfoo
+results, or infer their tested revision from the inventory revision. When an old
+report lacks a revision or another setting, retain that gap as unknown.
 
-- **2.1.283:** has no `--disallow-tools`, and leaving `Agent` out of a case's `allowed_tools`
-  does not remove it. So `review-gate-blocks-self-review` cannot run there in its intended
-  mode: the agent can still dispatch an independent reviewer.
-- **2.1.306 (WSL2):** has the flag, but its sandbox made the whole eval workspace read-only for
-  shell commands, so no state case can run. That case stays unverified until a version offers
-  both.
-- **All versions:** the eval runner gives subagents no worktree isolation.
+The former README recorded state-case runs with Claude Code **2.1.283 on WSL2**.
+That version could not disable `Agent`, so it did not qualify
+`review-gate-blocks-self-review`. It also recorded **2.1.306 on WSL2** making the
+state workspace read-only for shell commands, and Docker configuration symlinks
+blocking Bash-granting runs. These are historical runner observations, not
+properties established for Promptfoo or instructions to alter a host to rerun
+the retired runner. The old runner supplied no subagent worktree isolation.
 
-Run with `--ablation none`. In the default two-arm run, a `tool_used` grader on `Skill` only
-reports whether the plugin fired and does not count toward the score, unless the grader sets
-`arm: both`, as the explicit-only cases do. Pass `--max-cost-usd` to cap spend, and keep
-`--no-publish` so reports stay local.
+Historical scoring also depended on ablation settings: in the default two-arm
+mode a `tool_used` grader on `Skill` reported activation without contributing to
+the score, except when `arm: both` applied. The former instructions selected
+`--ablation none`. Preserve each report's actual settings rather than inferring
+them from a grader's presence. At the inventory source revision, the
+`dispatch-records` and `goal-shortfalls` additions and the newer execution cases
+were documented as unrun; source coverage does not add run evidence for them.
 
-## Checking state the graders cannot see
-
-Native graders read the transcript and files. A state case passes only when its native graders
-and the rules in its `checks` file both pass. `_shared/check.py` (Python 3, git 2.40 or later)
-reads a kept workspace (`--keep-temp`) and prints JSON:
-
-```bash
-python3 -I _shared/check.py <kept-workspace> --checks <case>/checks
-python3 -I _shared/check.py --selftest
-```
-
-The checker requires a logged agent call before grading state: an ordinary `bd` or
-`gh` call, or a Git command recorded by Git's built-in Trace2 logging to the same
-`.eval/calls.log`. Shell initialization enables tracing alongside the stub PATH;
-prompts need no harness instructions. This also covers a retrospective that only
-reads Git. With no logged call, every rule fails (score 0): an empty log in a
-read-only sandbox proves no must-not result. Stubs exit on log-write failure;
-neither they nor Git rely on writing the sandboxed home. The external checker
-disables tracing for its own Git reads, so it cannot supply this evidence.
-Native graders alone are never a state-case pass.
-
-Review beads store their metadata as the flat top-level keys `dotbrain_verdict`,
-`dotbrain_target`, `dotbrain_range`, and `dotbrain_modes`. The fixtures, graders, and
-`_shared/check.py` match only these names: they were renamed from the unprefixed `verdict`,
-`target`, `range`, and `modes`, and a run that writes the old keys gets no credit for them.
-
-The retro cases invoke `/dotbrain:run-retro` directly. Slash invocation loads the
-skill without a `Skill` tool call, so these cases grade state rather than requiring
-a `tool_used: Skill` record; `retro-rerun-changes-nothing` instead requires a logged Git
-history read, so loading the skill and stopping does not pass. Their fixtures pre-seed the notebook lock and temporary
-file exclusions because the sandbox cannot edit `.brain/.git/info/exclude`, so the skill's own
-add-the-exclusions step is not exercised here.
-
-The selftest plants each violation in a fresh workspace and confirms exactly the expected rules
-fail. Kept workspaces were written by the agent under test: the checker runs git there with
-attributes from the scaffold's base commit and hooks disabled, and you should not run other
-tools inside them.
+Live replacement qualification still needs pinned runtime/model/judge settings,
+fixture and observation checks, seeded verifier violations, and inspectable
+pilot evidence on both Claude Code and Codex. Unsupported observation must be
+reported explicitly; it cannot turn an unverified criterion into a pass.

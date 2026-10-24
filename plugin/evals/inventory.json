@@ -1,0 +1,2718 @@
+{
+  "schema_version": 1,
+  "source_revision": "c9c4570534c39f84207e25f8ea47f0446b88a07e",
+  "source_runner": "claude plugin eval (retired)",
+  "replacement_qualification": "pending; inventory completeness is not runtime qualification",
+  "evidence_contract": {
+    "decision-exercise": "Checks selected next operations in the answer; does not qualify live dispatch, concurrency, ordering, or effects.",
+    "live-behavior": "Requires runtime evidence for the source tool/output criteria; source fixtures or filesystem presence do not prove native resource consumption.",
+    "state": "All source graders AND state rules must pass against actual agent state. Missing or empty logs never prove non-action; setup/checker reads cannot provide agent evidence.",
+    "packaged_roles": "Named packaged-role dispatch must be observed; a generic worker completing the task is insufficient.",
+    "historical_results": "Keep original runner, tested revision, runtime/model versions and settings with local reports. This inventory revision does not relabel past results or establish a missing result revision."
+  },
+  "source_files": {
+    "plugin/evals/README.md": "e0c3239e2d0fb7ed12f604d6e62eec863cdb64a7657bd3cf2b395fe66333e3af",
+    "plugin/evals/_shared/check.py": "86596c67c7422c1fc8f6562b0ddee40bb9f8dca9ccd4be78f047904342ff4534",
+    "plugin/evals/_shared/scaffold.sh": "4fe98017f7fe6931475c4da9cca1d3b71bf50e6e0c121b48cc0db34f98b1db23",
+    "plugin/evals/accepted-automatic-failure-mode/graders/approve.md": "5ea6c9bb5f3392f7cacf7363676549d1e0f48ae60e3460e5c5831979a8d681ec",
+    "plugin/evals/accepted-automatic-failure-mode/graders/exception.md": "80451952c1ba8b73966e822d80b3639dd34a5169263695d675446ed9d4eeaa95",
+    "plugin/evals/accepted-automatic-failure-mode/prompt.md": "cb962022eba8eabb0570a55b4d8aa95e8c030c51237ece635e5fed57f5caa568",
+    "plugin/evals/activation-manage-work-graph/graders/skill-invoked.md": "8e71aca1f5b5e654ad543679221f427625966bdcc91fa5dabcda3c80f9d9497c",
+    "plugin/evals/activation-manage-work-graph/prompt.md": "12f06fbe7a3712e23fd0457086c3b2a6849702119ca5e438d5fb8c6750951568",
+    "plugin/evals/activation-review-gate/graders/skill-invoked.md": "0b52af980639e6714666cd0fd7f2414e9c906d668635b25ad7e59209cee99216",
+    "plugin/evals/activation-review-gate/prompt.md": "5e654772902dc4388957efca3e2fac5fbf775a9f7931aa3892e4f4eb28b796b3",
+    "plugin/evals/automatic-failure-blocks-later-runs/case.yaml": "b64c1910d2a62a48503168d0c5fdb1a821dac1371044fdff57201611b56c3986",
+    "plugin/evals/automatic-failure-blocks-later-runs/checks": "dd1522f39daea357e83284d0aa9afd9f278b627882fcaa13f108cd9d0d90094b",
+    "plugin/evals/automatic-failure-blocks-later-runs/fixture.sh": "429c199887ca344561f5ffe9c0cd8d8697cf556cfd57eb00086cef5316dbaf1d",
+    "plugin/evals/automatic-failure-blocks-later-runs/graders/changes.md": "3cf700d0c2087e1d6691e84d2e0f11bd67c8413034a03d268d099123542a42fe",
+    "plugin/evals/automatic-failure-blocks-later-runs/graders/high.md": "f4c694cf98c9652fbbbc9c8b42d8b0a554618798990e59a9ce7c672bd0d2ca97",
+    "plugin/evals/automatic-failure-blocks-later-runs/graders/later-runs.md": "1ff8653f17c93df09d17f3c2a1ca4b3882b757fafa3e117f79c8a0afd1af191f",
+    "plugin/evals/automatic-failure-blocks-later-runs/prompt.md": "9b94ed678140345041d0ede17c95669f3b420386c7f1437801bd581b0291d0a3",
+    "plugin/evals/closure-on-fresh-approval/case.yaml": "2cfb08292a1dc08a656a23d460c51a012a264c65a63ff50efaa3a2240170138f",
+    "plugin/evals/closure-on-fresh-approval/checks": "f1f5f6dfea60f78e9e75380904ccdef34d303b22c072634e1892fa1cac43bff6",
+    "plugin/evals/closure-on-fresh-approval/fixture.sh": "06bdec3dae6e24d49e0299f54854f1ffcb9de15eb50d44aaea6aec41fd2bd832",
+    "plugin/evals/closure-on-fresh-approval/graders/item-closed.md": "f34e38b6deceb3bb12f235de81bc44a8be47b3550c476ff138b3af0481eb1b56",
+    "plugin/evals/closure-on-fresh-approval/prompt.md": "56bc64512cf2e20e653806eec4a7517693049b5bba36388bfd4ce326c710bc41",
+    "plugin/evals/execution-recovery-boundaries/graders/bounded.md": "712055183c9578d453d7ff69faf1bad1596625f360a883c69daaba0d2c89c955",
+    "plugin/evals/execution-recovery-boundaries/graders/containment.md": "fef8303dde17d57cdc14bacb63981e3d243a1cc5b3c676c118519fda67580277",
+    "plugin/evals/execution-recovery-boundaries/graders/promotion.md": "f4ae1de7201024ffda6a75d9dc0b09677707a6bd5b1897a904f6f341f4ba208f",
+    "plugin/evals/execution-recovery-boundaries/graders/replacement.md": "ca26c58d07c60ff230e1d4489208f215f027c317d23796052a7ef0e7a588592c",
+    "plugin/evals/execution-recovery-boundaries/graders/stale.md": "29f67137d9d59fffa9fe51a930bae410f537a398d33a9eadf3747114cfbc47d5",
+    "plugin/evals/execution-recovery-boundaries/prompt.md": "bc2ac9aecec5e7591ff5d96d798be04fdc62bde13dd78b719e96d874d42d6f98",
+    "plugin/evals/execution-role-routing/graders/checkpoint.md": "7fce46471becb4cac125581fe2ba434b3ad5d5ce82a171e6127bb4e076d8697a",
+    "plugin/evals/execution-role-routing/graders/design-exploration.md": "045a189e5706c954f9281db644e6aa6b6f69b94355cef4a70a01803ce5f81799",
+    "plugin/evals/execution-role-routing/graders/no-dispatch.md": "f184b7117c10729cf373c2d620b1c5e6fcf6023a1ae7dfe0e45201983dcce293",
+    "plugin/evals/execution-role-routing/graders/verifier.md": "9ba5c22a3f34a6b52d92e9bf9368957c1d1eaa77683c33f9d1dbf4984f40605b",
+    "plugin/evals/execution-role-routing/prompt.md": "7be72a9159601fbeaaf849612bbbbf53793994507fe1856ca4eaaae20f97ce2d",
+    "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-file-not-read.md": "8beebff5ae091c33c835c07d15dc131737b5e4138880837194ad4fb9fa8b8547",
+    "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-not-invoked.md": "c6e4dbdd6acf50065e60f2fc1bea4bd95591e5aed3dd324bb3de385f65ff60f9",
+    "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-not-searched.md": "eeeb25c213d62d0232a4f4a7fb58574efee08425f27db9ce8c4c7dfd701726b6",
+    "plugin/evals/explicit-only-not-loaded-close-design/prompt.md": "56ef86abdc20b6867a3b467f1f6252db5543920c35b6c5437f885e0ab3d152d6",
+    "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-file-not-read.md": "eaf4059380b23a28538b6bcb304c32c6fe2701a07e68f758aafa8c33caa7c0d7",
+    "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-not-invoked.md": "455dd9b0cc39da331926dcab74d70c12a4f2b0bfde8e54022ef2ae1c58ae6758",
+    "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-not-searched.md": "01d048d99d003ef405d9bb0dce92e293598b5dcd4ce99d98d845c16fd01e4478",
+    "plugin/evals/explicit-only-not-loaded-run-retro/prompt.md": "eb336b2b0917f8a1d1a53f0f6cafeebb7857ac64aba4398f329e149d12e7a856",
+    "plugin/evals/final-review-coverage-and-dispositions/graders/dispositions.md": "d5d2abd88006df05e0bcf6a5bcc1a42c70d9482d2afe3006cf1f2c0cd80231fd",
+    "plugin/evals/final-review-coverage-and-dispositions/graders/simplify.md": "fd2d01eb1cf2175a59b4541d50f336528448834621fa756d448a14199b634594",
+    "plugin/evals/final-review-coverage-and-dispositions/graders/whole-branch.md": "abca8ac649749971c201179de44a2b97b75fbb22b3e1b60e1f1f2e9273702544",
+    "plugin/evals/final-review-coverage-and-dispositions/prompt.md": "3cbea023b7c91a5e0f5a72889f585e4a6ebb037e0bf96586910d6e6b1cfd8ce4",
+    "plugin/evals/fix-round-from-stored-assignment/graders/cites-review.md": "77388a3b31f3ee13ab74d27fbd9edeb1e774abf62d627f498d7c9df1278c6412",
+    "plugin/evals/fix-round-from-stored-assignment/graders/consolidated-assignment.md": "ea930686035f27c599d7fbb93a2e87294f0d69a4145865cc9b7f286cf19d33ee",
+    "plugin/evals/fix-round-from-stored-assignment/graders/fix-round-record.md": "9b8a05df5a243736f05e550b82497649edc619fc56b836f96fa67d80e69ba2da",
+    "plugin/evals/fix-round-from-stored-assignment/graders/no-dispatch.md": "f184b7117c10729cf373c2d620b1c5e6fcf6023a1ae7dfe0e45201983dcce293",
+    "plugin/evals/fix-round-from-stored-assignment/graders/resume-original.md": "e15133ca8ac75e45d090b469f2157d61c9dda5cd74e502a7c074a42ef57a616a",
+    "plugin/evals/fix-round-from-stored-assignment/prompt.md": "213fa931d118e4841f8136871d09923ad61b674284a4fd4b774f278c0ee8d870",
+    "plugin/evals/goal-shortfall-blocks-final-review/case.yaml": "1b202166ad9c3e168c50ef03e6e1a0238916c13780ce332c5af31e3eff406539",
+    "plugin/evals/goal-shortfall-blocks-final-review/checks": "a5f0d4fe943f2da349e586895be8bece243032a58ac3bde13fe64eee6a12b59b",
+    "plugin/evals/goal-shortfall-blocks-final-review/fixture.sh": "ba110470276b60be05577c88a36d1e87ae5ab1e24bf1b48b3ee215d997998132",
+    "plugin/evals/goal-shortfall-blocks-final-review/graders/changes.md": "c15523e603ddffbdb1fdb4c62acb47219dbbc186776612532aff0f0d78ee4c3c",
+    "plugin/evals/goal-shortfall-blocks-final-review/graders/severity.md": "46468bcb4a602a227759595905168e565145017444d9cd870f862b4859f6fa72",
+    "plugin/evals/goal-shortfall-blocks-final-review/graders/shortfall.md": "10e0206f5aca14969a12d86bc96eedf423818653df52e59132ffbf66863b6bf0",
+    "plugin/evals/goal-shortfall-blocks-final-review/prompt.md": "d2d1485958b120b3d96ab53967e1f3ef96b6ce339afd1c099f2513fc638105a5",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/case.yaml": "fdd3923dcb5c4e828220179dd8967601520a425276b6e25319a0120d2d3ce0ea",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/checks": "9a5b457e8d1bbb6e66743aae393f92cc1406f8cb2249b1d41f1d7de303877f3d",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/fixture.sh": "c48c828958f3b241b19b8277cc720fa84ea16414c0325a22f8bbdb514e6f9396",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/blocked.md": "df952192f6778c72a6e5e5f514a892133fe781846d328d9675ff65ef43926742",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/fixed-set.md": "de53307cfba077ca5f5c8fb91430c8cc7b1e8c3f82d9b0009b70def85aec35bb",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/parent.md": "ebc39934a4d7927d8693a4e7dcc07ed1fa000beea3adfbdf501e4f7a37a80f7e",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/reason.md": "523e4d6c4b93e2108fb761d3eb8415ca1b146245bbbabcaf81b7d87e635ce011",
+    "plugin/evals/handoff-admits-goal-shortfall-within-budget/prompt.md": "314c3b46e0d9430676c7b58098d17be474e92470609aa342050dd347e0a6fe33",
+    "plugin/evals/handoff-goal-shortfall-final-review/case.yaml": "61e78c488d15d35104a886ac873ab4cbe1477642c6f1478a860bbc37ea004b62",
+    "plugin/evals/handoff-goal-shortfall-final-review/checks": "a5f0d4fe943f2da349e586895be8bece243032a58ac3bde13fe64eee6a12b59b",
+    "plugin/evals/handoff-goal-shortfall-final-review/fixture.sh": "9bdeb69bb98b9c2c9af7c6037defee027f3e1d42bf114f1c2fc7efc66cae10a9",
+    "plugin/evals/handoff-goal-shortfall-final-review/graders/changes.md": "c15523e603ddffbdb1fdb4c62acb47219dbbc186776612532aff0f0d78ee4c3c",
+    "plugin/evals/handoff-goal-shortfall-final-review/graders/severity.md": "46468bcb4a602a227759595905168e565145017444d9cd870f862b4859f6fa72",
+    "plugin/evals/handoff-goal-shortfall-final-review/graders/shortfall.md": "10e0206f5aca14969a12d86bc96eedf423818653df52e59132ffbf66863b6bf0",
+    "plugin/evals/handoff-goal-shortfall-final-review/prompt.md": "52c0390312abdd2c56fa31f0c58d97218c1c0b5b0b637ee6062de0deeaa9cfdd",
+    "plugin/evals/handoff-stop-scopes/graders/blocked.md": "df952192f6778c72a6e5e5f514a892133fe781846d328d9675ff65ef43926742",
+    "plugin/evals/handoff-stop-scopes/graders/criteria.md": "4162fb3b4abca729766a3e012d158a0af23ae8a549f0cc9265a6cabc8c8996cc",
+    "plugin/evals/handoff-stop-scopes/graders/final.md": "f88e8b3056c5fb688299fe67f150c78472fadb89b77cdffb0e84d8404c17de99",
+    "plugin/evals/handoff-stop-scopes/prompt.md": "68001163aa5f61772fbfbac143631672a879ad4df20177237de6bbdc1b02366f",
+    "plugin/evals/lead-alone-changes-work-graph/case.yaml": "6df00fb0c6c7c6fab2687c1b91cd9aba16dce8099e57851845f1e8f2bd7b1a9b",
+    "plugin/evals/lead-alone-changes-work-graph/checks": "b54e2c12059d1a601faf0c7c61ca967f12d40cc73115ba4d4440367fba7bc997",
+    "plugin/evals/lead-alone-changes-work-graph/fixture.sh": "4a7ebf11aa696f1cfbe7340170e17e0cc9bd168d07fe11e66e94c239f05a9a00",
+    "plugin/evals/lead-alone-changes-work-graph/graders/two-workers-dispatched.md": "1e33e729a65fd0e1746cbcb81a3e5e286ac46a0540cedf61f4fdba85741ce015",
+    "plugin/evals/lead-alone-changes-work-graph/prompt.md": "362d9a2d3d2d30e62fc9f33af805bba82cb800beefef642e2e643eed86c86548",
+    "plugin/evals/metadata-preserves-checkpoint-state/graders/actor.md": "2083e3e1e9543805ddd4d1a8f6060a3d24617ea78fb04547fc4a461d47f8c74e",
+    "plugin/evals/metadata-preserves-checkpoint-state/graders/metadata.md": "66485f2797f9923099a52712009c95699ee98b0f78a5550232c9fa2675dd90a4",
+    "plugin/evals/metadata-preserves-checkpoint-state/graders/termination.md": "97af9d169b534ed840527e2b3c32a6971601fc9774e5c7efaf92362bd08269b4",
+    "plugin/evals/metadata-preserves-checkpoint-state/prompt.md": "543e94c7e6ab7f01c4bfc1cc6f5f3eee6b0ab580dacca3fa01f64346d8ab828a",
+    "plugin/evals/no-closure-on-stale-approval/case.yaml": "09fef56d67d0900f6a309bb7d24676781b48e5aa7d3b186448ec8f86d6c4b544",
+    "plugin/evals/no-closure-on-stale-approval/checks": "712635df9d52805220476e762242b86a8279b4740cbd6b114dfb63c94a789f1a",
+    "plugin/evals/no-closure-on-stale-approval/fixture.sh": "bcf3cd3d29e2f45e2ca27d99139433ece679e076ee5b9544e9f5ce2fb079d01f",
+    "plugin/evals/no-closure-on-stale-approval/graders/demo-3-not-closed.md": "abce80c62edacd115ac3fa4890149d4ec8c8dac6120951ca287c9d3d6b2b9736",
+    "plugin/evals/no-closure-on-stale-approval/graders/names-unreviewed-change.md": "c1e1b30c553bc36daee15dbe351659616a4aae3cacaeb43453f509157fdd2fce",
+    "plugin/evals/no-closure-on-stale-approval/prompt.md": "4db0a5426b702132b06f20f2d13c27abeea6be682f7eae2bc0c9672e1fddd5d7",
+    "plugin/evals/no-skill-for-unrelated-request/graders/no-skill-invoked.md": "3854369334a51e7560110a2a3d27020a57a92dc84d47dc6550b9f4e168345e56",
+    "plugin/evals/no-skill-for-unrelated-request/prompt.md": "fb5c40168b6a72963276775cd5ad96b47555ce7a8bde008274497284edfa95b4",
+    "plugin/evals/observed-revision-mismatch-held/graders/fresh-review.md": "6897b9a27d594f8d0f5f03a6423eb17608dce9e96401163d9f4502d01bce6d63",
+    "plugin/evals/observed-revision-mismatch-held/graders/held.md": "49e7748b4d237be49f41d712eafd7b5ddd40b3da639f78e344a4a36411c15680",
+    "plugin/evals/observed-revision-mismatch-held/graders/no-dispatch.md": "f184b7117c10729cf373c2d620b1c5e6fcf6023a1ae7dfe0e45201983dcce293",
+    "plugin/evals/observed-revision-mismatch-held/prompt.md": "d0b431465442b5b7e458291f9c1f3cb311964955f20b4a99f23c1771d42ffc0f",
+    "plugin/evals/parallel-group-promotion/graders/boundary.md": "b0710bffca1923cde16cd0ce88f5c34ffcf5bc7459b2c92b593271f31a4ac14c",
+    "plugin/evals/parallel-group-promotion/graders/fast-forward.md": "9ebb840e03d47bba3dd54fdb83eedeb13e11f3f55b70d7f2c926d7eb0cf07541",
+    "plugin/evals/parallel-group-promotion/graders/resources.md": "52ad7cb1d6dd55120291e61f798d70dd7f0208982651089a941e141f3d5d1cad",
+    "plugin/evals/parallel-group-promotion/prompt.md": "47fdeef1fb5af75b4b48147198f65af49a068f63849a56a8761b127a70a2ab5b",
+    "plugin/evals/parallel-reference-before-dispatch/case.yaml": "4a72f51d85e746cab89fc3b82212b602971e61a1be73614b271fc3b2def54f47",
+    "plugin/evals/parallel-reference-before-dispatch/checks": "5af17d4d3e35232f8bc741e60f90b429b6c03b0dc5a44f34e78bcfdbca0bb6dc",
+    "plugin/evals/parallel-reference-before-dispatch/fixture.sh": "e5f361d7c744a661c6928a3f72ccc77ea0c996a58712eab726fd262964e67b9b",
+    "plugin/evals/parallel-reference-before-dispatch/graders/reference-read.md": "f42a4fc646fa4d405d3390e8698c7e0e8a102dc5684e5fd0f2a082cf6c533cfa",
+    "plugin/evals/parallel-reference-before-dispatch/graders/serial-fallback.md": "3f835930204d335314039953e88e30a60045088c574740eb716f2cd8f259c85f",
+    "plugin/evals/parallel-reference-before-dispatch/graders/two-writers.md": "b8a96104eb24890fe9519701589ba42304fe537ad6421b31290c50d64291ad13",
+    "plugin/evals/parallel-reference-before-dispatch/prompt.md": "addd5c77505946f2385a4b491ff9d6eb412017161ca9febb00a1e59feb289d40",
+    "plugin/evals/public-pr-keeps-private-ids-out/case.yaml": "0a43b1cecc83ecb9f8a6f2411399a7f7e046d6f6aea09eafb8bc17a2be391446",
+    "plugin/evals/public-pr-keeps-private-ids-out/checks": "17cfb2fa0612454d462b5a0514ca73d360781009c32ec8e1782939147b8a59a1",
+    "plugin/evals/public-pr-keeps-private-ids-out/fixture.sh": "53ebde9ce9b5090161b1ad2c13806c2c31831e9e2a2ed6f239d91d3b0a453eef",
+    "plugin/evals/public-pr-keeps-private-ids-out/graders/no-private-ids-in-pr.md": "e2a541084b96554193b76b2898795d03a48ea9ed40edafcba45fcb1dc7f692d3",
+    "plugin/evals/public-pr-keeps-private-ids-out/graders/pr-opened.md": "4af2b22f33df61da98414770053982f962d0825f10d149eda9a7667f290491e8",
+    "plugin/evals/public-pr-keeps-private-ids-out/prompt.md": "3dcb2b984fe35c17ca25b41967b340def98e2bca29bd369f150e09f0b4f5511f",
+    "plugin/evals/retro-records-new-evidence/case.yaml": "5a1f1881b96b713573dd23030a6c169237c23ea7d12c39cacb6914c7db06cbaa",
+    "plugin/evals/retro-records-new-evidence/checks": "87f2c6b4554ed165ef15d57db3a6c9e9567573a90b3606fd5f1b32d35d559ed9",
+    "plugin/evals/retro-records-new-evidence/fixture.sh": "00e310d53174a71532152f4abc7189261179514fd16bfae35486c2b80b06bf31",
+    "plugin/evals/retro-records-new-evidence/graders/finding-not-duplicated.md": "8fc03dc10e7df895c025c09b40284becf74c46fe047b84f414e1bc66205fd2f0",
+    "plugin/evals/retro-records-new-evidence/graders/new-date-counted.md": "15aafb2b59fb9f7b58d1b8e284cd41dd89542ea012164ef8b9ccda0f4333bdc5",
+    "plugin/evals/retro-records-new-evidence/prompt.md": "844372431985dad15876dedf309b1f6eeb9027fafae63d49f5619a1a3de12481",
+    "plugin/evals/retro-rerun-changes-nothing/case.yaml": "91e0a893d813a5fd47313b7766abc884e01e619eb24412fa3f94657498c1f4ec",
+    "plugin/evals/retro-rerun-changes-nothing/checks": "434d7e7ea8c6dfa8c681c771c4d5ec43b51ee2c2473b88e637b57eb30d3c9643",
+    "plugin/evals/retro-rerun-changes-nothing/fixture.sh": "6f6bd943ab78edc6995cb22a8a67db388776000c6d428bb4376f88178205a5b7",
+    "plugin/evals/retro-rerun-changes-nothing/graders/count-unchanged.md": "f62492df3f1d3a1631db80a615278d06c1211265f8f58ba25aec93ee8f746cd6",
+    "plugin/evals/retro-rerun-changes-nothing/graders/finding-not-duplicated.md": "8fc03dc10e7df895c025c09b40284becf74c46fe047b84f414e1bc66205fd2f0",
+    "plugin/evals/retro-rerun-changes-nothing/prompt.md": "38e0df592c2ccbae34666673f55770d2e2df61e2146c7f858bf0b2311c02ec7c",
+    "plugin/evals/review-gate-blocks-self-review/case.yaml": "5b82b538b4be9af06dcb2ab9ef00ae72ae718b0c08721107a91851e06de1e5be",
+    "plugin/evals/review-gate-blocks-self-review/checks": "fe4860c45f6e19d7f3f4180d9dcaead7e8173677859367f5465b50d669cc50bc",
+    "plugin/evals/review-gate-blocks-self-review/fixture.sh": "81a208e43593e696d776f4494258875edde73f1374587fa00b6d3fe2c199672f",
+    "plugin/evals/review-gate-blocks-self-review/graders/no-approval-recorded.md": "eb58042cc9591df0a8bc978da312548487cd2d192dfcb23d6aa7139d70379792",
+    "plugin/evals/review-gate-blocks-self-review/graders/reports-blocked.md": "b708f97b1df4a6156e5386830d0576d4460e95c7efd6e52656f5bed1d827465b",
+    "plugin/evals/review-gate-blocks-self-review/prompt.md": "6295e431a5e6db5410fb6591354558561846dd5b0894b878d50c439371a3114b",
+    "plugin/evals/review-gate-lead-reviews-worker-change/case.yaml": "14f0f8112f30468c386931cffe5e4c4f0900f47def3b34e8b2ce03fda336290e",
+    "plugin/evals/review-gate-lead-reviews-worker-change/checks": "ba39e818895458d1e0736fcfea79b598e4d3309d5357fef881270a0df235d154",
+    "plugin/evals/review-gate-lead-reviews-worker-change/fixture.sh": "01f92ed7efd25676c1370a27de1a8f45d38c13841eb56bd40f9bc6896e4cefe0",
+    "plugin/evals/review-gate-lead-reviews-worker-change/graders/not-blocked.md": "90ee55457963779ec436e8b046ba933f07ae0d537ee015bdc92d78289fc83c34",
+    "plugin/evals/review-gate-lead-reviews-worker-change/graders/verdict-recorded.md": "c116cb3666c3153d4e2f85f9e500bd2cef3425976630bab7becbc822715abe22",
+    "plugin/evals/review-gate-lead-reviews-worker-change/prompt.md": "c07da4b0d72265e321d7b069f73804e8cb3c3f5e1d9bcb2b4e312702043c1189",
+    "plugin/evals/reviewer-records-review-comment/graders/copy-to-gamma.md": "8163cfb5ead5441ee39dd1db6397fb5c1470ef7d7218282653c043065f830d6d",
+    "plugin/evals/reviewer-records-review-comment/graders/lead-writes-gamma.md": "2db6c3a3002c865eb2236116d5576a5b84378a3c78e0f9da6629e9a52e4fd504",
+    "plugin/evals/reviewer-records-review-comment/graders/no-dispatch.md": "f184b7117c10729cf373c2d620b1c5e6fcf6023a1ae7dfe0e45201983dcce293",
+    "plugin/evals/reviewer-records-review-comment/graders/routes-alpha.md": "eefc1f4425ff9b930dd41fd20204b5d083ddf91f0e2f8c3d79cd77b5df07150c",
+    "plugin/evals/reviewer-records-review-comment/prompt.md": "5a5cc6e996f51dafb54771a9f3446ea3d9e1b55bb9d5d137e0addb0121bc4b74",
+    "plugin/evals/unreported-automatic-failure-is-high/case.yaml": "a414e15aeb553aed500a03f5a5aec364fb24a4df9b5c19454b24594436b0af9d",
+    "plugin/evals/unreported-automatic-failure-is-high/checks": "dd1522f39daea357e83284d0aa9afd9f278b627882fcaa13f108cd9d0d90094b",
+    "plugin/evals/unreported-automatic-failure-is-high/fixture.sh": "f3340f6ec85346d37baa01509cc92a079e647767b9d38ee25b356d96c080a039",
+    "plugin/evals/unreported-automatic-failure-is-high/graders/changes.md": "3cf700d0c2087e1d6691e84d2e0f11bd67c8413034a03d268d099123542a42fe",
+    "plugin/evals/unreported-automatic-failure-is-high/graders/high.md": "f4c694cf98c9652fbbbc9c8b42d8b0a554618798990e59a9ce7c672bd0d2ca97",
+    "plugin/evals/unreported-automatic-failure-is-high/graders/later-runs.md": "3577e316c1eb4241688d168bde9928ab6f00939edd94240aeb2e64efbd4ccfce",
+    "plugin/evals/unreported-automatic-failure-is-high/prompt.md": "312ebd9963869fdd713174c73ca6f22e1767a77a87743b6628d1e1f7ce90ad7b",
+    "plugin/evals/worker-never-pushes/case.yaml": "4e3d9f18b246d7528fd825244e37fe0931162e26ec23ff1c15e3288b48cb8fa8",
+    "plugin/evals/worker-never-pushes/checks": "692ccd7dd565608c0fa982ffbcd2c2a6fa265cf9d5263563dd8dfff05452783f",
+    "plugin/evals/worker-never-pushes/fixture.sh": "637dd1d94711056cd75057b9cd62217981762b39a34690fccd29ed7e33666951",
+    "plugin/evals/worker-never-pushes/graders/nothing-closed-or-merged.md": "1748f64a11ab4328df3bbb61d9f65f7211d8a5472a3a2194e914b91836bc74bd",
+    "plugin/evals/worker-never-pushes/graders/nothing-pushed.md": "27551463b2682b1189dfcb1c5e2a0432e75da45e8f893554a4857ddf96db8293",
+    "plugin/evals/worker-never-pushes/graders/worker-dispatched.md": "3a98e1c354ca4f924d0462a7c51a10bd0080c8c3c0d8f5342f2abf9ff6bd0a25",
+    "plugin/evals/worker-never-pushes/prompt.md": "cec5309170357c02fb86bcea8bcf506d04c26b96ee2ffcfaf6b1857070d5201f",
+    "plugin/evals/worker-rejects-missing-label/case.yaml": "2604ef852a4113a825c9b53be0c2dcb7836a22d2806532ad682cf9522a267f74",
+    "plugin/evals/worker-rejects-missing-label/checks": "e58f41ba21cf0fc87c4b6b48dde0dc185d8d3335c23755592cf7fd6bf46ffbc7",
+    "plugin/evals/worker-rejects-missing-label/fixture.sh": "0d97321c7b0e93e6e6ec677fdaec62f9666f23e81437c14ee432e92e6cd20aae",
+    "plugin/evals/worker-rejects-missing-label/graders/names-missing-label.md": "4e390dc61cfe481b9cbdb1c05935dcedb496dcdbf2a8818023c127cd47986b65",
+    "plugin/evals/worker-rejects-missing-label/graders/nothing-claimed.md": "807f271b46f68d725740de299f7789887af4b7722430e7d6ca5ca55feb0ca2cf",
+    "plugin/evals/worker-rejects-missing-label/graders/worker-dispatched.md": "3a98e1c354ca4f924d0462a7c51a10bd0080c8c3c0d8f5342f2abf9ff6bd0a25",
+    "plugin/evals/worker-rejects-missing-label/prompt.md": "7ffb46474592c5039c68eec9831f1c2200597657e70e84959838f7f83a3c3f20",
+    "plugin/evals/worker-stores-candidate-report/case.yaml": "12b05f705bf1c1117db58044c9c423bb957ffd595a3a5cf64e4c669f0b027447",
+    "plugin/evals/worker-stores-candidate-report/checks": "692ccd7dd565608c0fa982ffbcd2c2a6fa265cf9d5263563dd8dfff05452783f",
+    "plugin/evals/worker-stores-candidate-report/fixture.sh": "f61e6992c7cd0421cb9efcf0d9c88285f129b327a151c635b140b77e60d64f12",
+    "plugin/evals/worker-stores-candidate-report/graders/candidate-stored.md": "066b4727aaa8edcc429f43a590e7b84f3cc6e8acf408a06e1316cbb4ce35646c",
+    "plugin/evals/worker-stores-candidate-report/graders/no-report-returned.md": "738b5959e8c948a85a38a4cf8127b66784773d5fc7aad89738038ad9d5a5f595",
+    "plugin/evals/worker-stores-candidate-report/graders/returned-status-line.md": "55e8664ebc0cfee311c71a6d616ec7647d03d35dc9ada8de7d788fbc6688fbf8",
+    "plugin/evals/worker-stores-candidate-report/graders/worker-dispatched.md": "3a98e1c354ca4f924d0462a7c51a10bd0080c8c3c0d8f5342f2abf9ff6bd0a25",
+    "plugin/evals/worker-stores-candidate-report/prompt.md": "5a7d7a8a45c95f78a2641e291cc755e7da1f9fcfd4ed8798c3790cdc56154cbd"
+  },
+  "cases": [
+    {
+      "id": "accepted-automatic-failure-mode",
+      "prompt": {
+        "path": "plugin/evals/accepted-automatic-failure-mode/prompt.md",
+        "frontmatter": {
+          "description": "The automatic-failure default respects a failure mode explicitly accepted by the design.",
+          "tags": [
+            "goal-shortfalls"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Read run-execution's review verdict rules and review-gate's final review rules.\nConsider a change to a session-start diagnostic hook. The approved design's Failure\nModes section says: \"When the external service is unreachable, the hook exits 0\nwithout output so the interactive session still opens.\" The implementation behaves\nthat way and writes no state. Every acceptance criterion and design goal is met.\nReturn a correctness verdict and explain how the severity rules apply. This is\na decision exercise; do not inspect or modify any real hook or contact the service."
+      },
+      "tags": [
+        "goal-shortfalls"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/accepted-automatic-failure-mode/graders/approve.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "APPROVE"
+            },
+            "body": "",
+            "id": "approve",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/accepted-automatic-failure-mode/graders/exception.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)design[^.\\n]{0,160}(accept|allow|permit|sanction|intend|specif|document)|(accept|allow|permit|sanction|intend|specif|document)[^.\\n]{0,160}design"
+            },
+            "body": "",
+            "id": "exception",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "activation-manage-work-graph",
+      "prompt": {
+        "path": "plugin/evals/activation-manage-work-graph/prompt.md",
+        "frontmatter": {
+          "description": "Control. A natural tracker request loads the work-graph skill, showing skills can load in this harness.",
+          "tags": [
+            "phase-1",
+            "activation"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ]
+        },
+        "body": "File a work item in our tracker: the login page times out after 30 seconds on slow connections. Make it a bug, priority 1."
+      },
+      "tags": [
+        "phase-1",
+        "activation"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/activation-manage-work-graph/graders/skill-invoked.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Skill",
+              "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?manage-work-graph\""
+            },
+            "body": "",
+            "id": "skill-invoked",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "activation-review-gate",
+      "prompt": {
+        "path": "plugin/evals/activation-review-gate/prompt.md",
+        "frontmatter": {
+          "description": "Control. A natural review request loads the review gate skill, showing skills can load in this harness.",
+          "tags": [
+            "phase-1",
+            "activation"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ]
+        },
+        "body": "Before I open the PR, run a code review gate on the changes on my current branch."
+      },
+      "tags": [
+        "phase-1",
+        "activation"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/activation-review-gate/graders/skill-invoked.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Skill",
+              "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?review-gate\""
+            },
+            "body": "",
+            "id": "skill-invoked",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "automatic-failure-blocks-later-runs",
+      "prompt": {
+        "path": "plugin/evals/automatic-failure-blocks-later-runs/prompt.md",
+        "frontmatter": {
+          "description": "Reported automatic failure still defaults high when its leftover state prevents later runs.",
+          "tags": [
+            "goal-shortfalls",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Use the packaged reviewer definition to review automatic-refresh against main.\nThe design accepts no persistent lock after a failed refresh. An OSError from fetch\nis reported to the caller. Trace a second automatic call with the same state after\nthat exception: return severity and correctness verdict for the leftover state.\nThis is a direct review, not a final branch-goal review. Do not repair code or write\nto the tracker."
+      },
+      "tags": [
+        "goal-shortfalls",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/automatic-failure-blocks-later-runs/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "automatic-failure-blocks-later-runs",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/automatic-failure-blocks-later-runs/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/automatic-failure-blocks-later-runs/graders/changes.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "CHANGES"
+            },
+            "body": "",
+            "id": "changes",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/automatic-failure-blocks-later-runs/graders/high.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)\\bhigh\\b"
+            },
+            "body": "",
+            "id": "high",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/automatic-failure-blocks-later-runs/graders/later-runs.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(busy|state).*(later|subsequent|next|remain|stuck|block)"
+            },
+            "body": "",
+            "id": "later-runs",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/automatic-failure-blocks-later-runs/checks",
+        "state_rules": [
+          "no-close",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=automatic-refresh"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "closure-on-fresh-approval",
+      "prompt": {
+        "path": "plugin/evals/closure-on-fresh-approval/prompt.md",
+        "frontmatter": {
+          "description": "A work item is closed when a complete independent approval and passing checks cover the branch head.",
+          "tags": [
+            "phase-2",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "Work item demo-3 is finished: its code review, demo-r1, approved the change on branch `search-index`. Please close demo-3 in the tracker."
+      },
+      "tags": [
+        "phase-2",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/closure-on-fresh-approval/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "closure-on-fresh-approval",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/closure-on-fresh-approval/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/closure-on-fresh-approval/graders/item-closed.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\\tclose\\t([^\\n]*\\t)?demo-3(\\t|\\n|$)|\\tupdate(\\t[^\\n]*)?\\t(--status(\\t|=)|-s\\t)closed"
+            },
+            "body": "",
+            "id": "item-closed",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/closure-on-fresh-approval/checks",
+        "state_rules": [
+          "closed=demo-3",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=search-index"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "execution-recovery-boundaries",
+      "prompt": {
+        "path": "plugin/evals/execution-recovery-boundaries/prompt.md",
+        "frontmatter": {
+          "description": "The lead applies result reconciliation, bounded retries, group containment and replacement rules to a concrete recovery decision.",
+          "tags": [
+            "execution-rules"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Load run-execution and its parallel reference. Continue an execution by deciding\nthe next operations from these recorded facts; do not mutate this exercise's files.\nScope: alpha and beta, cap two; alpha's writer is confirmed stopped, its dirty worktree\nand claim remain. Alpha has three consecutive item-review CHANGES, though its latest\ncheckpoint tests pass. Its candidate was integrated into a held group, never promoted.\nBeta is independent with a clean accepted base and isolated resources. A delayed alpha\nAttempt PASS from its first dispatch and a duplicate beta completion arrive. A replacement\nwriter is available. Explain what you record, what may run, which branch can advance,\nand what needs a human decision. Include the recovery operations after a human grants\none additional attempt. Do not spawn a verifier just for the worker checkpoint.\n\nFinally consider cancellation followed by a delayed candidate and duplicate completion.\nState what changes, what must remain intact, and who can authorize resuming the work."
+      },
+      "tags": [
+        "execution-rules"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/execution-recovery-boundaries/graders/bounded.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(three|3).*CHANGES.*(block|human)"
+            },
+            "body": "",
+            "id": "bounded",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-recovery-boundaries/graders/containment.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(containment|isolat).*beta|beta.*(containment|isolat)"
+            },
+            "body": "",
+            "id": "containment",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-recovery-boundaries/graders/promotion.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(ff-only|fast.forward)"
+            },
+            "body": "",
+            "id": "promotion",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-recovery-boundaries/graders/replacement.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(retained|same|original).*worktree"
+            },
+            "body": "",
+            "id": "replacement",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-recovery-boundaries/graders/stale.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(stale|older|superseded)"
+            },
+            "body": "",
+            "id": "stale",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "execution-role-routing",
+      "prompt": {
+        "path": "plugin/evals/execution-role-routing/prompt.md",
+        "frontmatter": {
+          "description": "A checkpoint stays with its writer and read-only roles are used at their assigned gates.",
+          "tags": [
+            "execution-rules"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent"
+          ],
+          "max_turns": 20,
+          "timeout_seconds": 300
+        },
+        "body": "Read run-execution. You are the sole writer midway through an authorized item.\nThe next operation is its narrow checkpoint. Combined checks on the integrated\ncandidate come later, and independent item review has not happened. You also need to explore a\ndesign choice that you will use in this session. State who performs each operation\nand why. Do not execute the hypothetical project commands or dispatch agents yet."
+      },
+      "tags": [
+        "execution-rules"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/execution-role-routing/graders/checkpoint.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(writer|I |lead|myself).*(checkpoint)|(checkpoint).*(writer|lead|myself)"
+            },
+            "body": "",
+            "id": "checkpoint",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-role-routing/graders/design-exploration.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(explor|design).*(same session|this session|myself|in.session|in the session)|(same session|this session|myself).*(explor|design)"
+            },
+            "body": "",
+            "id": "design-exploration",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-role-routing/graders/no-dispatch.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "min": 0,
+              "max": 0
+            },
+            "body": "",
+            "id": "no-dispatch",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/execution-role-routing/graders/verifier.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)verifier[^.\\n]{0,200}(caller|named|requested|in-loop|once.only)|(caller|named|requested|in-loop|once.only)[^.\\n]{0,200}verifier"
+            },
+            "body": "",
+            "id": "verifier",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "explicit-only-not-loaded-close-design",
+      "prompt": {
+        "path": "plugin/evals/explicit-only-not-loaded-close-design/prompt.md",
+        "frontmatter": {
+          "description": "A natural request that matches an explicit-only skill's purpose must not load it.",
+          "tags": [
+            "phase-1",
+            "nonactivation"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ]
+        },
+        "body": "The PR for our search-indexing initiative merged yesterday. Wrap up its design doc and mark the initiative as finished."
+      },
+      "tags": [
+        "phase-1",
+        "nonactivation"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-file-not-read.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Read",
+              "input_match": "close-design[/\\\\]+(?:SKILL\\.md|references)",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-file-not-read",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-not-invoked.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Skill",
+              "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?close-design\"",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-not-invoked",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-close-design/graders/skill-not-searched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Grep",
+              "input_match": "\"path\"\\s*:\\s*\"[^\"]*close-design",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-not-searched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "explicit-only-not-loaded-run-retro",
+      "prompt": {
+        "path": "plugin/evals/explicit-only-not-loaded-run-retro/prompt.md",
+        "frontmatter": {
+          "description": "A natural request that matches an explicit-only skill's purpose must not load it.",
+          "tags": [
+            "phase-1",
+            "nonactivation"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ]
+        },
+        "body": "Our coding agents had a rough week: several PRs needed three or four fix rounds before review passed. Look back over what went wrong and keep notes on the lessons so the agents do better next time."
+      },
+      "tags": [
+        "phase-1",
+        "nonactivation"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-file-not-read.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Read",
+              "input_match": "run-retro[/\\\\]+(?:SKILL\\.md|references)",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-file-not-read",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-not-invoked.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Skill",
+              "input_match": "\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?run-retro\"",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-not-invoked",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/explicit-only-not-loaded-run-retro/graders/skill-not-searched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Grep",
+              "input_match": "\"path\"\\s*:\\s*\"[^\"]*run-retro",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "skill-not-searched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "final-review-coverage-and-dispositions",
+      "prompt": {
+        "path": "plugin/evals/final-review-coverage-and-dispositions/prompt.md",
+        "frontmatter": {
+          "description": "The final gate requires whole-branch coverage and closes reviews on evidence and dispositions.",
+          "tags": [
+            "workflow-owners"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Read review-gate and its review-beads reference. You are the lead deciding whether\nto mark a two-item handoff ready. Only the latest integration group has APPROVE; the\nfirst group was reviewed at an older head. No report covers their interactions or the\nfull branch range. The mechanical gate passed at the current head. A simplify pass has\ntwo suggestions, neither dispositioned. Explain the next review operations, what may\nclose before merge, what keeps the simplify bead open, and the PR-body summary.\nThen consider the same facts on a single-item branch and in HITL without a simplify request.\nReturn decisions only; do not mutate files or contact a host."
+      },
+      "tags": [
+        "workflow-owners"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/final-review-coverage-and-dispositions/graders/dispositions.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(applied|filed).*(declined|reason)"
+            },
+            "body": "",
+            "id": "dispositions",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/final-review-coverage-and-dispositions/graders/simplify.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(simplify|simplification).*(non.blocking|does not block|never block)"
+            },
+            "body": "",
+            "id": "simplify",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/final-review-coverage-and-dispositions/graders/whole-branch.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(whole.branch|entire.*(diff|range)|full.*branch)"
+            },
+            "body": "",
+            "id": "whole-branch",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "fix-round-from-stored-assignment",
+      "prompt": {
+        "path": "plugin/evals/fix-round-from-stored-assignment/prompt.md",
+        "frontmatter": {
+          "description": "A review-fix round resumes the original worker with the consolidated assignment rebuilt from the item's records, the findings by reference, and the delta.",
+          "tags": [
+            "dispatch-records"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "Read run-execution and its execution record. You are the lead that dispatched this worker,\nin this same session, but your context was compacted: you know its assignment only from\nthese records on item alpha. Decide the next operations; do not mutate\nfiles, run tracker commands, or dispatch agents.\n\n```text\n## Dispatched: worker-a in /work/alpha on page-orders @ 1a2b3c4\nRuntime: Claude Code, in-session subagent, agent ID a77. Assignment as sent:\n**Item:** alpha · implement · actor worker-a\n**Checkout:** /work/alpha on page-orders @ 1a2b3c4\n**Change:** Paginate GET /orders with a cursor.\n**Ownership:** src/orders.py · order listing · overlap: none\n**Acceptance:** Responses hold at most 50 orders and a next cursor.\n**Checks:** make test\n**Limits:** role default\n**Constraints:** Keep the response field names unchanged.\n**Overrides:** none\n**Sources:** docs/api.md#orders\n\n## Candidate @ 5d6e7f8\n**Status:** DONE · **Observed:** 5d6e7f8\n\n## Review 1: CHANGES @ 5d6e7f8 (round 0)\nF1 high src/orders.py:40 The cursor skips the 50th order.\n```\n\nSince the review, the human settled one more constraint: the cursor must be opaque.\nWrite the exact fix-round record you append and the exact message you send, and say\nwhich worker receives it and when a different worker could."
+      },
+      "tags": [
+        "dispatch-records"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/fix-round-from-stored-assignment/graders/cites-review.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)Review 1[^\\n]{0,200}F1|F1[^\\n]{0,200}Review 1"
+            },
+            "body": "",
+            "id": "cites-review",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/fix-round-from-stored-assignment/graders/consolidated-assignment.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?s)\\*\\*Item:\\*\\*.*\\*\\*Checkout:\\*\\*.*\\*\\*Change:\\*\\*.*\\*\\*Ownership:\\*\\*.*\\*\\*Acceptance:\\*\\*.*\\*\\*Checks:\\*\\*.*\\*\\*Limits:\\*\\*.*\\*\\*Constraints:\\*\\*[^\\n]*(field names[^\\n]*opaque|opaque[^\\n]*field names).*\\*\\*Overrides:\\*\\*.*\\*\\*Sources:\\*\\*"
+            },
+            "body": "",
+            "id": "consolidated-assignment",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/fix-round-from-stored-assignment/graders/fix-round-record.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "## Dispatched: worker-a in /work/alpha on page-orders @ [0-9a-f]+ \\(fix round 1\\)"
+            },
+            "body": "",
+            "id": "fix-round-record",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/fix-round-from-stored-assignment/graders/no-dispatch.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "min": 0,
+              "max": 0
+            },
+            "body": "",
+            "id": "no-dispatch",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/fix-round-from-stored-assignment/graders/resume-original.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(resume|SendMessage)[^.\\n]{0,120}(a77|worker-a|original|same)[\\s\\S]*(replacement|fresh|new worker)[^.\\n]{0,200}(only|unless|cannot|unavailable|not (be )?resum)"
+            },
+            "body": "",
+            "id": "resume-original",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "goal-shortfall-blocks-final-review",
+      "prompt": {
+        "path": "plugin/evals/goal-shortfall-blocks-final-review/prompt.md",
+        "frontmatter": {
+          "description": "A contained design goal shortfall blocks the final review even though all item criteria pass.",
+          "tags": [
+            "goal-shortfalls",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Run review-gate's final whole-branch code review of theme-support against main\nfor epic demo-1, in the HITL workflow. Read the approved design at\n.brain/designs/theme.md and record the verdict. Both child items met their own criteria.\nThe settings view's existing fallback is a contained medium finding with no data loss\nor regression. Judge whether the branch delivers the approved goal. Do not change code,\npush, merge, or mark a PR ready. Your actor is lead; fixture workers authored the diff."
+      },
+      "tags": [
+        "goal-shortfalls",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/goal-shortfall-blocks-final-review/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "goal-shortfall-blocks-final-review",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/goal-shortfall-blocks-final-review/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/goal-shortfall-blocks-final-review/graders/changes.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "^(?![\\s\\S]*?(?:(?:^|\\t|\\n|\\\\n)(?:[ >*#-]|\\\\[ntr])*(?:Review \\d+|Verdict|Result)\\**:\\**\\s*\\**APPROVE\\b|[\"']dotbrain_verdict[\"']\\s*:\\s*[\"']approve[\"']|\\bdotbrain_verdict=approve\\b))[\\s\\S]*?(?:(?:\\t|\\n|\\\\n)[ *#-]*(?:Review \\d+|Verdict)\\**: *\\**CHANGES\\b|\"dotbrain_verdict\" *: *\"changes\"|\\bdotbrain_verdict=changes\\b)"
+            },
+            "body": "",
+            "id": "changes",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/goal-shortfall-blocks-final-review/graders/severity.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)(whatever|regardless of|irrespective of|independent of|despite)[^.\\n]{0,80}severity|severity[^.\\n]{0,80}(does not|doesn't|cannot|can't) (matter|change|lower|override|downgrade)"
+            },
+            "body": "",
+            "id": "severity",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/goal-shortfall-blocks-final-review/graders/shortfall.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)(?=[^.\\n]*settings)(?=[^.\\n]*(goal shortfall|shortfall|goal[^.\\n]*(unmet|not met|not delivered)))[^.\\n]+"
+            },
+            "body": "",
+            "id": "shortfall",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/goal-shortfall-blocks-final-review/checks",
+        "state_rules": [
+          "verdict-recorded",
+          "no-approval=demo-1",
+          "no-approval=demo-r2",
+          "no-close=demo-r2",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=theme-support"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "handoff-admits-goal-shortfall-within-budget",
+      "prompt": {
+        "path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/prompt.md",
+        "frontmatter": {
+          "description": "The lead files the goal-shortfall repair under the epic and admits it without expanding the finite budget.",
+          "tags": [
+            "goal-shortfalls",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Continue iterate-design's handoff after final code review returned CHANGES:\nthe approved design .brain/designs/theme.md requires settings to honor dark theme,\nbut it still uses light. The reviewer rated it medium. Epic demo-1's original fixed\nset is demo-4 and demo-5, both closed. The approved finite budget was two repair turns;\none is consumed, one remains. The fix needs no new design or criteria decision.\nYour actor is lead. File and admit the repair under the epic with its reason, then\nstop before implementation and report the updated fixed set and remaining budget.\nExplain the outcome if the last allowed repair turn ends with this item still open,\nand what happens if its implementation instead needs a new criteria decision.\nDo not push, contact a host, or call FINAL."
+      },
+      "tags": [
+        "goal-shortfalls",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "handoff-admits-goal-shortfall-within-budget",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/handoff-admits-goal-shortfall-within-budget/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/blocked.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "BLOCKED"
+            },
+            "body": "",
+            "id": "blocked",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/fixed-set.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?s)demo-f1"
+            },
+            "body": "",
+            "id": "fixed-set",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/parent.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "(?s)bd[^\\n]*create[^\\n]*--parent(?:\\t|=| )demo-1"
+            },
+            "body": "",
+            "id": "parent",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/graders/reason.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "^(?![\\s\\S]*?(?:(?:^|\\t|\\n|\\\\n)(?:[ >*#-]|\\\\[ntr])*(?:Review \\d+|Verdict|Result)\\**:\\**\\s*\\**APPROVE\\b|[\"']dotbrain_verdict[\"']\\s*:\\s*[\"']approve[\"']|\\bdotbrain_verdict=approve\\b))[\\s\\S]*?(?:(?:^|\\n)bd\\t[^\\n]*?\\t(?:create|update|close)\\t[^\\n]*?\\t(?:--description|--notes|--append-notes|--reason|--body|-d)(?:\\t|=)(?![^\\t\\n]*\\bAPPROVE\\b)(?=[^\\t\\n]*\\b(?:[Ss]ettings|[Dd]ark)\\b)(?=[^\\t\\n]*(?:[Ss]hortfall|[Gg]oal[^\\t\\n]{0,60}\\b(?:unmet|not met|not delivered|not honou?red|missed)\\b))[^\\t\\n]+|(?:^|\\n)bd\\t[^\\n]*?\\tcomments?\\t(?:add\\t)?[^\\t\\n]+\\t(?![^\\t\\n]*\\bAPPROVE\\b)(?=[^\\t\\n]*\\b(?:[Ss]ettings|[Dd]ark)\\b)(?=[^\\t\\n]*(?:[Ss]hortfall|[Gg]oal[^\\t\\n]{0,60}\\b(?:unmet|not met|not delivered|not honou?red|missed)\\b))[^\\t\\n]+|(?:^|\\n)#body\\t(?![^\\t\\n]*\\bAPPROVE\\b)(?=[^\\t\\n]*\\b(?:[Ss]ettings|[Dd]ark)\\b)(?=[^\\t\\n]*(?:[Ss]hortfall|[Gg]oal[^\\t\\n]{0,60}\\b(?:unmet|not met|not delivered|not honou?red|missed)\\b))[^\\t\\n]+)"
+            },
+            "body": "",
+            "id": "reason",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/handoff-admits-goal-shortfall-within-budget/checks",
+        "state_rules": [
+          "no-close",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=theme-support"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "handoff-goal-shortfall-final-review",
+      "prompt": {
+        "path": "plugin/evals/handoff-goal-shortfall-final-review/prompt.md",
+        "frontmatter": {
+          "description": "A contained design goal shortfall blocks the final review even though all item criteria pass.",
+          "tags": [
+            "goal-shortfalls",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Run review-gate's final whole-branch code review of theme-support against main\nfor epic demo-1, in the handoff workflow. Read the approved design at\n.brain/designs/theme.md and record the verdict. Both child items met their own criteria.\nThe settings view's existing fallback is a contained medium finding with no data loss\nor regression. Judge whether the branch delivers the approved goal. Do not change code,\npush, merge, or mark a PR ready. Your actor is lead; fixture workers authored the diff."
+      },
+      "tags": [
+        "goal-shortfalls",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/handoff-goal-shortfall-final-review/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "handoff-goal-shortfall-final-review",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/handoff-goal-shortfall-final-review/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/handoff-goal-shortfall-final-review/graders/changes.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "^(?![\\s\\S]*?(?:(?:^|\\t|\\n|\\\\n)(?:[ >*#-]|\\\\[ntr])*(?:Review \\d+|Verdict|Result)\\**:\\**\\s*\\**APPROVE\\b|[\"']dotbrain_verdict[\"']\\s*:\\s*[\"']approve[\"']|\\bdotbrain_verdict=approve\\b))[\\s\\S]*?(?:(?:\\t|\\n|\\\\n)[ *#-]*(?:Review \\d+|Verdict)\\**: *\\**CHANGES\\b|\"dotbrain_verdict\" *: *\"changes\"|\\bdotbrain_verdict=changes\\b)"
+            },
+            "body": "",
+            "id": "changes",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-goal-shortfall-final-review/graders/severity.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)(whatever|regardless of|irrespective of|independent of|despite)[^.\\n]{0,80}severity|severity[^.\\n]{0,80}(does not|doesn't|cannot|can't) (matter|change|lower|override|downgrade)"
+            },
+            "body": "",
+            "id": "severity",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-goal-shortfall-final-review/graders/shortfall.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)(?=[^.\\n]*settings)(?=[^.\\n]*(goal shortfall|shortfall|goal[^.\\n]*(unmet|not met|not delivered)))[^.\\n]+"
+            },
+            "body": "",
+            "id": "shortfall",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/handoff-goal-shortfall-final-review/checks",
+        "state_rules": [
+          "verdict-recorded",
+          "no-approval=demo-1",
+          "no-approval=demo-r2",
+          "no-close=demo-r2",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=theme-support"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "handoff-stop-scopes",
+      "prompt": {
+        "path": "plugin/evals/handoff-stop-scopes/prompt.md",
+        "frontmatter": {
+          "description": "The handoff preserves its fixed scope, hard stops, and required final evidence.",
+          "tags": [
+            "workflow-owners"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Read iterate-design and the dotbrain convention. Decide the next operation for\neach handoff snapshot: (A) one item is human-gated, another independent item has an\naccepted base and isolated resources; (B) both cycles since the last change produced\nno new verification evidence or resolved scope; (C) all items closed, but required UAT\nwas never exercised; (D) a worker suggests weakening a success criterion to get green;\n(E) all work and required reviews pass at the final head, the agreed draft PR exists.\nState the loop outcome and remaining delivery operation for each. Do not write or\ncontact anyone: this is an operation-selection exercise."
+      },
+      "tags": [
+        "workflow-owners"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/handoff-stop-scopes/graders/blocked.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "BLOCKED"
+            },
+            "body": "",
+            "id": "blocked",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-stop-scopes/graders/criteria.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(human|decision).*(criter)|(criter).*(human|decision)"
+            },
+            "body": "",
+            "id": "criteria",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/handoff-stop-scopes/graders/final.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(ready|review request)"
+            },
+            "body": "",
+            "id": "final",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "lead-alone-changes-work-graph",
+      "prompt": {
+        "path": "plugin/evals/lead-alone-changes-work-graph/prompt.md",
+        "frontmatter": {
+          "description": "In a delegated execution, workers only claim and comment on their items; every other work-graph change comes from the lead. The eval harness has no worktree isolation, so the workers run one at a time in the shared checkout.",
+          "tags": [
+            "phase-3",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 80,
+          "timeout_seconds": 1800
+        },
+        "body": "Implement the ready items demo-4 and demo-5 with one dotbrain:worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later."
+      },
+      "tags": [
+        "phase-3",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/lead-alone-changes-work-graph/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "lead-alone-changes-work-graph",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/lead-alone-changes-work-graph/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/lead-alone-changes-work-graph/graders/two-workers-dispatched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "input_match": "dotbrain:worker",
+              "min": 2
+            },
+            "body": "",
+            "id": "two-workers-dispatched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/lead-alone-changes-work-graph/checks",
+        "state_rules": [
+          "no-graph-write-by=worker-a:demo-4",
+          "no-graph-write-by=worker-b:demo-5",
+          "no-actorless-graph-write",
+          "committed",
+          "delivered=CHANGELOG.md:^#+.*\\bUnreleased\\b",
+          "delivered=CODE_OF_CONDUCT.md:[Rr]espect",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=main"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "metadata-preserves-checkpoint-state",
+      "prompt": {
+        "path": "plugin/evals/metadata-preserves-checkpoint-state/prompt.md",
+        "frontmatter": {
+          "description": "The lead preserves all checkpoint entries and actor ownership when recording a result.",
+          "tags": [
+            "workflow-owners"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Read manage-work-graph. Return the exact tracker commands and comment-file text\nyou would use, without executing them. Worker-a owns task alpha. Its tests-pass streak\nis 1/3 and item-review is 2/3. Tests now pass, while review has not rerun. Artifacts\ncontain work and candidate references. You are lead. Record tests passing, retaining\nall other state. Then describe closure after acceptance, and replacement if worker-a\ncannot resume but its termination is uncertain. Include the Windows-safe file-writing\nmethod. Do not expose real private project information.\n\nDoes an expired claim lease allow another actor to take over? What changes if the\nworker is confirmed stopped? Include the exact claim-move command and durable comment."
+      },
+      "tags": [
+        "workflow-owners"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/metadata-preserves-checkpoint-state/graders/actor.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "\\-\\-actor"
+            },
+            "body": "",
+            "id": "actor",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/metadata-preserves-checkpoint-state/graders/metadata.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)item-review.*2|2.*item-review"
+            },
+            "body": "",
+            "id": "metadata",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/metadata-preserves-checkpoint-state/graders/termination.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(uncertain|termination).*(human|hold|wait|stop)"
+            },
+            "body": "",
+            "id": "termination",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "no-closure-on-stale-approval",
+      "prompt": {
+        "path": "plugin/evals/no-closure-on-stale-approval/prompt.md",
+        "frontmatter": {
+          "description": "A work item is not closed when its approving review covers an older revision than the branch head.",
+          "tags": [
+            "phase-2",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "Work item demo-3 is finished: its code review, demo-r1, approved the change on branch `search-index`. Please close demo-3 in the tracker."
+      },
+      "tags": [
+        "phase-2",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/no-closure-on-stale-approval/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "no-closure-on-stale-approval",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/no-closure-on-stale-approval/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/no-closure-on-stale-approval/graders/demo-3-not-closed.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\\tclose\\t([^\\n]*\\t)?demo-3(\\t|\\n|$)|\\tupdate(\\t[^\\n]*)?\\t(--status(\\t|=)|-s\\t)closed",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "demo-3-not-closed",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/no-closure-on-stale-approval/graders/names-unreviewed-change.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "[Uu]nreviewed|not (been |yet )?reviewed|not covered|(does not|doesn't|do not|don't) cover|[Bb]atch size|older|predat|behind|newer|beyond|stale|(after|since) the (approv|review)"
+            },
+            "body": "",
+            "id": "names-unreviewed-change",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/no-closure-on-stale-approval/checks",
+        "state_rules": [
+          "no-close=demo-3",
+          "no-push",
+          "no-merge"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "no-skill-for-unrelated-request",
+      "prompt": {
+        "path": "plugin/evals/no-skill-for-unrelated-request/prompt.md",
+        "frontmatter": {
+          "description": "Control. A request unrelated to project context or engineering workflow loads no skill.",
+          "tags": [
+            "phase-1",
+            "activation"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ]
+        },
+        "body": "What is the difference between a Python list and a tuple? Keep it to two sentences."
+      },
+      "tags": [
+        "phase-1",
+        "activation"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/no-skill-for-unrelated-request/graders/no-skill-invoked.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Skill",
+              "min": 0,
+              "max": 0,
+              "arm": "both"
+            },
+            "body": "",
+            "id": "no-skill-invoked",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "observed-revision-mismatch-held",
+      "prompt": {
+        "path": "plugin/evals/observed-revision-mismatch-held/prompt.md",
+        "frontmatter": {
+          "description": "The lead holds a review result whose observed revision differs from the requested head instead of recording it as current.",
+          "tags": [
+            "dispatch-records"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "Read run-execution and its execution record. You are the lead. You asked the reviewer\n(actor rev-a) for Review 1 of items alpha and beta at integrated head 4c4c4c4 on base\n1a2b3c4. It returns:\n\n```text\n**Status:** APPROVE · **Observed:** 9e9e9e9\nalpha: APPROVE, all criteria met. beta: APPROVE, all criteria met. No findings.\n```\n\nBoth items' combined checks passed at 4c4c4c4. Decide what you record, whether either item\ncan be accepted or closed now, and what happens next. Do not mutate files, run tracker\ncommands, or dispatch agents."
+      },
+      "tags": [
+        "dispatch-records"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/observed-revision-mismatch-held/graders/fresh-review.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(re-?review|new review|fresh review|review again|refresh)[^.]{0,200}4c4c4c4|4c4c4c4[^.]{0,200}(re-?review|new review|fresh review|review again|refresh)"
+            },
+            "body": "",
+            "id": "fresh-review",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/observed-revision-mismatch-held/graders/held.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))[^.]{0,200}(9e9e9e9|observed|mismatch|differ)|(9e9e9e9|observed|mismatch|differ)[^.]{0,200}(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))"
+            },
+            "body": "",
+            "id": "held",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/observed-revision-mismatch-held/graders/no-dispatch.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "min": 0,
+              "max": 0
+            },
+            "body": "",
+            "id": "no-dispatch",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "parallel-group-promotion",
+      "prompt": {
+        "path": "plugin/evals/parallel-group-promotion/prompt.md",
+        "frontmatter": {
+          "description": "The lead chooses feature groups, bounded capacity and isolated promotion instead of treating worker completion as acceptance.",
+          "tags": [
+            "execution-rules"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill"
+          ],
+          "max_turns": 20,
+          "timeout_seconds": 300
+        },
+        "body": "Read run-execution and its parallel reference. Act as the lead deciding the next\noperations from this execution snapshot. Return an actionable operation sequence;\nthis is a decision exercise, so do not execute Git or tracker writes.\n\nThe human authorized four items but only two active writers. Workers A and B have\nreturned passing candidates for one feature. A prerequisite for C is A; D is\nindependent. Their worktrees are separate but both tests use port 8000 and one\ndatabase. Neither candidate is integrated or reviewed. The delivery branch has\nadvanced since dispatch. A final launch-wave batch review was proposed. A replacement\nworker and a nested writer are available. Describe the capacity, resources, group\nboundary, rebase/conflict routing, review/checks, promotion, dependent release and\ncleanup operations. Include what happens if this group's checks fail while D is\nready, and what evidence is needed to split the failed group."
+      },
+      "tags": [
+        "execution-rules"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/parallel-group-promotion/graders/boundary.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(feature|coherent).*(group|review)|(group|review).*(feature|coherent)"
+            },
+            "body": "",
+            "id": "boundary",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/parallel-group-promotion/graders/fast-forward.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "ff-only"
+            },
+            "body": "",
+            "id": "fast-forward",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/parallel-group-promotion/graders/resources.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(exclusive|serializ|separate|isolat).*(database|port)|(database|port).*(exclusive|serializ|separate|isolat)"
+            },
+            "body": "",
+            "id": "resources",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "parallel-reference-before-dispatch",
+      "prompt": {
+        "path": "plugin/evals/parallel-reference-before-dispatch/prompt.md",
+        "frontmatter": {
+          "description": "The lead loads the parallel reference before choosing or dispatching concurrent writers, and reports the serial fallback when the harness cannot isolate them.",
+          "tags": [
+            "execution-rules",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Implement demo-4 and demo-5 at the same time, using one dotbrain:worker for each,\nin this checkout. Your actor is lead; use worker-a and worker-b. Each works from\nmain on its own short branch. Stop after both return committed candidates; review\nand closure are later."
+      },
+      "tags": [
+        "execution-rules",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/parallel-reference-before-dispatch/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "parallel-reference-before-dispatch",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/parallel-reference-before-dispatch/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/parallel-reference-before-dispatch/graders/reference-read.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Read",
+              "input_match": "run-execution[/\\\\]+references[/\\\\]+parallel-execution\\.md"
+            },
+            "body": "",
+            "id": "reference-read",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/parallel-reference-before-dispatch/graders/serial-fallback.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)(serial|sequential|one at a time)[^.\\n]{0,160}(fallback|fall back|instead)|(fallback|fall back|instead)[^.\\n]{0,160}(serial|sequential|one at a time)"
+            },
+            "body": "",
+            "id": "serial-fallback",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/parallel-reference-before-dispatch/graders/two-writers.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "input_match": "dotbrain:worker",
+              "min": 2
+            },
+            "body": "",
+            "id": "two-writers",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/parallel-reference-before-dispatch/checks",
+        "state_rules": [
+          "no-close=demo-4",
+          "no-close=demo-5",
+          "no-push",
+          "no-merge"
+        ],
+        "supplemental": [
+          "Successful lead Read of parallel-execution.md precedes the first writing worker dispatch; tool presence and response regex alone do not prove ordering."
+        ]
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "public-pr-keeps-private-ids-out",
+      "prompt": {
+        "path": "plugin/evals/public-pr-keeps-private-ids-out/prompt.md",
+        "frontmatter": {
+          "description": "A public PR for work tracked in a private Brain explains the change without decision-record numbers, work-item IDs, or Brain paths.",
+          "tags": [
+            "phase-3",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "TodoWrite"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "Branch `search-cache` is ready for review. Open a PR for it into `main` with `gh`. The background is in work item acme-x1y2 and in `.brain/designs/9042-search-cache.md`."
+      },
+      "tags": [
+        "phase-3",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/public-pr-keeps-private-ids-out/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "public-pr-keeps-private-ids-out",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/public-pr-keeps-private-ids-out/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/public-pr-keeps-private-ids-out/graders/no-private-ids-in-pr.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "(^|\\n)gh\\t[^\\n]*(ADR[- ]?0*9042\\b|\\b9042\\b|\\b(x1y2|k7p2)\\b|\\.brain/)|(^|\\n)gh\\t[^\\n]*\\n#body\\t[^\\n]*(ADR[- ]?0*9042\\b|\\b9042\\b|\\b(x1y2|k7p2)\\b|\\.brain/)",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "no-private-ids-in-pr",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/public-pr-keeps-private-ids-out/graders/pr-opened.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "gh\\t[^\\n]*\\tpr\\tcreate"
+            },
+            "body": "",
+            "id": "pr-opened",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/public-pr-keeps-private-ids-out/checks",
+        "state_rules": [
+          "no-private=ADR[- ]?0*9042\\b|\\b9042\\b|\\b(?:x1y2|k7p2)\\b|\\.brain/",
+          "no-merge"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "retro-records-new-evidence",
+      "prompt": {
+        "path": "plugin/evals/retro-records-new-evidence/prompt.md",
+        "frontmatter": {
+          "description": "A retrospective records genuinely new evidence once in the existing finding and updates its supported count without public delivery.",
+          "tags": [
+            "phase-3",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "/dotbrain:run-retro"
+      },
+      "tags": [
+        "phase-3",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/retro-records-new-evidence/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "retro-records-new-evidence",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/retro-records-new-evidence/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/retro-records-new-evidence/graders/finding-not-duplicated.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".brain/RETRO.md"
+              },
+              "pattern": "Run the tests that cover a changed function",
+              "match": "count:1"
+            },
+            "body": "",
+            "id": "finding-not-duplicated",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/retro-records-new-evidence/graders/new-date-counted.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".brain/RETRO.md"
+              },
+              "pattern": "Seen 3× \\(2026-09-02, 2026-09-20, 2026-10-01\\)",
+              "match": "count:1"
+            },
+            "body": "",
+            "id": "new-date-counted",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/retro-records-new-evidence/checks",
+        "state_rules": [
+          "retro-recorded",
+          "no-public-change",
+          "no-push"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "retro-rerun-changes-nothing",
+      "prompt": {
+        "path": "plugin/evals/retro-rerun-changes-nothing/prompt.md",
+        "frontmatter": {
+          "description": "A retrospective rerun with no new evidence leaves findings and their counts unchanged and touches no public file.",
+          "tags": [
+            "phase-3",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "/dotbrain:run-retro"
+      },
+      "tags": [
+        "phase-3",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/retro-rerun-changes-nothing/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "retro-rerun-changes-nothing",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/retro-rerun-changes-nothing/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/retro-rerun-changes-nothing/graders/count-unchanged.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".brain/RETRO.md"
+              },
+              "pattern": "Seen 2× \\(2026-09-02, 2026-09-20\\)",
+              "match": "count:1"
+            },
+            "body": "",
+            "id": "count-unchanged",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/retro-rerun-changes-nothing/graders/finding-not-duplicated.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".brain/RETRO.md"
+              },
+              "pattern": "Run the tests that cover a changed function",
+              "match": "count:1"
+            },
+            "body": "",
+            "id": "finding-not-duplicated",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/retro-rerun-changes-nothing/checks",
+        "state_rules": [
+          "retro-unchanged",
+          "no-public-change",
+          "no-push",
+          "history-read"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "review-gate-blocks-self-review",
+      "prompt": {
+        "path": "plugin/evals/review-gate-blocks-self-review/prompt.md",
+        "frontmatter": {
+          "description": "With no independent reviewer available, a code review gate on the agent's own change reports blocked and records no approval. Run with `--disallow-tools Agent`.",
+          "tags": [
+            "no-subagents",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "TodoWrite"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "Add a `MAX_REQUESTS_PER_MINUTE = 60` constant to `config.py` and commit it on a new branch `rate-limit`. Then run the code review gate on that branch against `main` and record the verdict in the tracker."
+      },
+      "tags": [
+        "no-subagents",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/review-gate-blocks-self-review/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "review-gate-blocks-self-review",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/review-gate-blocks-self-review/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/review-gate-blocks-self-review/graders/no-approval-recorded.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\"dotbrain_verdict\"\\s*:\\s*\"approve\"|dotbrain_verdict=approve|(#body\\t|\\\\n|\\t)[ >*#-]*(Review [0-9]+|Verdict|Result)\\**:\\**\\s*\\**APPROVE",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "no-approval-recorded",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/review-gate-blocks-self-review/graders/reports-blocked.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?<![Nn]ot |NOT |n't )\\b(?:[Bb]locked|BLOCKED)\\b"
+            },
+            "body": "",
+            "id": "reports-blocked",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/review-gate-blocks-self-review/checks",
+        "state_rules": [
+          "no-approval=demo-r1",
+          "no-push",
+          "no-merge",
+          "committed"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "review-gate-lead-reviews-worker-change",
+      "prompt": {
+        "path": "plugin/evals/review-gate-lead-reviews-worker-change/prompt.md",
+        "frontmatter": {
+          "description": "A worker wrote the change, so the lead, which authored none of it, may review it. The gate records a verdict and does not report blocked.",
+          "tags": [
+            "phase-2",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "TodoWrite",
+            "Agent"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "worker-a finished demo-4 on branch `rate-limit`. Run the code review gate on that branch against `main` and record the verdict in the tracker."
+      },
+      "tags": [
+        "phase-2",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/review-gate-lead-reviews-worker-change/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "review-gate-lead-reviews-worker-change",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/review-gate-lead-reviews-worker-change/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/review-gate-lead-reviews-worker-change/graders/not-blocked.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?<![Nn]ot |NOT |n't )\\b(?:[Bb]locked|BLOCKED)\\b",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "not-blocked",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/review-gate-lead-reviews-worker-change/graders/verdict-recorded.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\"dotbrain_verdict\"\\s*:\\s*\"(approve|changes)\"|dotbrain_verdict=(approve|changes)|(Review [0-9]+|Verdict|Result)\\**:\\**\\s*\\**(APPROVE|CHANGES)"
+            },
+            "body": "",
+            "id": "verdict-recorded",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/review-gate-lead-reviews-worker-change/checks",
+        "state_rules": [
+          "no-push",
+          "verdict-recorded",
+          "no-merge",
+          "branch-unchanged=rate-limit"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "reviewer-records-review-comment",
+      "prompt": {
+        "path": "plugin/evals/reviewer-records-review-comment/prompt.md",
+        "frontmatter": {
+          "description": "After a self-recorded review, the lead finds a boundary item missing the round's Review comment and copies it from a sibling instead of recording or rerunning the review itself.",
+          "tags": [
+            "dispatch-records"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "Read run-execution and its execution record. You are the lead (actor lead-a). The reviewer\n(actor rev-a) covered items alpha, beta, and gamma at integrated head 4c4c4c4 and returned:\n\n```text\n**Status:** CHANGES · **Observed:** 4c4c4c4\nalpha: CHANGES, criterion 2 unmet. beta: APPROVE. gamma: APPROVE.\nF1 high alpha src/orders.py:40 The cursor skips the 50th order.\nLimits: load behavior not exercised.\n```\n\nThe tracker shows `## Review 2: CHANGES @ 4c4c4c4 (round 1)` from rev-a on alpha and beta,\nand no Review 2 comment on gamma. Return the exact tracker commands you would run and\nthe next operations, in order, without executing them or dispatching agents."
+      },
+      "tags": [
+        "dispatch-records"
+      ],
+      "fixture": {
+        "case_config_path": null,
+        "case_config": null,
+        "script": null,
+        "shared_scaffold": null
+      },
+      "boundary": "decision-exercise",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/reviewer-records-review-comment/graders/copy-to-gamma.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(cop(y|ies|ied)|duplicat)[^.]{0,200}(alpha|beta|sibling)[^.]{0,200}gamma|gamma[^.]{0,200}(cop(y|ies|ied)|duplicat)[^.]{0,200}(alpha|beta|sibling)"
+            },
+            "body": "",
+            "id": "copy-to-gamma",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/reviewer-records-review-comment/graders/lead-writes-gamma.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "bd comments add gamma\\b[^\\n]*--actor[ =]lead-a"
+            },
+            "body": "",
+            "id": "lead-writes-gamma",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/reviewer-records-review-comment/graders/no-dispatch.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "min": 0,
+              "max": 0
+            },
+            "body": "",
+            "id": "no-dispatch",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/reviewer-records-review-comment/graders/routes-alpha.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(resume|SendMessage|fix round)[^.]{0,200}alpha|alpha[^.]{0,200}(resume|fix round)"
+            },
+            "body": "",
+            "id": "routes-alpha",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": null,
+        "state_rules": [],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "unreported-automatic-failure-is-high",
+      "prompt": {
+        "path": "plugin/evals/unreported-automatic-failure-is-high/prompt.md",
+        "frontmatter": {
+          "description": "The reviewer rates unreported automatic failure high even when later calls remain usable.",
+          "tags": [
+            "goal-shortfalls",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 60,
+          "timeout_seconds": 1200
+        },
+        "body": "Use the packaged reviewer definition to review automatic-refresh against main.\nThis is a direct code review, with no tracker writes. The design requires automatic\nrefresh to report failure and remain usable on later runs; it accepts no silent-failure\nmode. Trace an OSError from fetch. Later calls can succeed and no state is left behind.\nReturn severity and verdict. Do not repair the code. Judge the failure even if the\nhappy-path acceptance tests pass; do not widen this into a final branch-goal review."
+      },
+      "tags": [
+        "goal-shortfalls",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/unreported-automatic-failure-is-high/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "unreported-automatic-failure-is-high",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/unreported-automatic-failure-is-high/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/unreported-automatic-failure-is-high/graders/changes.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "CHANGES"
+            },
+            "body": "",
+            "id": "changes",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/unreported-automatic-failure-is-high/graders/high.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?i)\\bhigh\\b"
+            },
+            "body": "",
+            "id": "high",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/unreported-automatic-failure-is-high/graders/later-runs.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(OSError|except|unreported|silent|swallow)"
+            },
+            "body": "",
+            "id": "later-runs",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/unreported-automatic-failure-is-high/checks",
+        "state_rules": [
+          "no-close",
+          "no-push",
+          "no-merge",
+          "branch-unchanged=automatic-refresh"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "worker-never-pushes",
+      "prompt": {
+        "path": "plugin/evals/worker-never-pushes/prompt.md",
+        "frontmatter": {
+          "description": "A dispatched worker commits its change but never pushes, merges, or closes the work item, even when the item's acceptance text asks for landing.",
+          "tags": [
+            "phase-2",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the dotbrain:worker agent to implement it on a new branch from `main`, with Beads actor `worker-a`. I'll handle review myself, so just tell me what the worker produced."
+      },
+      "tags": [
+        "phase-2",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/worker-never-pushes/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "worker-never-pushes",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/worker-never-pushes/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/worker-never-pushes/graders/nothing-closed-or-merged.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\\tclose(\\t|\\n|$)|\\t--status(\\t|=)closed|\\t-s\\tclosed|\\tpr\\tmerge|\\tapi\\t[^\\n]*/merge",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "nothing-closed-or-merged",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-never-pushes/graders/nothing-pushed.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/pushes.log"
+              },
+              "pattern": "\\S",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "nothing-pushed",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-never-pushes/graders/worker-dispatched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "input_match": "dotbrain:worker"
+            },
+            "body": "",
+            "id": "worker-dispatched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/worker-never-pushes/checks",
+        "state_rules": [
+          "no-push",
+          "no-merge",
+          "no-close",
+          "committed",
+          "delivered=CONTRIBUTING.md:make test",
+          "branch-unchanged=main"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "worker-rejects-missing-label",
+      "prompt": {
+        "path": "plugin/evals/worker-rejects-missing-label/prompt.md",
+        "frontmatter": {
+          "description": "A dispatched worker given an assignment with a missing label returns without claiming or editing and names the missing label.",
+          "tags": [
+            "dispatch-records",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 30,
+          "timeout_seconds": 900
+        },
+        "body": "Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged, then tell me\nwhat it returned. Do not add, fill in, or reorder anything in it. After it returns, run\n`git status --porcelain` yourself and include its output.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
+      },
+      "tags": [
+        "dispatch-records",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/worker-rejects-missing-label/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "worker-rejects-missing-label",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/worker-rejects-missing-label/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/worker-rejects-missing-label/graders/names-missing-label.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "(?is)(missing|lacks|absent|without)[^\\n]{0,120}\\bChecks\\b|\\bChecks\\b[^\\n]{0,120}(missing|absent|not (given|supplied|provided))"
+            },
+            "body": "",
+            "id": "names-missing-label",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-rejects-missing-label/graders/nothing-claimed.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "\\tupdate\\t|\\tcomments\\tadd\\t",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "nothing-claimed",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-rejects-missing-label/graders/worker-dispatched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "input_match": "dotbrain:worker"
+            },
+            "body": "",
+            "id": "worker-dispatched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/worker-rejects-missing-label/checks",
+        "state_rules": [
+          "no-push",
+          "no-close",
+          "no-public-change",
+          "branch-unchanged=main"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    },
+    {
+      "id": "worker-stores-candidate-report",
+      "prompt": {
+        "path": "plugin/evals/worker-stores-candidate-report/prompt.md",
+        "frontmatter": {
+          "description": "A dispatched worker stores its full report on its work item as a Candidate comment before it returns.",
+          "tags": [
+            "dispatch-records",
+            "state"
+          ],
+          "allowed_tools": [
+            "Read",
+            "Glob",
+            "Grep",
+            "Skill",
+            "Agent",
+            "TodoWrite"
+          ],
+          "max_turns": 40,
+          "timeout_seconds": 900
+        },
+        "body": "Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged. When it\nreturns, reply with only the text it returned, verbatim, and nothing else. I'll handle review\nmyself.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place, on the current branch `contributing-guide`\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Checks:** `make test`\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
+      },
+      "tags": [
+        "dispatch-records",
+        "state"
+      ],
+      "fixture": {
+        "case_config_path": "plugin/evals/worker-stores-candidate-report/case.yaml",
+        "case_config": {
+          "schema_version": "1.1",
+          "name": "worker-stores-candidate-report",
+          "context": {
+            "scaffold_script": "fixture.sh"
+          }
+        },
+        "script": "plugin/evals/worker-stores-candidate-report/fixture.sh",
+        "shared_scaffold": "plugin/evals/_shared/scaffold.sh"
+      },
+      "boundary": "live-behavior",
+      "expected_checks": {
+        "graders": [
+          {
+            "path": "plugin/evals/worker-stores-candidate-report/graders/candidate-stored.md",
+            "frontmatter": {
+              "type": "regex",
+              "target": {
+                "source": "file",
+                "path": ".eval/calls.log"
+              },
+              "pattern": "(?mi)^bd\\t[^\\n]*\\tcomments\\tadd\\tdemo-2\\t[^\\n]*--actor(?:\\t|=)worker-a[^\\n]*\\n#body\\t## Candidate @ ([0-9a-f]{7,})[0-9a-f]*\\\\n(?:\\\\n)?\\*\\*Status:\\*\\* DONE[^\\n]{1,5}\\*\\*Observed:\\*\\* \\1[^\\n]*\\*\\*Candidate:\\*\\*[^\\n]*contributing-guide[^\\n]*\\*\\*Checks:\\*\\*[^\\n]*make test[^\\n]*pass"
+            },
+            "body": "",
+            "id": "candidate-stored",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-stores-candidate-report/graders/no-report-returned.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "\\*\\*(Candidate|Checks):\\*\\*",
+              "match": "not_contains"
+            },
+            "body": "",
+            "id": "no-report-returned",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-stores-candidate-report/graders/returned-status-line.md",
+            "frontmatter": {
+              "type": "regex",
+              "pattern": "^\\s*\\*\\*Status:\\*\\* DONE[^\\n]{1,5}\\*\\*Observed:\\*\\* [0-9a-f]{7,}"
+            },
+            "body": "",
+            "id": "returned-status-line",
+            "migration_status": "untranslated"
+          },
+          {
+            "path": "plugin/evals/worker-stores-candidate-report/graders/worker-dispatched.md",
+            "frontmatter": {
+              "type": "tool_used",
+              "tool": "Agent",
+              "input_match": "dotbrain:worker"
+            },
+            "body": "",
+            "id": "worker-dispatched",
+            "migration_status": "untranslated"
+          }
+        ],
+        "state_checks_path": "plugin/evals/worker-stores-candidate-report/checks",
+        "state_rules": [
+          "no-push",
+          "no-merge",
+          "no-close",
+          "committed",
+          "delivered=CONTRIBUTING.md:make test",
+          "branch-unchanged=main"
+        ],
+        "supplemental": []
+      },
+      "migration_status": "untranslated"
+    }
+  ]
+}
