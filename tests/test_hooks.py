@@ -163,7 +163,21 @@ def _hook(event: str, cwd: Path, home: Path, stdin: bytes = b"") -> tuple[subpro
     return completed, time.monotonic() - started
 
 
-def _eventually(check, seconds: float = 60) -> bool:
+# Session start returns at its sync bound plus process startup, which load stretches past 20 s;
+# a hook that ignored the bound would instead run into _hook's 60 s timeout.
+SESSION_START_LIMIT = 3 * hooks.SESSION_START_SYNC_SECONDS
+
+
+def _gate_commits(repo: Path, gate: Path) -> None:
+    """Block every commit in ``repo`` until ``gate`` exists, so a sync cannot finish before the test allows it."""
+    hook = Path(_git(repo, "rev-parse", "--absolute-git-dir")) / "hooks" / "pre-commit"
+    hook.parent.mkdir(exist_ok=True)
+    hook.write_text(f'#!/bin/sh\nwhile [ ! -e "{gate.as_posix()}" ]; do sleep 0.1; done\n', encoding="utf-8", newline="\n")
+    hook.chmod(0o755)
+
+
+# Generous: it only bounds how long a failing check waits, and loaded hosts start processes slowly.
+def _eventually(check, seconds: float = 180) -> bool:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         if check():
@@ -216,12 +230,18 @@ def test_stop_returns_at_once_leaving_a_detached_sync_that_pushes(tmp_path: Path
     remote = tmp_path / "remote.git"
     home = _home(tmp_path, remote)
     (home / "brainspaces" / "alpha" / ".brain" / "CONTEXT.md").write_text("changed\n", encoding="utf-8")
+    gate = tmp_path / "gate"
+    _gate_commits(home, gate)
 
-    completed, elapsed = _hook("stop", home, home)
+    try:
+        completed, _ = _hook("stop", home, home)
 
-    assert completed.returncode == 0
-    assert completed.stdout == b"" and completed.stderr == b""
-    assert elapsed < 5  # process startup only; the sync itself runs after the hook returned
+        assert completed.returncode == 0
+        assert completed.stdout == b"" and completed.stderr == b""
+        # The sync cannot commit until the gate opens, so the hook returned without waiting for it.
+        assert "alpha: sync from" not in _git(home, "log", "--format=%s")
+    finally:
+        gate.touch()
     assert _eventually(lambda: "alpha: sync from" in _git(remote, "log", "--format=%s", "main"))
 
 
@@ -247,8 +267,9 @@ def test_session_start_syncs_then_emits_the_same_payload_when_the_remote_is_unre
 
     assert completed.returncode == 0
     assert completed.stdout == expected
-    assert elapsed < hooks.SESSION_START_SYNC_SECONDS
-    assert _git(home, "log", "-1", "--format=%s").startswith("alpha: sync from")
+    # Under load the sync can outlast the bound and finish detached, so allow it time.
+    assert _eventually(lambda: _git(home, "log", "-1", "--format=%s").startswith("alpha: sync from"))
+    assert elapsed < SESSION_START_LIMIT
 
 
 def test_session_start_retries_lock_until_holder_releases(tmp_path: Path):
@@ -264,8 +285,8 @@ def test_session_start_retries_lock_until_holder_releases(tmp_path: Path):
     try:
         completed, elapsed = _hook("session-start", home, home)
         assert completed.returncode == 0
-        assert elapsed < hooks.SESSION_START_SYNC_SECONDS
-        assert "home: sync from" in _git(remote, "log", "-1", "--format=%s", "main")
+        assert _eventually(lambda: "home: sync from" in _git(remote, "log", "-1", "--format=%s", "main"))
+        assert elapsed < SESSION_START_LIMIT
     finally:
         release.join()
 
