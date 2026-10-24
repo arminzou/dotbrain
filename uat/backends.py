@@ -1,18 +1,23 @@
 """Backends: a disposable environment for an agent runtime and a way to run commands in it.
 
 Journeys use only ``run``, ``read`` and ``teardown`` and the sandbox paths as the backend sees them,
-so a container backend can implement the same interface.
+so the host and container backends share every journey.
 """
 
 from __future__ import annotations
 
+import hashlib
+import math
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Protocol
 
@@ -21,6 +26,7 @@ from typing import Protocol
 _DROPPED = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|AUTH|BASE_URL|^OPENCODE_|^XDG_|^DOTBRAIN_|^UAT_|^PI_|^CURSOR_|^HERMES_",
                       re.I)
 TEARDOWN_SECONDS = 60  # a detached sync still running against the unreachable remote holds the data root
+HERE = Path(__file__).resolve().parent
 
 
 class Backend(Protocol):
@@ -29,12 +35,16 @@ class Backend(Protocol):
     checkout: str  # the wired project checkout
     hook_log: str  # where the recording shim appends each `dotbrain` call
     python: str  # an interpreter that can run uat/prepare.py
+    prepare: str  # uat/prepare.py as this backend sees it
 
     def run(self, argv: list[str], *, env: dict[str, str] | None = None, cwd: str | None = None,
             timeout: float = 600) -> subprocess.CompletedProcess[str]:
         """Run ``argv``; ``env`` holds credentials, given to this process only and redacted from its output."""
 
     def read(self, path: str) -> str: ...
+
+    def leaks(self, secret: str) -> list[str]:
+        """Files in the sandbox that contain ``secret``."""
 
     def teardown(self) -> None: ...
 
@@ -59,6 +69,29 @@ def shim_script(log: str, real: str, credential_vars) -> str:
     lines = ["@echo off", "setlocal", *(f'set "{name}="' for name in credential_vars),
              f'>>"{log}" echo %*', f'"{real}" %*']
     return "\r\n".join(lines) + "\r\n"
+
+
+def sh_shim_script(log: str, real: str, credential_vars) -> str:
+    """``shim_script`` as a POSIX ``sh`` script, for the container."""
+    lines = ["#!/bin/sh", *(f"unset {name}" for name in credential_vars),
+             f'printf "%s\\n" "$*" >> {shlex.quote(log)}', f'exec {shlex.quote(real)} "$@"']
+    return "\n".join(lines) + "\n"
+
+
+def leaks(root: Path, secret: str) -> list[str]:
+    """Files below ``root`` that contain ``secret``."""
+    needle = secret.encode()
+    found = []
+    for top, _dirs, files in os.walk(root):
+        for name in files:
+            path = os.path.join(top, name)
+            try:
+                with open(path, "rb") as handle:
+                    if needle in handle.read():
+                        found.append(path)
+            except OSError:
+                continue
+    return found
 
 
 def run_process(argv, *, env, cwd, timeout, secrets=()):
@@ -127,6 +160,7 @@ class HostBackend:
         shim_dir, tools = root / "shim", root / "tools"
         self.hook_log = str(root / "dotbrain-calls.log")
         self.python = sys.executable
+        self.prepare = str(HERE / "prepare.py")
         for folder in (home / "AppData" / "Roaming", home / "AppData" / "Local", shim_dir, Path(self.checkout)):
             folder.mkdir(parents=True, exist_ok=True)
 
@@ -166,7 +200,129 @@ class HostBackend:
     def read(self, path):
         return Path(path).read_text(encoding="utf-8", errors="replace")
 
+    def leaks(self, secret):
+        return leaks(self.root, secret)
+
     def teardown(self):
         remove_tree(self.root)
 
 
+# Where the image puts things (see uat/Dockerfile).
+CONTAINER_LOG = "/work/dotbrain-calls.log"
+CONTAINER_DOTBRAIN = "/opt/dotbrain/bin/dotbrain"
+
+
+def docker_problem() -> str | None:
+    """Why the container backend cannot run here, or ``None``."""
+    from testcontainers.core.docker_client import DockerClient
+
+    try:
+        DockerClient().client.ping()
+    except Exception as error:  # noqa: BLE001 - any failure means no usable Docker
+        return f"start Docker for the container backend ({type(error).__name__})"
+    return None
+
+
+@contextmanager
+def _locked(path: Path, seconds: float = 1800):
+    """An exclusive lock file; every xdist worker sees the same ``path``."""
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            if time.monotonic() > deadline:
+                raise TimeoutError(f"{path} still held after {seconds} s") from None
+            time.sleep(2)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        os.unlink(path)
+
+
+def container_image(repo: Path, uv: str, lock_dir: Path, credential_vars) -> tuple[str, str]:
+    """The UAT image for the checkout's current state, built once and shared: ``(tag, image id)``.
+
+    The tag is a hash of the Dockerfile, the checkout's commit and its uncommitted diff, so workers
+    and later runs on the same state reuse it, and the first worker builds it under a lock.
+    """
+    from testcontainers.core.docker_client import DockerClient
+    from testcontainers.core.image import DockerImage
+
+    def git(*args):
+        return subprocess.run(["git", "-C", str(repo), *args], capture_output=True).stdout
+
+    dockerfile = HERE / "Dockerfile"
+    key = hashlib.sha256(dockerfile.read_bytes() + git("rev-parse", "HEAD") + git("diff", "HEAD")).hexdigest()[:16]
+    tag = f"dotbrain-uat:{key}"
+    with _locked(lock_dir / f"dotbrain-uat-{key}.lock"):
+        images = DockerClient().client.images
+        if images.list(name=tag):
+            return tag, images.get(tag).id
+        with tempfile.TemporaryDirectory() as context:
+            subprocess.run([uv, "build", "--wheel", "--quiet", "--out-dir", context, str(repo)],
+                           env=sanitized(os.environ), check=True, capture_output=True)
+            shutil.copy(dockerfile, context)
+            shutil.copy(HERE / "prepare.py", context)
+            Path(context, "dotbrain").write_text(sh_shim_script(CONTAINER_LOG, CONTAINER_DOTBRAIN, credential_vars),
+                                                 encoding="utf-8", newline="\n")
+            image = DockerImage(context, tag=tag, clean_up=False).build()
+            return tag, image.get_wrapped_image().id
+
+
+class ContainerBackend:
+    """A container from the UAT image: its whole filesystem is the sandbox, and teardown removes it.
+
+    Credentials reach a process only through the Docker API's exec environment, never the
+    container's own environment, the image, or a command line.
+    """
+
+    home = "/root"
+    data_root = "/root/dotbrain"
+    checkout = "/work/checkout"
+    hook_log = CONTAINER_LOG
+    python = "python3"
+    prepare = "/opt/uat/prepare.py"
+
+    def __init__(self, image: str):
+        from testcontainers.core.container import DockerContainer
+
+        self._container = DockerContainer(image).with_command("sleep infinity").with_envs(
+            DOTBRAIN_HOME=self.data_root, OPENCODE_DISABLE_CLAUDE_CODE="1", OPENCODE_DISABLE_AUTOUPDATE="1",
+            GIT_AUTHOR_NAME="dotbrain uat", GIT_AUTHOR_EMAIL="uat@dotbrain.invalid",
+            GIT_COMMITTER_NAME="dotbrain uat", GIT_COMMITTER_EMAIL="uat@dotbrain.invalid", GIT_TERMINAL_PROMPT="0")
+        try:
+            self._container.start()
+        except BaseException:
+            self._container.stop()
+            raise
+
+    def _exec(self, argv, env=None, cwd=None):
+        code, (out, err) = self._container.get_wrapped_container().exec_run(
+            argv, environment=env or None, workdir=cwd or self.checkout, demux=True)
+        return code, (out or b"").decode("utf-8", "replace"), (err or b"").decode("utf-8", "replace")
+
+    def run(self, argv, *, env=None, cwd=None, timeout=600):
+        secrets = list((env or {}).values())
+        # `timeout` signals the command's whole process group; the container's removal ends the rest.
+        # Output goes through files: OpenCode exits before a pipe drains and loses all past 64 KiB.
+        script = ('out=$(mktemp) err=$(mktemp); timeout -k 5 "$0" "$@" >"$out" 2>"$err"; code=$?; '
+                  'cat "$out"; cat "$err" >&2; rm -f "$out" "$err"; exit $code')
+        code, out, err = self._exec(["sh", "-c", script, str(math.ceil(timeout)), *argv], env, cwd)
+        out, err = redact(out, secrets), redact(err, secrets)
+        if code in (124, 137):
+            raise AssertionError(redact(f"{argv[0]} ran past {timeout} s\n{out[-4000:]}\n{err[-4000:]}", secrets))
+        return subprocess.CompletedProcess(argv, code, out, err)
+
+    def read(self, path):
+        return self._exec(["cat", path])[1]
+
+    def leaks(self, secret):
+        # The secret reaches grep through the exec environment; /proc would show it back.
+        scan = 'grep -rlsF -e "$UAT_SECRET" --exclude-dir=proc --exclude-dir=sys --exclude-dir=dev / || true'
+        return self._exec(["sh", "-c", scan], {"UAT_SECRET": secret}, "/")[1].splitlines()
+
+    def teardown(self):
+        self._container.stop()

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 
-from conftest import credential, leaks
+from backends import leaks
+from conftest import credential
 from observe import changed, fingerprint, hook_events, json_events, nonce, opencode_answer, opencode_tool_calls
 
 # Lines as `opencode run --format json` writes them: {type, timestamp, sessionID, part}.

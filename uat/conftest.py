@@ -23,12 +23,12 @@ from pathlib import Path
 
 import pytest
 
-from backends import Backend, HostBackend, remove_tree
+import backends
+from backends import Backend, ContainerBackend, HostBackend
 from observe import changed, fingerprint, nonce
 
 REPO = Path(__file__).resolve().parent.parent
 RESULTS = Path(__file__).resolve().parent / "results.json"
-PREPARE = Path(__file__).resolve().parent / "prepare.py"
 
 # The only variables a journey treats as a credential. A runtime's model variable names
 # provider/model; the provider's key variable must be set too, and only that one reaches the runtime.
@@ -84,22 +84,6 @@ def live_roots(runtime: str) -> list[Path]:
     return runtime_dirs + [Path(os.environ.get("DOTBRAIN_HOME") or home / "dotbrain")]
 
 
-def leaks(root: Path, secret: str) -> list[str]:
-    """Files below ``root`` that contain ``secret``."""
-    needle = secret.encode()
-    found = []
-    for top, _dirs, files in os.walk(root):
-        for name in files:
-            path = os.path.join(top, name)
-            try:
-                with open(path, "rb") as handle:
-                    if needle in handle.read():
-                        found.append(path)
-            except OSError:
-                continue
-    return found
-
-
 @dataclass
 class Sandbox:
     backend: Backend
@@ -115,17 +99,18 @@ class Sandbox:
 
 
 @pytest.fixture(params=["host", "container"])
-def sandbox(request, tmp_path):
+def sandbox(request, tmp_path, tmp_path_factory):
     runtime = request.module.RUNTIME
     props = request.node.user_properties
     props += [("runtime", runtime), ("backend", request.param)]
-    if request.param == "container":
+    container = request.param == "container"
+    if container:
         pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
-        pytest.skip("the container backend is not available yet; run the host backend on Windows")
-    if sys.platform != "win32":
+    elif sys.platform != "win32":
         pytest.skip("the host backend qualifies native Windows; run it there")
     missing = []
-    exe = shutil.which(COMMANDS[runtime])
+    # The container has the runtime on its own PATH.
+    exe = COMMANDS[runtime] if container else shutil.which(COMMANDS[runtime])
     if exe is None:
         missing.append(f"install {runtime} so `{COMMANDS[runtime]}` is on PATH")
     found = credential(runtime)
@@ -136,23 +121,35 @@ def sandbox(request, tmp_path):
         missing.append("install uv")
     if missing:
         pytest.skip("; ".join(missing))
+    if container and (problem := backends.docker_problem()):
+        pytest.skip(problem)
     model, credentials = found
     props.append(("model", model))
+    if container:
+        # Every xdist worker shares the base temp dir's parent, so the build lock lives there.
+        image, digest = backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent,
+                                                 PROVIDER_KEYS.values())
+        props.append(("image_digest", digest))
 
     roots = live_roots(runtime)
     before = fingerprint(roots)
-    root = tmp_path / "sandbox"
+    made: list[Backend] = []
 
-    # Registered before the sandbox exists, so a failing construction, preparation or journey still
-    # removes it and still reports every isolation violation, beside the original failure.
+    # Registered before the sandbox exists, so a failing preparation or journey still removes it
+    # and still reports every isolation violation, beside the original failure. A failing
+    # construction removes its own partial sandbox.
     def finalize():
-        problems = close_sandbox(root, credentials.values(), roots, before)
+        problems = close_sandbox(made[0] if made else None, credentials.values(), roots, before)
         assert not problems, "\n".join(problems)
 
     request.addfinalizer(finalize)
-    backend = HostBackend(root, repo=REPO, uv=uv, credential_vars=PROVIDER_KEYS.values())
+    if container:
+        backend = ContainerBackend(image)
+    else:
+        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=PROVIDER_KEYS.values())
+    made.append(backend)
     session = Sandbox(backend, exe, model, credentials, nonce("convention"), nonce("reference"))
-    prepared = backend.run([backend.python, str(PREPARE), "--runtime", runtime, "--checkout", backend.checkout,
+    prepared = backend.run([backend.python, backend.prepare, "--runtime", runtime, "--checkout", backend.checkout,
                             "--convention-nonce", session.convention_nonce,
                             "--reference-nonce", session.reference_nonce], timeout=300)
     assert prepared.returncode == 0, prepared.stdout + prepared.stderr
@@ -160,19 +157,20 @@ def sandbox(request, tmp_path):
     return session
 
 
-def close_sandbox(root: Path, secrets, roots, before) -> list[str]:
+def close_sandbox(backend: Backend | None, secrets, roots, before) -> list[str]:
     """Scan for leaked credentials, remove the sandbox, and compare the live roots; each step runs
     whatever the others did. Returns every violation found."""
     problems = []
-    try:
-        for secret in secrets:
-            problems += [f"credential written to {path}" for path in leaks(root, secret)]
-    except Exception as error:  # noqa: BLE001 - the remaining checks must still run
-        problems.append(f"credential scan failed: {error!r}")
-    try:
-        remove_tree(root)
-    except Exception as error:  # noqa: BLE001
-        problems.append(f"sandbox not removed: {root}: {error!r}")
+    if backend is not None:
+        try:
+            for secret in secrets:
+                problems += [f"credential written to {path}" for path in backend.leaks(secret)]
+        except Exception as error:  # noqa: BLE001 - the remaining checks must still run
+            problems.append(f"credential scan failed: {error!r}")
+        try:
+            backend.teardown()
+        except Exception as error:  # noqa: BLE001
+            problems.append(f"sandbox not removed: {error!r}")
     try:
         problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots))]
     except Exception as error:  # noqa: BLE001
@@ -217,7 +215,8 @@ def pytest_terminal_summary(terminalreporter):
         return
     terminalreporter.section("runtime delivery results")
     for record in _stamped():
+        image = f"  image {record['image_digest']}" if "image_digest" in record else ""
         terminalreporter.write_line(
             f"{record['outcome']:8} {record['test']}  {record.get('runtime_version') or '-'}  "
-            f"{record['os']}  dotbrain {record['dotbrain_revision']}")
+            f"{record['os']}{image}  dotbrain {record['dotbrain_revision']}")
     terminalreporter.write_line(f"results: {RESULTS}")

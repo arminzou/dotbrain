@@ -45,7 +45,11 @@ Run it before a release PR that touches runtime delivery, the hooks, or a runtim
 uv run --group uat pytest uat
 ```
 
-Run it on native Windows with the runtime installed and these variables set:
+Each journey runs on two backends. The host backend runs on native Windows with the runtime
+installed. The container backend needs Docker running and builds `uat/Dockerfile` (Linux, with a
+pinned runtime version and dotbrain from the checkout under test) once per checkout state; the
+first build downloads base images and packages, and later runs reuse it. Without Docker, the
+container journeys skip. Both backends need `uv` and these variables:
 
 | Runtime | Variables |
 | --- | --- |
@@ -58,8 +62,9 @@ Each journey fingerprints the live runtime config and the live data root before 
 fails if they changed. Quit the runtime and other agent sessions on the machine first: their own
 writes and home sync would fail the run.
 
-Results, stamped with runtime version, OS, and dotbrain revision, print at the end of the run and
-are written to `uat/results.json`. Cite them in the release PR.
+Results, stamped with runtime version, OS, dotbrain revision, and for the container backend the
+image digest, print at the end of the run and are written to `uat/results.json`. Cite them in the
+release PR.
 
 ## Failure recovery
 
