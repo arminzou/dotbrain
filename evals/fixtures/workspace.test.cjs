@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {execFileSync, execFile} = require('node:child_process');
-const {prepare, environment, git, extensionHook} = require('./workspace.cjs');
+const {prepare, environment, git, extensionHook, lendCodexLogin, returnCodexLogin} = require('./workspace.cjs');
 const request = require('./request.cjs');
 
 const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-eval-check-'));
@@ -138,4 +138,38 @@ test('the stub logs actor and file or stdin bodies, and serves canned replies', 
   assert.deepEqual([pr.bodies, pr.actor], [['From a file'], '']);
   assert.deepEqual([comment.bodies, comment.actor], [['From stdin'], 'worker-a']);
   assert.throws(() => stub(['gh', 'repo', 'view']), 'unanswered gh calls still fail');
+});
+
+test('a lent Codex login returns refreshed tokens unless the original changed meanwhile', () => {
+  const previous = process.env.CODEX_HOME;
+  process.env.CODEX_HOME = fs.mkdtempSync(path.join(parent, 'codex-home-'));
+  const original = path.join(process.env.CODEX_HOME, 'auth.json');
+  try {
+    const lend = () => {
+      const root = prepare('codex-login', parent);
+      lendCodexLogin(root);
+      return [root, path.join(root, 'home/.codex/auth.json')];
+    };
+    fs.writeFileSync(original, 'first');
+    let [root, copy] = lend();
+    assert.equal(fs.readFileSync(copy, 'utf8'), 'first');
+    returnCodexLogin(root);
+    assert.equal(fs.readFileSync(original, 'utf8'), 'first');
+    assert.ok(!fs.existsSync(copy), 'the fixture never keeps the credential');
+    [root, copy] = lend();
+    fs.writeFileSync(copy, 'refreshed');
+    returnCodexLogin(root);
+    assert.equal(fs.readFileSync(original, 'utf8'), 'refreshed', 'a refresh during the run goes back');
+    [root, copy] = lend();
+    fs.writeFileSync(copy, 'stale refresh');
+    fs.writeFileSync(original, 'operator logged in again');
+    returnCodexLogin(root);
+    assert.equal(fs.readFileSync(original, 'utf8'), 'operator logged in again', 'a newer original wins');
+    fs.rmSync(original);
+    root = prepare('codex-login', parent);
+    lendCodexLogin(root);
+    assert.ok(!fs.existsSync(path.join(root, 'home/.codex/auth.json')), 'no login, nothing lent');
+  } finally {
+    if (previous === undefined) delete process.env.CODEX_HOME; else process.env.CODEX_HOME = previous;
+  }
 });

@@ -77,8 +77,20 @@ They do not establish native resource loading, sandboxing or behavior quality.
 Choose and record the Codex CLI version, each runtime's OS, model, reasoning settings, authentication, repeat count
 and budget before running. Set `DOTBRAIN_EVAL_LIVE=1`, `EVAL_CLAUDE_MODEL`, and
 `EVAL_CODEX_MODEL` in that run's environment. Models have no fallback defaults.
-Configure credentials for the chosen temporary runtime home; the fixture does
-not copy an operator's sign-in files or global skills. Never put secrets in YAML.
+Both runtimes run on the operator's subscriptions. Never put secrets in YAML.
+
+- **Claude:** run `claude setup-token` once and export the token it prints as
+  `CLAUDE_CODE_OAUTH_TOKEN` in the run's environment. `providers/claude.yaml` sets
+  `apiKeyRequired: false`, so no API key is needed; an `ANTHROPIC_API_KEY` in the
+  environment would win over the subscription, so leave it unset.
+- **Codex:** sign in once with `codex login` (ChatGPT). For each live run the hook copies
+  `auth.json` from `$CODEX_HOME` (default `~/.codex`) into the fixture's Codex home. After
+  the run it writes a refreshed copy back, unless the original changed meanwhile, and
+  deletes the copy. A run that crashes before cleanup can leave the copy under
+  `results/`; delete that run directory. An `OPENAI_API_KEY` or `CODEX_API_KEY` in the
+  environment would log in with the key instead, so leave them unset.
+
+The fixture copies no other sign-in files or global skills.
 
 ```sh
 npx promptfoo eval -c promptfooconfig.yaml --no-cache --no-share --max-concurrency 1 -o results/report.json

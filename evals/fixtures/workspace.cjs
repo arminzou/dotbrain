@@ -1,4 +1,6 @@
+const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 
@@ -113,17 +115,47 @@ function prepare(caseName, parent = path.join(evals, 'results'),
   return root;
 }
 
+// Live runs borrow the operator's ChatGPT login for Codex. A token refresh during the run can retire
+// the original's refresh token, so a refreshed copy goes back unless the original changed meanwhile.
+// The fixture never keeps the credential.
+const codexLogin = () => path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'auth.json');
+const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+
+function lendCodexLogin(root) {
+  if (!fs.existsSync(codexLogin())) return;
+  const copy = path.join(root, 'home/.codex/auth.json');
+  fs.copyFileSync(codexLogin(), copy);
+  fs.chmodSync(copy, 0o600);
+  write(path.join(root, 'codex-login.sha256'), digest(copy));
+}
+
+function returnCodexLogin(root) {
+  const copy = path.join(root, 'home/.codex/auth.json');
+  const lent = path.join(root, 'codex-login.sha256');
+  if (!fs.existsSync(copy) || !fs.existsSync(lent)) return;
+  const before = fs.readFileSync(lent, 'utf8');
+  if (digest(copy) !== before && fs.existsSync(codexLogin()) && digest(codexLogin()) === before) {
+    const staged = codexLogin() + '.dotbrain-eval';
+    fs.copyFileSync(copy, staged);
+    fs.renameSync(staged, codexLogin());
+  }
+  fs.rmSync(copy);
+  fs.rmSync(lent);
+}
+
 async function extensionHook(hookName, context) {
   if (hookName === 'beforeEach') {
     if (process.env.DOTBRAIN_EVAL_LIVE !== '1') {
       throw new Error('Live agent evaluations require DOTBRAIN_EVAL_LIVE=1 and an agreed model/auth/budget contract');
     }
     const root = prepare(context.test.vars.case, undefined, context.test.vars.fixture);
+    lendCodexLogin(root);
     return {test: {...context.test, vars: {...context.test.vars, fixtureRoot: root}}};
   }
   if (hookName === 'afterEach' && context.test.vars.fixtureRoot) {
+    returnCodexLogin(context.test.vars.fixtureRoot);
     write(path.join(context.test.vars.fixtureRoot, 'result.json'), JSON.stringify(context.result, null, 2));
   }
 }
 
-module.exports = {prepare, environment, git, extensionHook};
+module.exports = {prepare, environment, git, extensionHook, lendCodexLogin, returnCodexLogin};

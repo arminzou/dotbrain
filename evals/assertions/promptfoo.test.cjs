@@ -8,6 +8,10 @@ const {git} = require('../fixtures/workspace.cjs');
 
 process.env.PROMPTFOO_DISABLE_TELEMETRY = '1';
 process.env.PROMPTFOO_CONFIG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'promptfoo-replay-'));
+// The live hook lends the operator's Codex login; these runs lend a dummy, never the real one.
+process.env.CODEX_HOME = path.join(process.env.PROMPTFOO_CONFIG_DIR, 'codex-home');
+fs.mkdirSync(process.env.CODEX_HOME);
+fs.writeFileSync(path.join(process.env.CODEX_HOME, 'auth.json'), '{"auth_mode":"chatgpt","tokens":"dummy"}');
 const {assertions, evaluate} = require('promptfoo');
 after(() => {
   assert.ok(fs.realpathSync(process.env.PROMPTFOO_CONFIG_DIR).startsWith(fs.realpathSync(os.tmpdir()) + path.sep));
@@ -108,6 +112,7 @@ test('native provider filters execute twenty-three combinations and keep exclusi
     callApi: async (prompt, context) => {
       const {fixtureRoot: root, case: caseName} = context.vars;
       roots.push(root);
+      assert.ok(fs.existsSync(path.join(root, 'home/.codex/auth.json')), 'the live hook lends the Codex login');
       combinations.push([id, caseName]);
       const count = {'parallel-reference-before-dispatch': 2, 'lead-alone-changes-work-graph': 2,
         'worker-never-pushes': 1}[caseName] ?? 0;
@@ -183,6 +188,7 @@ test('native provider filters execute twenty-three combinations and keep exclusi
     assert.equal(summary.stats.successes, 22);
     assert.equal(summary.stats.failures, 1);
     assert.equal(new Set(roots).size, 23);
+    assert.ok(!roots.some(root => fs.existsSync(path.join(root, 'home/.codex/auth.json'))), 'no fixture keeps the login');
     assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 12);
     assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 11);
     assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') &&
