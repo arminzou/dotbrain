@@ -1,17 +1,20 @@
-"""Credential confinement, sandbox removal and isolation reporting, checked with fakes: no runtime, no credential."""
+"""Credential confinement, sandbox removal and isolation reporting: fakes and inert markers, no runtime."""
 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
 import backends
 import conftest
-from backends import HostBackend, redact, run_process, sanitized, sh_shim_script, shim_script
+from backends import ContainerBackend, HostBackend, redact, run_process, sanitized, sh_shim_script, shim_script
 from observe import fingerprint
 
 SECRET = "sk-synthetic-uat-secret"
@@ -34,7 +37,7 @@ def test_failed_construction_installs_without_credentials_and_removes_the_sandbo
     monkeypatch.setattr(backends.subprocess, "run", failing_install)
     root = tmp_path / "sandbox"
     with pytest.raises(subprocess.CalledProcessError):
-        HostBackend(root, repo=tmp_path, uv="uv")
+        HostBackend(root, repo=tmp_path, uv="uv").start()
     assert "UV_TOOL_DIR" in seen and "OPENAI_API_KEY" not in seen
     assert not root.exists()
 
@@ -93,8 +96,7 @@ def _sandbox_with_leak_and_live_change(tmp_path):
     live.mkdir()
     before = fingerprint([live])
     (live / "touched").write_text("x")
-    backend = HostBackend.__new__(HostBackend)  # a built host sandbox, without installing dotbrain
-    backend.root = root
+    backend = HostBackend(root, repo=tmp_path, uv="uv")  # the handle to a sandbox, not started here
     return backend, live, before
 
 
@@ -116,3 +118,56 @@ def test_close_sandbox_still_checks_isolation_when_removal_fails(tmp_path, monke
     problems = conftest.close_sandbox(backend, [SECRET], [live], before)
     for prefix in ("credential written to", "sandbox not removed", "live path changed"):
         assert any(p.startswith(prefix) for p in problems), problems
+
+
+def test_failed_start_whose_own_cleanup_fails_is_removed_by_close(tmp_path, monkeypatch):
+    root = tmp_path / "sandbox"
+
+    def partial_build(self, root, *_args):
+        (root / "home").mkdir(parents=True)
+        raise RuntimeError("install failed")
+
+    real_remove, calls = backends.remove_tree, []
+
+    def flaky_remove(path):
+        calls.append(path)
+        if len(calls) == 1:
+            raise PermissionError("held by a running process")
+        real_remove(path)
+
+    monkeypatch.setattr(HostBackend, "_build", partial_build)
+    monkeypatch.setattr(backends, "remove_tree", flaky_remove)
+    backend = HostBackend(root, repo=tmp_path, uv="uv")
+    with pytest.raises(RuntimeError, match="install failed"):
+        backend.start()
+    assert root.exists()
+    assert conftest.close_sandbox(backend, [SECRET], [], {}) == []
+    assert len(calls) == 2 and not root.exists()
+
+
+def _container_backend():
+    pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
+    if problem := backends.docker_problem():
+        pytest.skip(problem)
+    # Only the image's base: the check needs sh, coreutils and grep, not the runtime or a build.
+    base = re.search(r"^FROM\s+(\S+)", (backends.HERE / "Dockerfile").read_text(encoding="utf-8"), re.M).group(1)
+    return ContainerBackend(base)
+
+
+def test_container_output_never_reaches_a_file_and_is_redacted():
+    backend = _container_backend()
+    try:
+        backend.start()
+        printing = 'printf "%s\\n" "$UAT_PROBE"; printf "%s\\n" "$UAT_PROBE" >&2; sleep 6'
+        with ThreadPoolExecutor(1) as pool:
+            running = pool.submit(backend.run, ["sh", "-c", printing], env={"UAT_PROBE": SECRET}, cwd="/")
+            time.sleep(3)
+            during = backend.leaks(SECRET)
+            done = running.result()
+        assert during == [] and backend.leaks(SECRET) == []
+        assert SECRET not in done.stdout + done.stderr
+        assert done.stdout.strip() == done.stderr.strip() == "[redacted]"
+        # Output past a pipe's 64 KiB still arrives whole.
+        assert len(backend.run(["sh", "-c", "head -c 200000 /dev/zero | tr '\\0' x"], cwd="/").stdout) == 200000
+    finally:
+        backend.teardown()

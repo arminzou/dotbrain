@@ -133,21 +133,20 @@ def sandbox(request, tmp_path, tmp_path_factory):
 
     roots = live_roots(runtime)
     before = fingerprint(roots)
-    made: list[Backend] = []
-
-    # Registered before the sandbox exists, so a failing preparation or journey still removes it
-    # and still reports every isolation violation, beside the original failure. A failing
-    # construction removes its own partial sandbox.
-    def finalize():
-        problems = close_sandbox(made[0] if made else None, credentials.values(), roots, before)
-        assert not problems, "\n".join(problems)
-
-    request.addfinalizer(finalize)
+    # Creates nothing yet: the handle exists before the sandbox does.
     if container:
         backend = ContainerBackend(image)
     else:
         backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=PROVIDER_KEYS.values())
-    made.append(backend)
+
+    # Registered before the sandbox exists, so a failing start, preparation or journey still
+    # removes it and still reports every isolation violation, beside the original failure.
+    def finalize():
+        problems = close_sandbox(backend, credentials.values(), roots, before)
+        assert not problems, "\n".join(problems)
+
+    request.addfinalizer(finalize)
+    backend.start()
     session = Sandbox(backend, exe, model, credentials, nonce("convention"), nonce("reference"))
     prepared = backend.run([backend.python, backend.prepare, "--runtime", runtime, "--checkout", backend.checkout,
                             "--convention-nonce", session.convention_nonce,
@@ -157,20 +156,19 @@ def sandbox(request, tmp_path, tmp_path_factory):
     return session
 
 
-def close_sandbox(backend: Backend | None, secrets, roots, before) -> list[str]:
+def close_sandbox(backend: Backend, secrets, roots, before) -> list[str]:
     """Scan for leaked credentials, remove the sandbox, and compare the live roots; each step runs
     whatever the others did. Returns every violation found."""
     problems = []
-    if backend is not None:
-        try:
-            for secret in secrets:
-                problems += [f"credential written to {path}" for path in backend.leaks(secret)]
-        except Exception as error:  # noqa: BLE001 - the remaining checks must still run
-            problems.append(f"credential scan failed: {error!r}")
-        try:
-            backend.teardown()
-        except Exception as error:  # noqa: BLE001
-            problems.append(f"sandbox not removed: {error!r}")
+    try:
+        for secret in secrets:
+            problems += [f"credential written to {path}" for path in backend.leaks(secret)]
+    except Exception as error:  # noqa: BLE001 - the remaining checks must still run
+        problems.append(f"credential scan failed: {error!r}")
+    try:
+        backend.teardown()
+    except Exception as error:  # noqa: BLE001
+        problems.append(f"sandbox not removed: {error!r}")
     try:
         problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots))]
     except Exception as error:  # noqa: BLE001

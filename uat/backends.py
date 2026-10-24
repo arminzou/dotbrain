@@ -17,7 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Protocol
 
@@ -41,12 +41,17 @@ class Backend(Protocol):
             timeout: float = 600) -> subprocess.CompletedProcess[str]:
         """Run ``argv``; ``env`` holds credentials, given to this process only and redacted from its output."""
 
+    def start(self) -> None:
+        """Create the sandbox; on failure, remove what was made. Construction itself creates nothing,
+        so a caller holds the cleanup handle before anything exists."""
+
     def read(self, path: str) -> str: ...
 
     def leaks(self, secret: str) -> list[str]:
         """Files in the sandbox that contain ``secret``."""
 
-    def teardown(self) -> None: ...
+    def teardown(self) -> None:
+        """Remove the sandbox, whether or not ``start`` finished; safe to call again."""
 
 
 def sanitized(environ) -> dict[str, str]:
@@ -146,10 +151,14 @@ class HostBackend:
 
     def __init__(self, root: Path, *, repo: Path, uv: str, credential_vars=()):
         self.root = root
+        self._args = (repo, uv, credential_vars)
+
+    def start(self):
         try:
-            self._build(root, repo, uv, credential_vars)
+            self._build(self.root, *self._args)
         except BaseException:
-            remove_tree(root)
+            with suppress(Exception):  # the caller's teardown retries and reports a failed removal
+                self.teardown()
             raise
 
     def _build(self, root, repo, uv, credential_vars):
@@ -293,11 +302,16 @@ class ContainerBackend:
             DOTBRAIN_HOME=self.data_root, OPENCODE_DISABLE_CLAUDE_CODE="1", OPENCODE_DISABLE_AUTOUPDATE="1",
             GIT_AUTHOR_NAME="dotbrain uat", GIT_AUTHOR_EMAIL="uat@dotbrain.invalid",
             GIT_COMMITTER_NAME="dotbrain uat", GIT_COMMITTER_EMAIL="uat@dotbrain.invalid", GIT_TERMINAL_PROMPT="0")
+        self._started = False
+
+    def start(self):
         try:
             self._container.start()
         except BaseException:
-            self._container.stop()
+            with suppress(Exception):  # the caller's teardown retries and reports a failed removal
+                self.teardown()
             raise
+        self._started = True
 
     def _exec(self, argv, env=None, cwd=None):
         code, (out, err) = self._container.get_wrapped_container().exec_run(
@@ -306,10 +320,12 @@ class ContainerBackend:
 
     def run(self, argv, *, env=None, cwd=None, timeout=600):
         secrets = list((env or {}).values())
+        # OpenCode exits before a pipe drains and loses all output past 64 KiB, so the command writes
+        # to files instead: in memory (/dev/shm) and unlinked before it starts, so no path ever holds
+        # its raw output, which may carry a credential until it is redacted below.
         # `timeout` signals the command's whole process group; the container's removal ends the rest.
-        # Output goes through files: OpenCode exits before a pipe drains and loses all past 64 KiB.
-        script = ('out=$(mktemp) err=$(mktemp); timeout -k 5 "$0" "$@" >"$out" 2>"$err"; code=$?; '
-                  'cat "$out"; cat "$err" >&2; rm -f "$out" "$err"; exit $code')
+        script = ('o=$(mktemp -p /dev/shm) e=$(mktemp -p /dev/shm); exec 3>"$o" 4<"$o" 5>"$e" 6<"$e"; '
+                  'rm -f "$o" "$e"; timeout -k 5 "$0" "$@" >&3 2>&5; code=$?; cat <&4; cat <&6 >&2; exit $code')
         code, out, err = self._exec(["sh", "-c", script, str(math.ceil(timeout)), *argv], env, cwd)
         out, err = redact(out, secrets), redact(err, secrets)
         if code in (124, 137):
@@ -320,9 +336,17 @@ class ContainerBackend:
         return self._exec(["cat", path])[1]
 
     def leaks(self, secret):
+        if not self._started:
+            return []  # no process ran in it, so nothing could have written a credential
         # The secret reaches grep through the exec environment; /proc would show it back.
-        scan = 'grep -rlsF -e "$UAT_SECRET" --exclude-dir=proc --exclude-dir=sys --exclude-dir=dev / || true'
+        scan = ('grep -rlsF -e "$UAT_SECRET" --exclude-dir=proc --exclude-dir=sys --exclude-dir=dev / /dev/shm'
+                ' || true')
         return self._exec(["sh", "-c", scan], {"UAT_SECRET": secret}, "/")[1].splitlines()
 
     def teardown(self):
-        self._container.stop()
+        from docker.errors import NotFound
+
+        if self._container._container is not None:
+            with suppress(NotFound):
+                self._container._container.remove(force=True, v=True)
+            self._container._container, self._started = None, False
