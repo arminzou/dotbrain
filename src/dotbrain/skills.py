@@ -320,7 +320,9 @@ def link_project(
             label=rt.skill_path,
             prune_owned_only=True,
             preserve_collisions=True,
-            cleanup_cache=rt.name != "codex",
+            # A project/runtime cannot retire a shared cache that preserved legacy
+            # links in another runtime or checkout may still need.
+            cleanup_cache=False,
         )
         if rt.name == "codex":
             _prune_codex_legacy(dotbrain_home, base, skills_dir, skill_paths, ws_result)
