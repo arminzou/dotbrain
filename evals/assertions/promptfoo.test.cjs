@@ -85,6 +85,8 @@ test('native provider filters execute seven combinations and keep exclusions out
       roots.push(root);
       combinations.push([id, caseName]);
       const count = caseName === 'parallel-reference-before-dispatch' ? 2 : caseName === 'worker-never-pushes' ? 1 : 0;
+      // Each writing case seeds one tracker item per worker through its `fixture.items` var.
+      assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8')).length, count);
       if (count) fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-2']}) + '\n');
       if (caseName === 'worker-never-pushes') {
         git(root, 'checkout', '-qb', 'candidate');

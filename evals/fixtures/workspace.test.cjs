@@ -105,12 +105,24 @@ test('provider configuration binds the same scenario to separate fixture resourc
     assert.ok(!claude.config.tools.includes('Bash'));
     assert.deepEqual(claude.config.custom_allowed_tools, claude.config.tools);
     assert.equal(claude.config.allowed_tools, undefined);
-    const writing = request({vars: {...vars, case: 'worker-never-pushes'}, provider: {id: 'anthropic:claude-agent-sdk'}});
-    assert.ok(writing.config.custom_allowed_tools.includes('Agent'));
-    assert.ok(writing.config.custom_allowed_tools.includes('Bash'));
+    const writingVars = {...vars, fixture: {tools: ['Read', 'Agent', 'Bash'], maxTurns: 40}};
+    const writing = request({vars: writingVars, provider: {id: 'anthropic:claude-agent-sdk'}});
+    assert.deepEqual(writing.config.custom_allowed_tools, writingVars.fixture.tools);
+    assert.equal(writing.config.max_turns, 40);
+    assert.equal(request({vars: writingVars, provider: {id: 'openai:codex-app-server'}}).config.sandbox_mode, undefined);
   } finally {
     for (const [name, value] of [['EVAL_CLAUDE_MODEL', previous.claude], ['EVAL_CODEX_MODEL', previous.codex]]) {
       if (value === undefined) delete process.env[name]; else process.env[name] = value;
     }
   }
+});
+
+test('per-test tracker items reach the bd stub, comments included', () => {
+  const comments = [{author: 'lead', text: 'Approved at abc123'}];
+  const root = prepare('data-driven-items', parent, [{id: 'demo-9', title: 'Seeded', comments}]);
+  const bd = args => JSON.parse(execFileSync(process.execPath, [path.join(root, 'stub.cjs'), 'bd', ...args], {encoding: 'utf8'}));
+  assert.deepEqual(bd(['show', 'demo-9'])[0].comments, comments);
+  assert.deepEqual(bd(['comments', 'demo-9']), comments);
+  assert.deepEqual(bd(['comments', 'missing']), []);
+  assert.throws(() => prepare('../escape', parent), /Invalid case name/);
 });

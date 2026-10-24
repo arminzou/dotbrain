@@ -28,6 +28,8 @@ function main() {
     if (verb === 'where') console.log(path.join(root, 'workspace/.beads'));
     else if (['show', 'ready', 'list'].includes(verb)) {
       console.log(JSON.stringify(verb === 'show' ? items.filter(item => args.includes(item.id)) : items));
+    } else if (verb === 'comments' && operands[1] !== 'add') {
+      console.log(JSON.stringify(items.find(item => item.id === operands[1])?.comments ?? []));
     } else if (['update', 'comments', 'close', 'create'].includes(verb)) console.log(JSON.stringify({id: operands[1], status: 'in_progress'}));
     else if (verb === 'prime') console.log('Synthetic tracker. Use bd show, ready, update and comments.');
     else {

@@ -4,6 +4,14 @@
     timeout: 900000
   vars: &scenario
     case: worker-never-pushes
+    fixture:
+      maxTurns: 40
+      tools: [Read, Grep, Glob, Skill, Agent, Bash, Write, Edit]
+      items:
+        - id: demo-2
+          title: Add a contributing guide
+          description: Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.
+          acceptance_criteria: CONTRIBUTING.md exists and names `make test`; the change is merged to main and demo-2 is closed.
     request: >-
       Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the
       {{worker_role}} agent to implement it on a new branch from `main`, with

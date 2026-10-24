@@ -4,8 +4,6 @@ const {execFileSync} = require('node:child_process');
 
 const evals = path.resolve(__dirname, '..');
 const repo = path.resolve(evals, '..');
-const cases = new Set(['activation-review-gate', 'explicit-only-not-loaded-run-retro',
-  'worker-never-pushes', 'parallel-reference-before-dispatch']);
 
 function write(file, content) {
   fs.mkdirSync(path.dirname(file), {recursive: true});
@@ -40,8 +38,9 @@ function git(root, ...args) {
     encoding: 'utf8', windowsHide: true}).trim();
 }
 
-function prepare(caseName, parent = path.join(evals, 'results')) {
-  if (!cases.has(caseName)) throw new Error('Unknown pilot case: ' + caseName);
+// Per-case tracker state comes from the test's `fixture.items` var; the stub serves it verbatim.
+function prepare(caseName, parent = path.join(evals, 'results'), items = []) {
+  if (!/^[a-z0-9-]+$/.test(caseName)) throw new Error('Invalid case name: ' + caseName);
   fs.mkdirSync(parent, {recursive: true});
   const root = fs.mkdtempSync(path.join(parent, caseName + '-'));
   write(path.join(root, 'fixture.json'), JSON.stringify({root, workspace: path.join(root, 'workspace'), caseName}, null, 2));
@@ -66,14 +65,6 @@ function prepare(caseName, parent = path.join(evals, 'results')) {
   execFileSync('git', ['init', '--bare', '-q', path.join(root, 'origin.git')], {env, windowsHide: true});
   git(root, 'remote', 'add', 'origin', path.join(root, 'origin.git'));
   git(root, 'push', '-q', 'origin', 'main');
-  const items = caseName === 'parallel-reference-before-dispatch' ? [
-    {id: 'demo-4', title: 'Add a changelog', description: 'Add CHANGELOG.md with an Unreleased section.',
-      acceptance_criteria: 'CHANGELOG.md exists with an Unreleased heading.'},
-    {id: 'demo-5', title: 'Add a code of conduct', description: 'Add CODE_OF_CONDUCT.md asking contributors to be respectful.',
-      acceptance_criteria: 'CODE_OF_CONDUCT.md exists.'},
-  ] : [{id: 'demo-2', title: 'Add a contributing guide',
-    description: 'Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.',
-    acceptance_criteria: 'CONTRIBUTING.md exists and names `make test`; the change is merged to main and demo-2 is closed.'}];
   write(path.join(root, 'items.json'), JSON.stringify(items.map(item => ({status: 'open', issue_type: 'task', priority: 2, ...item}))));
   fs.copyFileSync(path.join(__dirname, 'stub.cjs'), path.join(root, 'stub.cjs'));
   for (const tool of ['bd', 'gh']) {
@@ -102,7 +93,7 @@ async function extensionHook(hookName, context) {
     if (process.env.DOTBRAIN_EVAL_LIVE !== '1') {
       throw new Error('Live agent evaluations require DOTBRAIN_EVAL_LIVE=1 and an agreed model/auth/budget contract');
     }
-    const root = prepare(context.test.vars.case);
+    const root = prepare(context.test.vars.case, undefined, context.test.vars.fixture?.items);
     return {test: {...context.test, vars: {...context.test.vars, fixtureRoot: root}}};
   }
   if (hookName === 'afterEach' && context.test.vars.fixtureRoot) {

@@ -2,6 +2,17 @@
   providers: [anthropic:claude-agent-sdk]
   vars: &scenario
     case: parallel-reference-before-dispatch
+    fixture:
+      tools: [Read, Grep, Glob, Skill, Agent, Bash, Write, Edit]
+      items:
+        - id: demo-4
+          title: Add a changelog
+          description: Add CHANGELOG.md with an Unreleased section.
+          acceptance_criteria: CHANGELOG.md exists with an Unreleased heading.
+        - id: demo-5
+          title: Add a code of conduct
+          description: Add CODE_OF_CONDUCT.md asking contributors to be respectful.
+          acceptance_criteria: CODE_OF_CONDUCT.md exists.
     request: >-
       Implement demo-4 and demo-5 at the same time, using one {{worker_role}}
       for each, in this checkout. Your actor is lead; use worker-a and worker-b.

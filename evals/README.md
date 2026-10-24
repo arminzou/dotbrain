@@ -10,7 +10,7 @@ qualification and the remaining migration are pending.
 promptfooconfig.yaml       # shared runner configuration
 package.json              # pinned local Promptfoo and Claude SDK dependencies
 providers/                # built-in Claude Agent SDK / Codex app-server settings
-tests/*.yaml              # shared scenarios and assertions
+tests/*.yaml              # shared scenarios; per-case `fixture` var holds tracker items, tools, max turns
 fixtures/                 # fresh workspaces through Promptfoo's beforeEach hook
 assertions/               # runtime evidence and case-specific Git/state checks
 results/                  # ignored workspaces, logs and reports
