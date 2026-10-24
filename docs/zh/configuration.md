@@ -121,6 +121,9 @@ skills:                       # extra skills for this project's workspaces
 
 刷新时，已存在但不在 `agents` 解析结果中的工作区会触发警告，里面的文件和链接都保持不变。
 
+Codex 项目技能使用 `<checkout>/.agents/skills/`，配置和子 Agent 仍在 `.codex/` 下。全局技能和
+profile 主目录的位置不变。旧链接迁移和冲突处理见[技能同步](skills.md#select-and-reconcile-skills)。
+
 `public-tracker` 用来设置公开的任务入口和与贡献者的协作。它从不镜像私有的工作图，也不会把私有工作变成
 公开任务；见 `triage-public` 技能。
 

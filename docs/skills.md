@@ -13,6 +13,18 @@ Skill linking is operator-managed:
 
 ## Select and reconcile skills
 
+Codex project skills are linked into `<checkout>/.agents/skills/`. Its configuration and
+subagents remain under `.codex/`; global skills still use `~/.codex/skills/` and configured
+profiles. Claude Code and the other runtimes keep their existing destinations.
+
+`wire`, `refresh`, and `skills link` migrate legacy `.codex/skills/` links whose targets establish
+Dotbrain ownership. A selected legacy link is removed only after its replacement is delivered;
+stale owned links are pruned. Foreign or ambiguous files, directories, and links are preserved
+and reported. Destination collisions keep the legacy link until you resolve the conflict and
+rerun reconciliation. Each managed resource is ignored individually, and `unwire` removes owned
+links from both locations. These delivery checks establish filesystem state; native runtime
+discovery and invocation need separate verification.
+
 Both scopes accept an individual skill or a bundle directory:
 
 ```yaml

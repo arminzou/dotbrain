@@ -531,16 +531,26 @@ class UnwireResult:
 
 
 def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
-    from dotbrain import cursor
+    from dotbrain import cursor, skills
 
     root = Path(dotbrain_home).resolve()
     source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents")]
     if cursor.owned(root):
         source_roots.append(cursor.plugin_dir(root))
     links: list[Path] = []
-    for name in (rt.workspace for rt in runtimes.RUNTIMES.values()):
+    names = dict.fromkeys([rt.workspace for rt in runtimes.RUNTIMES.values()]
+                          + [str(Path(rt.skill_path).parent) for rt in runtimes.RUNTIMES.values()])
+    for name in names:
         workspace = Path(repo) / name
-        if workspace.is_symlink():
+        if name == ".agents" or (name == ".codex" and not workspace.is_symlink()):
+            # Shared skills and Codex configuration can contain foreign resources. Inspect
+            # only direct asset entries, never linked receivers or user-owned subdirectories.
+            candidates = []
+            for kind in ("skills",) if name == ".agents" else ("skills", "agents"):
+                receiver = workspace / kind
+                if not skills.project_directory_conflict(Path(repo), f"{name}/{kind}") and receiver.is_dir():
+                    candidates.extend(receiver.iterdir())
+        elif workspace.is_symlink():
             candidates = [workspace]
         elif workspace.is_dir():
             candidates = list(workspace.rglob("*"))
@@ -551,11 +561,13 @@ def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
                 continue
             try:
                 destination = entry.resolve()
-                owned_workspace = (entry == workspace and destination.name == name
+                owned_workspace = (name in {rt.workspace for rt in runtimes.RUNTIMES.values()}
+                                   and entry == workspace and destination.name == name
                                    and destination.parent.parent == paths.data_dir(root))
-                if owned_workspace or any(destination.is_relative_to(source) for source in source_roots):
+                # A shared skill root is never ours as a whole, even when linked into our home.
+                if owned_workspace or (entry != workspace and any(destination.is_relative_to(source) for source in source_roots)):
                     links.append(entry)
-            except OSError:
+            except (OSError, RuntimeError):
                 continue
     return links
 
@@ -574,9 +586,10 @@ def unwire_repo(
 
     managed_links = _managed_workspace_links(repo, dotbrain_home) if dotbrain_home else []
     # Agent ownership is the delivery owner's contract, not a second marker implementation.
+    from dotbrain import skills
     from dotbrain.subagents import is_managed_copy
     codex_agents = repo / ".codex" / "agents"
-    if codex_agents.is_dir() and not codex_agents.is_symlink() and not (repo / ".codex").is_symlink():
+    if not skills.project_directory_conflict(Path(repo), ".codex/agents") and codex_agents.is_dir():
         managed_links += [entry for entry in codex_agents.iterdir() if is_managed_copy(entry)]
     managed_entries = [link.relative_to(repo).as_posix() for link in managed_links]
 

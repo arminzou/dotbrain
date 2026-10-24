@@ -480,7 +480,7 @@ def test_skills_link_project_creates_selected_symlinks_after_wire(
     assert result.exit_code == 0, result.output
 
     assert (repo / ".claude" / "skills" / "discovery-test").is_symlink()
-    assert (repo / ".codex" / "skills" / "discovery-test").is_symlink()
+    assert (repo / ".agents" / "skills" / "discovery-test").is_symlink()
 
 
 @pytest.mark.usefixtures("claude_codex_on_path")

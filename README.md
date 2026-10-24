@@ -136,8 +136,9 @@ the checkout while their files and history stay outside the code repo.
   <img src="docs/public/assets/how-it-works-light.png" alt="Claude Code and Codex work in the code repo. Gitignored links connect it to a separate private Brainspace holding the Brain and Beads." width="1000">
 </picture>
 
-Wiring also delivers selected skills and subagents into the repo's agent workspaces, `.claude/`
-and `.codex/`. Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
+Wiring also delivers selected skills and subagents into the repo: Claude resources under `.claude/`,
+Codex skills under `.agents/skills/`, and Codex agents under `.codex/agents/`. Codex configuration stays in `.codex/`.
+Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
 
