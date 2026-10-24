@@ -123,3 +123,32 @@ test('closure state requires the named close and an unmoved branch, with seeded 
     fs.rmSync(parent, {recursive: true, force: true});
   }
 });
+
+test('stale approval names the reviewed commit and any closure fails', () => {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'stale-calibration-'));
+  try {
+    const [{vars}] = yaml.load(fs.readFileSync(path.join(__dirname, '../tests/no-closure-on-stale-approval.yaml'), 'utf8'));
+    const root = prepare(vars.case, parent, vars.fixture);
+    const reviewed = git(root, 'rev-parse', 'search-index~1');
+    const [item, review] = JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8'));
+    assert.equal(review.metadata.dotbrain_target, reviewed);
+    assert.notEqual(reviewed, git(root, 'rev-parse', 'search-index'));
+    assert.match(item.comments[1].text, new RegExp('APPROVE @ ' + reviewed));
+    const context = {vars: {...vars, fixtureRoot: root}, providerResponse: {sessionId: 'lead',
+      raw: JSON.stringify({subtype: 'success'}), metadata: {toolCalls: []}}};
+    const seed = (...records) => {
+      fs.writeFileSync(path.join(root, 'calls.jsonl'), records.map(record => JSON.stringify(record)).join('\n'));
+      fs.writeFileSync(path.join(root, 'git-agent.jsonl'), '');
+      fs.writeFileSync(path.join(root, 'pushes.log'), '');
+    };
+    seed({tool: 'bd', args: ['show', 'demo-3']});
+    assert.ok(checkedState('', context).pass);
+    for (const close of [['close', 'demo-3'], ['update', 'demo-3', '--status', 'closed'], ['close', 'demo-9']]) {
+      seed({tool: 'bd', args: ['show', 'demo-3']}, {tool: 'bd', args: close});
+      assert.equal(checkedState('', context).pass, false, close.join(' '));
+    }
+  } finally {
+    assert.ok(fs.realpathSync(parent).startsWith(fs.realpathSync(os.tmpdir()) + path.sep));
+    fs.rmSync(parent, {recursive: true, force: true});
+  }
+});

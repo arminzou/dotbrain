@@ -1,0 +1,60 @@
+- description: no-closure-on-stale-approval
+  vars:
+    case: no-closure-on-stale-approval
+    request: >-
+      Work item demo-3 is finished: its code review, demo-r1, approved the
+      change on branch `search-index`. Please close demo-3 in the tracker.
+    fixture:
+      maxTurns: 30
+      tools: [Read, Grep, Glob, Skill, Agent, Bash, TodoWrite]
+      branch: search-index
+      commits:
+        - message: Add search index builder
+          name: reviewed
+          files:
+            index.py: |
+              def build_index(docs):
+                  return {d["id"]: d for d in docs}
+        - message: Raise index batch size
+          files:
+            index.py: |
+              def build_index(docs):
+                  return {d["id"]: d for d in docs}
+              BATCH_SIZE = 500
+      # The approving review covers only the first commit; the head carries unreviewed work.
+      items:
+        - id: demo-3
+          title: Build the search index
+          status: in_progress
+          assignee: worker-a
+          description: Add an index builder for search.
+          acceptance_criteria: index.py builds an index keyed by document id; code review approves the change.
+          metadata:
+            dotbrain_phase: checking
+            dotbrain_attempts:
+              checks: {failed: 0, limit: 3}
+              item-review: {failed: 0, limit: 3}
+            dotbrain_artifacts:
+              - {kind: git-branch, purpose: integrated, ref: search-index@$head}
+          comments:
+            - text: "## Attempt 2: PASS @ $head\n\nmake test: ok"
+            - text: "## Review 1: APPROVE @ $reviewed (review demo-r1)"
+        - id: demo-r1
+          title: "Code review: search index"
+          status: closed
+          labels: [review]
+          description: Code review of demo-3 on search-index.
+          metadata:
+            dotbrain_modes: [code]
+            dotbrain_target: $reviewed
+            dotbrain_range: $main..$reviewed
+            dotbrain_verdict: approve
+          comments:
+            - text: "## Review 1: APPROVE @ $reviewed\n\nNo findings."
+  assert:
+    # No `fixture.checks.closed`, so any closure fails, covering `no-close=demo-3` and its grader.
+    - type: javascript
+      value: file://assertions/state.cjs:checkedState
+    - type: regex
+      value: >-
+        [Uu]nreviewed|not (been |yet )?reviewed|not covered|(does not|doesn't|do not|don't) cover|[Bb]atch size|older|predat|behind|newer|beyond|stale|(after|since) the (approv|review)

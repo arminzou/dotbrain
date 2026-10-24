@@ -16,17 +16,36 @@ after(() => {
 const cases = file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8'))[0];
 const terminal = {output: 'Done', sessionId: 'lead', raw: '{"subtype":"success"}',
   metadata: {toolCalls: [], skillCalls: []}};
-const run = (assertion, response = terminal) => assertions.runAssertion({assertion, test: {vars: {}}, providerResponse: response});
+const run = (assertion, response = terminal, vars = {}) => assertions.runAssertion({assertion, test: {vars}, providerResponse: response});
 
 test('installed Promptfoo loads the checked-in built-in and custom assertions without a model', async () => {
     const activation = cases('activation-review-gate.yaml').assert[0];
     assert.equal((await run(activation)).pass, false);
     assert.ok((await run(activation, {...terminal, metadata: {...terminal.metadata,
       skillCalls: [{name: 'dotbrain:review-gate', is_error: false, source: 'tool'}]}})).pass);
-    const negative = cases('explicit-only-run-retro.yaml').assert;
-    for (const assertion of negative) assert.ok((await run(assertion)).pass, JSON.stringify(assertion));
+    const {assert: negative, vars: negativeVars} = cases('explicit-only-run-retro.yaml');
+    for (const assertion of negative) assert.ok((await run(assertion, terminal, negativeVars)).pass, JSON.stringify(assertion));
     assert.equal((await run(negative[0], {...terminal, metadata: {...terminal.metadata,
       skillCalls: [{name: 'dotbrain:run-retro', source: 'tool'}]}})).pass, false);
+    const skills = (...names) => ({...terminal, metadata: {...terminal.metadata,
+      skillCalls: names.map(name => ({name, is_error: false, source: 'tool'}))}});
+    const workGraph = cases('activation-manage-work-graph.yaml').assert[0];
+    assert.equal((await run(workGraph)).pass, false);
+    assert.ok((await run(workGraph, skills('dotbrain:manage-work-graph'))).pass);
+    const closeDesign = cases('explicit-only-close-design.yaml');
+    for (const assertion of closeDesign.assert) assert.ok((await run(assertion, terminal, closeDesign.vars)).pass);
+    assert.equal((await run(closeDesign.assert[0], skills('dotbrain:close-design'))).pass, false);
+    const unrelated = cases('no-skill-for-unrelated-request.yaml');
+    for (const assertion of unrelated.assert) assert.ok((await run(assertion, terminal, unrelated.vars)).pass);
+    for (const assertion of unrelated.assert) {
+      const used = {...skills('dotbrain:wire-brain'), metadata: {...skills('dotbrain:wire-brain').metadata,
+        toolCalls: [{id: 'skill', name: 'Skill', input: {skill: 'dotbrain:wire-brain'}, output: 'ok'}]}};
+      assert.equal((await run(assertion, used, unrelated.vars)).pass, false, JSON.stringify(assertion));
+    }
+    const stale = cases('no-closure-on-stale-approval.yaml').assert[1];
+    for (const output of ['The approval covers an older revision; the batch size commit is unreviewed.',
+      'Not closing: demo-r1 does not cover the head.']) assert.ok((await run(stale, {...terminal, output})).pass, output);
+    assert.equal((await run(stale, {...terminal, output: 'Closed demo-3.'})).pass, false);
     const complete = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8')).defaultTest.assert[0];
     assert.ok((await run(complete)).pass);
     assert.equal((await run(complete, {...terminal, raw: 'invalid'})).pass, false);
@@ -69,7 +88,7 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute nine combinations and keep exclusions outside grading', async () => {
+test('native provider filters execute fifteen combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
     .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
@@ -88,6 +107,7 @@ test('native provider filters execute nine combinations and keep exclusions outs
       // The real hook seeds each case's tracker items from its `fixture.items` var.
       assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8')).length, (context.vars.fixture?.items ?? []).length);
       if (caseName === 'closure-on-fresh-approval') fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['close', 'demo-3']}) + '\n');
+      if (caseName === 'no-closure-on-stale-approval') fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-3']}) + '\n');
       if (count) fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-2']}) + '\n');
       if (caseName === 'worker-never-pushes') {
         git(root, 'checkout', '-qb', 'candidate');
@@ -95,8 +115,10 @@ test('native provider filters execute nine combinations and keep exclusions outs
         git(root, 'add', 'CONTRIBUTING.md');
         git(root, 'commit', '-qm', 'Add contributing guide');
       }
-      const skillCalls = caseName === 'activation-review-gate' ? [{name: 'review-gate', source: 'tool'}] : [];
-      if (id.startsWith('anthropic:')) return {...terminal, output: 'I used a serial fallback.', metadata: {skillCalls,
+      const skill = {'activation-review-gate': 'review-gate', 'activation-manage-work-graph': 'manage-work-graph'}[caseName];
+      const skillCalls = skill ? [{name: skill, source: 'tool'}] : [];
+      const output = caseName === 'no-closure-on-stale-approval' ? 'Not closed: the approval covers an older revision.' : 'I used a serial fallback.';
+      if (id.startsWith('anthropic:')) return {...terminal, output, metadata: {skillCalls,
         toolCalls: Array.from({length: count}, (_, i) => [
           {id: 'spawn-' + i, name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'},
           {id: 'child-' + i, name: 'Read', input: {file_path: 'README.md'}, output: 'sample', parentToolUseId: 'spawn-' + i},
@@ -114,7 +136,7 @@ test('native provider filters execute nine combinations and keep exclusions outs
         notifications.push(item('item/started', {...spawn, status: 'inProgress'}), item('item/completed', spawn));
       }
       notifications.push({method: 'turn/completed', params: {threadId: 'lead', turn: {status: 'completed'}}});
-      return {output: 'I used a serial fallback.', sessionId: 'lead', raw: JSON.stringify({notifications}),
+      return {output, sessionId: 'lead', raw: JSON.stringify({notifications}),
         metadata: {codexAppServer: {threadId: 'lead'}, skillCalls}};
     },
   }));
@@ -122,19 +144,22 @@ test('native provider filters execute nine combinations and keep exclusions outs
     const record = await evaluate({...config, tracing: {enabled: false}, writeLatestResults: false,
       tests, providers}, {cache: false, maxConcurrency: 1});
     const summary = JSON.parse(JSON.stringify(await record.toEvaluateSummary()));
-    assert.equal(summary.results.length, 9);
-    assert.equal(summary.stats.successes, 8);
+    assert.equal(summary.results.length, 15);
+    assert.equal(summary.stats.successes, 14);
     assert.equal(summary.stats.failures, 1);
-    assert.equal(new Set(roots).size, 9);
-    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 5);
-    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 4);
-    assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') && name.startsWith('explicit-only')));
+    assert.equal(new Set(roots).size, 15);
+    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 9);
+    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 6);
+    assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') &&
+      (name.startsWith('explicit-only') || name === 'no-skill-for-unrelated-request')));
     for (const result of summary.results) {
       const codex = result.provider.id.startsWith('openai:');
       const name = result.testCase.vars.case;
       const components = result.gradingResult.componentResults;
       const exclusions = result.testCase.metadata?.capabilityExclusions || [];
-      assert.equal(components.length, ['activation-review-gate', 'closure-on-fresh-approval'].includes(name) ? 2 : name === 'worker-never-pushes' ? 3 : 5);
+      const twoParts = ['activation-review-gate', 'activation-manage-work-graph', 'closure-on-fresh-approval'];
+      const threeParts = ['worker-never-pushes', 'no-closure-on-stale-approval', 'no-skill-for-unrelated-request'];
+      assert.equal(components.length, twoParts.includes(name) ? 2 : threeParts.includes(name) ? 3 : 5, name);
       if (codex && ['worker-never-pushes', 'parallel-reference-before-dispatch'].includes(name)) {
         assert.equal(exclusions[0].status, 'SKIPPED_UNSUPPORTED');
         assert.ok(components.some(part => /CodexWorkers?Dispatched|codexWorkerDispatched/.test(part.assertion.value)));

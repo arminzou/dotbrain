@@ -39,7 +39,7 @@ function git(root, ...args) {
 }
 
 // Per-case state comes from the test's `fixture` var: optional `branch` and `commits` history, then
-// tracker `items`, whose text may name the resulting `$main` and `$head` revisions.
+// tracker `items`, whose text may name `$main`, `$head`, or a commit's own `name` as a revision.
 function prepare(caseName, parent = path.join(evals, 'results'), {items = [], branch, commits = []} = {}) {
   if (!/^[a-z0-9-]+$/.test(caseName)) throw new Error('Invalid case name: ' + caseName);
   fs.mkdirSync(parent, {recursive: true});
@@ -67,14 +67,16 @@ function prepare(caseName, parent = path.join(evals, 'results'), {items = [], br
   git(root, 'remote', 'add', 'origin', path.join(root, 'origin.git'));
   git(root, 'push', '-q', 'origin', 'main');
   if (branch) git(root, 'checkout', '-qb', branch);
-  for (const {message, files} of commits) {
+  const revisions = {};
+  for (const {message, files, name} of commits) {
     for (const [file, content] of Object.entries(files)) write(path.join(root, 'workspace', file), content);
     git(root, 'add', '.');
     git(root, 'commit', '-qm', message);
+    if (name) revisions[name] = git(root, 'rev-parse', 'HEAD');
   }
-  const revisions = {main: git(root, 'rev-parse', 'main'), head: git(root, 'rev-parse', 'HEAD')};
+  Object.assign(revisions, {main: git(root, 'rev-parse', 'main'), head: git(root, 'rev-parse', 'HEAD')});
   const seeded = JSON.stringify(items.map(item => ({status: 'open', issue_type: 'task', priority: 2, ...item})));
-  write(path.join(root, 'items.json'), seeded.replace(/\$(main|head)\b/g, (_, name) => revisions[name]));
+  write(path.join(root, 'items.json'), seeded.replace(/\$([a-z]+)\b/g, (token, name) => revisions[name] ?? token));
   fs.copyFileSync(path.join(__dirname, 'stub.cjs'), path.join(root, 'stub.cjs'));
   for (const tool of ['bd', 'gh']) {
     const stub = path.join(root, 'stub.cjs');

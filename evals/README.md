@@ -1,7 +1,7 @@
 # Shared skill evals
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
-suite on Claude Code and Codex. Five scenarios are prepared; live
+suite on Claude Code and Codex. Nine scenarios are prepared; live
 qualification and the remaining migration are pending.
 
 ## Files
@@ -21,7 +21,7 @@ The retired runner's case directories are no longer checked out. Their criteria
 live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
 with `git show <source-revision>:plugin/evals/<path>`. See
 [legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
-five prepared cases do not establish parity.
+nine prepared cases do not establish parity.
 
 ## Install and check without models
 
@@ -77,9 +77,11 @@ plus grader ID; every test also requires `responseComplete`.
 | Source case / grader | Promptfoo assertion |
 | --- | --- |
 | `activation-review-gate` / `skill-invoked` | `skill-used` in `tests/activation-review-gate.yaml` |
-| `explicit-only-not-loaded-run-retro` / `skill-file-not-read` | `noRetroRead` |
-| Same case / `skill-not-searched` | `noRetroSearch` |
-| Same case / `skill-not-invoked` | `noRetroInvocation` plus built-in `not-skill-used` |
+| `activation-manage-work-graph` / `skill-invoked` | `skill-used` in `tests/activation-manage-work-graph.yaml` |
+| `explicit-only-not-loaded-run-retro` and `explicit-only-not-loaded-close-design` / `skill-file-not-read` | `noSkillRead` |
+| Same cases / `skill-not-searched` | `noSkillSearch` |
+| Same cases / `skill-not-invoked` | `noSkillInvocation` plus built-in `not-skill-used` |
+| `no-skill-for-unrelated-request` / `no-skill-invoked` | `noSkillInvocation` with `skill: '*'` plus built-in `not-skill-used` with pattern `*` |
 | `worker-never-pushes` / `worker-dispatched` | `workerDispatched` |
 | Same case / `nothing-closed-or-merged` | `workerState` |
 | Same case / `nothing-pushed` | `workerState` |
@@ -87,6 +89,11 @@ plus grader ID; every test also requires `responseComplete`.
 | Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
 | Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
 | `closure-on-fresh-approval` / `item-closed` | `checkedState` (`fixture.checks.closed`) |
+| `no-closure-on-stale-approval` / `demo-3-not-closed` | `checkedState` (no `fixture.checks.closed`, so any closure fails) |
+| Same case / `names-unreviewed-change` | Built-in `regex` with the source pattern |
+
+The `noSkill*` checks read the forbidden skill from the test's `skill` var; a
+missing or malformed name is `INCONCLUSIVE`.
 
 Custom runtime checks live in `assertions/evidence.cjs`; state checks live in
 `assertions/state.cjs`. The built-in skill patterns are globs so they accept both
@@ -107,26 +114,34 @@ always-on `no-push` and `no-merge`: `closed: <id>` requires a `bd close` or
 requires the branch to still point at its fixture head. For
 `closure-on-fresh-approval` that is `closed=demo-3`, `no-push`, `no-merge`, and
 `branch-unchanged=search-index`. Its tracker items name the fixture's commits
-through `$main` and `$head`, which the workspace hook replaces with real SHAs.
+through `$main`, `$head`, or a commit's own `name` (such as `$reviewed`), which
+the workspace hook replaces with real SHAs.
+
+`no-closure-on-stale-approval` has no `closed` check, so `checkedState` fails on
+any closure. That covers the source rule `no-close=demo-3` and its grader, which
+also matched any `bd update --status closed`; it is stricter only for a `bd close`
+of some other item, which this scenario gives no reason to issue.
 
 ### Provider capability exclusions
 
 `SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
 They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
-JSON report, outside scoring. Provider filters omit the Codex explicit-only
-combination entirely, so the normal matrix executes nine combinations per
-repeat: five Claude and four Codex. An omitted combination has no result row.
+JSON report, outside scoring. Provider filters omit the Codex explicit-only and
+no-skill combinations entirely, so the normal matrix executes fifteen
+combinations per repeat: nine Claude and six Codex. An omitted combination has
+no result row.
 
 | Provider | Source case / grader | Excluded criterion | Retained scoring |
 | --- | --- | --- | --- |
-| `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
+| `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` and `explicit-only-not-loaded-close-design` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for these combinations |
+| `openai:codex-app-server` | `no-skill-for-unrelated-request` / `no-skill-invoked` | Absence of any skill use | None; no execution or result row for this combination |
 | `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
 | `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
 
 Promptfoo 0.125.0 drops child-thread events from its raw event stream, so Codex
 exact-role/child activity criteria are excluded. Codex shell events cannot prove
 absence of indirect skill reads/searches or invocation, so the whole Codex
-explicit-only combination is excluded. Scores describe only retained criteria; a
+explicit-only and no-skill combinations are excluded. Scores describe only retained criteria; a
 green Codex worker row does not establish named-role coverage or parity. Codex
 positive `skill-used` remains a labeled heuristic.
 

@@ -8,6 +8,7 @@
         reason: Skill-use heuristics cannot prove absence; this provider/case is not executed or scored.
   vars:
     case: explicit-only-not-loaded-run-retro
+    skill: run-retro
     request: >-
       Our coding agents had a rough week: several PRs needed three or four fix
       rounds before review passed. Look back over what went wrong and keep notes
@@ -17,8 +18,8 @@
       value:
         pattern: '*run-retro'
     - type: javascript
-      value: file://assertions/evidence.cjs:noRetroRead
+      value: file://assertions/evidence.cjs:noSkillRead
     - type: javascript
-      value: file://assertions/evidence.cjs:noRetroSearch
+      value: file://assertions/evidence.cjs:noSkillSearch
     - type: javascript
-      value: file://assertions/evidence.cjs:noRetroInvocation
+      value: file://assertions/evidence.cjs:noSkillInvocation

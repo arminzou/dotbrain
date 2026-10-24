@@ -42,7 +42,15 @@ function responseComplete(output, context) {
     'Successful terminal response and observable tool records required');
 }
 
-function mentionsRetro(input) { return /(?:^|[\\/\s:"'])run-retro(?:[\\/\s:"']|$)/i.test(input); }
+// The forbidden skill comes from the test's `skill` var; `*` forbids invoking any skill.
+function forbiddenSkill(context) {
+  const skill = context.vars?.skill;
+  if (!/^(?:[a-z0-9-]+|\*)$/.test(skill || '')) throw new Error('INCONCLUSIVE: test must name the forbidden skill');
+  return skill;
+}
+function mentions(skill, input) {
+  return skill !== '*' && new RegExp(`(?:^|[\\\\/\\s:"'])${skill}(?:[\\\\/\\s:"']|$)`, 'i').test(input);
+}
 function requireNegativeEvidence(trace) {
   if (trace.runtime === 'codex') {
     throw new Error('INCONCLUSIVE: Codex shell events cannot establish absence of skill reads, searches or invocation');
@@ -57,29 +65,33 @@ function requireNegativeEvidence(trace) {
   }
 }
 
-function noRetroRead(output, context) {
+function noSkillRead(output, context) {
   return check(context, trace => {
+    const skill = forbiddenSkill(context);
     requireNegativeEvidence(trace);
     return !trace.calls.some(call => call.name === 'Read' &&
-      mentionsRetro(call.input.file_path || call.input.path || ''));
-  }, 'run-retro skill/reference reads are forbidden');
+      mentions(skill, call.input.file_path || call.input.path || ''));
+  }, 'Reading the forbidden skill or its references is forbidden');
 }
 
-function noRetroSearch(output, context) {
+function noSkillSearch(output, context) {
   return check(context, trace => {
+    const skill = forbiddenSkill(context);
     requireNegativeEvidence(trace);
     return !trace.calls.some(call => ['Grep', 'Glob'].includes(call.name) &&
-      mentionsRetro(call.input.path || ''));
+      mentions(skill, call.input.path || ''));
   },
-  'Searching the run-retro path is forbidden');
+  'Searching the forbidden skill path is forbidden');
 }
 
-function noRetroInvocation(output, context) {
+function noSkillInvocation(output, context) {
   return check(context, trace => {
+    const skill = forbiddenSkill(context);
     requireNegativeEvidence(trace);
-    return !trace.calls.some(call => call.name === 'Skill' && /(?:^|:)run-retro$/.test(call.input?.skill || ''));
+    return !trace.calls.some(call => call.name === 'Skill' &&
+      (skill === '*' || (call.input?.skill || '').split(':').pop() === skill));
   },
-  'Invoking run-retro is forbidden; built-in not-skill-used checks inferred uses too');
+  'Invoking the forbidden skill is forbidden; built-in not-skill-used checks inferred uses too');
 }
 
 function workers(trace) {
@@ -186,5 +198,5 @@ function parallelOrdering(output, context) {
   }, 'A successful lead reference read must complete before the first writing dispatch; Codex requires a native read action and matching reference output');
 }
 
-module.exports = {evidence, responseComplete, noRetroRead, noRetroSearch, noRetroInvocation,
+module.exports = {evidence, responseComplete, noSkillRead, noSkillSearch, noSkillInvocation,
   workerDispatched, twoWorkersDispatched, codexWorkerDispatched, twoCodexWorkersDispatched, parallelOrdering};

@@ -1,0 +1,10 @@
+- description: activation-manage-work-graph
+  vars:
+    case: activation-manage-work-graph
+    request: >-
+      File a work item in our tracker: the login page times out after 30
+      seconds on slow connections. Make it a bug, priority 1.
+  assert:
+    - type: skill-used
+      value:
+        pattern: '*manage-work-graph'

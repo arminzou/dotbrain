@@ -6,10 +6,11 @@ const path = require('node:path');
 const checks = require('./evidence.cjs');
 
 const call = (name, input, extra = {}) => ({id: 'call-' + name, name, input, output: 'ok', is_error: false, ...extra});
-const claude = calls => ({providerResponse: {sessionId: 'lead', raw: JSON.stringify({subtype: 'success'}), metadata: {toolCalls: calls}}});
+const claude = calls => ({vars: {skill: 'run-retro'},
+  providerResponse: {sessionId: 'lead', raw: JSON.stringify({subtype: 'success'}), metadata: {toolCalls: calls}}});
 const event = (method, item, threadId = 'lead') => ({method, params: {threadId, item}});
 function codex(events) {
-  return {providerResponse: {sessionId: 'lead', metadata: {codexAppServer: {threadId: 'lead'}},
+  return {vars: {skill: 'run-retro'}, providerResponse: {sessionId: 'lead', metadata: {codexAppServer: {threadId: 'lead'}},
     raw: JSON.stringify({notifications: [...events, {method: 'turn/completed', params: {threadId: 'lead', turn: {status: 'completed'}}}]})}};
 }
 
@@ -17,7 +18,7 @@ test('missing, malformed and incomplete telemetry cannot pass any negative check
   for (const context of [{}, {providerResponse: {}}, claude([call('Read', {}, {output: undefined})]),
     {providerResponse: {...claude([]).providerResponse, raw: 'invalid'}},
     {providerResponse: {...codex([]).providerResponse, raw: '{"notifications":[]}'}}]) {
-    for (const name of ['responseComplete', 'noRetroRead', 'noRetroSearch', 'noRetroInvocation', 'workerDispatched',
+    for (const name of ['responseComplete', 'noSkillRead', 'noSkillSearch', 'noSkillInvocation', 'workerDispatched',
       'codexWorkerDispatched', 'twoCodexWorkersDispatched', 'parallelOrdering']) {
       assert.equal(checks[name]('answer', context).pass, false, name);
     }
@@ -53,29 +54,38 @@ test('Codex counts distinct successful lead spawns with observed completion, wit
 
 test('separate explicit-only boundaries reject reads, searches and invocation', () => {
   const clean = claude([call('Read', {file_path: 'src/main.py'})]);
-  for (const name of ['noRetroRead', 'noRetroSearch', 'noRetroInvocation']) assert.ok(checks[name]('run-retro', clean).pass);
+  for (const name of ['noSkillRead', 'noSkillSearch', 'noSkillInvocation']) assert.ok(checks[name]('run-retro', clean).pass);
   for (const file_path of ['skills/run-retro/SKILL.md', 'C:\\skills\\run-retro\\references\\scope.md']) {
-    assert.equal(checks.noRetroRead('', claude([call('Read', {file_path})])).pass, false);
+    assert.equal(checks.noSkillRead('', claude([call('Read', {file_path})])).pass, false);
   }
-  assert.equal(checks.noRetroSearch('', claude([call('Grep', {path: 'skills/run-retro'})])).pass, false);
-  assert.equal(checks.noRetroInvocation('', claude([call('Skill', {skill: 'dotbrain:run-retro'})])).pass, false);
+  assert.equal(checks.noSkillSearch('', claude([call('Grep', {path: 'skills/run-retro'})])).pass, false);
+  assert.equal(checks.noSkillInvocation('', claude([call('Skill', {skill: 'dotbrain:run-retro'})])).pass, false);
   const shell = command => codex([event('item/completed', {type: 'commandExecution', command, exitCode: 0, status: 'completed'})]);
   for (const command of ['cat .agents/skills/run-retro/SKILL.md', 'rg lessons .agents/skills/run-retro',
     'cat README.md', 'python -c "from pathlib import Path; print(Path(\'.agents/skills/run-retro/SKILL.md\').open().read())"',
     'node opaque-script.cjs']) {
-    for (const name of ['noRetroRead', 'noRetroSearch', 'noRetroInvocation']) {
+    for (const name of ['noSkillRead', 'noSkillSearch', 'noSkillInvocation']) {
       assert.match(checks[name]('', shell(command)).reason, /INCONCLUSIVE.*Codex shell/);
     }
   }
   const hiddenChild = codex([event('item/completed', {type: 'collabAgentToolCall', tool: 'spawnAgent'})]);
-  for (const name of ['noRetroRead', 'noRetroSearch', 'noRetroInvocation']) {
+  for (const name of ['noSkillRead', 'noSkillSearch', 'noSkillInvocation']) {
     assert.match(checks[name]('', hiddenChild).reason, /INCONCLUSIVE.*Codex shell/);
     assert.match(checks[name]('', claude([call('Agent', {subagent_type: 'worker'})])).reason,
       /INCONCLUSIVE.*native/);
     assert.match(checks[name]('', claude([call('Bash', {command: 'node opaque-script.cjs'})])).reason,
       /INCONCLUSIVE.*native/);
     assert.match(checks[name]('', claude([call('Read', {})])).reason, /INCONCLUSIVE.*target/);
+    assert.match(checks[name]('', {...clean, vars: {}}).reason, /INCONCLUSIVE.*forbidden skill/);
+    assert.match(checks[name]('', {...clean, vars: {skill: 'a.*'}}).reason, /INCONCLUSIVE.*forbidden skill/);
   }
+  const named = (skill, calls) => ({...claude(calls), vars: {skill}});
+  assert.equal(checks.noSkillRead('', named('close-design', [call('Read', {file_path: 'skills/close-design/SKILL.md'})])).pass, false);
+  assert.ok(checks.noSkillRead('', named('close-design', [call('Read', {file_path: 'skills/run-retro/SKILL.md'})])).pass);
+  assert.ok(checks.noSkillInvocation('', named('retro', [call('Skill', {skill: 'dotbrain:run-retro'})])).pass, 'exact skill name');
+  // `*` forbids any invocation but reading or searching skill files stays allowed.
+  assert.equal(checks.noSkillInvocation('', named('*', [call('Skill', {skill: 'anything'})])).pass, false);
+  assert.ok(checks.noSkillInvocation('', named('*', [call('Read', {file_path: 'skills/x/SKILL.md'})])).pass);
 });
 
 test('packaged-role dispatch requires a successful named invocation and child activity', () => {
