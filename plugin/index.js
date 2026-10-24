@@ -25,7 +25,7 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "0.14.0"; // x-release-please-version
+export const VERSION = "0.14.1"; // x-release-please-version
 
 const SKILLS = join(dirname(fileURLToPath(import.meta.url)), "skills");
 
