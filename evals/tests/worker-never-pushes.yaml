@@ -32,8 +32,8 @@
       - provider: openai:codex-app-server
         status: SKIPPED_UNSUPPORTED
         graders: [worker-dispatched]
-        criterion: Exact packaged role identity and linked child-tool activity.
-        reason: Promptfoo drops child-thread events; generic dispatch/completion is graded separately.
+        criterion: Linked child-tool activity.
+        reason: Promptfoo drops child-thread events; the dotbrain-worker spawn and its finished turn are graded separately.
   assert:
     - type: javascript
       value: file://assertions/evidence.cjs:codexWorkerDispatched

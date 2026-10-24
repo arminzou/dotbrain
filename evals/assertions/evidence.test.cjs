@@ -118,6 +118,17 @@ test('completion order requires a native reference read with corroborating outpu
     commandActions: [{type: 'read', path: relative}], cwd, aggregatedOutput: contents, exitCode: 0, status: 'completed'});
   const dispatch = event('item/started', {type: 'collabAgentToolCall', tool: 'spawnAgent'});
   assert.ok(checks.parallelOrdering('', context([read, dispatch])).pass);
+  // Promptfoo flattens nested arrays to '[...]': then the command must name the reference, and a
+  // later failing command in the same shell call does not undo the read.
+  const flattened = {...read.params.item, commandActions: ['[...]'], status: 'failed', exitCode: 1};
+  assert.ok(checks.parallelOrdering('', context([event(read.method, flattened), dispatch])).pass);
+  const rawSpawn = event('rawResponseItem/completed', {type: 'function_call', namespace: 'collaboration',
+    name: 'spawn_agent', call_id: 'c1', arguments: '{}'});
+  assert.ok(checks.parallelOrdering('', context([event(read.method, flattened), rawSpawn])).pass);
+  assert.equal(checks.parallelOrdering('', context([rawSpawn, event(read.method, flattened)])).pass, false);
+  for (const item of [{...flattened, command: 'cat other.md'}, {...flattened, aggregatedOutput: 'truncated'}]) {
+    assert.equal(checks.parallelOrdering('', context([event(read.method, item), dispatch])).pass, false);
+  }
   const print = {...read.params.item, command: "printf '%s\\n' 'cat " + relative + "'",
     commandActions: [{type: 'unknown'}], aggregatedOutput: 'cat ' + relative};
   for (const events of [[dispatch, read], [dispatch], [read],
@@ -125,11 +136,10 @@ test('completion order requires a native reference read with corroborating outpu
     [event(read.method, {...print, commandActions: read.params.item.commandActions}), dispatch],
     [event(read.method, {...read.params.item, commandActions: [{type: 'unknown'}]}), dispatch],
     [event(read.method, {...read.params.item, commandActions: [{type: 'read', path: 'other.md'}]}), dispatch],
-    [event(read.method, {...read.params.item, commandActions: undefined}), dispatch],
     [event(read.method, {...read.params.item, aggregatedOutput: undefined}), dispatch],
     [event(read.method, {...read.params.item, aggregatedOutput: 'truncated'}), dispatch],
     [event(read.method, {...read.params.item, cwd: root}), dispatch],
-    [event(read.method, {...read.params.item, exitCode: 1}), dispatch],
+    [event(read.method, {...read.params.item, status: 'declined'}), dispatch],
     [event(read.method, read.params.item, 'child'), dispatch],
     [event('item/started', read.params.item), dispatch]]) {
     assert.equal(checks.parallelOrdering('', context(events)).pass, false, JSON.stringify(events));
@@ -153,4 +163,49 @@ test('Claude completion spans link the successful lead read to dispatch timing',
   context.trace.spans[0] = span(read.id, 1, 3);
   read.parentToolUseId = 'child';
   assert.equal(checks.parallelOrdering('', context).pass, false);
+});
+
+test('Codex code-mode spawns count only for the worker role with a finished child turn', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-spawn-'));
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}));
+  const lead = '00000000-0000-0000-0000-00000000000a';
+  const child = '00000000-0000-0000-0000-00000000000b';
+  fs.mkdirSync(path.join(root, 'home/.codex'), {recursive: true});
+  const {DatabaseSync} = require('node:sqlite');
+  const seedLog = rows => {
+    fs.rmSync(path.join(root, 'home/.codex/logs_2.sqlite'), {force: true});
+    const db = new DatabaseSync(path.join(root, 'home/.codex/logs_2.sqlite'));
+    db.exec('create table logs (id integer primary key, target text, feedback_log_body text)');
+    const insert = db.prepare('insert into logs (target, feedback_log_body) values (?, ?)');
+    for (const [target, body] of rows) insert.run(target, body);
+    db.close();
+  };
+  const spawnedChild = ['codex_mcp', `dispatch_tool_call_with_state:thread_spawn{otel.name="thread_spawn"}:session_init:startup_prewarm{otel.name="startup_prewarm" thread.id=${child} prewarm.input="base"}`];
+  const finished = ['codex_core::session::turn', `session_loop{thread_id=${child}}: post sampling token usage needs_follow_up=false`];
+  const raw = (agentType, output = '{"task_name":"/root/work"}') => [
+    event('rawResponseItem/completed', {type: 'function_call', namespace: 'collaboration', name: 'spawn_agent',
+      call_id: 'c1', arguments: JSON.stringify({agent_type: agentType})}, lead),
+    event('rawResponseItem/completed', {type: 'function_call_output', call_id: 'c1', output}, lead)];
+  const context = events => ({vars: {fixtureRoot: root}, providerResponse: {sessionId: lead,
+    metadata: {codexAppServer: {threadId: lead}},
+    raw: JSON.stringify({notifications: [...events, {method: 'turn/completed', params: {threadId: lead, turn: {status: 'completed'}}}]})}});
+  seedLog([spawnedChild, finished]);
+  assert.ok(checks.codexWorkerDispatched('', context(raw('dotbrain-worker'))).pass);
+  assert.equal(checks.twoCodexWorkersDispatched('', context(raw('dotbrain-worker'))).pass, false, 'one child only');
+  assert.equal(checks.codexWorkerDispatched('', context(raw('dotbrain-reviewer'))).pass, false, 'another role');
+  assert.equal(checks.codexWorkerDispatched('', context(raw('dotbrain-worker', '{"error":"failed"}'))).pass, false, 'failed spawn');
+  seedLog([spawnedChild, ['codex_core::session::turn', `session_loop{thread_id=${child}}: needs_follow_up=true`]]);
+  assert.equal(checks.codexWorkerDispatched('', context(raw('dotbrain-worker'))).pass, false, 'child never finished');
+  fs.rmSync(path.join(root, 'home/.codex/logs_2.sqlite'));
+  assert.match(checks.codexWorkerDispatched('', context(raw('dotbrain-worker'))).reason, /INCONCLUSIVE.*Codex log/);
+});
+
+test('a refused call to a tool the test did not offer reads nothing', () => {
+  const refusedBash = call('Bash', {command: 'git log'}, {is_error: true});
+  for (const name of ['noSkillRead', 'noSkillSearch', 'noSkillInvocation']) {
+    assert.ok(checks[name]('', claude([refusedBash, call('Read', {file_path: 'README.md'})])).pass, name);
+    assert.match(checks[name]('', claude([call('Bash', {command: 'git log'})])).reason, /INCONCLUSIVE/, 'a Bash call that ran');
+    const offered = {...claude([refusedBash]), vars: {skill: 'run-retro', fixture: {tools: ['Read', 'Bash']}}};
+    assert.match(checks[name]('', offered).reason, /INCONCLUSIVE/, 'an offered tool that errored may have run');
+  }
 });

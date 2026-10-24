@@ -51,11 +51,14 @@ function forbiddenSkill(context) {
 function mentions(skill, input) {
   return new RegExp(`(?:^|[\\\\/\\s:"'])${skill}(?:[\\\\/\\s:"']|$)`, 'i').test(input);
 }
-function requireNegativeEvidence(trace) {
+function requireNegativeEvidence(trace, context) {
   if (trace.runtime === 'codex') {
     throw new Error('INCONCLUSIVE: Codex shell events cannot establish absence of skill reads, searches or invocation');
   }
-  if (trace.calls.some(call => !['Read', 'Grep', 'Glob', 'Skill'].includes(call.name))) {
+  // A call to a tool the test did not offer is refused before it runs, so it reads nothing.
+  const offered = context.vars?.fixture?.tools ?? ['Read', 'Grep', 'Glob', 'Skill'];
+  const refused = call => call.is_error === true && !offered.includes(call.name);
+  if (trace.calls.some(call => !['Read', 'Grep', 'Glob', 'Skill'].includes(call.name) && !refused(call))) {
     throw new Error('INCONCLUSIVE: explicit-only checks require the configured native read/search/skill tools');
   }
   if (trace.calls.some(call => call.name === 'Read' &&
@@ -68,7 +71,7 @@ function requireNegativeEvidence(trace) {
 function noSkillRead(output, context) {
   return check(context, trace => {
     const skill = forbiddenSkill(context);
-    requireNegativeEvidence(trace);
+    requireNegativeEvidence(trace, context);
     return !trace.calls.some(call => call.name === 'Read' &&
       mentions(skill, call.input.file_path || call.input.path || ''));
   }, 'Reading the forbidden skill or its references is forbidden');
@@ -77,7 +80,7 @@ function noSkillRead(output, context) {
 function noSkillSearch(output, context) {
   return check(context, trace => {
     const skill = forbiddenSkill(context);
-    requireNegativeEvidence(trace);
+    requireNegativeEvidence(trace, context);
     return !trace.calls.some(call => ['Grep', 'Glob'].includes(call.name) &&
       mentions(skill, call.input.path || ''));
   },
@@ -87,7 +90,7 @@ function noSkillSearch(output, context) {
 function noSkillInvocation(output, context) {
   return check(context, trace => {
     const skill = forbiddenSkill(context);
-    requireNegativeEvidence(trace);
+    requireNegativeEvidence(trace, context);
     return !trace.calls.some(call => call.name === 'Skill' &&
       (call.input?.skill || '').split(':').pop() === skill);
   },
@@ -120,8 +123,45 @@ function twoWorkersDispatched(output, context) {
     'Two successful packaged named worker dispatches with linked child activity are required');
 }
 
-function completedCodexWorkers(trace) {
+// Codex code mode spawns through raw `collaboration` function calls instead of collab items. A
+// spawn counts when the lead asked for the packaged worker role and Codex answered with a task;
+// the child's finished turn comes from the fixture-owned Codex log, since the stream omits it.
+function rawCodexSpawns(trace) {
+  const outputs = new Map();
+  const spawns = new Map();
+  for (const event of trace.notifications) {
+    const item = event.params?.item;
+    if (event.method !== 'rawResponseItem/completed' || event.params?.threadId !== trace.lead || !item) continue;
+    if (item.type === 'function_call' && item.namespace === 'collaboration' && item.name === 'spawn_agent') {
+      spawns.set(item.call_id, item);
+    } else if (item.type === 'function_call_output') outputs.set(item.call_id, item.output);
+  }
+  return [...spawns.values()].filter(item => {
+    try { return JSON.parse(item.arguments).agent_type === 'dotbrain-worker' && JSON.parse(outputs.get(item.call_id)).task_name; }
+    catch { return false; }
+  });
+}
+
+function finishedCodexChildren(context, lead) {
+  const home = path.join(context.vars?.fixtureRoot || '', 'home/.codex');
+  const log = fs.existsSync(home) && fs.readdirSync(home).find(file => /^logs_\d+\.sqlite$/.test(file));
+  if (!log) throw new Error('INCONCLUSIVE: fixture Codex log required for child completion');
+  const {DatabaseSync} = require('node:sqlite');
+  const db = new DatabaseSync(path.join(home, log), {readOnly: true});
+  try {
+    const bodies = db.prepare('select target, feedback_log_body as body from logs').all();
+    const children = new Set(bodies.flatMap(({body}) =>
+      [...body.matchAll(/thread_spawn\{[^}]*\}:session_init:startup_prewarm\{[^}]*thread\.id=([0-9a-f-]{36})/g)].map(match => match[1])));
+    children.delete(lead);
+    return [...children].filter(child => bodies.some(({target, body}) =>
+      target === 'codex_core::session::turn' && body.includes(child) && body.includes('needs_follow_up=false')));
+  } finally { db.close(); }
+}
+
+function completedCodexWorkers(trace, context) {
   if (trace.runtime !== 'codex') throw new Error('INCONCLUSIVE: Codex lead events required');
+  const raw = rawCodexSpawns(trace);
+  if (raw.length) return Math.min(raw.length, finishedCodexChildren(context, trace.lead).length);
   const completed = new Set();
   const spawned = new Set();
   const dispatches = new Set();
@@ -150,13 +190,13 @@ function completedCodexWorkers(trace) {
 }
 
 function codexWorkerDispatched(output, context) {
-  return check(context, trace => completedCodexWorkers(trace) >= 1,
-    'One observable Codex agent spawn and completion required; packaged role/child tools are SKIPPED_UNSUPPORTED');
+  return check(context, trace => completedCodexWorkers(trace, context) >= 1,
+    'One observable Codex dotbrain-worker spawn and completion required; child tool activity is SKIPPED_UNSUPPORTED');
 }
 
 function twoCodexWorkersDispatched(output, context) {
-  return check(context, trace => completedCodexWorkers(trace) >= 2,
-    'Two distinct observable Codex agent spawns and completions required; packaged roles/child tools are SKIPPED_UNSUPPORTED');
+  return check(context, trace => completedCodexWorkers(trace, context) >= 2,
+    'Two distinct observable Codex dotbrain-worker spawns and completions required; child tool activity is SKIPPED_UNSUPPORTED');
 }
 
 function parallelOrdering(output, context) {
@@ -178,9 +218,11 @@ function parallelOrdering(output, context) {
       });
     }
     const events = trace.notifications;
-    const firstDispatch = events.findIndex(event => event.method === 'item/started' &&
-      event.params?.threadId === trace.lead && event.params?.item?.type === 'collabAgentToolCall' &&
-      event.params.item.tool === 'spawnAgent');
+    const firstDispatch = events.findIndex(event => event.params?.threadId === trace.lead && (
+      event.method === 'item/started' && event.params?.item?.type === 'collabAgentToolCall' &&
+        event.params.item.tool === 'spawnAgent' ||
+      event.method === 'rawResponseItem/completed' && event.params?.item?.type === 'function_call' &&
+        event.params.item.namespace === 'collaboration' && event.params.item.name === 'spawn_agent'));
     const root = context.vars?.fixtureRoot;
     if (!root) throw new Error('INCONCLUSIVE: staged reference path required');
     const reference = path.join(root, 'workspace/.agents/skills/run-execution/references/parallel-execution.md');
@@ -191,16 +233,20 @@ function parallelOrdering(output, context) {
     const readBeforeDispatch = firstDispatch > 0 && events.slice(0, firstDispatch).some(event => {
       const item = event.params?.item;
       if (event.method !== 'item/completed' || event.params?.threadId !== trace.lead ||
-        item?.type !== 'commandExecution' || item.status !== 'completed' || item.exitCode !== 0) return false;
-      if (!Array.isArray(item.commandActions) || typeof item.cwd !== 'string' ||
-        typeof item.aggregatedOutput !== 'string') {
-        throw new Error('INCONCLUSIVE: native read actions, cwd and complete output required');
+        item?.type !== 'commandExecution' || !['completed', 'failed'].includes(item.status)) return false;
+      if (typeof item.cwd !== 'string' || typeof item.aggregatedOutput !== 'string') {
+        throw new Error('INCONCLUSIVE: command cwd and complete output required');
       }
-      return item.commandActions.some(action => {
+      // Native read actions where Promptfoo keeps them; it flattens nested arrays to '[...]', so
+      // otherwise the command must name the reference. Either way the output must carry its full
+      // contents, which a later failing command in the same shell call does not undo.
+      const actions = Array.isArray(item.commandActions) ? item.commandActions.filter(action => typeof action === 'object') : [];
+      const named = actions.length ? actions.some(action => {
         if (action.type !== 'read' || typeof action.path !== 'string') return false;
         try { return fs.realpathSync(path.resolve(item.cwd, action.path)) === target; }
         catch { return false; }
-      }) && normalize(item.aggregatedOutput).includes(contents);
+      }) : /run-execution[\\/]+references[\\/]+parallel-execution\.md/.test(item.command || '');
+      return named && normalize(item.aggregatedOutput).includes(contents);
     });
     if (!readBeforeDispatch) throw new Error('INCONCLUSIVE: no corroborated native reference read before dispatch');
     return true;

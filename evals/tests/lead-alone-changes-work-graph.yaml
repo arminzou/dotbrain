@@ -86,8 +86,8 @@
       status: SKIPPED_UNSUPPORTED
       graders:
       - two-workers-dispatched
-      criterion: Exact packaged role identities and linked child-tool activity.
-      reason: Promptfoo drops child-thread events; two distinct observable dispatches/completions are graded separately.
+      criterion: Linked child-tool activity.
+      reason: Promptfoo drops child-thread events; two dotbrain-worker spawns and their finished turns are graded separately.
   vars:
     case: lead-alone-changes-work-graph
     request: |

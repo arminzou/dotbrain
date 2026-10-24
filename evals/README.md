@@ -135,7 +135,7 @@ plus grader ID; every test also requires `responseComplete`.
 | Same case / `nothing-pushed` | `workerState` |
 | `parallel-reference-before-dispatch` / `reference-read` and supplemental completion-before-dispatch criterion | `parallelOrdering` |
 | Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
-| Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
+| Same case / `serial-fallback` | Retired: both runtimes now isolate parallel workers, so the fallback precondition is gone |
 | `execution-role-routing`, `observed-revision-mismatch-held` / every grader | One assertion per grader, named by `metric`; see below |
 | `closure-on-fresh-approval`, `no-closure-on-stale-approval`, `review-gate-blocks-self-review`, `review-gate-lead-reviews-worker-change`, `public-pr-keeps-private-ids-out`, `lead-alone-changes-work-graph` / every grader and state rule | One assertion per grader (`metric` is its id) and per state rule (`metric` is `state:<rule>`); see below |
 
@@ -176,26 +176,32 @@ the retired checker's rules (`no-push`, `no-merge`, `no-close`, `closed`,
 `no-private`, `no-graph-write-by`, `no-actorless-graph-write`) and fails every rule
 when no bd, gh or top-level Git call was logged. It also counts the attached
 `-sclosed` form as a closure, which the retired checker missed. A test without
-`Agent` also turns off Codex's `multi_agent`, so `review-gate-blocks-self-review`
-has no independent reviewer on either runtime.
+`Agent` also turns off Codex's `multi_agent`, but Codex 0.163 still offers
+`spawn_agent`, so `review-gate-blocks-self-review` runs on Claude only.
 
 ### Provider capability exclusions
 
 `SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
 They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
-JSON report, outside scoring. Provider filters omit the Codex explicit-only
-combination entirely, so the normal matrix executes twenty-three combinations per
-repeat: twelve Claude and eleven Codex. An omitted combination has no result row.
+JSON report, outside scoring. Provider filters omit the Codex explicit-only and
+self-review combinations entirely, so the normal matrix executes twenty-two
+combinations per repeat: twelve Claude and ten Codex. An omitted combination has no
+result row.
 
 | Provider | Source case / grader | Excluded criterion | Retained scoring |
 | --- | --- | --- | --- |
 | `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
-| `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
-| `openai:codex-app-server` | `lead-alone-changes-work-graph` / `two-workers-dispatched` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; every state rule remains mandatory |
-| `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
+| `openai:codex-app-server` | `review-gate-blocks-self-review` / `no-approval-recorded`, `reports-blocked` | No independent reviewer available to the lead | None; Codex 0.163 still offers `spawn_agent` with `features.multi_agent` off, so the premise cannot be set up |
+| `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn of `dotbrain-worker` and that child's finished turn; `workerState` remains mandatory |
+| `openai:codex-app-server` | `lead-alone-changes-work-graph` / `two-workers-dispatched` | Linked child-tool activity | `twoCodexWorkersDispatched` requires two successful `dotbrain-worker` spawns and two finished child turns; every state rule remains mandatory |
+| `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Linked child-tool activity | `twoCodexWorkersDispatched` requires two successful `dotbrain-worker` spawns and two finished child turns; ordering and state checks remain mandatory |
 
 Promptfoo 0.125.0 drops child-thread events from its raw event stream, so Codex
-exact-role/child activity criteria are excluded. Codex shell events cannot prove
+child activity criteria are excluded. Codex 0.163 spawns through raw `collaboration`
+function calls rather than collab items: a spawn counts when the lead's
+`spawn_agent` call asked for `agent_type: dotbrain-worker` and Codex returned a
+task, and each counted child must log a finished turn in the fixture's own Codex
+log (`home/.codex/logs_*.sqlite`). Codex shell events cannot prove
 absence of indirect skill reads/searches or invocation, so the whole Codex
 explicit-only combination is excluded. Scores describe only retained criteria; a
 green Codex worker row does not establish named-role coverage or parity. Codex
@@ -206,17 +212,21 @@ positive `skill-used` remains a labeled heuristic.
 Missing/malformed terminal, tool, trace or state evidence fails closed with an
 `INCONCLUSIVE` reason. It cannot pass a negative criterion through absence.
 Claude ordering uses tool-call IDs and completed trace timestamps. Codex requires
-a successful native `commandActions` read of the staged reference, resolved against
-the command's `cwd`, with matching reference contents in `aggregatedOutput`,
-completed before the first dispatch. A path mention or opaque command cannot earn
-ordering credit; missing classification or truncated output remains inconclusive.
-Claude negatives require native Read/Grep/Glob/Skill records; unexpected shell or
-agent calls are inconclusive.
+a lead command, completed before the first dispatch, whose output contains the staged
+reference's full contents and which reads it by a native `commandActions` read
+resolved against its `cwd`. Promptfoo flattens nested arrays in raw events to
+`'[...]'`; then the command itself must name the reference. A later failing command
+in the same shell call does not undo the read. A path mention without the contents
+earns no credit. Claude negatives require native Read/Grep/Glob/Skill records;
+unexpected shell or agent calls are inconclusive, except a refused call to a tool
+the test did not offer, which never ran.
 
-The parallel case's serial-fallback assertion depends on the original harness's
-lack of worker isolation. The live pilot must reproduce that precondition or obtain
-an explicit disposition if the new provider can isolate workers. Tool permissions,
-child tool availability and runtime sandboxing still require qualification.
+After the first live pilot, by decision: the parallel case's serial-fallback
+grader is retired because both runtimes isolated the workers in worktrees, and the
+`fresh-review` and `names-unreviewed-change` regexes are widened to accept the
+correct answers that pilot gave (a re-request about the requested boundary;
+`BATCH_SIZE` and "since advanced"). Tool permissions, child tool availability and
+runtime sandboxing still require qualification.
 
 Inspect nonzero coverage, individual assertion results, transport/grader errors,
 runtime/model versions, traces and retained workspaces. Seeded replay records test

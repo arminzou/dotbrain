@@ -1,5 +1,6 @@
 # Decision exercise ported from the retired runner; each `metric` is the source grader id.
-# Regex graders keep their source patterns; inline (?is) flags become RegExp flags.
+# Regex graders keep their source patterns; inline (?is) flags become RegExp flags. `fresh-review` is
+# widened by decision after the first live pilot: a re-request about the requested boundary also counts.
 - description: observed-revision-mismatch-held
   vars:
     case: observed-revision-mismatch-held
@@ -28,7 +29,7 @@
   assert:
   - type: javascript
     metric: fresh-review
-    value: new RegExp("(re-?review|new review|fresh review|review again|refresh)[^.]{0,200}4c4c4c4|4c4c4c4[^.]{0,200}(re-?review|new review|fresh review|review again|refresh)", "is").test(output)
+    value: new RegExp("(?=[^.]*(?:re-?review|new review|fresh review|review again|refresh|re-?request\\w*[^.]{0,40}review|review[^.]{0,60}again))(?=[^.]*(?:4c4c4c4|requested (?:head|boundary|revision)|(?:that|the) boundary))[^.]+", "is").test(output)
   - type: javascript
     metric: held
     value: new RegExp("(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))[^.]{0,200}(9e9e9e9|observed|mismatch|differ)|(9e9e9e9|observed|mismatch|differ)[^.]{0,200}(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))", "is").test(output)

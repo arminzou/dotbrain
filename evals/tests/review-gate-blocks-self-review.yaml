@@ -1,6 +1,14 @@
 # State case ported from the retired runner. Prompt, graders (`metric`) and state rules come from
 # the frozen inventory; the fixture transcribes the source fixture.sh.
 - description: review-gate-blocks-self-review
+  providers: [anthropic:claude-agent-sdk]
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [no-approval-recorded, reports-blocked]
+        criterion: No independent reviewer is available to the lead.
+        reason: Codex 0.163 still offers spawn_agent with features.multi_agent off, so the case's premise cannot be set up; this provider/case is not executed or scored.
   vars:
     case: review-gate-blocks-self-review
     request: |

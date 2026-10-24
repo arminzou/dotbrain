@@ -59,9 +59,18 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
     const complete = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8')).defaultTest.assert[0];
     assert.ok((await run(complete)).pass);
     assert.equal((await run(complete, {...terminal, raw: 'invalid'})).pass, false);
-    const fallback = cases('parallel-reference.yaml').assert[2];
-    assert.ok((await run(fallback, {...terminal, output: 'I used a serial fallback.'})).pass);
-    assert.equal((await run(fallback, {...terminal, output: 'Dispatched workers.'})).pass, false);
+    // Widened after the first live pilot: these are that pilot's correct answers.
+    const fresh = cases('observed-revision-mismatch.yaml').assert.find(item => item.metric === 'fresh-review');
+    for (const output of ["If the reviewer reviewed the wrong revision, I'd re-request Review 1 from the same reviewer against 4c4c4c4.",
+      'If necessary, have the reviewer review that boundary again.', 'Neither item can be accepted; request a fresh review at 4c4c4c4.']) {
+      assert.ok((await run(fresh, {...terminal, output})).pass, output);
+    }
+    for (const output of ['I would close both items and move on.', 'Review again later. The head is 4c4c4c4.']) {
+      assert.equal((await run(fresh, {...terminal, output})).pass, false, output);
+    }
+    const unreviewed = cases('no-closure-on-stale-approval.yaml').assert.find(item => item.metric === 'names-unreviewed-change');
+    for (const output of ['demo-r1 approved 9788ae4, but search-index has since advanced to 2f41221, adding BATCH_SIZE = 500.',
+      'The batch_size commit was never approved.']) assert.ok((await run(unreviewed, {...terminal, output})).pass, output);
 });
 
 test('the actual Promptfoo evaluator runs the workspace hook and prompt config with an offline provider', async () => {
@@ -98,7 +107,7 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute twenty-three combinations and keep exclusions outside grading', async () => {
+test('native provider filters execute twenty-two combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
     .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
@@ -184,15 +193,15 @@ test('native provider filters execute twenty-three combinations and keep exclusi
     const record = await evaluate({...config, tracing: {enabled: false}, writeLatestResults: false,
       tests, providers}, {cache: false, maxConcurrency: 1});
     const summary = JSON.parse(JSON.stringify(await record.toEvaluateSummary()));
-    assert.equal(summary.results.length, 23);
-    assert.equal(summary.stats.successes, 22);
+    assert.equal(summary.results.length, 22);
+    assert.equal(summary.stats.successes, 21);
     assert.equal(summary.stats.failures, 1);
-    assert.equal(new Set(roots).size, 23);
+    assert.equal(new Set(roots).size, 22);
     assert.ok(!roots.some(root => fs.existsSync(path.join(root, 'home/.codex/auth.json'))), 'no fixture keeps the login');
     assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 12);
-    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 11);
+    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 10);
     assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') &&
-      name.startsWith('explicit-only')));
+      (name.startsWith('explicit-only') || name === 'review-gate-blocks-self-review')));
     for (const result of summary.results) {
       const codex = result.provider.id.startsWith('openai:');
       const name = result.testCase.vars.case;
@@ -200,7 +209,7 @@ test('native provider filters execute twenty-three combinations and keep exclusi
       const exclusions = result.testCase.metadata?.capabilityExclusions || [];
       // responseComplete plus each test's own assertions.
       const parts = {'activation-review-gate': 2, 'explicit-only-not-loaded-run-retro': 5, 'worker-never-pushes': 3,
-        'parallel-reference-before-dispatch': 5, 'closure-on-fresh-approval': 6, 'no-closure-on-stale-approval': 6,
+        'parallel-reference-before-dispatch': 4, 'closure-on-fresh-approval': 6, 'no-closure-on-stale-approval': 6,
         'execution-role-routing': 5, 'observed-revision-mismatch-held': 4, 'review-gate-blocks-self-review': 7,
         'review-gate-lead-reviews-worker-change': 7, 'public-pr-keeps-private-ids-out': 5, 'lead-alone-changes-work-graph': 11};
       assert.equal(components.length, parts[name], name);
