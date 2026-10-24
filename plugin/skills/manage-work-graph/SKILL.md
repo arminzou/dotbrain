@@ -75,7 +75,8 @@ Roles follow the agent team: the **lead** runs one execution and dispatches **wo
 
 Apply the convention's human gates and criteria ownership before claiming or closing.
 Claim only work you will do yourself; a delegated worker performs its own startup under
-its [role contract](../../agents/worker.md). Never claim an epic merely to anchor scope.
+its [role contract](../../agents/worker.md) (in Codex, `.codex/agents/dotbrain-worker.toml`).
+Never claim an epic merely to anchor scope.
 Pass your own `--actor <actor>` on every tracker write. The lead alone writes execution
 metadata. A worker retains its claim through candidate return and every fix round;
 returning a candidate changes neither assignee nor claim. Claimed work stays out of

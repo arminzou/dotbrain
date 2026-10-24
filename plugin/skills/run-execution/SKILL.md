@@ -1,6 +1,6 @@
 ---
 name: run-execution
-description: Carries out one work item or a finite batch from the private work graph — selects, dispatches workers, integrates, checks, repairs within limits, closes through manage-work-graph, and escalates or recovers. Use when asked to do, implement, or work an item, a set of items, or an epic's ready work, or via /dotbrain:run-execution. NOT for filing or reshaping work items (manage-work-graph), a design-level automation handoff (iterate-design), or independent review (review-gate).
+description: Carries out one work item or a finite batch from the private work graph — selects, dispatches workers, integrates, checks, repairs within limits, closes through manage-work-graph, and escalates or recovers. Use when asked to do, implement, or work an item, a set of items, or an epic's ready work, including requests to dispatch dotbrain workers one after another or in parallel, or via /dotbrain:run-execution. NOT for filing or reshaping work items (manage-work-graph), a design-level automation handoff (iterate-design), or independent review (review-gate).
 ---
 
 # Run Execution
@@ -61,7 +61,8 @@ report the serial fallback before continuing, keeping scope, isolation, checks, 
 At most one active writer owns an item. Delegated workers return
 candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
 permissions and actor rules. Worker startup is defined only
-in the [worker role](../../agents/worker.md) and its Codex counterpart. An unwired linked
+in the [worker role](../../agents/worker.md) and its Codex counterpart,
+`.codex/agents/dotbrain-worker.toml`. An unwired linked
 worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
 never rely on where one began.
 
@@ -152,7 +153,8 @@ findings resolved; others applied, filed with follow-up IDs, or declined with re
 ## Worker assignment
 
 Every delegated writing worker receives, in its runtime message, the labelled assignment that
-[the worker role](../../agents/worker.md#the-assignment) defines, with every label in order;
+[the worker role](../../agents/worker.md#the-assignment) defines (in Codex, the same section of
+`.codex/agents/dotbrain-worker.toml`), with every label in order;
 reviewer requests keep their own inputs. The worker's actor follows manage-work-graph's actor
 rules. Make the assignment self-contained: settled constraints and exact source sections with
 enough context to resolve conflicts, not the lead's conversation or whole workflow documents.
