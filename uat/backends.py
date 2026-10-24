@@ -12,6 +12,7 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -21,10 +22,11 @@ from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Protocol
 
-# Live variables that could carry a credential or aim a runtime or dotbrain at live state; the
+# Live variables that could carry a credential or aim a runtime, dotbrain or git at live state; the
 # sandbox environment drops them, and a journey passes its one credential to the runtime alone.
-_DROPPED = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|AUTH|BASE_URL|^OPENCODE_|^XDG_|^DOTBRAIN_|^UAT_|^PI_|^CURSOR_|^HERMES_",
-                      re.I)
+# Git's own (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ...) beat `git -C` and would redirect sandbox writes.
+_DROPPED = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|AUTH|BASE_URL|^OPENCODE_|^XDG_|^DOTBRAIN_|^UAT_|^PI_|^CURSOR_|^HERMES_"
+                      r"|^GIT_", re.I)
 TEARDOWN_SECONDS = 60  # a detached sync still running against the unreachable remote holds the data root
 HERE = Path(__file__).resolve().parent
 
@@ -141,23 +143,33 @@ def leaks(root: Path, secret: str) -> list[str]:
 
 
 def run_process(argv, *, env, cwd, timeout, secrets=()):
-    """``subprocess.run`` that kills the whole tree on timeout and redacts ``secrets`` from the output."""
+    """``subprocess.run`` that kills the whole tree on timeout or any other exceptional exit, such as
+    an interrupt, and redacts ``secrets`` from the output."""
     # Looked up on the given PATH with PATHEXT; Windows would search the live PATH and skip .cmd.
     argv = [shutil.which(argv[0], path=env.get("PATH")) or argv[0], *argv[1:]]
+    # On POSIX in its own process group, so the tree can be killed as one.
     proc = subprocess.Popen(argv, env=env, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, encoding="utf-8", errors="replace")
+                            stderr=subprocess.PIPE, encoding="utf-8", errors="replace",
+                            start_new_session=sys.platform != "win32")
     try:
         out, err = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         _kill_tree(proc)  # the runtime's own children would otherwise outlive it
         out, err = proc.communicate()
         raise AssertionError(redact(f"{argv[0]} ran past {timeout} s\n{out[-4000:]}\n{err[-4000:]}", secrets)) from None
+    except BaseException:
+        _kill_tree(proc)
+        proc.wait()  # reaped; not drained, since a killed tree's pipes need nothing more
+        raise
     return subprocess.CompletedProcess(argv, proc.returncode, redact(out, secrets), redact(err, secrets))
 
 
 def _kill_tree(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True, check=False)
+    else:
+        with suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
     proc.kill()
 
 
@@ -186,13 +198,14 @@ class HostBackend:
     """Native Windows: the user home, app data, XDG dirs, runtime homes and data root in a temp sandbox.
 
     Runtime binaries and ``uv`` are resolved by the caller before the environment is swapped, since
-    an install under the live ``%LOCALAPPDATA%`` is invisible once it is. ``credential_vars`` are
-    the variables the shim removes before running dotbrain.
+    an install under the live ``%LOCALAPPDATA%`` is invisible once it is; ``runtime_dir``, the
+    resolved binary's directory, joins the sandbox PATH so ``dotbrain bootstrap`` finds an install
+    that is off PATH. ``credential_vars`` are the variables the shim removes before running dotbrain.
     """
 
-    def __init__(self, root: Path, *, repo: Path, uv: str, credential_vars=()):
+    def __init__(self, root: Path, *, repo: Path, uv: str, credential_vars=(), runtime_dir: str | None = None):
         self.root = root
-        self._args = (repo, uv, credential_vars)
+        self._args = (repo, uv, credential_vars, runtime_dir)
 
     def start(self):
         try:
@@ -202,7 +215,7 @@ class HostBackend:
                 self.teardown()
             raise
 
-    def _build(self, root, repo, uv, credential_vars):
+    def _build(self, root, repo, uv, credential_vars, runtime_dir):
         home = root / "home"
         self.home = str(home)
         self.data_root = str(home / "dotbrain")
@@ -226,7 +239,8 @@ class HostBackend:
 
         env = sanitized(os.environ)
         env.update({
-            "PATH": os.pathsep.join([str(shim_dir), os.environ.get("PATH", "")]),
+            # The runtime's directory last: it adds an off-PATH install without reordering PATH.
+            "PATH": os.pathsep.join([str(shim_dir), os.environ.get("PATH", ""), *filter(None, [runtime_dir])]),
             "HOME": self.home, "USERPROFILE": self.home,
             "APPDATA": str(home / "AppData" / "Roaming"), "LOCALAPPDATA": str(home / "AppData" / "Local"),
             "XDG_CONFIG_HOME": str(home / ".config"), "XDG_DATA_HOME": str(home / ".local" / "share"),

@@ -154,7 +154,8 @@ def sandbox(request, runtime, tmp_path, tmp_path_factory):
     if container:
         backend = ContainerBackend(image)
     else:
-        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=CREDENTIAL_VARS)
+        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=CREDENTIAL_VARS,
+                              runtime_dir=os.path.dirname(exe))
 
     # Registered before the sandbox exists, so a failing start, preparation or journey still
     # removes it and still reports every isolation violation, beside the original failure.

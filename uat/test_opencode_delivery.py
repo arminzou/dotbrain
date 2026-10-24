@@ -53,13 +53,22 @@ def runtime(request):
     return request.param
 
 
-def packaged_skills() -> set[str]:
+def packaged_skills(model_visible: bool = False) -> set[str]:
+    """The packaged skill names; ``model_visible`` leaves out the manual-only ones
+    (``disable-model-invocation: true``), which Pi and Cursor keep out of the model's skill list."""
     names = set()
     for skill in (REPO / "plugin" / "skills").glob("*/SKILL.md"):
-        match = re.search(r"^name:\s*(\S+)", skill.read_text(encoding="utf-8"), re.M)
-        if match:
+        text = skill.read_text(encoding="utf-8")
+        match = re.search(r"^name:\s*(\S+)", text, re.M)
+        if match and not (model_visible and re.search(r"^disable-model-invocation:\s*true\s*$", text, re.M)):
             names.add(match.group(1))
     return names
+
+
+def unnamed_skills(answer: str) -> set[str]:
+    """The model-visible packaged skills and the synthetic skill that ``answer`` does not name."""
+    return {name for name in packaged_skills(model_visible=True) | {SKILL}
+            if not re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", answer)}
 
 
 def headless(sandbox, runtime, prompt):
@@ -92,7 +101,15 @@ def test_packaged_and_synthetic_skills_are_discovered(sandbox, runtime):
                                            "you to. Then list the name of every skill available to you, one per line.")
     answer = adapter.answer(events)
     assert sandbox.reference_nonce in answer
-    assert SKILL in answer and "wire-brain" in answer
+    if not adapter.skills:  # the answer is the only listing
+        assert not unnamed_skills(answer), answer
+
+
+def test_discovery_answer_must_name_every_model_visible_skill():
+    visible = packaged_skills(model_visible=True)
+    assert "wire-brain" in visible and "dotbrain" not in visible  # a manual-only skill is excluded
+    assert unnamed_skills(f"{SKILL}\nwire-brain") == visible - {"wire-brain"}
+    assert unnamed_skills("\n".join([SKILL, *(f"dotbrain:{name}" for name in visible)])) == set()
 
 
 def test_convention_arrives_before_the_first_request(sandbox, runtime):

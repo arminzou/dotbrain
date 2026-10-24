@@ -23,8 +23,74 @@ SECRET = "sk-synthetic-uat-secret"
 
 def test_sanitized_drops_credentials_and_live_state_variables():
     env = sanitized({"PATH": "p", "OPENAI_API_KEY": SECRET, "ANTHROPIC_BASE_URL": "u", "XDG_CONFIG_HOME": "x",
-                     "DOTBRAIN_HOME": "d", "SystemRoot": "s"})
+                     "DOTBRAIN_HOME": "d", "GIT_DIR": "g", "SystemRoot": "s"})
     assert env == {"PATH": "p", "SystemRoot": "s"}
+
+
+def _inert_host(tmp_path, monkeypatch, **kwargs) -> HostBackend:
+    """A started host backend whose CLI install and shim build do nothing."""
+    monkeypatch.setattr(backends.subprocess, "run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(backends, "build_shim", lambda *_args: None)
+    backend = HostBackend(tmp_path / "sandbox", repo=tmp_path, uv="uv", **kwargs)
+    backend.start()
+    return backend
+
+
+def test_runtime_installed_off_path_is_on_the_sandbox_path(tmp_path, monkeypatch):
+    from dotbrain import runtimes
+
+    install = tmp_path / "cursor-agent"
+    install.mkdir()
+    agent = install / ("agent.cmd" if sys.platform == "win32" else "agent")
+    agent.write_text("")
+    agent.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path / "elsewhere"))
+    backend = _inert_host(tmp_path, monkeypatch, runtime_dir=str(install))
+    # As `dotbrain bootstrap` probes: the runtime's command name on the process PATH.
+    found = shutil.which(runtimes.command(runtimes.RUNTIMES["cursor"]), path=backend.env["PATH"])
+    assert found and os.path.samefile(found, agent)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
+def test_inherited_git_dir_does_not_redirect_sandbox_git(tmp_path, monkeypatch):
+    live = tmp_path / "live"
+    subprocess.run(["git", "init", "-q", str(live)], check=True)
+    for name, value in {"GIT_DIR": live / ".git", "GIT_WORK_TREE": live, "GIT_INDEX_FILE": live / ".git" / "index"}.items():
+        monkeypatch.setenv(name, str(value))
+    backend = _inert_host(tmp_path, monkeypatch)
+    repo = str(tmp_path / "sandbox" / "repo")
+    assert backend.run(["git", "init", "-q", repo]).returncode == 0
+    assert backend.run(["git", "-C", repo, "commit", "--allow-empty", "-q", "-m", "seed"]).returncode == 0
+    assert backend.run(["git", "-C", repo, "log", "--format=%s"]).stdout.strip() == "seed"
+    live_git = {**backend.env, "GIT_DIR": str(live / ".git")}
+    assert run_process(["git", "rev-parse", "--verify", "-q", "HEAD"], env=live_git, cwd=live,
+                       timeout=60).returncode != 0  # the live repository got no commit
+
+
+def test_interrupted_run_kills_and_reaps_the_process_tree(tmp_path, monkeypatch):
+    beat = tmp_path / "beat"
+    # A child that keeps a grandchild beating, as a runtime keeps its own subprocesses.
+    grandchild = f"import time\nfor _ in range(300):\n    open({str(beat)!r}, 'a').write('x'); time.sleep(0.1)\n"
+    child = f"import subprocess, sys, time; subprocess.Popen([sys.executable, '-c', {grandchild!r}]); time.sleep(60)"
+    popen, started = backends.subprocess.Popen, []
+
+    class Interrupted(popen):
+        def communicate(self, *args, **kwargs):
+            if self.args[-1] != child:
+                return super().communicate(*args, **kwargs)
+            started.append(self)
+            while not beat.exists():
+                time.sleep(0.1)
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(backends.subprocess, "Popen", Interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        run_process([sys.executable, "-c", child], env=dict(os.environ), cwd=tmp_path, timeout=60)
+    assert started[0].returncode is not None  # killed and reaped
+    time.sleep(1)  # a beat already under way lands
+    size = beat.stat().st_size
+    time.sleep(1)
+    assert beat.stat().st_size == size, "the grandchild outlived the interrupted run"
 
 
 def test_failed_construction_installs_without_credentials_and_removes_the_sandbox(tmp_path, monkeypatch):
