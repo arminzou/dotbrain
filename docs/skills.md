@@ -76,7 +76,7 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   durable results into `CONTEXT.md` and `adr/`.
 - **`find-unknowns`** — surface blind spots and tacit assumptions in unfamiliar territory before
   committing to a design.
-- **`close-design`** (invoke by name) — drive a design doc to a terminal state: check actual PR merge
+- **`close-design`** — drive a design doc to a terminal state: check actual PR merge
   evidence for shipment, record evidence, promote residue to
   `adr/` and `CONTEXT.md`, close the epic.
 
@@ -86,7 +86,7 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   work graph
 - **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, have each
   change reviewed independently, integrate, check, repair within limits, and escalate or recover
-- **`iterate-design`** (invoke by name) — run an active design doc through the agent's native loop mode: plan,
+- **`iterate-design`** — run an active design doc through the agent's native loop mode: plan,
   implement, verify, reflect, deliver through a draft pull request that becomes ready for your
   review, and stop on success or blocked
 
@@ -103,9 +103,10 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
 ## Optional skills invoked by name
 
 These skills stay shipped. In Claude Code, use `/dotbrain:<name>`; in Codex, use `$<name>`.
+`dotbrain` and `triage-public` also start when you ask for them in words; the others run only by name.
 
 - **`dotbrain`** — the operating convention itself. The session-start hook injects it
-  automatically; invoke it by name in runtimes where the hook does not run.
+  automatically; in runtimes where the hook does not run, ask for it or invoke it by name.
 - **`run-retro`** — explicitly review new or changed evidence, retaining private retrospective
   findings, successful practices, and bounded progress. Invoke manually or through an external
   agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:

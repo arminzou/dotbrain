@@ -10,8 +10,8 @@ pageClass: prompt-examples
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
 不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
-`iterate-design`、`review-architecture`、`run-retro`、`close-design`、`teach-me`、`triage-public`、`brain-site` 和 `dotbrain` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
-`/dotbrain:iterate-design`。
+`review-architecture`、`run-retro`、`teach-me` 和 `brain-site` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
+`/dotbrain:run-retro`。
 
 ## 配置 {#set-up}
 
@@ -131,7 +131,7 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 **什么时候用：** 设计处于 active 状态，工作有机械化的检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
 （范围、分支、检查项、worker 数量、PR 交付方式、验收/UAT、审阅、provider/auth 和执行上限）。
 完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**技能：**
-`iterate-design`，只能显式调用。见[工作流程](workflow.md#_5-work-the-issues)。
+`iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### Handoff：并行执行 {#handoff-parallel-execution}
 
@@ -141,7 +141,7 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 
 **什么时候用：** 希望 Agent 按 active 设计持续推进，并把独立任务并行处理。某个任务耗尽重试次数或需要你决定时，
 它和依赖它的任务会等待，其他独立任务继续。范围内只要还有任务被阻塞，handoff 就不能成功结束，也不能把 PR 标为 ready。
-**技能：** `iterate-design`，只能显式调用。见[工作流程](workflow.md#_5-work-the-issues)。
+**技能：** `iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 两种 handoff 模式下，批准约定并回复 `GO` 后，Agent 可以推送专用分支、在首次推送时创建 draft PR，
 并在验证和审阅通过后把 PR 标为 ready、请求你审阅。合并、部署、发布、依赖变更，以及范围或成功标准的调整，仍需你决定。
@@ -221,7 +221,7 @@ outlive it to ADRs and CONTEXT.md.
 ```
 
 **什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**技能：**
-`close-design`，需显式调用。见[工作流程](workflow.md#_7-close-the-design)。
+`close-design`。见[工作流程](workflow.md#_7-close-the-design)。
 
 ## 学习 {#learn}
 
@@ -290,7 +290,7 @@ Use write-agent-docs to tighten this project's AGENTS.md.
 
 ### 分诊公开任务 {#triage-public-issues}
 
-先调用技能：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
+直接说要分诊，或者调用技能：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

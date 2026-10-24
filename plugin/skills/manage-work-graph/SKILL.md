@@ -94,7 +94,7 @@ Native closure requires acceptance evidence and resolved item-level human gates.
 Apply [run-execution's acceptance rules](../run-execution/SKILL.md#item-review-and-acceptance)
 for implementation and [review-bead closing rules](references/review-beads.md#closing)
 for reviews. Closure never merges the target branch or automatically invokes `close-design`.
-Leave the design and epic active until manually invoked terminal closeout; a ready PR
+Leave the design and epic active until the human asks for terminal closeout; a ready PR
 awaits human approval and merge.
 
 ## Metadata write method

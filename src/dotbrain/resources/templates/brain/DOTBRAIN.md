@@ -114,7 +114,7 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
   bead epics by `to-issues`.
   Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
   freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
-  (vocabulary). Manual `close-design` checks actual PR merge evidence for shipment; until then
+  (vocabulary). `close-design`, run on human request, checks actual PR merge evidence for shipment; until then
   design/epic stay active. Closed-unmerged is never shipped.
   Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
   `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc

@@ -38,6 +38,12 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |
 | Run `uv run pytest` before submitting code changes; CI must pass on Linux, macOS, and Windows. | PR checks are green on all three platforms. |
 
+## Skills
+
+| Rule | What to check |
+| --- | --- |
+| A skill is model-invocable unless the normal workflow never needs it and running it unasked does unwanted work, such as building a site, writing a retrospective, starting a learning path or reviewing architecture. Mark such a skill manual-only in both runtimes. | A manual-only skill sets `disable-model-invocation: true` in `SKILL.md` and `allow_implicit_invocation: false` in `agents/openai.yaml`; the docs' list of skills that never start on their own names exactly those skills. |
+
 ## Public/private boundary
 
 | Rule | What to check |

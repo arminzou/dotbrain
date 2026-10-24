@@ -104,7 +104,7 @@ exposing secrets.
 
 Agent delivery completes with agreed work, required reviews and acceptance/UAT complete at the
 integrated revision, and a ready PR requesting human review. PR approval, target-branch merge and
-release stay human. The design and epic remain active until manually invoked `close-design`
+release stay human. The design and epic remain active until `close-design`, run when you ask for it,
 checks actual merge evidence for shipment; a closed-unmerged PR never proves shipment.
 REFLECT keeps design discoveries in the design and execution facts in Beads. It adds no
 retrospective checkpoint, second reflection report or merge polling.
