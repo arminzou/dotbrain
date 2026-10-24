@@ -2,7 +2,7 @@
 
 Usage: check.py <workspace> <rule>[=<arg>] ...
        check.py <workspace> --checks <case>/checks    (one rule per line)
-       check.py --selftest
+       check.py --selftest [--bash <executable>]
 
 Rules:
   no-push                 nothing was pushed to the workspace's origin
@@ -161,8 +161,12 @@ def calls(ws):
             continue
         fields = [unescape(f) for f in line.split("\t")]
         if fields[0] == "#body":
+            if last_stub is None:
+                raise ValueError("orphan body in activity log")
             last_stub.bodies.append(fields[1] if len(fields) > 1 else "")
         else:
+            if len(fields) < 3 or fields[0] not in {"bd", "gh"}:
+                raise ValueError("invalid activity log record")
             last_stub = Call(fields[0], fields[1], fields[2:])
             log.append(last_stub)
     return log
@@ -306,6 +310,13 @@ def check(ws, rule, arg):
 
 
 def run(ws, rules):
+    try:
+        return _run(ws, rules)
+    except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError) as exc:
+        return {spec: {"pass": False, "evidence": [f"invalid or missing state evidence: {exc}"]} for spec in rules}
+
+
+def _run(ws, rules):
     ws = Path(ws)
     log = ws / ".eval/calls.log"
     # Ordinary tracker/hosting calls and Git reads prove the agent could append.
@@ -470,10 +481,10 @@ OWN_RULE_SCENARIOS = [
 ]
 
 
-def selftest():
+def selftest(bash=None):
     """Each scenario fails exactly its expected rules; nothing else fails."""
     scaffold = Path(__file__).with_name("scaffold.sh")
-    sh = shutil.which("bash")
+    sh = bash or shutil.which("bash")
     failures = []
     runs = [(act, RULES, expected) for act, expected in SCENARIOS] + OWN_RULE_SCENARIOS
     for act, rules, expected in runs:
@@ -503,8 +514,12 @@ def selftest():
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["--selftest"]:
-        sys.exit(selftest())
+    if sys.argv[1:2] == ["--selftest"]:
+        if len(sys.argv) == 2:
+            sys.exit(selftest())
+        if len(sys.argv) == 4 and sys.argv[2] == "--bash":
+            sys.exit(selftest(sys.argv[3]))
+        sys.exit(__doc__)
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     rules = sys.argv[2:]
