@@ -261,6 +261,63 @@ def test_failed_migration_retains_legacy_and_cache_then_recovers(delivery, monke
     assert not link(delivery).warnings and not old.is_symlink()
 
 
+@pytest.mark.parametrize("agents", ["claude, codex", "codex, claude"])
+def test_multi_runtime_collision_preserves_cached_legacy_content(delivery, agents):
+    home, brainspace, repo = delivery
+    (brainspace / ".brain/project.yaml").write_text(
+        f"agents: [{agents}]\nskills: [misc/discovery-test]\n", encoding="utf-8")
+    cached = home / ".cache/skills/discovery-test/SKILL.md"
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"legacy skill content\n")
+    old = legacy_link(delivery, source=".cache/skills/discovery-test")
+    destination = repo / ".agents/skills/discovery-test"
+    destination.parent.mkdir(parents=True)
+    destination.write_bytes(b"foreign collision\n")
+    target = projects.ProjectTarget("sample", brainspace, repo)
+    for _ in range(2):
+        result = assets.link_project(home, target, "skills")
+        assert result.warnings
+        assert old.is_symlink() and (old / "SKILL.md").read_bytes() == b"legacy skill content\n"
+        assert cached.read_bytes() == b"legacy skill content\n"
+        assert destination.read_bytes() == b"foreign collision\n"
+    # A runtime-specific refresh cannot own shared cache retirement either.
+    assets.link_project(home, target, "skills", "claude")
+    assert (old / "SKILL.md").read_bytes() == b"legacy skill content\n"
+    destination.unlink()
+    assert not assets.link_project(home, target, "skills").warnings
+    assert not old.is_symlink()
+    assert destination.resolve() == (home / "skills/misc/discovery-test").resolve()
+    again = assets.link_project(home, target, "skills")
+    assert again.linked == again.pruned == again.warnings == []
+
+
+@pytest.mark.parametrize("failed_receiver", [".claude/skills", ".agents/skills"])
+def test_multi_runtime_failure_preserves_cached_legacy_content(delivery, monkeypatch, failed_receiver):
+    home, brainspace, repo = delivery
+    (brainspace / ".brain/project.yaml").write_text(
+        "agents: [claude, codex]\nskills: [misc/discovery-test]\n", encoding="utf-8")
+    cached = home / ".cache/skills/discovery-test/SKILL.md"
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"legacy skill content\n")
+    old = legacy_link(delivery, source=".cache/skills/discovery-test")
+    target = projects.ProjectTarget("sample", brainspace, repo)
+    original = Path.symlink_to
+    def fail(self, destination, target_is_directory=False):
+        if self.parent == repo / failed_receiver:
+            raise OSError("injected multi-runtime delivery failure")
+        return original(self, destination, target_is_directory=target_is_directory)
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "symlink_to", fail)
+        with pytest.raises(OSError, match="injected multi-runtime delivery failure"):
+            assets.link_project(home, target, "skills")
+    assert old.is_symlink() and (old / "SKILL.md").read_bytes() == b"legacy skill content\n"
+    assert cached.read_bytes() == b"legacy skill content\n"
+    assert not assets.link_project(home, target, "skills").warnings
+    assert not old.is_symlink()
+    again = assets.link_project(home, target, "skills")
+    assert again.linked == again.pruned == again.warnings == []
+
+
 def test_failed_owned_replacement_preserves_both_links(delivery, monkeypatch):
     home, _, repo = delivery
     old = legacy_link(delivery)
