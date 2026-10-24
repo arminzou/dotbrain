@@ -1,8 +1,10 @@
 # Shared skill evals
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
-suite on Claude Code and Codex. Twelve scenarios are prepared; live
-qualification and the remaining migration are pending.
+suite on Claude Code and Codex. It covers dotbrain's core capabilities rather than
+every retired case: skill loading, worker and review boundaries, closure on fresh
+approval, private IDs out of public PRs, and parallel dispatch. Twelve scenarios are
+prepared; live qualification is pending.
 
 ## Files
 
@@ -10,7 +12,7 @@ qualification and the remaining migration are pending.
 promptfooconfig.yaml       # shared runner configuration
 package.json              # pinned local Promptfoo and Claude SDK dependencies
 providers/                # built-in Claude Agent SDK / Codex app-server settings
-tests/*.yaml              # shared scenarios; per-case `fixture` var holds tracker items, tools, max turns
+tests/*.yaml              # shared scenarios; per-case `fixture` var holds commits, tracker items, tools
 fixtures/                 # fresh workspaces through Promptfoo's beforeEach hook
 assertions/               # runtime evidence and case-specific Git/state checks
 results/                  # ignored workspaces, logs and reports
@@ -21,19 +23,25 @@ The retired runner's case directories are no longer checked out. Their criteria
 live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
 with `git show <source-revision>:plugin/evals/<path>`. See
 [legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
-twelve prepared cases do not establish parity.
+the suite deliberately keeps twelve of them.
 
 Not ported, by decision:
 
 - `explicit-only-not-loaded-close-design`: `close-design` now starts from a
   plain-words request, so its criterion no longer holds.
-- `activation-manage-work-graph`: repeats `activation-review-gate`'s check that
-  skills load.
-- `no-skill-for-unrelated-request`: an unrelated question almost never loads a
-  skill, so the case nearly always passes.
+- `activation-manage-work-graph`, `no-skill-for-unrelated-request`: the first
+  repeats `activation-review-gate`; the second nearly always passes.
 - `accepted-automatic-failure-mode`, `handoff-stop-scopes`,
-  `metadata-preserves-checkpoint-state`, `execution-recovery-boundaries`: their
-  regex graders pass on almost any answer, or other cases already cover them.
+  `metadata-preserves-checkpoint-state`, `execution-recovery-boundaries`,
+  `automatic-failure-blocks-later-runs`, `unreported-automatic-failure-is-high`:
+  their regex graders pass on almost any answer, or other cases cover them.
+- `handoff-goal-shortfall-final-review`: repeats `goal-shortfall-blocks-final-review`.
+- Not core: `final-review-coverage-and-dispositions`,
+  `fix-round-from-stored-assignment`, `parallel-group-promotion`,
+  `reviewer-records-review-comment`, `goal-shortfall-blocks-final-review`,
+  `handoff-admits-goal-shortfall-within-budget`, `worker-rejects-missing-label`,
+  `worker-stores-candidate-report`, and the optional `run-retro` skill's
+  `retro-records-new-evidence` and `retro-rerun-changes-nothing`.
 
 ## Install and check without models
 
@@ -98,10 +106,8 @@ plus grader ID; every test also requires `responseComplete`.
 | `parallel-reference-before-dispatch` / `reference-read` and supplemental completion-before-dispatch criterion | `parallelOrdering` |
 | Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
 | Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
-| `closure-on-fresh-approval` / `item-closed` | `checkedState` (`fixture.checks.closed`) |
-| Decision exercises (6 cases, 22 graders) / every source grader | One assertion per grader, named by `metric`; see below |
-| `no-closure-on-stale-approval` / `demo-3-not-closed` | `checkedState` (no `fixture.checks.closed`, so any closure fails) |
-| Same case / `names-unreviewed-change` | Built-in `regex` with the source pattern |
+| `execution-role-routing`, `observed-revision-mismatch-held` / every grader | One assertion per grader, named by `metric`; see below |
+| `closure-on-fresh-approval`, `no-closure-on-stale-approval`, `review-gate-blocks-self-review`, `review-gate-lead-reviews-worker-change`, `public-pr-keeps-private-ids-out`, `lead-alone-changes-work-graph` / every grader and state rule | One assertion per grader (`metric` is its id) and per state rule (`metric` is `state:<rule>`); see below |
 
 The `noSkill*` checks read the forbidden skill from the test's `skill` var; a
 missing or malformed name is `INCONCLUSIVE`.
@@ -119,31 +125,29 @@ The local `main` ref must equal its fixture baseline; the active branch may diff
 `no-merge`. The original parallel state contract does not require `main` to remain
 the active branch.
 
-`checkedState` covers rules declared in a test's `fixture.checks` on top of the
-always-on `no-push` and `no-merge`: `closed: <id>` requires a `bd close` or
-`--status closed` whose item operand is that ID, and `branchUnchanged: <branch>`
-requires the branch to still point at its fixture head. For
-`closure-on-fresh-approval` that is `closed=demo-3`, `no-push`, `no-merge`, and
-`branch-unchanged=search-index`. Its tracker items name the fixture's commits
-through `$main`, `$head`, or a commit's own `name` (such as `$reviewed`), which
-the workspace hook replaces with real SHAs.
+The two decision exercises give the agent a written scenario and grade its answer;
+they need no fixture state. Each source regex keeps its pattern, with inline `(?is)`
+flags moved to `RegExp` flags; each `no-dispatch` grader is `noDispatch`, which
+fails on any Claude `Agent` call or Codex `spawnAgent` event. Offering `Agent`
+without Bash, Write or Edit keeps Codex in its read-only sandbox. A known-good
+answer per case must pass every grader and a wrong answer or a dispatch must fail
+each one.
 
-`no-closure-on-stale-approval` has no `closed` check, so `checkedState` fails on
-any closure. That covers the source rule `no-close=demo-3` and its grader, which
-also matched any `bd update --status closed`; it is stricter only for a `bd close`
-of some other item, which this scenario gives no reason to issue.
-
-The six decision exercises (`execution-role-routing`,
-`final-review-coverage-and-dispositions`, `fix-round-from-stored-assignment`,
-`observed-revision-mismatch-held`, `parallel-group-promotion`,
-`reviewer-records-review-comment`) give the agent a written scenario and grade its
-answer; they need no fixture state. Their YAML is generated from the frozen
-inventory with the source prompt, turn limit and tools. Each source regex keeps its
-pattern, with inline `(?is)` flags moved to `RegExp` flags; each `no-dispatch`
-grader is `noDispatch`, which fails on any Claude `Agent` call or Codex
-`spawnAgent` event. Offering `Agent` without Bash, Write or Edit keeps Codex in its
-read-only sandbox. A known-good answer per case must pass every grader and a wrong
-answer or a dispatch must fail each one.
+The six state cases are generated from the frozen inventory: prompt, turn limit,
+graders and state rules, with a fixture transcribed from each source `fixture.sh`.
+The fixture's commits may sit on named branches with an author and a `name`; items
+and rules refer to revisions as `$main`, `$head` or `$<name>`. The `bd`/`gh` stub
+logs each call's actor and any body passed by `--file`, `--body-file` or `-F`, and
+answers commands listed in `fixture.responses`. `callsLog` renders those calls as
+the retired runner's tab-separated `calls.log`, so a source grader's pattern applies
+verbatim; an `absent` pattern needs logged agent activity first. `sourceRule` ports
+the retired checker's rules (`no-push`, `no-merge`, `no-close`, `closed`,
+`no-approval`, `verdict-recorded`, `committed`, `delivered`, `branch-unchanged`,
+`no-private`, `no-graph-write-by`, `no-actorless-graph-write`) and fails every rule
+when no bd, gh or top-level Git call was logged. It also counts the attached
+`-sclosed` form as a closure, which the retired checker missed. A test without
+`Agent` also turns off Codex's `multi_agent`, so `review-gate-blocks-self-review`
+has no independent reviewer on either runtime.
 
 ### Provider capability exclusions
 
@@ -157,6 +161,7 @@ repeat: twelve Claude and eleven Codex. An omitted combination has no result row
 | --- | --- | --- | --- |
 | `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
 | `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
+| `openai:codex-app-server` | `lead-alone-changes-work-graph` / `two-workers-dispatched` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; every state rule remains mandatory |
 | `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
 
 Promptfoo 0.125.0 drops child-thread events from its raw event stream, so Codex

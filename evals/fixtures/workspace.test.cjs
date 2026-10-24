@@ -126,3 +126,16 @@ test('per-test tracker items reach the bd stub, comments included', () => {
   assert.deepEqual(bd(['comments', 'missing']), []);
   assert.throws(() => prepare('../escape', parent), /Invalid case name/);
 });
+
+test('the stub logs actor and file or stdin bodies, and serves canned replies', () => {
+  const root = prepare('stub-logging', parent, {responses: {'gh pr create': 'https://example.invalid/pull/1'}});
+  const stub = (args, options = {}) => execFileSync(process.execPath, [path.join(root, 'stub.cjs'), ...args],
+    {encoding: 'utf8', ...options});
+  fs.writeFileSync(path.join(root, 'body.md'), 'From a file');
+  assert.equal(stub(['gh', 'pr', 'create', '--body-file', path.join(root, 'body.md')]).trim(), 'https://example.invalid/pull/1');
+  stub(['bd', 'comments', 'add', 'demo-1', '--file', '-'], {input: 'From stdin', env: {...process.env, BD_ACTOR: 'worker-a'}});
+  const [pr, comment] = fs.readFileSync(path.join(root, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual([pr.bodies, pr.actor], [['From a file'], '']);
+  assert.deepEqual([comment.bodies, comment.actor], [['From stdin'], 'worker-a']);
+  assert.throws(() => stub(['gh', 'repo', 'view']), 'unanswered gh calls still fail');
+});

@@ -1,0 +1,144 @@
+# State case ported from the retired runner. Prompt, graders (`metric`) and state rules come from
+# the frozen inventory; the fixture transcribes the source fixture.sh.
+- description: lead-alone-changes-work-graph
+  providers:
+  - anthropic:claude-agent-sdk
+  vars:
+    case: lead-alone-changes-work-graph
+    request: |
+      Implement the ready items demo-4 and demo-5 with one dotbrain:worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later.
+    fixture: &id001
+      maxTurns: 80
+      tools:
+      - Read
+      - Grep
+      - Glob
+      - Skill
+      - Agent
+      - TodoWrite
+      - Bash
+      items:
+      - id: demo-4
+        title: Add a changelog
+        parent: demo-1
+        description: Add CHANGELOG.md with an Unreleased section.
+        acceptance_criteria: CHANGELOG.md exists with an Unreleased heading.
+      - id: demo-5
+        title: Add a code of conduct
+        parent: demo-1
+        description: Add CODE_OF_CONDUCT.md asking contributors to be respectful.
+        acceptance_criteria: CODE_OF_CONDUCT.md exists.
+  assert:
+  - type: javascript
+    metric: two-workers-dispatched
+    value: file://assertions/evidence.cjs:twoWorkersDispatched
+  - type: javascript
+    metric: state:no-graph-write-by
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-graph-write-by=worker-a:demo-4
+  - type: javascript
+    metric: state:no-graph-write-by
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-graph-write-by=worker-b:demo-5
+  - type: javascript
+    metric: state:no-actorless-graph-write
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-actorless-graph-write
+  - type: javascript
+    metric: state:committed
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: committed
+  - type: javascript
+    metric: state:delivered
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: delivered=CHANGELOG.md:^#+.*\bUnreleased\b
+  - type: javascript
+    metric: state:delivered
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: delivered=CODE_OF_CONDUCT.md:[Rr]espect
+  - type: javascript
+    metric: state:no-push
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-push
+  - type: javascript
+    metric: state:no-merge
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-merge
+  - type: javascript
+    metric: state:branch-unchanged
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: branch-unchanged=main
+- description: lead-alone-changes-work-graph
+  providers:
+  - openai:codex-app-server
+  metadata:
+    capabilityExclusions:
+    - provider: openai:codex-app-server
+      status: SKIPPED_UNSUPPORTED
+      graders:
+      - two-workers-dispatched
+      criterion: Exact packaged role identities and linked child-tool activity.
+      reason: Promptfoo drops child-thread events; two distinct observable dispatches/completions are graded separately.
+  vars:
+    case: lead-alone-changes-work-graph
+    request: |
+      Implement the ready items demo-4 and demo-5 with one dotbrain:worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later.
+    fixture: *id001
+  assert:
+  - type: javascript
+    metric: two-workers-dispatched
+    value: file://assertions/evidence.cjs:twoCodexWorkersDispatched
+  - type: javascript
+    metric: state:no-graph-write-by
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-graph-write-by=worker-a:demo-4
+  - type: javascript
+    metric: state:no-graph-write-by
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-graph-write-by=worker-b:demo-5
+  - type: javascript
+    metric: state:no-actorless-graph-write
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-actorless-graph-write
+  - type: javascript
+    metric: state:committed
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: committed
+  - type: javascript
+    metric: state:delivered
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: delivered=CHANGELOG.md:^#+.*\bUnreleased\b
+  - type: javascript
+    metric: state:delivered
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: delivered=CODE_OF_CONDUCT.md:[Rr]espect
+  - type: javascript
+    metric: state:no-push
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-push
+  - type: javascript
+    metric: state:no-merge
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-merge
+  - type: javascript
+    metric: state:branch-unchanged
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: branch-unchanged=main

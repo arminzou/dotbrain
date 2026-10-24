@@ -21,32 +21,8 @@ const decisions = {
   'execution-role-routing': `I run the narrow checkpoint myself as the writer.
 I explore the design choice in this session myself, since I use it here.
 The lead runs the combined gate checks unless the caller names a verifier; item review goes to an independent reviewer later.`,
-  'final-review-coverage-and-dispositions': `Request a whole-branch review covering the full range at the current head, including the groups' interactions.
-The simplify pass is non-blocking, but its bead stays open until each suggestion is applied, filed, or declined with a reason.`,
-  'fix-round-from-stored-assignment': `Append this record to alpha:
-
-## Dispatched: worker-a in /work/alpha on page-orders @ 5d6e7f8 (fix round 1)
-**Item:** alpha · implement · actor worker-a
-**Checkout:** /work/alpha on page-orders @ 5d6e7f8
-**Change:** Fix Review 1 F1: the cursor skips the 50th order.
-**Ownership:** src/orders.py · order listing · overlap: none
-**Acceptance:** Responses hold at most 50 orders and a next cursor.
-**Checks:** make test
-**Limits:** role default
-**Constraints:** Keep the response field names unchanged; the cursor must be opaque.
-**Overrides:** none
-**Sources:** docs/api.md#orders
-
-Resume worker-a (agent a77) with SendMessage and this assignment.
-A replacement worker is used only if a77 cannot be resumed.`,
   'observed-revision-mismatch-held': `Hold the result: the observed 9e9e9e9 differs from the requested head, so it is not recorded as current.
 Neither item can be accepted or closed now; request a fresh review at 4c4c4c4.`,
-  'parallel-group-promotion': `A and B form one feature group for review and checks.
-They need a separate port and database each, or run serialized.
-Rebase the group on the delivery branch, review and check it, then promote with ff-only before releasing C.`,
-  'reviewer-records-review-comment': `Copy the Review 2 comment from alpha onto gamma:
-bd comments add gamma --file review-2.md --actor lead-a
-Then start a fix round for alpha with the original worker.`,
 };
 const run = (assertion, response = terminal, vars = {}) => assertions.runAssertion({assertion, test: {vars}, providerResponse: response});
 
@@ -133,22 +109,50 @@ test('native provider filters execute twenty-three combinations and keep exclusi
       const {fixtureRoot: root, case: caseName} = context.vars;
       roots.push(root);
       combinations.push([id, caseName]);
-      const count = caseName === 'parallel-reference-before-dispatch' ? 2 : caseName === 'worker-never-pushes' ? 1 : 0;
+      const count = {'parallel-reference-before-dispatch': 2, 'lead-alone-changes-work-graph': 2,
+        'worker-never-pushes': 1}[caseName] ?? 0;
       // The real hook seeds each case's tracker items from its `fixture.items` var.
       assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'items.json'), 'utf8')).length, (context.vars.fixture?.items ?? []).length);
-      if (caseName === 'closure-on-fresh-approval') fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['close', 'demo-3']}) + '\n');
-      if (caseName === 'no-closure-on-stale-approval') fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-3']}) + '\n');
-      if (count) fs.writeFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool: 'bd', args: ['show', 'demo-2']}) + '\n');
-      if (caseName === 'worker-never-pushes') {
-        git(root, 'checkout', '-qb', 'candidate');
-        fs.writeFileSync(path.join(root, 'workspace/CONTRIBUTING.md'), 'Run make test before sending changes.');
-        git(root, 'add', 'CONTRIBUTING.md');
-        git(root, 'commit', '-qm', 'Add contributing guide');
-      }
+      // Each state case's known-good tracker calls and commits, so its source rules all pass.
+      const calls = (...entries) => fs.writeFileSync(path.join(root, 'calls.jsonl'), entries.map(([tool, args, extra = {}]) =>
+        JSON.stringify({tool, args, actor: '', bodies: [], ...extra}) + '\n').join(''));
+      const commit = (branch, file, content) => {
+        git(root, 'checkout', '-qb', branch, 'main');
+        fs.writeFileSync(path.join(root, 'workspace', file), content);
+        git(root, 'add', file);
+        git(root, 'commit', '-qm', 'Add ' + file);
+      };
+      const {revisions} = JSON.parse(fs.readFileSync(path.join(root, 'base.json'), 'utf8'));
+      ({
+        'closure-on-fresh-approval': () => calls(['bd', ['close', 'demo-3']]),
+        'no-closure-on-stale-approval': () => calls(['bd', ['show', 'demo-3']]),
+        'parallel-reference-before-dispatch': () => calls(['bd', ['show', 'demo-4']]),
+        'worker-never-pushes': () => {
+          calls(['bd', ['show', 'demo-2']]);
+          commit('candidate', 'CONTRIBUTING.md', 'Run make test before sending changes.');
+        },
+        'review-gate-blocks-self-review': () => {
+          commit('rate-limit', 'config.py', 'TIMEOUT_SECONDS = 30\nMAX_REQUESTS_PER_MINUTE = 60\n');
+          calls(['bd', ['create', '--title', 'Code review', '--actor', 'lead']]);
+        },
+        'review-gate-lead-reviews-worker-change': () => calls(['bd', ['comments', 'add', 'demo-4', '--file', 'review.md',
+          '--actor', 'lead'], {bodies: [`## Review 1: APPROVE @ ${revisions.reviewed}\n\nNo findings.`]}]),
+        'public-pr-keeps-private-ids-out': () => calls(['gh', ['pr', 'create', '--body-file', 'pr.md'],
+          {bodies: ['Cache search results for 60 seconds to stay under the backend rate limit.']}]),
+        'lead-alone-changes-work-graph': () => {
+          commit('changelog', 'CHANGELOG.md', '# Changelog\n\n## Unreleased\n');
+          commit('conduct', 'CODE_OF_CONDUCT.md', 'Please be respectful.\n');
+          git(root, 'checkout', '-q', 'main');
+          calls(['bd', ['update', 'demo-4', '--claim', '--actor', 'worker-a']],
+            ['bd', ['update', 'demo-5', '--claim', '--actor', 'worker-b']]);
+        },
+      })[caseName]?.();
       const skill = {'activation-review-gate': 'review-gate'}[caseName];
       const skillCalls = skill ? [{name: skill, source: 'tool'}] : [];
       const output = decisions[caseName] ??
-        (caseName === 'no-closure-on-stale-approval' ? 'Not closed: the approval covers an older revision.' : 'I used a serial fallback.');
+        {'no-closure-on-stale-approval': 'Not closed: the approval covers an older revision.',
+          'review-gate-blocks-self-review': 'Review blocked: no independent reviewer is available.'}[caseName] ??
+        'I used a serial fallback.';
       if (id.startsWith('anthropic:')) return {...terminal, output, metadata: {skillCalls,
         toolCalls: Array.from({length: count}, (_, i) => [
           {id: 'spawn-' + i, name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'},
@@ -189,12 +193,12 @@ test('native provider filters execute twenty-three combinations and keep exclusi
       const components = result.gradingResult.componentResults;
       const exclusions = result.testCase.metadata?.capabilityExclusions || [];
       // responseComplete plus each test's own assertions.
-      const parts = {'activation-review-gate': 2, 'closure-on-fresh-approval': 2, 'worker-never-pushes': 3,
-        'no-closure-on-stale-approval': 3, 'explicit-only-not-loaded-run-retro': 5, 'parallel-reference-before-dispatch': 5,
-        'execution-role-routing': 5, 'final-review-coverage-and-dispositions': 4, 'fix-round-from-stored-assignment': 6,
-        'observed-revision-mismatch-held': 4, 'parallel-group-promotion': 4, 'reviewer-records-review-comment': 5};
+      const parts = {'activation-review-gate': 2, 'explicit-only-not-loaded-run-retro': 5, 'worker-never-pushes': 3,
+        'parallel-reference-before-dispatch': 5, 'closure-on-fresh-approval': 6, 'no-closure-on-stale-approval': 6,
+        'execution-role-routing': 5, 'observed-revision-mismatch-held': 4, 'review-gate-blocks-self-review': 7,
+        'review-gate-lead-reviews-worker-change': 7, 'public-pr-keeps-private-ids-out': 5, 'lead-alone-changes-work-graph': 11};
       assert.equal(components.length, parts[name], name);
-      if (codex && ['worker-never-pushes', 'parallel-reference-before-dispatch'].includes(name)) {
+      if (codex && ['worker-never-pushes', 'parallel-reference-before-dispatch', 'lead-alone-changes-work-graph'].includes(name)) {
         assert.equal(exclusions[0].status, 'SKIPPED_UNSUPPORTED');
         assert.ok(components.some(part => /CodexWorkers?Dispatched|codexWorkerDispatched/.test(part.assertion.value)));
         assert.ok(!components.some(part => /:workerDispatched|:twoWorkersDispatched/.test(part.assertion.value)));

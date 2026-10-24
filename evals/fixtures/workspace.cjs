@@ -38,9 +38,12 @@ function git(root, ...args) {
     encoding: 'utf8', windowsHide: true}).trim();
 }
 
-// Per-case state comes from the test's `fixture` var: optional `branch` and `commits` history, then
-// tracker `items`, whose text may name `$main`, `$head`, or a commit's own `name` as a revision.
-function prepare(caseName, parent = path.join(evals, 'results'), {items = [], branch, commits = []} = {}) {
+// Per-case state comes from the test's `fixture` var: `commits` (each optionally on a `branch`, with
+// an `author` and a `name`), branches to `push`, a final `checkout`, tracker `items`, stub
+// `responses`, and private `brain` files. Text in items and responses may name `$main`, `$head`, or
+// a commit's `name` as a revision; so may a `sourceRule` assertion's rule.
+function prepare(caseName, parent = path.join(evals, 'results'),
+  {items = [], commits = [], push = [], checkout, responses = {}, brain = {}, tools = []} = {}) {
   if (!/^[a-z0-9-]+$/.test(caseName)) throw new Error('Invalid case name: ' + caseName);
   fs.mkdirSync(parent, {recursive: true});
   const root = fs.mkdtempSync(path.join(parent, caseName + '-'));
@@ -66,17 +69,23 @@ function prepare(caseName, parent = path.join(evals, 'results'), {items = [], br
   execFileSync('git', ['init', '--bare', '-q', path.join(root, 'origin.git')], {env, windowsHide: true});
   git(root, 'remote', 'add', 'origin', path.join(root, 'origin.git'));
   git(root, 'push', '-q', 'origin', 'main');
-  if (branch) git(root, 'checkout', '-qb', branch);
+  const switchTo = branch => git(root, 'checkout', '-q', ...(git(root, 'branch', '--list', branch) ? [] : ['-b']), branch);
   const revisions = {};
-  for (const {message, files, name} of commits) {
+  for (const {branch, message, files = {}, name, author} of commits) {
+    if (branch) switchTo(branch);
     for (const [file, content] of Object.entries(files)) write(path.join(root, 'workspace', file), content);
     git(root, 'add', '.');
-    git(root, 'commit', '-qm', message);
+    git(root, ...(author ? ['-c', 'user.name=' + author, '-c', `user.email=${author}@example.invalid`] : []),
+      'commit', '-qm', message);
     if (name) revisions[name] = git(root, 'rev-parse', 'HEAD');
   }
+  for (const branch of push) git(root, 'push', '-q', 'origin', branch);
+  if (checkout) switchTo(checkout);
   Object.assign(revisions, {main: git(root, 'rev-parse', 'main'), head: git(root, 'rev-parse', 'HEAD')});
+  const resolve = text => text.replace(/\$([a-z]+)\b/g, (token, name) => revisions[name] ?? token);
   const seeded = JSON.stringify(items.map(item => ({status: 'open', issue_type: 'task', priority: 2, ...item})));
-  write(path.join(root, 'items.json'), seeded.replace(/\$([a-z]+)\b/g, (token, name) => revisions[name] ?? token));
+  write(path.join(root, 'items.json'), resolve(seeded));
+  write(path.join(root, 'responses.json'), resolve(JSON.stringify(responses)));
   fs.copyFileSync(path.join(__dirname, 'stub.cjs'), path.join(root, 'stub.cjs'));
   for (const tool of ['bd', 'gh']) {
     const stub = path.join(root, 'stub.cjs');
@@ -89,10 +98,13 @@ function prepare(caseName, parent = path.join(evals, 'results'), {items = [], br
   // Use the checkout's locked Python environment only to call product delivery.
   const python = path.join(repo, process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python');
   execFileSync(python, [path.join(__dirname, 'deliver.py'), root], {cwd: repo, env, windowsHide: true});
-  write(path.join(root, 'home/.codex/config.toml'), '[features]\nmulti_agent = true\n');
+  // Codex may spawn agents only when the test offers Claude its `Agent` tool.
+  write(path.join(root, 'home/.codex/config.toml'), `[features]\nmulti_agent = ${tools.includes('Agent')}\n`);
+  for (const [file, content] of Object.entries(brain)) write(path.join(root, 'workspace/.brain', file), content);
   const refs = Object.fromEntries(git(root, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads')
     .split('\n').map(line => line.split(' ')));
-  write(path.join(root, 'base.json'), JSON.stringify({base: revisions.main, refs, caseName}));
+  const origin = git(root, '--git-dir=' + path.join(root, 'origin.git'), 'rev-parse', 'main');
+  write(path.join(root, 'base.json'), JSON.stringify({base: revisions.main, origin, refs, revisions, caseName}));
   const receive = path.join(root, 'origin.git/hooks/post-receive');
   const shellQuote = text => "'" + text.replaceAll("'", "'\\''") + "'";
   write(receive, `#!/bin/sh\nexec ${shellQuote(process.execPath.replaceAll('\\', '/'))} ${shellQuote(path.join(root, 'stub.cjs').replaceAll('\\', '/'))} receive-push\n`);
