@@ -9,7 +9,8 @@ function evidence(context) {
   if (Array.isArray(metadata?.toolCalls)) {
     const terminal = JSON.parse(response.raw);
     if (terminal.subtype !== 'success' || metadata.toolCalls.some(call =>
-      !call.id || !call.name || typeof call.input !== 'object' || call.output === undefined)) {
+      !call.id || !call.name || !call.input || typeof call.input !== 'object' ||
+      Array.isArray(call.input) || call.output === undefined)) {
       throw new Error('INCONCLUSIVE: incomplete Claude tool/terminal evidence');
     }
     return {runtime: 'claude', response, calls: metadata.toolCalls};
@@ -39,42 +40,40 @@ function responseComplete(output, context) {
 }
 
 function mentionsRetro(input) { return /(?:^|[\\/\s:"'])run-retro(?:[\\/\s:"']|$)/i.test(input); }
-function command(call) { return call.command || call.input?.command || ''; }
-function requireVisibleChildren(trace) {
-  if (trace.runtime === 'claude' && trace.calls.some(call => call.name === 'Agent' &&
-    !trace.calls.some(child => child.parentToolUseId === call.id))) {
-    throw new Error('INCONCLUSIVE: Claude child activity is absent from the provider evidence');
+function requireNegativeEvidence(trace) {
+  if (trace.runtime === 'codex') {
+    throw new Error('INCONCLUSIVE: Codex shell events cannot establish absence of skill reads, searches or invocation');
   }
-  if (trace.runtime === 'codex' && trace.notifications.some(event =>
-    event.params?.item?.type === 'collabAgentToolCall' && event.params.item.tool === 'spawnAgent')) {
-    throw new Error('INCONCLUSIVE: Codex child activity is absent from the provider evidence');
+  if (trace.calls.some(call => !['Read', 'Grep', 'Glob', 'Skill'].includes(call.name))) {
+    throw new Error('INCONCLUSIVE: explicit-only checks require the configured native read/search/skill tools');
+  }
+  if (trace.calls.some(call => call.name === 'Read' &&
+    typeof (call.input.file_path || call.input.path) !== 'string' ||
+    call.name === 'Skill' && typeof call.input.skill !== 'string')) {
+    throw new Error('INCONCLUSIVE: missing native read/skill target');
   }
 }
 
 function noRetroRead(output, context) {
   return check(context, trace => {
-    requireVisibleChildren(trace);
-    return !trace.calls.some(call => {
-    const input = call.input || {};
-    return (call.name === 'Read' && mentionsRetro(input.file_path || input.path || '')) ||
-      (mentionsRetro(command(call)) && /\b(cat|type|head|tail|sed|awk|Get-Content|readFile|read_text)\b/i.test(command(call)));
-    });
+    requireNegativeEvidence(trace);
+    return !trace.calls.some(call => call.name === 'Read' &&
+      mentionsRetro(call.input.file_path || call.input.path || ''));
   }, 'run-retro skill/reference reads are forbidden');
 }
 
 function noRetroSearch(output, context) {
   return check(context, trace => {
-    requireVisibleChildren(trace);
-    return !trace.calls.some(call =>
-    (['Grep', 'Glob'].includes(call.name) && mentionsRetro(call.input?.path || '')) ||
-    (mentionsRetro(command(call)) && /\b(rg|grep|find|Get-ChildItem|Select-String)\b/i.test(command(call))));
+    requireNegativeEvidence(trace);
+    return !trace.calls.some(call => ['Grep', 'Glob'].includes(call.name) &&
+      mentionsRetro(call.input.path || ''));
   },
   'Searching the run-retro path is forbidden');
 }
 
 function noRetroInvocation(output, context) {
   return check(context, trace => {
-    requireVisibleChildren(trace);
+    requireNegativeEvidence(trace);
     return !trace.calls.some(call => call.name === 'Skill' && /(?:^|:)run-retro$/.test(call.input?.skill || ''));
   },
   'Invoking run-retro is forbidden; built-in not-skill-used checks inferred uses too');

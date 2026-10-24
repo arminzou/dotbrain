@@ -37,6 +37,10 @@ completion and lead context. The installed Codex app-server provider does not
 retain child role/activity events, so both Codex named-worker assertions currently
 return `INCONCLUSIVE`. This unresolved gap blocks pilot acceptance and further
 full-suite migration; it has no passing synthetic substitute.
+Codex explicit-only negatives are likewise `INCONCLUSIVE`: shell command strings
+do not reveal indirect reads/searches/invocation. Claude negatives require only
+the configured native Read/Grep/Glob/Skill tools. Unexpected opaque tools fail
+closed rather than making a negative criterion pass by absence.
 The parallel case's serial-fallback assertion additionally depends on unavailable
 worker isolation in the original harness. Reproduce that precondition on the new
 providers, or resolve the changed capability explicitly before accepting coverage.

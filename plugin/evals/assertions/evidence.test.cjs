@@ -29,14 +29,21 @@ test('separate explicit-only boundaries reject reads, searches and invocation', 
   assert.equal(checks.noRetroSearch('', claude([call('Grep', {path: 'skills/run-retro'})])).pass, false);
   assert.equal(checks.noRetroInvocation('', claude([call('Skill', {skill: 'dotbrain:run-retro'})])).pass, false);
   const shell = command => codex([event('item/completed', {type: 'commandExecution', command, exitCode: 0, status: 'completed'})]);
-  assert.equal(checks.noRetroRead('', shell('cat .agents/skills/run-retro/SKILL.md')).pass, false);
-  assert.equal(checks.noRetroSearch('', shell('rg lessons .agents/skills/run-retro')).pass, false);
-  assert.ok(checks.noRetroRead('', shell('cat README.md')).pass);
+  for (const command of ['cat .agents/skills/run-retro/SKILL.md', 'rg lessons .agents/skills/run-retro',
+    'cat README.md', 'python -c "from pathlib import Path; print(Path(\'.agents/skills/run-retro/SKILL.md\').open().read())"',
+    'node opaque-script.cjs']) {
+    for (const name of ['noRetroRead', 'noRetroSearch', 'noRetroInvocation']) {
+      assert.match(checks[name]('', shell(command)).reason, /INCONCLUSIVE.*Codex shell/);
+    }
+  }
   const hiddenChild = codex([event('item/completed', {type: 'collabAgentToolCall', tool: 'spawnAgent'})]);
   for (const name of ['noRetroRead', 'noRetroSearch', 'noRetroInvocation']) {
-    assert.match(checks[name]('', hiddenChild).reason, /INCONCLUSIVE.*child activity/);
+    assert.match(checks[name]('', hiddenChild).reason, /INCONCLUSIVE.*Codex shell/);
     assert.match(checks[name]('', claude([call('Agent', {subagent_type: 'worker'})])).reason,
-      /INCONCLUSIVE.*child activity/);
+      /INCONCLUSIVE.*native/);
+    assert.match(checks[name]('', claude([call('Bash', {command: 'node opaque-script.cjs'})])).reason,
+      /INCONCLUSIVE.*native/);
+    assert.match(checks[name]('', claude([call('Read', {})])).reason, /INCONCLUSIVE.*target/);
   }
 });
 

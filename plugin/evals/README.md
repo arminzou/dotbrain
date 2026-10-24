@@ -88,6 +88,10 @@ app-server raw events because SDK skill heuristics alone cannot establish order
 or named-role dispatch. Promptfoo 0.125.0 drops child-thread events before retaining
 those raw events, so **Codex named-worker assertions are currently inconclusive**.
 Resolving that provider evidence gap is required before pilot acceptance.
+Codex shell events also cannot establish that an opaque script or indirect path
+did not read/search/invoke a skill. Its explicit-only negative assertions therefore
+return `INCONCLUSIVE` pending sufficient observation. Claude negatives require
+native Read/Grep/Glob/Skill records; unexpected shell or agent calls are inconclusive.
 The parallel case also retains its original serial-fallback assertion. The live
 pilot must reproduce the original lack of worker isolation or obtain an explicit
 disposition if the new provider can isolate workers; the old harness's limitation

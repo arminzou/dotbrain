@@ -30,14 +30,15 @@ test('fresh final workspaces isolate homes, origins, real delivery and stub call
     assert.ok(fs.existsSync(path.join(root, 'plugin/.claude-plugin/plugin.json')));
     const env = {...process.env, ...environment(root)};
     if (process.platform === 'win32') {
-      const located = execFileSync('pwsh', ['-NoProfile', '-Command', '(Get-Command bd).Source; bd where; gh pr merge 1; exit 0'], {env, encoding: 'utf8', windowsHide: true});
+      const located = execFileSync('pwsh', ['-NoProfile', '-Command', '(Get-Command bd).Source; bd --actor worker-a where; gh pr merge 1; exit 0'], {env, encoding: 'utf8', windowsHide: true});
       assert.ok(located.includes(path.join(root, 'bin/bd.cmd')));
     } else {
-      const located = execFileSync('sh', ['-c', 'command -v bd; bd where; gh pr merge 1 || true'], {env, encoding: 'utf8'});
+      const located = execFileSync('sh', ['-c', 'command -v bd; bd --actor worker-a where; gh pr merge 1 || true'], {env, encoding: 'utf8'});
       assert.ok(located.includes(path.join(root, 'bin/bd')));
     }
     const calls = fs.readFileSync(path.join(root, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
     assert.deepEqual(calls.map(call => call.tool), ['bd', 'gh']);
+    assert.deepEqual(calls[0].args, ['--actor', 'worker-a', 'where']);
     execFileSync('git', ['status', '--porcelain'], {cwd: path.join(root, 'workspace'), env, windowsHide: true});
     const before = fs.readFileSync(path.join(root, 'git-agent.jsonl'), 'utf8');
     assert.ok(before.includes('"event":"start"'));
@@ -102,6 +103,11 @@ test('provider configuration binds the same scenario to separate fixture resourc
     assert.equal(codex.config.working_dir, path.join(root, 'workspace'));
     assert.equal(codex.config.sandbox_mode, 'read-only');
     assert.ok(!claude.config.tools.includes('Bash'));
+    assert.deepEqual(claude.config.custom_allowed_tools, claude.config.tools);
+    assert.equal(claude.config.allowed_tools, undefined);
+    const writing = request({vars: {...vars, case: 'worker-never-pushes'}, provider: {id: 'anthropic:claude-agent-sdk'}});
+    assert.ok(writing.config.custom_allowed_tools.includes('Agent'));
+    assert.ok(writing.config.custom_allowed_tools.includes('Bash'));
   } finally {
     for (const [name, value] of [['EVAL_CLAUDE_MODEL', previous.claude], ['EVAL_CODEX_MODEL', previous.codex]]) {
       if (value === undefined) delete process.env[name]; else process.env[name] = value;

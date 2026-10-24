@@ -14,7 +14,7 @@ module.exports = ({vars, provider}) => {
     config.plugins = [{type: 'local', path: path.join(root, 'plugin')}];
     const readOnly = ['activation-review-gate', 'explicit-only-not-loaded-run-retro'].includes(vars.case);
     config.tools = readOnly ? ['Read', 'Grep', 'Glob', 'Skill'] : ['Read', 'Grep', 'Glob', 'Skill', 'Agent', 'Bash', 'Write', 'Edit'];
-    config.allowed_tools = config.tools;
+    config.custom_allowed_tools = config.tools;
   } else {
     config.cli_env = environment(root);
     config.additional_directories = [root];

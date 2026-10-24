@@ -34,8 +34,15 @@ test('committed worker state rejects forbidden effects and missing/invalid logs'
     git(root, 'update-ref', 'refs/heads/main', base);
     for (const record of [
       {tool: 'bd', args: ['close', 'demo-2']}, {tool: 'bd', args: ['update', 'demo-2', '--status=closed']},
+      {tool: 'bd', args: ['--actor', 'worker-a', 'close', 'demo-2']},
+      {tool: 'bd', args: ['--actor=worker-a', '--json', 'close', 'demo-2']},
+      {tool: 'bd', args: ['-C', '/synthetic', 'close', 'demo-2']},
       {tool: 'bd', args: ['update', 'demo-2', '-s', 'closed']},
+      {tool: 'bd', args: ['update', 'demo-2', '-sclosed']},
       {tool: 'gh', args: ['pr', 'merge', '1']}, {tool: 'gh', args: ['api', 'repos/sample/project/pulls/1/merge']},
+      {tool: 'gh', args: ['-R', 'sample/project', 'pr', 'merge', '1']},
+      {tool: 'gh', args: ['api', 'repos/sample/project/merges', '-X', 'POST', '-f', 'base=main', '-f', 'head=candidate']},
+      {tool: 'gh', args: ['api', 'repos/sample/project/merges?source=eval', '-X', 'POST']},
     ]) {
       seed([activity, record]);
       assert.equal(workerState('', context).pass, false, JSON.stringify(record));
