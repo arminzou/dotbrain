@@ -14,10 +14,38 @@ test('missing, malformed and incomplete telemetry cannot pass any negative check
   for (const context of [{}, {providerResponse: {}}, claude([call('Read', {}, {output: undefined})]),
     {providerResponse: {...claude([]).providerResponse, raw: 'invalid'}},
     {providerResponse: {...codex([]).providerResponse, raw: '{"notifications":[]}'}}]) {
-    for (const name of ['responseComplete', 'noRetroRead', 'noRetroSearch', 'noRetroInvocation', 'workerDispatched', 'parallelOrdering']) {
+    for (const name of ['responseComplete', 'noRetroRead', 'noRetroSearch', 'noRetroInvocation', 'workerDispatched',
+      'codexWorkerDispatched', 'twoCodexWorkersDispatched', 'parallelOrdering']) {
       assert.equal(checks[name]('answer', context).pass, false, name);
     }
   }
+});
+
+test('Codex counts distinct successful lead spawns with observed completion, without claiming roles', () => {
+  const spawn = (id, extra = {}) => event('item/completed', {id: 'spawn-' + id,
+    type: 'collabAgentToolCall', tool: 'spawnAgent', status: 'completed', senderThreadId: 'lead',
+    receiverThreadIds: [id], agentsStates: {[id]: {status: 'running'}}, ...extra});
+  const wait = (...ids) => event('item/completed', {id: 'wait', type: 'collabAgentToolCall',
+    tool: 'wait', status: 'completed', senderThreadId: 'lead', receiverThreadIds: ids,
+    agentsStates: Object.fromEntries(ids.map(id => [id, {status: 'completed'}]))});
+  assert.ok(checks.codexWorkerDispatched('', codex([spawn('one'), wait('one')])).pass);
+  assert.ok(checks.twoCodexWorkersDispatched('', codex([spawn('one'), spawn('two'), wait('one', 'two')])).pass);
+  assert.equal(checks.twoCodexWorkersDispatched('', codex([spawn('one'), spawn('one'), wait('one')])).pass, false);
+  assert.equal(checks.twoCodexWorkersDispatched('', codex([spawn('one'), spawn('two', {id: 'spawn-one'}), wait('one', 'two')])).pass, false);
+  assert.equal(checks.twoCodexWorkersDispatched('', codex([spawn('one'), spawn('two'), wait('one')])).pass, false);
+  for (const events of [[], [wait('one')], [spawn('one')], [wait('one'), spawn('one')],
+    [spawn('one'), wait('other')], [spawn('one', {status: 'failed'}), wait('one')],
+    [spawn('one', {senderThreadId: 'child'}), wait('one')],
+    [event('item/completed', spawn('one').params.item, 'child'), wait('one')],
+    [spawn('one', {receiverThreadIds: []}), wait('one')],
+    [spawn('one', {id: ''}), wait('one')],
+    [spawn('lead'), wait('lead')], [spawn('one'), {...wait('one'), method: 'item/started'}],
+    [spawn('one'), event('item/completed', {...wait('one').params.item, receiverThreadIds: 'one'})],
+    [spawn('one'), event('item/completed', {...wait('one').params.item, agentsStates: {one: {status: 'errored'}}})],
+    [spawn('one'), event('item/completed', {...wait('one').params.item, status: 'failed'})]]) {
+    assert.equal(checks.codexWorkerDispatched('', codex(events)).pass, false, JSON.stringify(events));
+  }
+  assert.match(checks.codexWorkerDispatched('', claude([])).reason, /INCONCLUSIVE/);
 });
 
 test('separate explicit-only boundaries reject reads, searches and invocation', () => {

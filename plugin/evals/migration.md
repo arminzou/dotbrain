@@ -75,7 +75,10 @@ presence and answer regexes alone cannot prove the order. Named packaged-role
 dispatch requires evidence that the actual role loaded and ran. Filesystem
 presence or a generic worker completing the task is insufficient. Explicit-only
 cases retain no-read, no-search, and no-invocation criteria; a missing skill-use
-event alone cannot pass when observation is incomplete.
+event alone cannot pass when observation is incomplete. The approved Codex-only
+exclusions in [coverage.md](coverage.md) omit unsupported criteria from scoring;
+the frozen source criteria remain intact. Generic Codex dispatch/completion is
+retained behavior evidence and does not prove packaged role identity.
 
 `worker-rejects-missing-label` asks the lead for a later `git status --porcelain`
 call so the state checker can detect an unintended edit even when the worker

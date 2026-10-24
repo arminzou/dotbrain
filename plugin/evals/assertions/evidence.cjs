@@ -96,6 +96,45 @@ function twoWorkersDispatched(output, context) {
     'Two successful packaged named worker dispatches with linked child activity are required');
 }
 
+function completedCodexWorkers(trace) {
+  if (trace.runtime !== 'codex') throw new Error('INCONCLUSIVE: Codex lead events required');
+  const completed = new Set();
+  const spawned = new Set();
+  const dispatches = new Set();
+  for (const item of trace.calls) {
+    if (item.threadId !== trace.lead || item.type !== 'collabAgentToolCall' ||
+      item.senderThreadId !== trace.lead || item.status !== 'completed') continue;
+    if (!item.id || !Array.isArray(item.receiverThreadIds) ||
+      item.receiverThreadIds.some(id => typeof id !== 'string' || !id || id === trace.lead)) {
+      throw new Error('INCONCLUSIVE: missing successful Codex dispatch identity');
+    }
+    if (item.tool === 'spawnAgent') {
+      if (item.receiverThreadIds.length !== 1) {
+        throw new Error('INCONCLUSIVE: missing successful Codex spawn identity');
+      }
+      if (dispatches.has(item.id)) continue;
+      dispatches.add(item.id);
+      spawned.add(item.receiverThreadIds[0]);
+    }
+    for (const id of spawned) {
+      if (item.receiverThreadIds?.includes(id) && item.agentsStates?.[id]?.status === 'completed') {
+        completed.add(id);
+      }
+    }
+  }
+  return completed.size;
+}
+
+function codexWorkerDispatched(output, context) {
+  return check(context, trace => completedCodexWorkers(trace) >= 1,
+    'One observable Codex agent spawn and completion required; packaged role/child tools are SKIPPED_UNSUPPORTED');
+}
+
+function twoCodexWorkersDispatched(output, context) {
+  return check(context, trace => completedCodexWorkers(trace) >= 2,
+    'Two distinct observable Codex agent spawns and completions required; packaged roles/child tools are SKIPPED_UNSUPPORTED');
+}
+
 function parallelOrdering(output, context) {
   return check(context, trace => {
     if (trace.runtime === 'claude') {
@@ -129,4 +168,4 @@ function parallelOrdering(output, context) {
 }
 
 module.exports = {evidence, responseComplete, noRetroRead, noRetroSearch, noRetroInvocation,
-  workerDispatched, twoWorkersDispatched, parallelOrdering};
+  workerDispatched, twoWorkersDispatched, codexWorkerDispatched, twoCodexWorkersDispatched, parallelOrdering};

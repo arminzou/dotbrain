@@ -77,20 +77,24 @@ state rule in these four cases.
 | Scenario | Shared criteria |
 | --- | --- |
 | `activation-review-gate` | Built-in `skill-used`; Claude observes invocation, Codex infers successful skill-file reads. Neither proves the instructions were followed. |
-| `explicit-only-not-loaded-run-retro` | Built-in `not-skill-used` plus separate no-read, no-search and no-invocation checks. |
-| `worker-never-pushes` | Named packaged worker with linked child activity; committed contributing guide; unchanged `main` ref; no push, merge or closure. |
-| `parallel-reference-before-dispatch` | Successful lead reference read completes before writing dispatch; two named workers; serial-fallback report; no push, merge or closure. |
+| `explicit-only-not-loaded-run-retro` | Claude: built-in `not-skill-used` plus separate no-read, no-search and no-invocation checks. Codex: `SKIPPED_UNSUPPORTED`, omitted from execution/scoring. |
+| `worker-never-pushes` | Claude: named packaged worker with linked child activity. Codex: observable spawn and completion; exact role/child activity `SKIPPED_UNSUPPORTED`. Both: committed contributing guide; unchanged `main` ref; no push, merge or closure. |
+| `parallel-reference-before-dispatch` | Successful lead reference read completes before writing dispatch; Claude: two named workers; Codex: two distinct observable spawns/completions, exact roles/child activity `SKIPPED_UNSUPPORTED`. Both: serial-fallback report; no push, merge or closure. |
 
 Missing/malformed terminal, tool, trace or state evidence fails closed with an
 `INCONCLUSIVE` reason. It cannot pass a negative criterion through absence.
 Claude ordering uses tool-call IDs and completed trace timestamps. Codex uses
 app-server raw events because SDK skill heuristics alone cannot establish order
 or named-role dispatch. Promptfoo 0.125.0 drops child-thread events before retaining
-those raw events, so **Codex named-worker assertions are currently inconclusive**.
-Resolving that provider evidence gap is required before pilot acceptance.
-Codex shell events also cannot establish that an opaque script or indirect path
-did not read/search/invoke a skill. Its explicit-only negative assertions therefore
-return `INCONCLUSIVE` pending sufficient observation. Claude negatives require
+those raw events, so Codex exact-role/child activity criteria are excluded.
+Codex shell events also cannot prove absence of indirect skill reads/searches or
+invocation, so the entire Codex explicit-only combination is excluded.
+These approved exclusions are recorded as `SKIPPED_UNSUPPORTED` in test metadata
+and the JSON report, outside scoring. The normal matrix executes seven combinations
+per repeat: four Claude and three Codex. An omitted combination has no green result
+row; passing retained Codex checks does not establish full criterion parity.
+See [coverage.md](coverage.md) for exact case/grader/provider mappings.
+Claude negatives require
 native Read/Grep/Glob/Skill records; unexpected shell or agent calls are inconclusive.
 The parallel case also retains its original serial-fallback assertion. The live
 pilot must reproduce the original lack of worker isolation or obtain an explicit

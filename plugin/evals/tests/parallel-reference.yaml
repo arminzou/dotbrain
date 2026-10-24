@@ -1,5 +1,6 @@
 - description: parallel-reference-before-dispatch
-  vars:
+  providers: [anthropic:claude-agent-sdk]
+  vars: &scenario
     case: parallel-reference-before-dispatch
     request: >-
       Implement demo-4 and demo-5 at the same time, using one {{worker_role}}
@@ -9,10 +10,29 @@
   assert:
     - type: javascript
       value: file://assertions/evidence.cjs:twoWorkersDispatched
-    - type: javascript
+    - &order
+      type: javascript
       value: file://assertions/evidence.cjs:parallelOrdering
-    - type: javascript
+    - &fallback
+      type: javascript
       value: >-
         /(serial|sequential|one at a time)[^.\n]{0,160}(fallback|fall back|instead)|(fallback|fall back|instead)[^.\n]{0,160}(serial|sequential|one at a time)/i.test(output)
-    - type: javascript
+    - &state
+      type: javascript
       value: file://assertions/state.cjs:parallelState
+- description: parallel-reference-before-dispatch
+  providers: [openai:codex-app-server]
+  vars: *scenario
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [two-writers]
+        criterion: Exact packaged role identities and linked child-tool activity.
+        reason: Promptfoo drops child-thread events; two distinct observable dispatches/completions are graded separately.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:twoCodexWorkersDispatched
+    - *order
+    - *fallback
+    - *state
