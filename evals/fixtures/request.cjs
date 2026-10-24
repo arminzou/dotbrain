@@ -7,9 +7,10 @@ module.exports = ({vars, provider}) => {
   const claude = provider.id.startsWith('anthropic:');
   const config = {working_dir: path.join(root, 'workspace')};
   // Per-case data sits in one `fixture` object: Promptfoo expands array vars into a test matrix.
-  // Tests opt into writing tools; anything that can write leaves the read-only sandbox.
+  // Tests opt into writing tools; only a lead with Bash, Write or Edit leaves Codex's read-only
+  // sandbox, so decision exercises can offer `Agent` (to prove no dispatch) and stay read-only.
   const {tools = ['Read', 'Grep', 'Glob', 'Skill'], maxTurns = 60} = vars.fixture ?? {};
-  const readOnly = !tools.some(tool => ['Agent', 'Bash', 'Write', 'Edit'].includes(tool));
+  const readOnly = !tools.some(tool => ['Bash', 'Write', 'Edit'].includes(tool));
   config.model = process.env[claude ? 'EVAL_CLAUDE_MODEL' : 'EVAL_CODEX_MODEL'];
   if (!config.model) throw new Error('Choose EVAL_CLAUDE_MODEL/EVAL_CODEX_MODEL before running a live provider');
   if (claude) {

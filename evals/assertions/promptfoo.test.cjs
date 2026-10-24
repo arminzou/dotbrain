@@ -16,6 +16,38 @@ after(() => {
 const cases = file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8'))[0];
 const terminal = {output: 'Done', sessionId: 'lead', raw: '{"subtype":"success"}',
   metadata: {toolCalls: [], skillCalls: []}};
+// Known-good answers for the decision exercises: each must pass every source grader.
+const decisions = {
+  'execution-role-routing': `I run the narrow checkpoint myself as the writer.
+I explore the design choice in this session myself, since I use it here.
+The lead runs the combined gate checks unless the caller names a verifier; item review goes to an independent reviewer later.`,
+  'final-review-coverage-and-dispositions': `Request a whole-branch review covering the full range at the current head, including the groups' interactions.
+The simplify pass is non-blocking, but its bead stays open until each suggestion is applied, filed, or declined with a reason.`,
+  'fix-round-from-stored-assignment': `Append this record to alpha:
+
+## Dispatched: worker-a in /work/alpha on page-orders @ 5d6e7f8 (fix round 1)
+**Item:** alpha · implement · actor worker-a
+**Checkout:** /work/alpha on page-orders @ 5d6e7f8
+**Change:** Fix Review 1 F1: the cursor skips the 50th order.
+**Ownership:** src/orders.py · order listing · overlap: none
+**Acceptance:** Responses hold at most 50 orders and a next cursor.
+**Checks:** make test
+**Limits:** role default
+**Constraints:** Keep the response field names unchanged; the cursor must be opaque.
+**Overrides:** none
+**Sources:** docs/api.md#orders
+
+Resume worker-a (agent a77) with SendMessage and this assignment.
+A replacement worker is used only if a77 cannot be resumed.`,
+  'observed-revision-mismatch-held': `Hold the result: the observed 9e9e9e9 differs from the requested head, so it is not recorded as current.
+Neither item can be accepted or closed now; request a fresh review at 4c4c4c4.`,
+  'parallel-group-promotion': `A and B form one feature group for review and checks.
+They need a separate port and database each, or run serialized.
+Rebase the group on the delivery branch, review and check it, then promote with ff-only before releasing C.`,
+  'reviewer-records-review-comment': `Copy the Review 2 comment from alpha onto gamma:
+bd comments add gamma --file review-2.md --actor lead-a
+Then start a fix round for alpha with the original worker.`,
+};
 const run = (assertion, response = terminal, vars = {}) => assertions.runAssertion({assertion, test: {vars}, providerResponse: response});
 
 test('installed Promptfoo loads the checked-in built-in and custom assertions without a model', async () => {
@@ -27,17 +59,18 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
     for (const assertion of negative) assert.ok((await run(assertion, terminal, negativeVars)).pass, JSON.stringify(assertion));
     assert.equal((await run(negative[0], {...terminal, metadata: {...terminal.metadata,
       skillCalls: [{name: 'dotbrain:run-retro', source: 'tool'}]}})).pass, false);
-    const skills = (...names) => ({...terminal, metadata: {...terminal.metadata,
-      skillCalls: names.map(name => ({name, is_error: false, source: 'tool'}))}});
-    const workGraph = cases('activation-manage-work-graph.yaml').assert[0];
-    assert.equal((await run(workGraph)).pass, false);
-    assert.ok((await run(workGraph, skills('dotbrain:manage-work-graph'))).pass);
-    const unrelated = cases('no-skill-for-unrelated-request.yaml');
-    for (const assertion of unrelated.assert) assert.ok((await run(assertion, terminal, unrelated.vars)).pass);
-    for (const assertion of unrelated.assert) {
-      const used = {...skills('dotbrain:wire-brain'), metadata: {...skills('dotbrain:wire-brain').metadata,
-        toolCalls: [{id: 'skill', name: 'Skill', input: {skill: 'dotbrain:wire-brain'}, output: 'ok'}]}};
-      assert.equal((await run(assertion, used, unrelated.vars)).pass, false, JSON.stringify(assertion));
+    for (const file of fs.readdirSync(path.join(__dirname, '../tests'))) {
+      const [{vars, assert: graders}] = yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8'));
+      if (!decisions[vars.case]) continue;
+      const dispatched = {...terminal, metadata: {...terminal.metadata,
+        toolCalls: [{id: 'spawn', name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'}]}};
+      for (const grader of graders) {
+        const good = {...terminal, output: decisions[vars.case]};
+        assert.ok((await run(grader, good, vars)).pass, vars.case + ' ' + grader.metric);
+        const bad = grader.metric === 'no-dispatch' ? {...dispatched, output: decisions[vars.case]}
+          : {...terminal, output: 'I would close both items and move on.'};
+        assert.equal((await run(grader, bad, vars)).pass, false, vars.case + ' ' + grader.metric);
+      }
     }
     const stale = cases('no-closure-on-stale-approval.yaml').assert[1];
     for (const output of ['The approval covers an older revision; the batch size commit is unreviewed.',
@@ -85,7 +118,7 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute fourteen combinations and keep exclusions outside grading', async () => {
+test('native provider filters execute twenty-three combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
     .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
@@ -112,9 +145,10 @@ test('native provider filters execute fourteen combinations and keep exclusions 
         git(root, 'add', 'CONTRIBUTING.md');
         git(root, 'commit', '-qm', 'Add contributing guide');
       }
-      const skill = {'activation-review-gate': 'review-gate', 'activation-manage-work-graph': 'manage-work-graph'}[caseName];
+      const skill = {'activation-review-gate': 'review-gate'}[caseName];
       const skillCalls = skill ? [{name: skill, source: 'tool'}] : [];
-      const output = caseName === 'no-closure-on-stale-approval' ? 'Not closed: the approval covers an older revision.' : 'I used a serial fallback.';
+      const output = decisions[caseName] ??
+        (caseName === 'no-closure-on-stale-approval' ? 'Not closed: the approval covers an older revision.' : 'I used a serial fallback.');
       if (id.startsWith('anthropic:')) return {...terminal, output, metadata: {skillCalls,
         toolCalls: Array.from({length: count}, (_, i) => [
           {id: 'spawn-' + i, name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'},
@@ -141,22 +175,25 @@ test('native provider filters execute fourteen combinations and keep exclusions 
     const record = await evaluate({...config, tracing: {enabled: false}, writeLatestResults: false,
       tests, providers}, {cache: false, maxConcurrency: 1});
     const summary = JSON.parse(JSON.stringify(await record.toEvaluateSummary()));
-    assert.equal(summary.results.length, 14);
-    assert.equal(summary.stats.successes, 13);
+    assert.equal(summary.results.length, 23);
+    assert.equal(summary.stats.successes, 22);
     assert.equal(summary.stats.failures, 1);
-    assert.equal(new Set(roots).size, 14);
-    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 8);
-    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 6);
+    assert.equal(new Set(roots).size, 23);
+    assert.equal(combinations.filter(([id]) => id.startsWith('anthropic:')).length, 12);
+    assert.equal(combinations.filter(([id]) => id.startsWith('openai:')).length, 11);
     assert.ok(!combinations.some(([id, name]) => id.startsWith('openai:') &&
-      (name.startsWith('explicit-only') || name === 'no-skill-for-unrelated-request')));
+      name.startsWith('explicit-only')));
     for (const result of summary.results) {
       const codex = result.provider.id.startsWith('openai:');
       const name = result.testCase.vars.case;
       const components = result.gradingResult.componentResults;
       const exclusions = result.testCase.metadata?.capabilityExclusions || [];
-      const twoParts = ['activation-review-gate', 'activation-manage-work-graph', 'closure-on-fresh-approval'];
-      const threeParts = ['worker-never-pushes', 'no-closure-on-stale-approval', 'no-skill-for-unrelated-request'];
-      assert.equal(components.length, twoParts.includes(name) ? 2 : threeParts.includes(name) ? 3 : 5, name);
+      // responseComplete plus each test's own assertions.
+      const parts = {'activation-review-gate': 2, 'closure-on-fresh-approval': 2, 'worker-never-pushes': 3,
+        'no-closure-on-stale-approval': 3, 'explicit-only-not-loaded-run-retro': 5, 'parallel-reference-before-dispatch': 5,
+        'execution-role-routing': 5, 'final-review-coverage-and-dispositions': 4, 'fix-round-from-stored-assignment': 6,
+        'observed-revision-mismatch-held': 4, 'parallel-group-promotion': 4, 'reviewer-records-review-comment': 5};
+      assert.equal(components.length, parts[name], name);
       if (codex && ['worker-never-pushes', 'parallel-reference-before-dispatch'].includes(name)) {
         assert.equal(exclusions[0].status, 'SKIPPED_UNSUPPORTED');
         assert.ok(components.some(part => /CodexWorkers?Dispatched|codexWorkerDispatched/.test(part.assertion.value)));

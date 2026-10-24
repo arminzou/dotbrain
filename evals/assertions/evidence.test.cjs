@@ -83,9 +83,6 @@ test('separate explicit-only boundaries reject reads, searches and invocation', 
   assert.equal(checks.noSkillRead('', named('close-design', [call('Read', {file_path: 'skills/close-design/SKILL.md'})])).pass, false);
   assert.ok(checks.noSkillRead('', named('close-design', [call('Read', {file_path: 'skills/run-retro/SKILL.md'})])).pass);
   assert.ok(checks.noSkillInvocation('', named('retro', [call('Skill', {skill: 'dotbrain:run-retro'})])).pass, 'exact skill name');
-  // `*` forbids any invocation but reading or searching skill files stays allowed.
-  assert.equal(checks.noSkillInvocation('', named('*', [call('Skill', {skill: 'anything'})])).pass, false);
-  assert.ok(checks.noSkillInvocation('', named('*', [call('Read', {file_path: 'skills/x/SKILL.md'})])).pass);
 });
 
 test('packaged-role dispatch requires a successful named invocation and child activity', () => {

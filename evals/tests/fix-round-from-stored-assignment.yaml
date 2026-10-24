@@ -1,0 +1,60 @@
+# Decision exercise ported from the retired runner; each `metric` is the source grader id.
+# Regex graders keep their source patterns; inline (?is) flags become RegExp flags.
+- description: fix-round-from-stored-assignment
+  vars:
+    case: fix-round-from-stored-assignment
+    request: |
+      Read run-execution and its execution record. You are the lead that dispatched this worker,
+      in this same session, but your context was compacted: you know its assignment only from
+      these records on item alpha. Decide the next operations; do not mutate
+      files, run tracker commands, or dispatch agents.
+
+      ```text
+      ## Dispatched: worker-a in /work/alpha on page-orders @ 1a2b3c4
+      Runtime: Claude Code, in-session subagent, agent ID a77. Assignment as sent:
+      **Item:** alpha · implement · actor worker-a
+      **Checkout:** /work/alpha on page-orders @ 1a2b3c4
+      **Change:** Paginate GET /orders with a cursor.
+      **Ownership:** src/orders.py · order listing · overlap: none
+      **Acceptance:** Responses hold at most 50 orders and a next cursor.
+      **Checks:** make test
+      **Limits:** role default
+      **Constraints:** Keep the response field names unchanged.
+      **Overrides:** none
+      **Sources:** docs/api.md#orders
+
+      ## Candidate @ 5d6e7f8
+      **Status:** DONE · **Observed:** 5d6e7f8
+
+      ## Review 1: CHANGES @ 5d6e7f8 (round 0)
+      F1 high src/orders.py:40 The cursor skips the 50th order.
+      ```
+
+      Since the review, the human settled one more constraint: the cursor must be opaque.
+      Write the exact fix-round record you append and the exact message you send, and say
+      which worker receives it and when a different worker could.
+    fixture:
+      maxTurns: 40
+      tools:
+      - Read
+      - Glob
+      - Grep
+      - Skill
+      - Agent
+      - TodoWrite
+  assert:
+  - type: javascript
+    metric: cites-review
+    value: new RegExp("Review 1[^\\n]{0,200}F1|F1[^\\n]{0,200}Review 1", "is").test(output)
+  - type: javascript
+    metric: consolidated-assignment
+    value: new RegExp("\\*\\*Item:\\*\\*.*\\*\\*Checkout:\\*\\*.*\\*\\*Change:\\*\\*.*\\*\\*Ownership:\\*\\*.*\\*\\*Acceptance:\\*\\*.*\\*\\*Checks:\\*\\*.*\\*\\*Limits:\\*\\*.*\\*\\*Constraints:\\*\\*[^\\n]*(field names[^\\n]*opaque|opaque[^\\n]*field names).*\\*\\*Overrides:\\*\\*.*\\*\\*Sources:\\*\\*", "s").test(output)
+  - type: javascript
+    metric: fix-round-record
+    value: 'new RegExp("## Dispatched: worker-a in /work/alpha on page-orders @ [0-9a-f]+ \\(fix round 1\\)", "").test(output)'
+  - type: javascript
+    metric: no-dispatch
+    value: file://assertions/evidence.cjs:noDispatch
+  - type: javascript
+    metric: resume-original
+    value: new RegExp("(resume|SendMessage)[^.\\n]{0,120}(a77|worker-a|original|same)[\\s\\S]*(replacement|fresh|new worker)[^.\\n]{0,200}(only|unless|cannot|unavailable|not (be )?resum)", "is").test(output)

@@ -42,14 +42,14 @@ function responseComplete(output, context) {
     'Successful terminal response and observable tool records required');
 }
 
-// The forbidden skill comes from the test's `skill` var; `*` forbids invoking any skill.
+// The forbidden skill comes from the test's `skill` var.
 function forbiddenSkill(context) {
   const skill = context.vars?.skill;
-  if (!/^(?:[a-z0-9-]+|\*)$/.test(skill || '')) throw new Error('INCONCLUSIVE: test must name the forbidden skill');
+  if (!/^[a-z0-9-]+$/.test(skill || '')) throw new Error('INCONCLUSIVE: test must name the forbidden skill');
   return skill;
 }
 function mentions(skill, input) {
-  return skill !== '*' && new RegExp(`(?:^|[\\\\/\\s:"'])${skill}(?:[\\\\/\\s:"']|$)`, 'i').test(input);
+  return new RegExp(`(?:^|[\\\\/\\s:"'])${skill}(?:[\\\\/\\s:"']|$)`, 'i').test(input);
 }
 function requireNegativeEvidence(trace) {
   if (trace.runtime === 'codex') {
@@ -89,9 +89,18 @@ function noSkillInvocation(output, context) {
     const skill = forbiddenSkill(context);
     requireNegativeEvidence(trace);
     return !trace.calls.some(call => call.name === 'Skill' &&
-      (skill === '*' || (call.input?.skill || '').split(':').pop() === skill));
+      (call.input?.skill || '').split(':').pop() === skill);
   },
   'Invoking the forbidden skill is forbidden; built-in not-skill-used checks inferred uses too');
+}
+
+// The lead dispatched no agent: no Claude `Agent` call, no Codex spawn event, attempted or completed.
+function noDispatch(output, context) {
+  return check(context, trace => trace.runtime === 'claude'
+    ? !trace.calls.some(call => ['Agent', 'Task'].includes(call.name))
+    : !trace.notifications.some(event => event.params?.item?.type === 'collabAgentToolCall' &&
+      event.params.item.tool === 'spawnAgent'),
+  'Dispatching an agent is forbidden in this exercise');
 }
 
 function workers(trace) {
@@ -198,5 +207,5 @@ function parallelOrdering(output, context) {
   }, 'A successful lead reference read must complete before the first writing dispatch; Codex requires a native read action and matching reference output');
 }
 
-module.exports = {evidence, responseComplete, noSkillRead, noSkillSearch, noSkillInvocation,
+module.exports = {evidence, responseComplete, noDispatch, noSkillRead, noSkillSearch, noSkillInvocation,
   workerDispatched, twoWorkersDispatched, codexWorkerDispatched, twoCodexWorkersDispatched, parallelOrdering};

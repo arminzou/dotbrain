@@ -1,7 +1,7 @@
 # Shared skill evals
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
-suite on Claude Code and Codex. Eight scenarios are prepared; live
+suite on Claude Code and Codex. Twelve scenarios are prepared; live
 qualification and the remaining migration are pending.
 
 ## Files
@@ -21,9 +21,19 @@ The retired runner's case directories are no longer checked out. Their criteria
 live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
 with `git show <source-revision>:plugin/evals/<path>`. See
 [legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
-eight prepared cases do not establish parity.
-`explicit-only-not-loaded-close-design` is retired: `close-design` now starts
-from a plain-words request, so its criterion no longer holds.
+twelve prepared cases do not establish parity.
+
+Not ported, by decision:
+
+- `explicit-only-not-loaded-close-design`: `close-design` now starts from a
+  plain-words request, so its criterion no longer holds.
+- `activation-manage-work-graph`: repeats `activation-review-gate`'s check that
+  skills load.
+- `no-skill-for-unrelated-request`: an unrelated question almost never loads a
+  skill, so the case nearly always passes.
+- `accepted-automatic-failure-mode`, `handoff-stop-scopes`,
+  `metadata-preserves-checkpoint-state`, `execution-recovery-boundaries`: their
+  regex graders pass on almost any answer, or other cases already cover them.
 
 ## Install and check without models
 
@@ -79,11 +89,9 @@ plus grader ID; every test also requires `responseComplete`.
 | Source case / grader | Promptfoo assertion |
 | --- | --- |
 | `activation-review-gate` / `skill-invoked` | `skill-used` in `tests/activation-review-gate.yaml` |
-| `activation-manage-work-graph` / `skill-invoked` | `skill-used` in `tests/activation-manage-work-graph.yaml` |
 | `explicit-only-not-loaded-run-retro` / `skill-file-not-read` | `noSkillRead` |
 | Same case / `skill-not-searched` | `noSkillSearch` |
 | Same case / `skill-not-invoked` | `noSkillInvocation` plus built-in `not-skill-used` |
-| `no-skill-for-unrelated-request` / `no-skill-invoked` | `noSkillInvocation` with `skill: '*'` plus built-in `not-skill-used` with pattern `*` |
 | `worker-never-pushes` / `worker-dispatched` | `workerDispatched` |
 | Same case / `nothing-closed-or-merged` | `workerState` |
 | Same case / `nothing-pushed` | `workerState` |
@@ -91,6 +99,7 @@ plus grader ID; every test also requires `responseComplete`.
 | Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
 | Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
 | `closure-on-fresh-approval` / `item-closed` | `checkedState` (`fixture.checks.closed`) |
+| Decision exercises (6 cases, 22 graders) / every source grader | One assertion per grader, named by `metric`; see below |
 | `no-closure-on-stale-approval` / `demo-3-not-closed` | `checkedState` (no `fixture.checks.closed`, so any closure fails) |
 | Same case / `names-unreviewed-change` | Built-in `regex` with the source pattern |
 
@@ -124,26 +133,36 @@ any closure. That covers the source rule `no-close=demo-3` and its grader, which
 also matched any `bd update --status closed`; it is stricter only for a `bd close`
 of some other item, which this scenario gives no reason to issue.
 
+The six decision exercises (`execution-role-routing`,
+`final-review-coverage-and-dispositions`, `fix-round-from-stored-assignment`,
+`observed-revision-mismatch-held`, `parallel-group-promotion`,
+`reviewer-records-review-comment`) give the agent a written scenario and grade its
+answer; they need no fixture state. Their YAML is generated from the frozen
+inventory with the source prompt, turn limit and tools. Each source regex keeps its
+pattern, with inline `(?is)` flags moved to `RegExp` flags; each `no-dispatch`
+grader is `noDispatch`, which fails on any Claude `Agent` call or Codex
+`spawnAgent` event. Offering `Agent` without Bash, Write or Edit keeps Codex in its
+read-only sandbox. A known-good answer per case must pass every grader and a wrong
+answer or a dispatch must fail each one.
+
 ### Provider capability exclusions
 
 `SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
 They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
-JSON report, outside scoring. Provider filters omit the Codex explicit-only and
-no-skill combinations entirely, so the normal matrix executes fourteen
-combinations per repeat: eight Claude and six Codex. An omitted combination has
-no result row.
+JSON report, outside scoring. Provider filters omit the Codex explicit-only
+combination entirely, so the normal matrix executes twenty-three combinations per
+repeat: twelve Claude and eleven Codex. An omitted combination has no result row.
 
 | Provider | Source case / grader | Excluded criterion | Retained scoring |
 | --- | --- | --- | --- |
 | `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
-| `openai:codex-app-server` | `no-skill-for-unrelated-request` / `no-skill-invoked` | Absence of any skill use | None; no execution or result row for this combination |
 | `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
 | `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
 
 Promptfoo 0.125.0 drops child-thread events from its raw event stream, so Codex
 exact-role/child activity criteria are excluded. Codex shell events cannot prove
 absence of indirect skill reads/searches or invocation, so the whole Codex
-explicit-only and no-skill combinations are excluded. Scores describe only retained criteria; a
+explicit-only combination is excluded. Scores describe only retained criteria; a
 green Codex worker row does not establish named-role coverage or parity. Codex
 positive `skill-used` remains a labeled heuristic.
 

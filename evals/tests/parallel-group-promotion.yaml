@@ -1,0 +1,36 @@
+# Decision exercise ported from the retired runner; each `metric` is the source grader id.
+# Regex graders keep their source patterns; inline (?is) flags become RegExp flags.
+- description: parallel-group-promotion
+  vars:
+    case: parallel-group-promotion
+    request: |
+      Read run-execution and its parallel reference. Act as the lead deciding the next
+      operations from this execution snapshot. Return an actionable operation sequence;
+      this is a decision exercise, so do not execute Git or tracker writes.
+
+      The human authorized four items but only two active writers. Workers A and B have
+      returned passing candidates for one feature. A prerequisite for C is A; D is
+      independent. Their worktrees are separate but both tests use port 8000 and one
+      database. Neither candidate is integrated or reviewed. The delivery branch has
+      advanced since dispatch. A final launch-wave batch review was proposed. A replacement
+      worker and a nested writer are available. Describe the capacity, resources, group
+      boundary, rebase/conflict routing, review/checks, promotion, dependent release and
+      cleanup operations. Include what happens if this group's checks fail while D is
+      ready, and what evidence is needed to split the failed group.
+    fixture:
+      maxTurns: 20
+      tools:
+      - Read
+      - Glob
+      - Grep
+      - Skill
+  assert:
+  - type: javascript
+    metric: boundary
+    value: new RegExp("(feature|coherent).*(group|review)|(group|review).*(feature|coherent)", "is").test(output)
+  - type: javascript
+    metric: fast-forward
+    value: new RegExp("ff-only", "").test(output)
+  - type: javascript
+    metric: resources
+    value: new RegExp("(exclusive|serializ|separate|isolat).*(database|port)|(database|port).*(exclusive|serializ|separate|isolat)", "is").test(output)
