@@ -101,7 +101,8 @@ test('provider configuration binds the same scenario to separate fixture resourc
     assert.equal(codex.prompt, 'Dispatch dotbrain-worker.');
     assert.equal(claude.config.env.DOTBRAIN_HOME, codex.config.cli_env.DOTBRAIN_HOME);
     assert.equal(codex.config.working_dir, path.join(root, 'workspace'));
-    assert.equal(codex.config.sandbox_mode, 'read-only');
+    const windows = process.platform === 'win32';
+    assert.equal(codex.config.sandbox_mode, windows ? 'danger-full-access' : 'read-only');
     assert.ok(!claude.config.tools.includes('Bash'));
     assert.deepEqual(claude.config.custom_allowed_tools, claude.config.tools);
     assert.equal(claude.config.allowed_tools, undefined);
@@ -109,7 +110,7 @@ test('provider configuration binds the same scenario to separate fixture resourc
     const writing = request({vars: writingVars, provider: {id: 'anthropic:claude-agent-sdk'}});
     assert.deepEqual(writing.config.custom_allowed_tools, writingVars.fixture.tools);
     assert.equal(writing.config.max_turns, 40);
-    assert.equal(request({vars: writingVars, provider: {id: 'openai:codex-app-server'}}).config.sandbox_mode, undefined);
+    assert.equal(request({vars: writingVars, provider: {id: 'openai:codex-app-server'}}).config.sandbox_mode, windows ? 'danger-full-access' : undefined);
   } finally {
     for (const [name, value] of [['EVAL_CLAUDE_MODEL', previous.claude], ['EVAL_CODEX_MODEL', previous.codex]]) {
       if (value === undefined) delete process.env[name]; else process.env[name] = value;

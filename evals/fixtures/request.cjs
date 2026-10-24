@@ -22,7 +22,10 @@ module.exports = ({vars, provider}) => {
   } else {
     config.cli_env = environment(root);
     config.additional_directories = [root];
-    if (readOnly) config.sandbox_mode = 'read-only';
+    // Native Windows Codex has no working sandbox: a sandboxed mode refuses every command there,
+    // so Windows runs get full access and rely on the fixture's own boundaries.
+    if (process.platform === 'win32') config.sandbox_mode = 'danger-full-access';
+    else if (readOnly) config.sandbox_mode = 'read-only';
   }
   return {prompt: vars.request.replaceAll('{{worker_role}}', claude ? 'dotbrain:worker' : 'dotbrain-worker'), config};
 };

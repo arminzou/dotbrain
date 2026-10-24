@@ -96,6 +96,10 @@ The fixture copies no other sign-in files or global skills.
 npx promptfoo eval -c promptfooconfig.yaml --no-cache --no-share --max-concurrency 1 -o results/report.json
 ```
 
+To run one case, pass its file with `-t tests/<case>.yaml`; add `--filter-providers codex`
+or `--filter-providers claude` for one runtime. Filtering providers across the whole suite
+fails, because Promptfoo checks every test's provider references before filtering.
+
 This is a normal Promptfoo command. The `beforeEach` hook creates a new root for
 each case/provider/repeat. A small prompt function binds its final workspace and
 environment to the built-in provider and selects the runtime's packaged role name.
@@ -108,7 +112,10 @@ including failures; remove individual run directories after inspecting them.
 State cases use a local origin and synthetic `bd`/`gh` commands. Agent Git activity
 is logged separately from setup/checker reads. These environment boundaries are
 **not an OS sandbox**; native Windows/WSL/macOS/Linux behavior still needs live
-qualification. Claude's provider inherits process environment variables, so the
+qualification. On native Windows, Codex has no working sandbox and refuses every command
+in a sandboxed mode, so Windows runs use `danger-full-access`: the agent can reach any
+path the operator can, and only the fixture's homes, environment and stubs bound it.
+Elsewhere, read-only cases use Codex's `read-only` sandbox. Claude's provider inherits process environment variables, so the
 live run must use a dedicated environment containing only approved credentials.
 
 ## Coverage
