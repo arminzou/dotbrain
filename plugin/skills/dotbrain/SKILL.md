@@ -36,7 +36,8 @@ Do not edit per project; packaged template changes propagate to every Brain.
   Home sync records and shares Brain changes at turn end; agents need not commit them. Commit
   by hand in `~/dotbrain`, never the code repo, only for structural changes worth finding or
   reverting alone, such as retiring a Brainspace or closing a design.
-- `.claude` and `.codex` are real checkout directories: skills/Claude agents are symlinks;
+- `.claude`, `.codex`, and `.agents/skills` are real checkout directories. Codex project skills
+  go in `.agents/skills`; configuration and agents stay in `.codex`. Skills/Claude agents are symlinks;
   Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
   commit local wiring or delivered copies.
 - `dotbrain wire` attaches a main checkout or Git worktree; Git metadata connects worktrees
@@ -45,7 +46,7 @@ Do not edit per project; packaged template changes propagate to every Brain.
   `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
   `--repo <checkout>`. Global assets require `--scope global`.
 - `dotbrain unwire` removes checkout wiring, retaining data and other checkouts; retire Brainspaces via filesystem actions.
-- Let the CLI compute relative links under `.claude` and `.codex`; hand-counted paths can dangle.
+- Let the CLI compute relative links under `.claude` and `.agents/skills`; hand-counted paths can dangle.
 
 ## Rules
 

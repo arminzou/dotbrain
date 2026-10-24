@@ -125,6 +125,10 @@ skills:                       # extra skills for this project's workspaces
 
 Refresh warns about existing workspaces outside the resolved `agents` set and leaves everything in them untouched.
 
+Codex project skills use `<checkout>/.agents/skills/`, independently of its `.codex/`
+configuration and subagents. Global skills and profiles retain their existing homes.
+See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-link migration and collisions.
+
 `public-tracker` sets up public issue intake and contributor collaboration. It never mirrors the
 private work graph or turns private work into public issues; see the `triage-public` skill.
 

@@ -347,9 +347,14 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
         elif directory.exists() and not directory.is_dir():
             raise RuntimeError(f'{directory}: workspace is not a directory')
         for kind in ('skills', 'agents') if ws in capable else ('skills',):
-            receiver = directory / kind
-            if receiver.is_symlink() or (receiver.exists() and not receiver.is_dir()):
-                raise RuntimeError(f'{receiver}: foreign asset directory conflicts with delivery')
+            legacy_receiver = directory / kind
+            if legacy_receiver.is_symlink() or (legacy_receiver.exists() and not legacy_receiver.is_dir()):
+                raise RuntimeError(f'{legacy_receiver}: foreign asset directory conflicts with delivery')
+            receiver = repo / runtimes.for_workspace(ws).skill_path if kind == 'skills' else directory / kind
+            conflict = (skills.project_directory_conflict(repo, receiver.relative_to(repo).as_posix())
+                        if kind == 'skills' and receiver != legacy_receiver else None)
+            if conflict:
+                raise RuntimeError(conflict)
     return workspaces
 
 

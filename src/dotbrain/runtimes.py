@@ -31,11 +31,17 @@ class Runtime:
     # the runtime's own directory below it.
     home_default: str | None = None
     home_subdir: str = ""
+    project_skills: str | None = None  # checkout-relative; global homes still use workspace
+
+    @property
+    def skill_path(self) -> str:
+        return self.project_skills or f"{self.workspace}/skills"
 
 
 RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
-    "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True),
+    "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True,
+                     project_skills=".agents/skills"),
     "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", hooks=True, home_env="HERMES_HOME"),
     "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", hooks=True, home_env="XDG_CONFIG_HOME",
                         home_default=".config", home_subdir="opencode"),

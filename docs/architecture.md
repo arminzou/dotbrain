@@ -52,7 +52,8 @@ code itself:
 - `.beads/` is the execution store: issues, dependencies, and plans.
 
 The code repo reaches its Brainspace through the gitignored `.brain` and `.beads` symlinks. Its
-`.claude` and `.codex` agent workspaces are real directories; dotbrain adds individually ignored
+`.claude` and `.codex` agent workspaces are real directories; Codex project skills use the separate
+`.agents/skills` directory. Dotbrain adds individually ignored
 skill links, Claude agent links, and marked Codex agent files without claiming project-owned
 files. The agent sees one tree, the repo
 stays clean, and the context stays private. [Wiring](wiring.md) covers the details.

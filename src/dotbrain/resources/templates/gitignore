@@ -13,6 +13,7 @@ brainspaces/*/.beads.gate.lock
 brainspaces/*/.claude/settings.local.json
 brainspaces/*/.claude/skills/
 brainspaces/*/.codex/skills/
+brainspaces/*/.agents/skills/
 brainspaces/*/.claude/agents/
 brainspaces/*/.codex/agents/
 brainspaces/*/.repo.local

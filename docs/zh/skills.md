@@ -12,6 +12,14 @@ Brain 维护。其中有几个借鉴并改编自 [mattpocock/skills](https://git
 
 ## 选择和同步技能 {#select-and-reconcile-skills}
 
+Codex 项目技能链接到 `<checkout>/.agents/skills/`。配置和子 Agent 仍放在 `.codex/` 下；全局技能继续
+使用 `~/.codex/skills/` 和配置的 profile 主目录。Claude Code 和其他运行时的目标位置不变。
+
+`wire`、`refresh` 和 `skills link` 会根据链接目标判断归属，迁移 `.codex/skills/` 下 dotbrain 自己的旧链接。
+选中的旧链接会在新链接分发成功后移除，不再选中的自有链接会被清理。无法确认归属的文件、目录和链接都会保留并
+报告；新位置发生冲突时，旧链接也会保留。处理冲突后重新运行即可。每个分发的资源都单独被 gitignore，
+`unwire` 会清理新旧位置的自有链接。这些检查只能证明文件系统状态，运行时是否发现和调用了技能需要另行验证。
+
 两种范围都可以选单个技能，也可以选一个技能包目录：
 
 ```yaml

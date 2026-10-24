@@ -49,7 +49,8 @@ flowchart TB
 - `.beads/` 是执行存储：任务、依赖和计划。
 
 代码仓库通过被 gitignore 的 `.brain` 和 `.beads` 符号链接访问它的 Brainspace。仓库里的 `.claude` 和
-`.codex` Agent 工作区是真实目录；dotbrain 往里面添加逐个被忽略的技能链接、Claude Agent 链接和带标记的
+`.codex` Agent 工作区是真实目录，Codex 项目技能单独放在 `.agents/skills`。dotbrain 添加逐个被忽略的
+技能链接、Claude Agent 链接和带标记的
 Codex Agent 文件，不会占用项目自己的文件。Agent 看到的是一棵完整的目录树，仓库保持干净，上下文保持私有。
 细节见[项目连接](wiring.md)。
 
