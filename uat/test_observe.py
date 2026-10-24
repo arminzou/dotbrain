@@ -6,8 +6,8 @@ import os
 
 from backends import leaks
 from conftest import credential
-from observe import (changed, fingerprint, hook_events, json_events, nonce, opencode_answer, opencode_tool_calls,
-                     pi_answer, pi_tool_calls)
+from observe import (changed, cursor_answer, cursor_tool_calls, fingerprint, hook_events, json_events, nonce,
+                     opencode_answer, opencode_tool_calls, pi_answer, pi_tool_calls)
 
 # Lines as `opencode run --format json` writes them: {type, timestamp, sessionID, part}.
 STREAM = "\n".join([
@@ -51,6 +51,26 @@ def test_pi_event_stream_yields_tool_calls_and_answer():
     events = json_events(PI_STREAM)
     assert pi_tool_calls(events) == ["read"]
     assert pi_answer(events) == "UAT-convention-1"
+# Lines as `agent -p --output-format stream-json` writes them, read from the print-mode writer in
+# Cursor CLI 2026.10.22-27dcf5f's bundle (4525.index.js): assistant text is buffered and flushed before
+# each tool call; each call writes `tool_call` `started` then `completed`; `result` closes with all the text.
+CURSOR_STREAM = "\n".join([
+    '{"type":"system","subtype":"init","session_id":"s"}',
+    '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Reading."}]},"session_id":"s"}',
+    '{"type":"tool_call","subtype":"started","call_id":"c","tool_call":{"readToolCall":{"args":{"path":"a"}}},'
+    '"session_id":"s","timestamp_ms":1}',
+    '{"type":"tool_call","subtype":"completed","call_id":"c","tool_call":{"readToolCall":{"args":{"path":"a"}}},'
+    '"session_id":"s","timestamp_ms":2}',
+    '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"UAT-convention-1"}]},'
+    '"session_id":"s"}',
+    '{"type":"result","subtype":"success","is_error":false,"result":"Reading.UAT-convention-1","session_id":"s"}',
+])
+
+
+def test_cursor_stream_yields_tool_calls_and_answer():
+    events = json_events(CURSOR_STREAM)
+    assert cursor_tool_calls(events) == ["readToolCall"]
+    assert cursor_answer(events) == "Reading.UAT-convention-1"
 
 
 def test_hook_events_count_only_hook_runs():
@@ -75,6 +95,12 @@ def test_fingerprint_sees_added_modified_and_removed_paths(tmp_path):
     (tmp_path / "new").mkdir()
     after = fingerprint([tmp_path])
     assert changed(before, after) == sorted(str(tmp_path / name) for name in ("edit", "gone", "new"))
+    # A skipped path, such as a runtime binary an auto-update replaces, never shows as a change.
+    skip = [tmp_path / "new", tmp_path / "keep"]
+    before = fingerprint([tmp_path], skip)
+    (tmp_path / "new" / "binary").write_text("v2")
+    (tmp_path / "keep").write_text("v2")
+    assert changed(before, fingerprint([tmp_path], skip)) == []
 
 
 def test_nonces_differ():
@@ -97,3 +123,14 @@ def test_only_the_named_credential_counts(monkeypatch):
     assert "DEEPSEEK_API_KEY" in credential("opencode")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
     assert credential("opencode") == ("deepseek/deepseek-chat", {"DEEPSEEK_API_KEY": "sk-test"})
+
+
+def test_cursor_takes_only_its_own_credential(monkeypatch):
+    for name in ("CURSOR_API_KEY", "CURSOR_AUTH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-other")
+    assert credential("cursor") == "set CURSOR_API_KEY or CURSOR_AUTH_TOKEN"
+    monkeypatch.setenv("CURSOR_AUTH_TOKEN", "token")
+    assert credential("cursor")[1] == {"CURSOR_AUTH_TOKEN": "token"}
+    monkeypatch.setenv("CURSOR_API_KEY", "key")
+    assert credential("cursor")[1] == {"CURSOR_API_KEY": "key"}

@@ -81,6 +81,39 @@ def test_shim_passes_arguments_literally_without_credentials_and_logs_once(tmp_p
     assert len(log.read_text().splitlines()) == 1 and "hook run --checkout" in log.read_text()
 
 
+@pytest.mark.skipif(sys.platform != "win32" or shutil.which("pwsh") is None, reason="needs Windows and pwsh")
+@pytest.mark.parametrize("checkout", ["C:\\a&echo INJECTED&rem", "C:\\a^b", "C:\\a%CURSOR_API_KEY%b",
+                                      "C:\\spaced dir\\check out\\"])
+def test_cursor_powershell_hook_passes_the_checkout_literally_without_credentials(tmp_path, checkout):
+    from dotbrain.cursor import hook_entries
+
+    shim_dir, hooks_dir = tmp_path / "shim", tmp_path / ".cursor"
+    shim_dir.mkdir()
+    hooks_dir.mkdir()
+    log = tmp_path / "calls.log"
+    # The "real" CLI is Python running the script named by the hook's first argument, `hook`, from the
+    # hook's working directory: it reports the credential it sees and the rest of its argv.
+    (hooks_dir / "hook").write_text("import json, os, sys\n"
+                                    "print(json.dumps([os.environ.get('CURSOR_API_KEY'), sys.argv[1:]]))\n")
+    backends.build_shim(shim_dir, str(log), sys.executable, conftest.CREDENTIAL_VARS)
+    # As Cursor runs a hook on Windows: the payload in a file, piped into the command in a temp .ps1 under pwsh.
+    command = hook_entries(windows=True)["sessionStart"][0]["command"]
+    (tmp_path / "payload.json").write_text("{}", encoding="utf-8")
+    script = tmp_path / "hook.ps1"
+    script.write_text("$OutputEncoding = [System.Text.UTF8Encoding]::new($false); Get-Content -LiteralPath "
+                      f"'{tmp_path / 'payload.json'}' -Raw -Encoding UTF8 | & {{ $input | {command} }}",
+                      encoding="utf-8")
+    env = {**os.environ, "PATH": os.pathsep.join([str(shim_dir), os.environ["PATH"]]), "CURSOR_API_KEY": SECRET,
+           "CURSOR_PROJECT_DIR": checkout, "CURSOR_VERSION": "uat"}
+    done = run_process(["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)], env=env,
+                       cwd=hooks_dir, timeout=60)
+    assert done.returncode == 0, done.stderr
+    expected = ["run", "--event", "startup", "--checkout", checkout, "--format", "json"]
+    assert done.stdout.splitlines() == [json.dumps([None, expected])]  # nothing else ran or printed
+    calls = log.read_text().splitlines()
+    assert len(calls) == 1 and checkout in calls[0] and SECRET not in calls[0]
+
+
 @pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX sh")
 def test_sh_shim_drops_credentials_before_running_dotbrain(tmp_path):
     probe = tmp_path / "probe.py"

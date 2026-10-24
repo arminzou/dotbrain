@@ -39,7 +39,16 @@ PROVIDER_KEYS = {
     "deepseek": "DEEPSEEK_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
 }
-COMMANDS = {"opencode": "opencode", "pi": "pi"}
+# Runtimes that take their own credential instead of a provider's: the first one set is passed.
+RUNTIME_KEYS = {"cursor": ("CURSOR_API_KEY", "CURSOR_AUTH_TOKEN")}
+CREDENTIAL_VARS = (*PROVIDER_KEYS.values(), *(var for keys in RUNTIME_KEYS.values() for var in keys))
+COMMANDS = {"opencode": "opencode", "pi": "pi", "cursor": "agent"}
+_LOCAL = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+# Host installs off PATH; the binary is resolved there before the sandbox swaps the environment.
+INSTALL_DIRS = {"cursor": str(_LOCAL / "cursor-agent")}
+# Runtime binaries below a live root, which the runtime's own auto-update may replace during a run.
+UNWATCHED = [_LOCAL / "cursor-agent" / name
+             for name in ("versions", "agent.cmd", "agent.ps1", "cursor-agent.cmd", "cursor-agent.ps1")]
 
 
 @cache
@@ -58,6 +67,10 @@ def os_name() -> str:
 
 def credential(runtime: str) -> tuple[str, dict[str, str]] | str:
     """``(model, {key variable: value})``, or what to set when it is missing."""
+    if runtime in RUNTIME_KEYS:
+        keys = RUNTIME_KEYS[runtime]
+        key = next((var for var in keys if os.environ.get(var)), None)
+        return ("account default", {key: os.environ[key]}) if key else f"set {' or '.join(keys)}"
     model_var = MODEL_VARS[runtime]
     model = os.environ.get(model_var, "")
     provider = model.split("/", 1)[0]
@@ -81,6 +94,10 @@ def live_roots(runtime: str) -> list[Path]:
         "opencode": [xdg("XDG_CONFIG_HOME", ".config") / "opencode", xdg("XDG_DATA_HOME", ".local/share") / "opencode",
                      xdg("XDG_STATE_HOME", ".local/state") / "opencode", xdg("XDG_CACHE_HOME", ".cache") / "opencode"],
         "pi": [Path(os.environ.get("PI_CODING_AGENT_DIR") or home / ".pi" / "agent")],
+        # Config and data, auth, agent stores, the CLI's data dir (its binaries UNWATCHED), compile cache.
+        "cursor": [home / ".cursor", xdg("XDG_CONFIG_HOME", ".config") / "cursor",
+                   Path(os.environ.get("APPDATA") or home / "AppData" / "Roaming") / "Cursor", _LOCAL / "Cursor",
+                   _LOCAL / "cursor-agent", _LOCAL / "cursor-compile-cache"],
     }[runtime]
     return runtime_dirs + [Path(os.environ.get("DOTBRAIN_HOME") or home / "dotbrain")]
 
@@ -110,9 +127,9 @@ def sandbox(request, runtime, tmp_path, tmp_path_factory):
         pytest.skip("the host backend qualifies native Windows; run it there")
     missing = []
     # The container has the runtime on its own PATH.
-    exe = COMMANDS[runtime] if container else shutil.which(COMMANDS[runtime])
+    exe = COMMANDS[runtime] if container else shutil.which(COMMANDS[runtime], path=INSTALL_DIRS.get(runtime))
     if exe is None:
-        missing.append(f"install {runtime} so `{COMMANDS[runtime]}` is on PATH")
+        missing.append(f"install {runtime} so `{COMMANDS[runtime]}` is in {INSTALL_DIRS.get(runtime, 'PATH')}")
     found = credential(runtime)
     if isinstance(found, str):
         missing.append(found)
@@ -128,16 +145,16 @@ def sandbox(request, runtime, tmp_path, tmp_path_factory):
     if container:
         # Every xdist worker shares the base temp dir's parent, so the build lock lives there.
         image, digest = backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent,
-                                                 PROVIDER_KEYS.values())
+                                                 CREDENTIAL_VARS)
         props.append(("image_digest", digest))
 
     roots = live_roots(runtime)
-    before = fingerprint(roots)
+    before = fingerprint(roots, UNWATCHED)
     # Creates nothing yet: the handle exists before the sandbox does.
     if container:
         backend = ContainerBackend(image)
     else:
-        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=PROVIDER_KEYS.values())
+        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=CREDENTIAL_VARS)
 
     # Registered before the sandbox exists, so a failing start, preparation or journey still
     # removes it and still reports every isolation violation, beside the original failure.
@@ -170,7 +187,7 @@ def close_sandbox(backend: Backend, secrets, roots, before) -> list[str]:
     except Exception as error:  # noqa: BLE001
         problems.append(f"sandbox not removed: {error!r}")
     try:
-        problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots))]
+        problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots, UNWATCHED))]
     except Exception as error:  # noqa: BLE001
         problems.append(f"isolation guard failed: {error!r}")
     return problems

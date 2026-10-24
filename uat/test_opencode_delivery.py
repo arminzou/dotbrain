@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from observe import hook_events, json_events, opencode_answer, opencode_tool_calls, pi_answer, pi_tool_calls
+from observe import cursor_answer, cursor_tool_calls, hook_events, json_events, opencode_answer, opencode_tool_calls, pi_answer, pi_tool_calls
 from prepare import PENDING, SKILL
 
 REPO = Path(__file__).resolve().parent.parent
@@ -39,6 +39,12 @@ ADAPTERS = {
     # reads the project skills in .pi/skills without a trust.json entry.
     "pi": Adapter(lambda model, prompt: ["-p", "--mode", "json", "--approve", "--model", model, prompt],
                   pi_tool_calls, pi_answer),
+    # Cursor has no model-free skill listing. Print mode refuses an untrusted workspace; without
+    # --force shell commands stay unapproved; no --model runs the account's default model; the
+    # auto-update would replace the version under test.
+    "cursor": Adapter(lambda _model, prompt: ["-p", "--trust", "--disable-auto-update",
+                                              "--output-format", "stream-json", prompt],
+                      cursor_tool_calls, cursor_answer),
 }
 
 

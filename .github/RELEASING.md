@@ -55,6 +55,7 @@ container journeys skip. Both backends need `uv` and these variables:
 | --- | --- |
 | OpenCode | `UAT_OPENCODE_MODEL` as `<provider>/<model>`, and the provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY` |
 | Pi | `UAT_PI_MODEL` as `<provider>/<model>`, and the provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY` |
+| Cursor | `CURSOR_API_KEY` or `CURSOR_AUTH_TOKEN`; the account's default model answers. The host backend runs the CLI from its installer's location, `%LOCALAPPDATA%\cursor-agent` |
 
 Only that key is passed, and only to the runtime process; a journey fails if it finds the key in
 any sandbox file. A journey whose runtime or variables are missing skips and names what to set.

@@ -236,6 +236,7 @@ class HostBackend:
             "PI_CODING_AGENT_DIR": str(home / ".pi" / "agent"), "HERMES_HOME": str(home / ".hermes"),
             "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0",
             "OPENCODE_TEST_HOME": self.home, "OPENCODE_DISABLE_CLAUDE_CODE": "1", "OPENCODE_DISABLE_AUTOUPDATE": "1",
+            "AGENT_CLI_CREDENTIAL_STORE": "memory",  # Cursor keeps its login in memory, not a store or file
             "GIT_AUTHOR_NAME": "dotbrain uat", "GIT_AUTHOR_EMAIL": "uat@dotbrain.invalid",
             "GIT_COMMITTER_NAME": "dotbrain uat", "GIT_COMMITTER_EMAIL": "uat@dotbrain.invalid",
             "GIT_TERMINAL_PROMPT": "0",
@@ -342,6 +343,7 @@ class ContainerBackend:
         self._container = DockerContainer(image).with_command("sleep infinity").with_envs(
             DOTBRAIN_HOME=self.data_root, OPENCODE_DISABLE_CLAUDE_CODE="1", OPENCODE_DISABLE_AUTOUPDATE="1",
             PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0",
+            AGENT_CLI_CREDENTIAL_STORE="memory",
             GIT_AUTHOR_NAME="dotbrain uat", GIT_AUTHOR_EMAIL="uat@dotbrain.invalid",
             GIT_COMMITTER_NAME="dotbrain uat", GIT_COMMITTER_EMAIL="uat@dotbrain.invalid", GIT_TERMINAL_PROMPT="0")
         self._started = False

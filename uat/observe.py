@@ -50,6 +50,16 @@ def pi_answer(events: list[dict]) -> str:
     messages = [event.get("message") or {} for event in events if event.get("type") == "message_end"]
     return "\n".join(str(part.get("text", "")) for message in messages if message.get("role") == "assistant"
                      for part in message.get("content") or [] if part.get("type") == "text")
+def cursor_tool_calls(events: list[dict]) -> list[str]:
+    """Tool names from `agent -p --output-format stream-json`: one `tool_call` event with subtype `started`
+    per call (a `completed` one follows), its `tool_call` object keyed by the tool, such as `readToolCall`."""
+    return [next(iter(event.get("tool_call") or {}), "?") for event in events
+            if event.get("type") == "tool_call" and event.get("subtype") == "started"]
+
+
+def cursor_answer(events: list[dict]) -> str:
+    """The text the model produced: the closing `result` event carries the whole run's text."""
+    return "\n".join(str(event.get("result", "")) for event in events if event.get("type") == "result")
 
 
 # A shim log line holds the argv the adapter passed, quoted or not: hook run --event <event> --checkout <path>
@@ -61,13 +71,21 @@ def hook_events(log: str) -> Counter:
     return Counter(match.group(1) for match in map(_HOOK_EVENT.search, log.splitlines()) if match)
 
 
-def fingerprint(roots) -> dict[str, tuple[int, int]]:
-    """Every path below ``roots`` with its size and mtime; directories as ``(-1, 0)``. Missing roots add nothing."""
+def fingerprint(roots, skip=()) -> dict[str, tuple[int, int]]:
+    """Every path below ``roots`` with its size and mtime; directories as ``(-1, 0)``. Missing roots add nothing.
+
+    Paths in ``skip``, and everything below them, are left out: runtime binaries an auto-update may replace.
+    """
+    skipped = {os.path.normcase(os.path.abspath(path)) for path in skip}
+    kept = lambda top, name: os.path.normcase(os.path.abspath(os.path.join(top, name))) not in skipped  # noqa: E731
     seen: dict[str, tuple[int, int]] = {}
     for root in roots:
         for top, dirs, files in os.walk(root):
             seen[top] = (-1, 0)
+            dirs[:] = [name for name in dirs if kept(top, name)]
             for name in files:
+                if not kept(top, name):
+                    continue
                 path = os.path.join(top, name)
                 try:
                     stat = os.lstat(path)
