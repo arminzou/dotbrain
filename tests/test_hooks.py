@@ -313,6 +313,24 @@ def test_session_start_on_compact_only_pushes(tmp_path: Path, monkeypatch, launc
     assert len(launches) == 1 and ("--push-only" in launches[0]) is push_only
 
 
+def test_session_start_waits_for_the_sync_before_emitting(tmp_path: Path, monkeypatch):
+    home = _home(tmp_path, tmp_path / "remote.git")
+    monkeypatch.setenv("DOTBRAIN_HOME", str(home))
+    monkeypatch.chdir(home)
+    events: list = []
+
+    class Child:
+        def wait(self, timeout=None):
+            events.append(("wait", timeout))
+
+    monkeypatch.setattr(hooks, "_launch_detached", lambda argv, cwd: Child())
+    monkeypatch.setattr(hooks, "emit_brain_context", lambda **_: events.append("emit"))
+
+    hooks.handle_event("startup")
+
+    assert events == [("wait", hooks.SESSION_START_SYNC_SECONDS), "emit"]
+
+
 def test_session_start_leaves_a_slow_sync_running_at_the_bound(tmp_path: Path, monkeypatch):
     home = _home(tmp_path, tmp_path / "remote.git")
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
