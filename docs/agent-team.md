@@ -64,7 +64,7 @@ change the split. It keeps the batch inside the agreed scope.
 
 ### Hand off an active design
 
-`iterate-design` requires explicit invocation. The design must be active and have
+`iterate-design` starts only when you hand a design off, by name or in words. The design must be active and have
 mechanical checks and a hard stop. Before implementation, the lead proposes scope, branch and
 base, checks and review, worker cap, human gates, and PR delivery. It also confirms the provider,
 authentication, a distinct agent identity, and the required branch ruleset.

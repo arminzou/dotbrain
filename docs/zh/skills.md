@@ -75,7 +75,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
   `--spec-id design:<slug>` 把每个 bead 关联回设计。
 - **`grill-decisions`**：对照项目的术语和决策对计划做压力测试，再把长期有效的结论写进 `CONTEXT.md` 和 `adr/`。
 - **`find-unknowns`**：在确定设计之前，找出陌生领域里的盲点和隐含假设。
-- **`close-design`**（需按名称调用）：把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
+- **`close-design`**：把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
   把需要保留的内容提升到 `adr/` 和 `CONTEXT.md`，关闭 epic。
 
 ### 执行 {#execution}
@@ -83,7 +83,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 - **`manage-work-graph`**：在私有工作图里创建、查看、认领、拆分、更新和关闭工作项
 - **`run-execution`**：完成一个工作项或一批固定的工作项：分派 worker，让每个改动都经过独立审阅，合并，检查，
   在限度内修复，必要时上报或恢复
-- **`iterate-design`**（需按名称调用）：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
+- **`iterate-design`**：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
   draft PR 交付，完成后转为 ready 等你审阅，在成功或阻塞时停下
 
 ### 审阅与整理 {#review-and-curate}
@@ -97,8 +97,9 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 ## 按名称调用的可选技能 {#optional-skills-invoked-by-name}
 
 这些技能仍随插件提供。在 Claude Code 中用 `/dotbrain:<name>`，在 Codex 中用 `$<name>`。
+`dotbrain` 和 `triage-public` 也可以直接用文字要求启动；其他技能只能按名称调用。
 
-- **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的运行时里，需按名称调用。
+- **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的运行时里，直接要求或按名称调用都可以。
 - **`run-retro`**：检查新增或变化的证据，在私有 Brain 中记录 Agent 的发现、成功做法和已处理的范围。
   可手动调用，也可由外部定时任务调用。同一做法在三个不同证据日期得到支持后，默认只查找仓库已有的规则、标准或贡献指南，
   建议合适的文件和规则，由你决定是否创建 PR。它还会建议最有效的自动化约束（结构、类型、检查或 hook、测试），一旦违反规则就直接报错；

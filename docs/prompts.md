@@ -9,8 +9,8 @@ can send as they are, or adapt, for the common jobs. Each one says when to use i
 triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
-Naming the skill makes the choice certain. The skills `iterate-design`, `review-architecture`, `run-retro`,
-`close-design`, `teach-me`, `triage-public`, `brain-site`, and `dotbrain` never start on their own; invoke them explicitly, for example `/dotbrain:iterate-design` in Claude
+Naming the skill makes the choice certain. The skills `review-architecture`, `run-retro`,
+`teach-me`, and `brain-site` never start on their own; invoke them explicitly, for example `/dotbrain:run-retro` in Claude
 Code.
 
 ## Set Up
@@ -142,7 +142,7 @@ on without you. It proposes a contract (scope, branch, checks, worker count, pul
 delivery, acceptance/UAT, reviews, provider/auth and finite limits) if approval is missing.
 It validates and reuses a complete applicable approved contract without repeat `GO`.
 PR approval, merge and release stay with you. **Skill:**
-`iterate-design`, explicit only. See [The workflow](workflow.md#_5-work-the-issues).
+`iterate-design`. See [The workflow](workflow.md#_5-work-the-issues).
 
 ### Handoff: parallel execution
 
@@ -153,7 +153,7 @@ PR approval, merge and release stay with you. **Skill:**
 **When:** you want the agent to continue through an active design and parallelize independent work.
 An item that exhausts its retries or needs your decision waits with its dependents; independent
 items continue. A handoff with any blocked scoped item cannot finish successfully or mark its PR ready.
-**Skill:** `iterate-design`, explicit only. See [The workflow](workflow.md#_5-work-the-issues).
+**Skill:** `iterate-design`. See [The workflow](workflow.md#_5-work-the-issues).
 
 For either handoff mode, the approved `GO` authorizes pushing the dedicated branch, a draft PR
 at the first push, and a ready PR with your review requested after successful verification and
@@ -238,7 +238,7 @@ are `code` (correctness), `simplify`, and `readiness` (is a subsystem sound enou
 ```
 
 **When:** an initiative ships, is abandoned, or is superseded. Also for sweeping designs that
-never closed out. **Skill:** `close-design`, explicit only. See [The workflow](workflow.md#_7-close-the-design).
+never closed out. **Skill:** `close-design`. See [The workflow](workflow.md#_7-close-the-design).
 
 ## Learn
 
@@ -308,7 +308,7 @@ rely on. **Skill:** `write-agent-docs`.
 
 ### Triage public issues
 
-First invoke `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex, then give the scope:
+Ask for triage, or invoke `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex, then give the scope:
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.

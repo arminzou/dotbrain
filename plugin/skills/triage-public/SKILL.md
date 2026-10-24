@@ -1,6 +1,5 @@
 ---
 name: triage-public
-disable-model-invocation: true
 description: Triages public issue tracker items — classify, reproduce, ask reporters for information, decide scope, publish agent briefs — then promotes accepted work inward to the private execution engine. Inward only. Use when reviewing incoming public issues or promoting one into private execution.
 ---
 
