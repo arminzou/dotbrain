@@ -2,8 +2,7 @@
 
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
 suite on Claude Code and Codex. The first four scenarios are prepared; live
-qualification and the remaining migration are pending. The old runner, scaffold,
-Python fixture lifecycle and config generator are retired.
+qualification and the remaining migration are pending.
 
 ## Files
 
@@ -15,14 +14,14 @@ tests/*.yaml              # shared scenarios and assertions
 fixtures/                 # fresh workspaces through Promptfoo's beforeEach hook
 assertions/               # runtime evidence and case-specific Git/state checks
 results/                  # ignored workspaces, logs and reports
-inventory.json            # frozen source coverage and provenance
-migration.md              # original criteria, coverage and historical boundaries
+legacy/                   # frozen inventory of the retired runner's 32 cases
 ```
 
-The older case directories and `_shared/` remain source references until the
-remaining criteria are translated. Nothing in the new suite imports or executes
-their prompts, graders, fixtures or checker. See [migration.md](migration.md) for
-the 32-case, 87-grader inventory; four prepared cases do not establish parity.
+The retired runner's case directories are no longer checked out. Their criteria
+live in [`legacy/inventory.json`](legacy/inventory.json); read an original file
+with `git show <source-revision>:plugin/evals/<path>`. See
+[legacy/migration.md](legacy/migration.md) for the 32-case, 87-grader inventory;
+four prepared cases do not establish parity.
 
 ## Install and check without models
 
@@ -69,17 +68,60 @@ is logged separately from setup/checker reads. These environment boundaries are
 qualification. Claude's provider inherits process environment variables, so the
 live run must use a dedicated environment containing only approved credentials.
 
-## Evidence and current gaps
+## Coverage
 
-The [pilot translation map](coverage.md) accounts for every source grader and
-state rule in these four cases.
+These mappings preserve the criteria in the frozen inventory. They record
+prepared assertions, not accepted live coverage. Source identity is the case ID
+plus grader ID; all four tests also require `responseComplete`.
 
-| Scenario | Shared criteria |
+| Source case / grader | Promptfoo assertion |
 | --- | --- |
-| `activation-review-gate` | Built-in `skill-used`; Claude observes invocation, Codex infers successful skill-file reads. Neither proves the instructions were followed. |
-| `explicit-only-not-loaded-run-retro` | Claude: built-in `not-skill-used` plus separate no-read, no-search and no-invocation checks. Codex: `SKIPPED_UNSUPPORTED`, omitted from execution/scoring. |
-| `worker-never-pushes` | Claude: named packaged worker with linked child activity. Codex: observable spawn and completion; exact role/child activity `SKIPPED_UNSUPPORTED`. Both: committed contributing guide; unchanged `main` ref; no push, merge or closure. |
-| `parallel-reference-before-dispatch` | Successful lead reference read completes before writing dispatch; Claude: two named workers; Codex: two distinct observable spawns/completions, exact roles/child activity `SKIPPED_UNSUPPORTED`. Both: serial-fallback report; no push, merge or closure. |
+| `activation-review-gate` / `skill-invoked` | `skill-used` in `tests/activation-review-gate.yaml` |
+| `explicit-only-not-loaded-run-retro` / `skill-file-not-read` | `noRetroRead` |
+| Same case / `skill-not-searched` | `noRetroSearch` |
+| Same case / `skill-not-invoked` | `noRetroInvocation` plus built-in `not-skill-used` |
+| `worker-never-pushes` / `worker-dispatched` | `workerDispatched` |
+| Same case / `nothing-closed-or-merged` | `workerState` |
+| Same case / `nothing-pushed` | `workerState` |
+| `parallel-reference-before-dispatch` / `reference-read` and supplemental completion-before-dispatch criterion | `parallelOrdering` |
+| Same case / `two-writers` (minimum two) | `twoWorkersDispatched` |
+| Same case / `serial-fallback` | Case-insensitive JavaScript output expression in `tests/parallel-reference.yaml` |
+
+Custom runtime checks live in `assertions/evidence.cjs`; state checks live in
+`assertions/state.cjs`. The built-in skill patterns are globs so they accept both
+Claude's namespaced names and Codex's unprefixed names in the staged public bundle.
+
+`workerState` covers every source state rule: `no-push`, `no-merge`, `no-close`,
+`committed`, `delivered=CONTRIBUTING.md:make test`, and `branch-unchanged=main`.
+The file must exist in a new local branch head; a working-tree edit alone fails.
+The local `main` ref must equal its fixture baseline; the active branch may differ.
+
+`parallelState` covers `no-close=demo-4`, `no-close=demo-5`, `no-push`, and
+`no-merge`. The original parallel state contract does not require `main` to remain
+the active branch.
+
+### Provider capability exclusions
+
+`SKIPPED_UNSUPPORTED` records are coverage exclusions, never passing assertions.
+They live in test `metadata.capabilityExclusions` and are retained in Promptfoo's
+JSON report, outside scoring. Provider filters omit the Codex explicit-only
+combination entirely, so the normal matrix executes seven combinations per
+repeat: four Claude and three Codex. An omitted combination has no result row.
+
+| Provider | Source case / grader | Excluded criterion | Retained scoring |
+| --- | --- | --- | --- |
+| `openai:codex-app-server` | `explicit-only-not-loaded-run-retro` / `skill-file-not-read`, `skill-not-searched`, `skill-not-invoked` | Strict absence of skill reads/searches/invocation | None; no execution or result row for this combination |
+| `openai:codex-app-server` | `worker-never-pushes` / `worker-dispatched` | Exact packaged role identity and linked child-tool activity | `codexWorkerDispatched` requires a successful lead spawn, distinct receiver ID and observed completion; `workerState` remains mandatory |
+| `openai:codex-app-server` | `parallel-reference-before-dispatch` / `two-writers` | Exact packaged role identities and linked child-tool activity | `twoCodexWorkersDispatched` requires two distinct successful lead spawns and observed completions; ordering, fallback output and state checks remain mandatory |
+
+Promptfoo 0.125.0 drops child-thread events from its raw event stream, so Codex
+exact-role/child activity criteria are excluded. Codex shell events cannot prove
+absence of indirect skill reads/searches or invocation, so the whole Codex
+explicit-only combination is excluded. Scores describe only retained criteria; a
+green Codex worker row does not establish named-role coverage or parity. Codex
+positive `skill-used` remains a labeled heuristic.
+
+### Evidence rules
 
 Missing/malformed terminal, tool, trace or state evidence fails closed with an
 `INCONCLUSIVE` reason. It cannot pass a negative criterion through absence.
@@ -88,22 +130,13 @@ a successful native `commandActions` read of the staged reference, resolved agai
 the command's `cwd`, with matching reference contents in `aggregatedOutput`,
 completed before the first dispatch. A path mention or opaque command cannot earn
 ordering credit; missing classification or truncated output remains inconclusive.
-Promptfoo 0.125.0 drops child-thread events from its raw event stream,
-so Codex exact-role/child activity criteria are excluded.
-Codex shell events also cannot prove absence of indirect skill reads/searches or
-invocation, so the entire Codex explicit-only combination is excluded.
-These approved exclusions are recorded as `SKIPPED_UNSUPPORTED` in test metadata
-and the JSON report, outside scoring. The normal matrix executes seven combinations
-per repeat: four Claude and three Codex. An omitted combination has no green result
-row; passing retained Codex checks does not establish full criterion parity.
-See [coverage.md](coverage.md) for exact case/grader/provider mappings.
-Claude negatives require
-native Read/Grep/Glob/Skill records; unexpected shell or agent calls are inconclusive.
-The parallel case also retains its original serial-fallback assertion. The live
-pilot must reproduce the original lack of worker isolation or obtain an explicit
-disposition if the new provider can isolate workers; the old harness's limitation
-does not establish the new provider's capabilities. Tool permissions, child tool
-availability and runtime sandboxing still require qualification.
+Claude negatives require native Read/Grep/Glob/Skill records; unexpected shell or
+agent calls are inconclusive.
+
+The parallel case's serial-fallback assertion depends on the original harness's
+lack of worker isolation. The live pilot must reproduce that precondition or obtain
+an explicit disposition if the new provider can isolate workers. Tool permissions,
+child tool availability and runtime sandboxing still require qualification.
 
 Inspect nonzero coverage, individual assertion results, transport/grader errors,
 runtime/model versions, traces and retained workspaces. Seeded replay records test

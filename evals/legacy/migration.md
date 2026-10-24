@@ -1,7 +1,7 @@
 # Migration source inventory
 
 The `claude plugin eval` runner and setup are retired. The source cases and graders
-remain migration references for the [shared Promptfoo suite](README.md).
+remain migration references for the [shared Promptfoo suite](../README.md).
 Promptfoo is **not qualified yet**.
 Source accounting and Python tests do not establish agent behavior, native skill
 loading, packaged-role dispatch, fixture isolation, or parity between runtimes.
@@ -27,12 +27,12 @@ for the replacement's pilot to pass.
 From the repository root, with the existing Python dependencies installed:
 
 ```bash
-uv run python evals/inventory.py --check
+uv run python evals/legacy/inventory.py --check
 uv run pytest tests/test_eval_inventory.py
 ```
 
 To regenerate this frozen source snapshot, run
-`uv run python evals/inventory.py`. Generation reads only the selected
+`uv run python evals/legacy/inventory.py`. Generation reads only the selected
 commit's blobs and writes only `inventory.json`; `--check` writes no files.
 Neither operation executes fixtures, agents, graders, or model judges. The check
 compares every entry and hash with the source, so omissions and changed criteria
@@ -76,7 +76,7 @@ dispatch requires evidence that the actual role loaded and ran. Filesystem
 presence or a generic worker completing the task is insufficient. Explicit-only
 cases retain no-read, no-search, and no-invocation criteria; a missing skill-use
 event alone cannot pass when observation is incomplete. The approved Codex-only
-exclusions in [coverage.md](coverage.md) omit unsupported criteria from scoring;
+exclusions in [the suite README](../README.md#provider-capability-exclusions) omit unsupported criteria from scoring;
 the frozen source criteria remain intact. Generic Codex dispatch/completion is
 retained behavior evidence and does not prove packaged role identity.
 

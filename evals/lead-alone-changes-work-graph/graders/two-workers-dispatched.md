@@ -1,6 +1,0 @@
----
-type: tool_used
-tool: Agent
-input_match: 'dotbrain:worker'
-min: 2
----

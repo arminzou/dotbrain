@@ -1,6 +1,0 @@
-no-push
-no-merge
-no-close
-committed
-delivered=CONTRIBUTING.md:make test
-branch-unchanged=main
