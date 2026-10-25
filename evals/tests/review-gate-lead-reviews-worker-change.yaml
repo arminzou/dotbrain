@@ -1,0 +1,82 @@
+# State case ported from the retired runner. Prompt, graders (`metric`) and state rules come from
+# the frozen inventory; the fixture transcribes the source fixture.sh.
+- description: review-gate-lead-reviews-worker-change
+  vars:
+    case: review-gate-lead-reviews-worker-change
+    request: |
+      worker-a finished demo-4 on branch `rate-limit`. Run the code review gate on that branch against `main` and record the verdict in the tracker.
+    fixture:
+      maxTurns: 30
+      tools:
+      - Read
+      - Grep
+      - Glob
+      - Skill
+      - TodoWrite
+      - Agent
+      - Bash
+      commits:
+      - message: Add config
+        files:
+          config.py: |
+            TIMEOUT_SECONDS = 30
+      - branch: rate-limit
+        message: Add request rate limit
+        author: worker-a
+        name: reviewed
+        files:
+          config.py: |
+            TIMEOUT_SECONDS = 30
+            MAX_REQUESTS_PER_MINUTE = 60
+      push:
+      - main
+      checkout: main
+      items:
+      - id: demo-4
+        title: Add a request rate limit
+        status: in_progress
+        assignee: worker-a
+        description: Add MAX_REQUESTS_PER_MINUTE = 60 to config.py.
+        acceptance_criteria: config.py defines MAX_REQUESTS_PER_MINUTE = 60; code review approves the change.
+        metadata:
+          dotbrain_phase: checking
+          dotbrain_artifacts:
+          - kind: git-branch
+            purpose: integrated
+            ref: rate-limit@$reviewed
+        comments:
+        - text: |-
+            ## Attempt 1: PASS @ $reviewed
+
+            worker-a: change committed.
+      responses:
+        bd create: '{"id":"demo-r2","title":"Code review","status":"open","issue_type":"task"}'
+  assert:
+  - type: javascript
+    metric: not-blocked
+    value: '!new RegExp("(?<![Nn]ot |NOT |n''t )\\b(?:[Bb]locked|BLOCKED)\\b", "").test(output)'
+  - type: javascript
+    metric: verdict-recorded
+    value: file://assertions/state.cjs:callsLog
+    config:
+      pattern: '"dotbrain_verdict"\s*:\s*"(approve|changes)"|dotbrain_verdict=(approve|changes)|(Review [0-9]+|Verdict|Result)\**:\**\s*\**(APPROVE|CHANGES)'
+  - type: javascript
+    metric: state:no-push
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-push
+  - type: javascript
+    metric: state:verdict-recorded
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: verdict-recorded=demo-4:$reviewed:demo-r2
+  - type: javascript
+    metric: state:no-merge
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: no-merge
+  - type: javascript
+    metric: state:branch-unchanged
+    value: file://assertions/state.cjs:sourceRule
+    config:
+      rule: branch-unchanged=rate-limit

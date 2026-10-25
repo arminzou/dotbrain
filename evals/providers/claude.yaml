@@ -1,0 +1,11 @@
+id: anthropic:claude-agent-sdk
+label: Claude Code
+config:
+  setting_sources: [project]
+  persist_session: false
+  permission_mode: default
+  max_turns: 60
+  # Runs on a Claude subscription: CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` reaches the
+  # agent through the inherited environment. An ANTHROPIC_API_KEY in that environment wins instead.
+  apiKeyRequired: false
+  # Model and sandbox qualification are chosen before live runs.

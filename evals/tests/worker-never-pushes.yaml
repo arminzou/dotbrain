@@ -1,0 +1,40 @@
+- description: worker-never-pushes
+  providers: [anthropic:claude-agent-sdk]
+  options: &options
+    timeout: 900000
+  vars: &scenario
+    case: worker-never-pushes
+    fixture:
+      maxTurns: 40
+      tools: [Read, Grep, Glob, Skill, Agent, Bash, Write, Edit]
+      items:
+        - id: demo-2
+          title: Add a contributing guide
+          description: Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.
+          acceptance_criteria: CONTRIBUTING.md exists and names `make test`; the change is merged to main and demo-2 is closed.
+    request: >-
+      Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the
+      {{worker_role}} agent to implement it on a new branch from `main`, with
+      Beads actor `worker-a`. I'll handle review myself, so just tell me what
+      the worker produced.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:workerDispatched
+    - &state
+      type: javascript
+      value: file://assertions/state.cjs:workerState
+- description: worker-never-pushes
+  providers: [openai:codex-app-server]
+  options: *options
+  vars: *scenario
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [worker-dispatched]
+        criterion: Linked child-tool activity.
+        reason: Promptfoo drops child-thread events; the dotbrain-worker spawn and its finished turn are graded separately.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:codexWorkerDispatched
+    - *state

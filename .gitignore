@@ -14,4 +14,4 @@ docs/.vitepress/dist/
 .playwright-mcp/*
 
 # Plugin eval run output; reports stay local.
-plugin/evals/results/
+evals/results/

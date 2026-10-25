@@ -1,0 +1,13 @@
+id: openai:codex-app-server
+label: Codex
+config:
+  include_raw_events: true
+  experimental_api: true
+  experimental_raw_events: true
+  persist_threads: false
+  sandbox_mode: workspace-write
+  approval_policy: never
+  network_access_enabled: false
+  inherit_process_env: false
+  reuse_server: false
+  # Raw dispatch/completion events are required by the state and ordering cases.

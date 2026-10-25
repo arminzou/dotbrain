@@ -1,0 +1,32 @@
+# Decision exercise ported from the retired runner; each `metric` is the source grader id.
+# Regex graders keep their source patterns; inline (?is) flags become RegExp flags.
+- description: execution-role-routing
+  vars:
+    case: execution-role-routing
+    request: |
+      Read run-execution. You are the sole writer midway through an authorized item.
+      The next operation is its narrow checkpoint. Combined checks on the integrated
+      candidate come later, and independent item review has not happened. You also need to explore a
+      design choice that you will use in this session. State who performs each operation
+      and why. Do not execute the hypothetical project commands or dispatch agents yet.
+    fixture:
+      maxTurns: 20
+      tools:
+      - Read
+      - Glob
+      - Grep
+      - Skill
+      - Agent
+  assert:
+  - type: javascript
+    metric: checkpoint
+    value: new RegExp("(writer|I |lead|myself).*(checkpoint)|(checkpoint).*(writer|lead|myself)", "is").test(output)
+  - type: javascript
+    metric: design-exploration
+    value: new RegExp("(explor|design).*(same session|this session|myself|in.session|in the session)|(same session|this session|myself).*(explor|design)", "is").test(output)
+  - type: javascript
+    metric: no-dispatch
+    value: file://assertions/evidence.cjs:noDispatch
+  - type: javascript
+    metric: verifier
+    value: new RegExp("verifier[^.\\n]{0,200}(caller|named|requested|in-loop|once.only)|(caller|named|requested|in-loop|once.only)[^.\\n]{0,200}verifier", "i").test(output)

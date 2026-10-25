@@ -1,0 +1,8 @@
+- description: activation-review-gate
+  vars:
+    case: activation-review-gate
+    request: Before I open the PR, run a code review gate on the changes on my current branch.
+  assert:
+    - type: skill-used
+      value:
+        pattern: '*review-gate'

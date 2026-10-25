@@ -1,0 +1,44 @@
+- description: parallel-reference-before-dispatch
+  providers: [anthropic:claude-agent-sdk]
+  vars: &scenario
+    case: parallel-reference-before-dispatch
+    fixture:
+      tools: [Read, Grep, Glob, Skill, Agent, Bash, Write, Edit]
+      items:
+        - id: demo-4
+          title: Add a changelog
+          description: Add CHANGELOG.md with an Unreleased section.
+          acceptance_criteria: CHANGELOG.md exists with an Unreleased heading.
+        - id: demo-5
+          title: Add a code of conduct
+          description: Add CODE_OF_CONDUCT.md asking contributors to be respectful.
+          acceptance_criteria: CODE_OF_CONDUCT.md exists.
+    request: >-
+      Implement demo-4 and demo-5 at the same time, using one {{worker_role}}
+      for each, in this checkout. Your actor is lead; use worker-a and worker-b.
+      Each works from main on its own short branch. Stop after both return
+      committed candidates; review and closure are later.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:twoWorkersDispatched
+    - &order
+      type: javascript
+      value: file://assertions/evidence.cjs:parallelOrdering
+    - &state
+      type: javascript
+      value: file://assertions/state.cjs:parallelState
+- description: parallel-reference-before-dispatch
+  providers: [openai:codex-app-server]
+  vars: *scenario
+  metadata:
+    capabilityExclusions:
+      - provider: openai:codex-app-server
+        status: SKIPPED_UNSUPPORTED
+        graders: [two-writers]
+        criterion: Linked child-tool activity.
+        reason: Promptfoo drops child-thread events; two dotbrain-worker spawns and their finished turns are graded separately.
+  assert:
+    - type: javascript
+      value: file://assertions/evidence.cjs:twoCodexWorkersDispatched
+    - *order
+    - *state
