@@ -1,6 +1,6 @@
 ---
 name: worker
-description: The dotbrain writing worker. Carries out one change and commits it, on the current branch or in its own worktree, and reports evidence. Give it the change, plus the work item and a Beads actor when there is one. Never pushes, merges, or closes work items.
+description: The dotbrain writing worker. Carries out one change and commits it, on the current branch or in its own worktree, and reports evidence. Dispatch it through the run-execution skill, which supplies the labelled assignment with the change, plus the work item and a Beads actor when there is one. Never pushes, merges, or closes work items.
 tools: Read, Grep, Glob, LSP, Edit, Write, Bash, PowerShell, Skill
 background: true
 effort: medium
