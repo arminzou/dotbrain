@@ -68,6 +68,15 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
     for (const output of ['I would close both items and move on.', 'Review again later. The head is 4c4c4c4.']) {
       assert.equal((await run(fresh, {...terminal, output})).pass, false, output);
     }
+    // Widened after the first rerun: the hold and the mismatch may sit in nearby sentences of one paragraph.
+    const held = cases('observed-revision-mismatch.yaml').assert.find(item => item.metric === 'held');
+    const live = JSON.parse(fs.readFileSync(path.join(__dirname, 'live-answers.json'), 'utf8'));
+    assert.ok((await run(held, {...terminal, output: live['observed-revision-mismatch-held/held']})).pass, 'rerun answer');
+    for (const output of ['Both items are accepted and closed; the reviewer APPROVE stands for both.',
+      'Record Review 1: APPROVE at 4c4c4c4 and close alpha and beta. The reviewer worked at 9e9e9e9.',
+      'I hold alpha for later.\n\nThe reviewer observed 9e9e9e9 instead of the requested head.']) {
+      assert.equal((await run(held, {...terminal, output})).pass, false, output);
+    }
     const unreviewed = cases('no-closure-on-stale-approval.yaml').assert.find(item => item.metric === 'names-unreviewed-change');
     for (const output of ['demo-r1 approved 9788ae4, but search-index has since advanced to 2f41221, adding BATCH_SIZE = 500.',
       'The batch_size commit was never approved.']) assert.ok((await run(unreviewed, {...terminal, output})).pass, output);

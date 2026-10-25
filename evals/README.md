@@ -225,7 +225,10 @@ After the first live pilot, by decision: the parallel case's serial-fallback
 grader is retired because both runtimes isolated the workers in worktrees, and the
 `fresh-review` and `names-unreviewed-change` regexes are widened to accept the
 correct answers that pilot gave (a re-request about the requested boundary;
-`BATCH_SIZE` and "since advanced"). Tool permissions, child tool availability and
+`BATCH_SIZE` and "since advanced"). After the first rerun, `held` also accepts a
+hold decision and the observed-revision mismatch in nearby sentences of one paragraph.
+Correct live answers a grader once rejected are kept in `assertions/live-answers.json`,
+and calibration keeps them passing. Tool permissions, child tool availability and
 runtime sandboxing still require qualification.
 
 Inspect nonzero coverage, individual assertion results, transport/grader errors,
