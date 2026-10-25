@@ -61,8 +61,8 @@ report the serial fallback before continuing, keeping scope, isolation, checks, 
 At most one active writer owns an item. Delegated workers return
 candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
 permissions and actor rules. Worker startup is defined only
-in the [worker role](../../agents/worker.md) and its Codex counterpart,
-`.codex/agents/dotbrain-worker.toml`. An unwired linked
+in the worker role: [`dotbrain:worker`](../../agents/worker.md) in Claude Code, the
+`dotbrain-worker` agent in Codex. An unwired linked
 worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
 never rely on where one began.
 
@@ -153,8 +153,8 @@ findings resolved; others applied, filed with follow-up IDs, or declined with re
 ## Worker assignment
 
 Every delegated writing worker receives, in its runtime message, the labelled assignment that
-[the worker role](../../agents/worker.md#the-assignment) defines (in Codex, the same section of
-`.codex/agents/dotbrain-worker.toml`), with every label in order;
+[the worker role](../../agents/worker.md#the-assignment) defines (the same section of the
+`dotbrain-worker` agent in Codex), with every label in order;
 reviewer requests keep their own inputs. The worker's actor follows manage-work-graph's actor
 rules. Make the assignment self-contained: settled constraints and exact source sections with
 enough context to resolve conflicts, not the lead's conversation or whole workflow documents.
