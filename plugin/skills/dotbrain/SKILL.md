@@ -75,8 +75,9 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
   for a public need, derive fresh standalone guidance (the standard `.brain/AGENTS.md` pointer is
-  allowed). Code, tests, comments, commits, and PR text cite no ADR numbers, Brain paths, or
-  decision-record identifiers; state the rationale in plain terms.
+  allowed). Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
+  numbers, Brain paths, decision-record identifiers, or paraphrased private incidents and
+  decisions. State the rationale in plain terms; the linkage stays in the Brain.
 
 ## Working in loops
 
@@ -129,8 +130,8 @@ execution state.
 - `designs/` — design docs, one initiative per file, each with a `lifecycle:` field (`draft`,
   `active`, `shipped`, `abandoned`, `superseded`) kept current as its mutability changes. An
   `active` design is the initiative's living authority for design, criteria, unknowns, and
-  deviations; beads own execution state. `designs/README.md` and `to-design`'s template hold the
-  lifecycle and frontmatter rules
+  deviations; beads own execution state. Lifecycle rules live in `designs/README.md`; the
+  frontmatter vocabulary lives in `to-design`'s design template
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
 - `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,

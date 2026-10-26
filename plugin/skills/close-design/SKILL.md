@@ -91,7 +91,8 @@ Every discovery the initiative produced lands in exactly one place:
 - **`.brain/RETRO.md`** — a practice from the overall approach or goal outcomes that would change
   another initiative's decisions. Reuse findings already recorded at task closure rather than
   writing them again, and save with
-  [run-retro's compare-and-swap save](../run-retro/references/retro.md#save).
+  [run-retro's compare-and-swap save](../run-retro/references/retro.md#save). If `RETRO.md` is
+  missing, the practice stays in the frozen design doc; do not create a notebook.
 - **Nowhere** — item-local facts that die with their beads.
 
 Write the ADR ids you created into the doc's `residue:` frontmatter, so provenance survives in both

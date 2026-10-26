@@ -8,7 +8,7 @@ started: <YYYY-MM-DD>
 <!--
 Author only the sections this initiative needs; delete the rest along with their hints.
 Keep every section at the interface and behavior level — exact file paths and code snippets go
-stale. `DOTBRAIN.md` carries the lifecycle rules that govern this doc over its whole life.
+stale. The Brain's `designs/README.md` carries the lifecycle rules that govern this doc over its whole life.
 
 Frontmatter vocabulary: `lifecycle:` (required), `started:` and `ended:` (dates), `extends:` (a
 design this one builds on), `residue:` (ADR ids this doc produced, e.g. `[ADR-NNNN]`). Do not

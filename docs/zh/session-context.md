@@ -35,7 +35,7 @@ sequenceDiagram
 | `.brain/DOTBRAIN.md` | 由 hook 注入 |
 | `.brain/AGENTS.md` | 实质工作前读取私有规则和个人偏好，不注入 |
 | 公开的 `AGENTS.md` 和根目录 `RULES.md` | 仓库入口指引修改或审阅代码的 Agent 读取 Git 跟踪的规则，没有 Brain 也能用 |
-| `.brain/RETRO.md` | lead 或独立工作的 Agent 在实现或审阅准备时搜索相关发现，随任务分派传递 |
+| `.brain/RETRO.md` | lead 或独立工作的 Agent 在每个任务或每批任务开始实现或审阅前搜索一次相关发现，随任务分派传递；工作完成时，再记录可迁移的做法 |
 | `.brain/CONTEXT.md`、`adr/`、`designs/` | 工作需要时由 Agent 读取 |
 | `.brain/docs/` | Agent 在回答项目如何运作之前先搜索这里 |
 | Beads 工作流入门 | dotbrain 不注入；Agent 需要时运行 `bd prime` |
