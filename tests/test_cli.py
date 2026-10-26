@@ -22,7 +22,7 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "doctor", "wire", "refresh", "unwire", "beads", "skills", "agents", "projects"):
+    for command in ("bootstrap", "doctor", "wire", "refresh", "unwire", "beads", "skills", "subagents", "projects"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
@@ -57,11 +57,17 @@ def test_update_is_retired():
     assert "No such command" in result.output
 
 
-def test_agents_help_lists_discovery_command():
-    result = runner.invoke(app, ["agents", "--help"])
+def test_subagents_help_lists_discovery_command():
+    result = runner.invoke(app, ["subagents", "--help"])
     assert result.exit_code == 0
     assert "link" in result.output
     assert "list" in result.output
+
+
+def test_agents_command_is_removed():
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code == 2
+    assert "No such command" in result.output
 
 
 def test_wire_help_omits_retired_global_hook_support():
@@ -302,7 +308,7 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
     )
 
     checkout = _asset_checkout(brainspace)
-    result = runner.invoke(app, ["agents", "link", "--project", "example"])
+    result = runner.invoke(app, ["subagents", "link", "--project", "example"])
 
     assert result.exit_code == 0, result.output
     assert (checkout / ".claude/agents/reviewer.md").is_symlink()
@@ -327,7 +333,7 @@ def test_agents_link_repo_links_into_target_checkout(
 
     result = runner.invoke(
         app,
-        ["agents", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
+        ["subagents", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
     )
 
     assert result.exit_code == 0, result.output
@@ -369,13 +375,13 @@ def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_pat
     (dotbrain_home / "subagents" / "codex" / "custom.toml").write_text('name = "custom"\n')
     (dotbrain_home / "config.yaml").write_text("version: 4\nsubagents:\n  - custom\n")
 
-    first = runner.invoke(app, ["agents", "link", "--scope", "global", "--runtime", "codex"])
+    first = runner.invoke(app, ["subagents", "link", "--scope", "global", "--runtime", "codex"])
     assert first.exit_code == 0, first.output
     agent_file = tmp_path / ".codex" / "agents" / "custom.toml"
     assert agent_file.is_file() and not agent_file.is_symlink()
 
     (dotbrain_home / "config.yaml").write_text("version: 4\nsubagents: []\n")
-    second = runner.invoke(app, ["agents", "link", "--scope", "global", "--runtime", "codex"])
+    second = runner.invoke(app, ["subagents", "link", "--scope", "global", "--runtime", "codex"])
 
     assert second.exit_code == 0, second.output
     assert not agent_file.exists()

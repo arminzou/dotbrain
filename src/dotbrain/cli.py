@@ -28,13 +28,13 @@ app = HelpTyper(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 skills_app = HelpTyper(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
-agents_app = HelpTyper(help="Link dotbrain vendor-native subagents into agent runtimes.", no_args_is_help=True)
+subagents_app = HelpTyper(help="Link your custom vendor-native subagents into agent runtimes.", no_args_is_help=True)
 beads_app = HelpTyper(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = HelpTyper(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
 site_app = HelpTyper(help="Set up and run a Brain's private site.", no_args_is_help=True)
 projects_app = HelpTyper(help="Discover registered projects and inspect local settings.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
-app.add_typer(agents_app, name="agents")
+app.add_typer(subagents_app, name="subagents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
 app.add_typer(site_app, name="site")
@@ -532,15 +532,15 @@ def skills_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: 
     _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, all_projects)
 
 
-@agents_app.command("list")
-def agents_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project", help="Show selections for a named Brainspace."), json_output: JsonOption = False) -> None:
-    """Discover locally available agents."""
+@subagents_app.command("list")
+def subagents_list(home: HomeOption = None, runtime: RuntimeOption = "all", project: Optional[str] = typer.Option(None, "--project", help="Show selections for a named Brainspace."), json_output: JsonOption = False) -> None:
+    """Discover locally available custom subagents."""
     _asset_report("agents", "list", home, runtime, project, json_output)
 
 
-@agents_app.command("link")
-def agents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
-    """Reconcile selected agents in project or explicit global scope."""
+@subagents_app.command("link")
+def subagents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
+    """Reconcile selected custom subagents in project or explicit global scope."""
     _asset_report("agents", "link", home, runtime, project, json_output, scope, repo, all_projects)
 
 

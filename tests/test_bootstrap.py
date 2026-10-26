@@ -396,7 +396,7 @@ def test_agents_link_project_target_reports_actual_linked_files(
 
     result = runner.invoke(
         app,
-        ["agents", "link", "--scope", "project", "--runtime", "codex", "--project", "claude-only-agent-link"],
+        ["subagents", "link", "--scope", "project", "--runtime", "codex", "--project", "claude-only-agent-link"],
     )
 
     assert result.exit_code == 2, result.output

@@ -241,7 +241,8 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
     for k, (directory, suffix) in subagents.runtime_spec().items():
         if runtimes.find(k) not in wanted:
             continue
-        names = {p.stem for p in (subagents.sources_root(home) / directory).glob(f"*{suffix}") if p.is_file()}
+        names = {p.stem for p in (subagents.sources_root(home) / directory).glob(f"*{suffix}")
+                 if p.is_file() and not p.name.startswith(subagents.PACKAGED_PREFIX)}
         for name in sorted(names):
             source = str(paths.confined_path(subagents.sources_root(home), f"{directory}/{name}{suffix}"))
             entry = entries.setdefault(name, {"name": name, "selected": name in selected, "sources": {}})

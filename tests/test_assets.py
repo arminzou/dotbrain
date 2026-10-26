@@ -39,7 +39,7 @@ def test_missing_project_agents_follows_installed_cli_runtimes(tmp_path, monkeyp
     assert assets.project_agents(tmp_path, "missing") == installed
 
 
-@pytest.mark.parametrize("kind", ["skills", "agents"])
+@pytest.mark.parametrize("kind", ["skills", "subagents"])
 @pytest.mark.parametrize("runtime", ["all", "codex"])
 def test_asset_batch_isolates_malformed_declaration(tmp_path, kind, runtime):
     home = tmp_path / "home"
@@ -120,7 +120,7 @@ def test_catalogs_and_invalid_json_selection(tmp_path):
     write(tmp_path / "skills/test/SKILL.md", "test")
     write(tmp_path / "subagents/codex/custom.toml", 'name = "custom"\n')
     runner = CliRunner()
-    for kind in ("skills", "agents"):
+    for kind in ("skills", "subagents"):
         result = runner.invoke(app, [kind, "list", "--home", str(tmp_path), "--runtime", "codex", "--json"])
         assert result.exit_code == 0, result.output
         rows = json.loads(result.stdout)["targets"][0]["data"]["assets"]
