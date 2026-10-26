@@ -61,9 +61,12 @@ Completion: scope is explicit, the limit is known, and the notebook hash is reco
 
 Select work and review records changed since the saved curation cutoff, oldest update first, as
 the reference describes. A lead's candidate flag write updates its bead, so new retro candidates
-arrive in this selection. On each selected bead, judge every `## Retro candidate` comment that no
-`## Retro candidate judged` comment answers, whatever its date. Read a bead's comments by header
-and open in full only the relevant ones. Then read the other evidence: CHANGES verdicts, failed checks, rejected candidates, human corrections,
+arrive in this selection. On each selected bead, follow [candidate discovery](references/retro.md#curation-cutoff-and-selection):
+match exact first-line headers and judge every unanswered candidate, whatever its date. When
+`dotbrain_retro` is after the cutoff but no unanswered candidate header is found, read all of
+that bead's comments in full to recover malformed headers or record the source gap. Otherwise,
+read comments by header and open in full only the relevant ones. Then read the other evidence:
+CHANGES verdicts, failed checks, rejected candidates, human corrections,
 defects, and informative successes or recoveries. Commits alone are not the signal; much
 correction evidence never reaches the integration branch. Include explicitly supplied incidents
 regardless of date. Use commits and CI only as supporting evidence.
