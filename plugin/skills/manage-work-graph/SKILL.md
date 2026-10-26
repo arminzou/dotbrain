@@ -77,7 +77,7 @@ Apply the convention's human gates and criteria ownership before claiming or clo
 Claim only work you will do yourself; a delegated worker performs its own startup under
 its role contract. Never claim an epic merely to anchor scope.
 Pass your own `--actor <actor>` on every tracker write. The lead alone writes execution
-metadata, except that `run-retro` removes `dotbrain_retro` under its own actor after curating. A worker retains its claim through candidate return and every fix round;
+metadata. A worker retains its claim through candidate return and every fix round;
 returning a candidate changes neither assignee nor claim. Claimed work stays out of
 `bd ready`; lease expiry does not release a claim or permit another actor to claim it.
 
@@ -103,8 +103,7 @@ Write only changed keys with `bd update <id> --metadata '<json-object>' --actor 
 Beads merges one level deep: unnamed keys survive; named values are replaced whole.
 Write each changed `dotbrain_attempts` or `dotbrain_artifacts` value complete, not just
 the changed entry. `--set-metadata` stores an object as an escaped string; use it, if at
-all, for `dotbrain_phase` alone. Remove a key with `--unset-metadata <key>`; only `run-retro`
-removes `dotbrain_retro`. Query with `bd list --metadata-field <key>=<value>`;
+all, for `dotbrain_phase` alone. Query with `bd list --metadata-field <key>=<value>`;
 add `--all` for closed items. Keep logs in evidence comments, never metadata.
 
 Write comment files verbatim in a temporary location outside the project. Prefer the

@@ -59,9 +59,10 @@ Completion: scope is explicit, the limit is known, and the notebook hash is reco
 
 ### 2. Select changed records
 
-Select every bead flagged `dotbrain_retro`, regardless of date, and read its `## Retro candidate`
-comments. Then select work and review records changed since the saved curation cutoff, oldest
-update first, as the reference describes: CHANGES verdicts, failed checks, rejected candidates, human corrections,
+Select work and review records changed since the saved curation cutoff, oldest update first, as
+the reference describes. A lead's candidate flag write updates its bead, so new retro candidates
+arrive in this selection: judge each `## Retro candidate` comment created after the cutoff, and
+never an older one again. Then read the other evidence: CHANGES verdicts, failed checks, rejected candidates, human corrections,
 defects, and informative successes or recoveries. Commits alone are not the signal; much
 correction evidence never reaches the integration branch. Include explicitly supplied incidents
 regardless of date. Use commits and CI only as supporting evidence.
@@ -116,20 +117,11 @@ advanced cutoff, against the last recorded hash. If the notebook changed since t
 without writing; the next run redoes the work. Advance the cutoff only past records whose changes
 are in this save.
 
-After the save succeeds, remove the flag from every candidate bead this pass judged, whether its
-candidate became a finding, merged into one, or was rejected as not transferable or already
-covered (count rejections under SKIPPED). Re-read each bead's `dotbrain_retro` first and remove it
-only if it still holds the time read at selection; a newer time means another candidate arrived,
-so leave it. Remove with `bd update <id> --unset-metadata dotbrain_retro --actor <retro-actor> --json --quiet`.
-Removing a flag bumps the bead's update time. Then query records updated after the saved cutoff:
-if they are only beads this pass just unflagged, advance the cutoff to their latest update time in
-one more compare-and-swap save; otherwise leave the cutoff, and the next pass rereads them.
+Never remove a `dotbrain_retro` flag: the cutoff, not the flag, marks what has been judged, so a
+kept, merged, or rejected candidate is not offered again (count rejections under SKIPPED). A failed
+or abandoned run loses nothing and skips no records.
 
-A failed or abandoned run loses nothing and skips no records; a crash before the flags clear only
-re-offers candidates the duplicate check absorbs.
-
-Completion: the notebook and cutoff changed together, or not at all; every judged candidate lost
-its flag, and no newer one did.
+Completion: the notebook and cutoff changed together, or not at all.
 
 ## Audit
 
