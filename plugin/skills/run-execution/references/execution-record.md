@@ -127,8 +127,10 @@ Every `Accepted` body includes `Evidence: <kinds>` using every applicable kind f
 `live`, `integration-test`, `unit-test`, `eval`, `static-only`, matching the verifier's
 `Verification` block. These are kinds, not a ranking: `live` exercises the running product,
 `integration-test` exercises connected components, `unit-test` exercises isolated code,
-and `eval` exercises agent behavior. Use `static-only` when the evidence inspects artifacts
-without exercising the changed behavior. Classify what the checks demonstrate, not just
+and `eval` exercises agent behavior. Use `static-only` alone when the complete evidence
+set has no exercise of the changed behavior; never combine it with the other kinds.
+Keep individual static command results in the checks, not the evidence-kind set.
+Classify what the checks demonstrate, not just
 the command name; a passing delivery test does not demonstrate agent behavior.
 Keep the supporting check references and coverage gaps beside the field.
 
