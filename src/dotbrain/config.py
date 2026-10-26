@@ -295,13 +295,17 @@ def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
              f"packaged-subagents:\n{roles}").replace("\n", eol).encode("utf-8")
     # Some valid layouts (flow or indented roots, document markers, kept block scalars)
     # cannot take a top-level append; refuse them rather than change their meaning.
-    expected = {**yaml.safe_load(existing.decode("utf-8")), "version": PROJECT_VERSION,
-                "packaged-subagents": list(PACKAGED_ROLES)}
+    # Anchors, aliases and merge keys make the meaning check unsafe (aliases can recurse); refuse them.
+    text = existing.decode("utf-8")
+    shared = any(isinstance(token, (yaml.AnchorToken, yaml.AliasToken))
+                 or (isinstance(token, yaml.ScalarToken) and token.plain and token.value == "<<")
+                 for token in yaml.scan(text))
     try:
-        proposed = yaml.safe_load((existing + block).decode("utf-8"))
-    except yaml.YAMLError:
-        proposed = None
-    if proposed != expected:
+        safe = not shared and yaml.safe_load(text + block.decode("utf-8")) == {
+            **yaml.safe_load(text), "version": PROJECT_VERSION, "packaged-subagents": list(PACKAGED_ROLES)}
+    except (yaml.YAMLError, RecursionError):
+        safe = False
+    if not safe:
         raise ValueError(f"{path}: cannot append the packaged-subagents record to this layout; add "
                          f"'version: {PROJECT_VERSION}' and 'packaged-subagents: [{', '.join(PACKAGED_ROLES)}]' by hand")
     with path.open("ab") as handle:  # bytes: keep the file's own line endings

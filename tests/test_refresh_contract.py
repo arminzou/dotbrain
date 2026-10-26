@@ -382,6 +382,9 @@ def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
     b'{agents: [], beads: {mode: none}}\n',
     b'agents: []\nbeads: {mode: none}\n...\n',
     b'  agents: []\n  beads: {mode: none}\n',
+    b'agents: []\nbeads: {mode: none}\nloop: &loop [*loop]\n',
+    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
+    b'agents: []\nbeads: {mode: none}\nbase: {x: 1}\nmerged:\n  <<: {x: 2}\n',
 ])
 def test_refresh_refuses_upgrade_that_would_change_the_declaration(setup, text):
     home, brainspace, _ = setup
