@@ -11,7 +11,7 @@ from dotbrain.cli import app
 runner = CliRunner()
 
 
-@pytest.mark.parametrize("command", ["doctor", "skills", "agents"])
+@pytest.mark.parametrize("command", ["doctor", "skills", "subagents"])
 @pytest.mark.parametrize("json_output", [False, True])
 def test_warning_findings_use_current_severity_and_preserve_success(tmp_path, monkeypatch, command, json_output):
     from dotbrain import doctor

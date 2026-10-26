@@ -205,6 +205,14 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             continue
         for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
+        if kind == "agents":
+            # Packaged subagents have no global scope: remove copies an older version left here.
+            for entry in sorted(dest.glob(f"{subagents.PACKAGED_PREFIX}*")):
+                if subagents.is_managed_copy(entry) or (entry.is_symlink() and skills._points_into(entry, home / ".cache")):
+                    entry.unlink()
+                    result.pruned.append(f"{k}/{entry.name}")
+                else:
+                    result.notices.append(f"{entry} is not managed by dotbrain; left in place")
         if kind == "skills" and k == "cursor":
             delivered_hooks = cursor.reconcile_hooks(user_home)
             result.linked += delivered_hooks.linked

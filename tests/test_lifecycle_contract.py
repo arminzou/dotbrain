@@ -253,8 +253,8 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
         assert not refreshed.errors and any(w.endswith(': later') for w in refreshed.warnings)
         assert not workflows.refresh_projects(home, cwd=checkout, runtime='skillsonly').errors
         for argv, code in ((['skills', 'link', '--runtime', 'skillsonly'], 0),
-                           (['agents', 'link'], 0),
-                           (['agents', 'link', '--runtime', 'skillsonly'], 1),
+                           (['subagents', 'link'], 0),
+                           (['subagents', 'link', '--runtime', 'skillsonly'], 1),
                            (['skills', 'link', '--runtime', 'later'], 2)):
             invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
             assert invoked.exit_code == code, (argv, invoked.output)
@@ -267,7 +267,7 @@ def test_runtime_with_skills_and_hooks_but_no_subagents(lifecycle, monkeypatch, 
         assert not [f.message for f in findings if f.status == 'error']
         assert any(f.status == 'warn' and f.message.endswith(': later') for f in findings)
 
-    for kind in ('skills', 'agents'):
+    for kind in ('skills', 'subagents'):
         for json_flag in (['--json'], []):
             listed = runner.invoke(app, [kind, 'list', '--project', 'custom', '--home', str(home), *json_flag])
             assert listed.exit_code == 0, listed.output
@@ -380,7 +380,7 @@ def test_hermes_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         assert not (checkout / '.hermes' / 'agents').exists()
         assert not workflows.refresh_projects(home, cwd=checkout, runtime='hermes').errors
         for argv, code in ((['skills', 'link', '--runtime', 'hermes'], 0),
-                           (['agents', 'link', '--runtime', 'hermes'], 1)):
+                           (['subagents', 'link', '--runtime', 'hermes'], 1)):
             invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
             assert invoked.exit_code == code, (argv, invoked.output)
 
@@ -461,7 +461,7 @@ def test_cursor_project_lifecycle(lifecycle, monkeypatch, tmp_path, other_runtim
     def declare(selection):
         agents = '[cursor, codex]' if other_runtime else '[cursor]'
         (brainspace / '.brain/project.yaml').write_text(
-            f'agents: {agents}\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
+            f'version: 2\nagents: {agents}\nskills: {selection}\nbeads:\n  mode: none\n', encoding='utf-8')
 
     def selected(checkout):
         return set(cursor.discovered(checkout)) & {'one', 'two'}
@@ -577,7 +577,7 @@ def test_opencode_project_skills_lifecycle(lifecycle, monkeypatch, tmp_path):
         assert linked(checkout) == ['one']
         assert not (checkout / '.opencode' / 'agents').exists()
         for argv, code in ((['skills', 'link', '--runtime', 'opencode'], 0),
-                           (['agents', 'link', '--runtime', 'opencode'], 1)):
+                           (['subagents', 'link', '--runtime', 'opencode'], 1)):
             invoked = runner.invoke(app, [*argv, '--repo', str(checkout), '--home', str(home), '--json'])
             assert invoked.exit_code == code, (argv, invoked.output)
         (checkout / '.opencode' / 'skills' / 'mine').rename(tmp_path / f'aside-{checkout.name}')

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from dotbrain import assets, bootstrap, config, doctor, paths, profile_migration, runtimes
+from dotbrain import assets, bootstrap, config, doctor, paths, profile_migration, runtimes, subagents
 
 
 def write(path, text):
@@ -40,6 +40,10 @@ def legacy_root(tmp_path):
         (user / home).mkdir(parents=True)
     (user / ".claude/agents").mkdir()
     (user / ".claude/agents/custom.md").symlink_to(root / "agents/claude/custom.md")
+    # A packaged role an older version delivered globally, plus a user's own dotbrain-* file.
+    write(user / ".codex/agents/dotbrain-reviewer.toml",
+          subagents.managed_text('name = "dotbrain-reviewer"\n', ".toml"))
+    write(user / ".codex/agents/dotbrain-mine.toml", 'name = "dotbrain-mine"\n')
     return root, user
 
 
@@ -78,6 +82,9 @@ def test_bootstrap_merges_retired_files_once(tmp_path):
     assert claude_agent.resolve() == (root / "subagents/claude/custom.md").resolve()
     assert (user / ".codex/agents/custom.toml").is_file()
     assert not (user / ".codex/agents/dotbrain-reviewer.toml").exists()
+    assert "pruned stale codex/dotbrain-reviewer.toml" in logs
+    assert (user / ".codex/agents/dotbrain-mine.toml").is_file()
+    assert any("dotbrain-mine.toml is not managed by dotbrain" in m for m in [f["message"] for f in first.targets[0].findings])
 
     before, files = snapshot(root), delivered(user)
     second = bootstrap.prepare(root, home=user, run=no_git)
