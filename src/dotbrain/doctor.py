@@ -124,7 +124,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     claude_profiles = []
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
-    leftover = [name for name in (*paths.LEGACY_GLOBAL_FILES, paths.LEGACY_SUBAGENTS_DIR) if (root / name).exists()]
+    leftover = [name for name in (*paths.PENDING_MIGRATION_FILES, paths.LEGACY_SUBAGENTS_DIR) if (root / name).exists()]
     if leftover:
         try:
             profile_migration.plan(root, home)

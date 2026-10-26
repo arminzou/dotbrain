@@ -210,10 +210,11 @@ Hermes、OpenCode、Pi 和 Cursor 不接收子 Agent。项目链接默认作用�
 | Hermes、OpenCode、Pi 或 Cursor 指向自定义目录的 `targets` | 删除并报告替代做法：设置 `HERMES_HOME`、`XDG_CONFIG_HOME` 或 `PI_CODING_AGENT_DIR` 来移动该运行时；Cursor 固定使用 `~/.cursor/skills` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`，只放自定义子 Agent 的源文件 |
 
-Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`，删除
-`skills/skills.yaml` 和 `agents/agents.yaml`，并逐项报告。如果某一步失败（比如文件被占用），旧文件会放回原处，
-下次 bootstrap 会重试。各运行时主目录里指向 `agents/` 的 Claude Code 链接会改指向 `subagents/`，即使这次只为一个运行时运行 bootstrap。profile 会同时接收技能和子 Agent，所以由 target
-转换来的主目录也可能开始接收子 Agent。再次运行不会有任何改动。需要恢复时，从报告里的备份目录还原文件。
+Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`、更新链接，
+最后删除旧设置文件，并逐项报告。如果某一步失败或进程中断，设置仍保存在旧文件或已写入的 config 中。
+迁移记录会让全局分发继续暂停，直到下次 bootstrap 完成清理。
+各运行时主目录里指向 `agents/` 的 Claude Code 链接会改指向 `subagents/`，即使这次只为一个运行时运行 bootstrap。profile 会同时接收技能和子 Agent，所以由 target
+转换来的主目录也可能开始接收子 Agent。再次运行不会有任何改动。报告里的备份目录保留了原文件，供手动恢复。
 
 无法安全合并时，bootstrap 会停下来，不改任何文件。这些情况包括：YAML 无法解析；使用了锚点、合并键或标签；
 有重复或未知的键；某个值和 `config.yaml` 里已有的值冲突；Claude Code 或 Codex 的 target 不以 `/skills` 或 `/agents` 结尾；

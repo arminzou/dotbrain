@@ -1,11 +1,12 @@
 """Bootstrap merges the retired global settings files into config.yaml version 4."""
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
-from dotbrain import assets, bootstrap, config, doctor, profile_migration
+from dotbrain import assets, bootstrap, config, doctor, paths, profile_migration, runtimes
 
 
 def write(path, text):
@@ -107,6 +108,16 @@ def test_existing_equal_selection_is_not_a_conflict(tmp_path):
         "version": 4, "skills": ["collection/example"], "profiles": {}, "subagents": []}
 
 
+def test_existing_selection_without_legacy_entries_is_preserved(tmp_path):
+    root = tmp_path / "data"
+    write(root / "config.yaml", "version: 4\nsubagents: [existing]\n")
+    write(root / "skills/skills.yaml", "global_extra: [collection/example]\n")
+
+    profile_migration.apply(root, profile_migration.plan(root, tmp_path / "user"))
+
+    assert config.load_config(root).subagents == ("existing",)
+
+
 def test_empty_legacy_directory_is_removed_when_subagents_exists(tmp_path):
     root = tmp_path / "data"
     write(root / "agents/agents.yaml", "global: []\n")
@@ -130,9 +141,12 @@ def test_empty_legacy_directory_is_removed_when_subagents_exists(tmp_path):
     ({"skills/skills.yaml": "targets:\n  codex: ~/elsewhere/folder\n"}, "does not end in /skills"),
     ({"skills/skills.yaml": "profiles: {hermes: [~/.hermes]}\n"}, "profiles"),
     ({"skills/skills.yaml": "global_extra: [a]\n", "config.yaml": "skills: [b]\n"}, "conflicts"),
+    ({"skills/skills.yaml": "global_extra: [a]\n", "config.yaml": "version: 4\nskills: [a, b]\n"}, "conflicts"),
     ({"skills/skills.yaml": "global_extra: [a]\n", "config.yaml": "x: &y 1\n"}, "anchors"),
     ({"agents/agents.yaml": "global: []\n", "agents/claude/a.md": "a", "subagents/claude/b.md": "b"},
      "both agents/ and subagents/"),
+    ({"agents/agents.yaml": "global: [a]\n", "subagents/agents.yaml": "global: [b]\n"},
+     "both agents/agents.yaml and subagents/agents.yaml"),
 ])
 def test_ambiguous_input_stops_and_changes_nothing(tmp_path, files, reason):
     root = tmp_path / "data"
@@ -187,24 +201,141 @@ def test_nothing_reads_retired_files_after_migration(tmp_path):
     assert Path(root / "skills/skills.yaml").is_file()
 
 
-def test_interrupted_retirement_rolls_back_and_retries(tmp_path, monkeypatch):
-    root, user = legacy_root(tmp_path)
+def test_changed_config_during_pending_cleanup_is_refused_without_writes(tmp_path):
+    root, user = tmp_path / "data", tmp_path / "user"
+    write(root / paths.GLOBAL_MIGRATION_PENDING, "version: 4\nskills: [a]\n")
+    write(root / "config.yaml", "version: 4\nskills: [b]\n")
     before = snapshot(root)
-    real_replace = profile_migration.os.replace
 
-    def locked(src, dst):
-        if Path(src).name == "agents.yaml":
-            raise PermissionError(32, "file is in use")
-        return real_replace(src, dst)
+    with pytest.raises(ValueError, match="differs from the unfinished migration"):
+        profile_migration.plan(root, user)
 
-    monkeypatch.setattr(profile_migration.os, "replace", locked)
-    with pytest.raises(ValueError, match="no file was changed"):
-        profile_migration.apply(root, profile_migration.plan(root, user))
     assert snapshot(root) == before
-    monkeypatch.setattr(profile_migration.os, "replace", real_replace)
+    assert assets.link_global(root, "skills", user_home=user).warnings
+
+
+def test_locked_retirement_preserves_settings_and_retries(tmp_path, monkeypatch):
+    root, user = legacy_root(tmp_path)
+    real_unlink = Path.unlink
+
+    def locked(path, *args, **kwargs):
+        if path == root / "subagents/agents.yaml":
+            raise PermissionError(32, "file is in use")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", locked)
+    with pytest.raises(ValueError, match="settings are preserved"):
+        profile_migration.apply(root, profile_migration.plan(root, user))
+    assert config.load_config(root).skills == ("collection/example",)
+    assert config.load_config(root).subagents == ("custom",)
+    assert (root / "subagents/agents.yaml").is_file()
+    assert assets.link_global(root, "skills", user_home=user).warnings
+    assert any("subagents/agents.yaml" in f.message for f in doctor._check_machine(root, user))
+    monkeypatch.setattr(Path, "unlink", real_unlink)
 
     profile_migration.apply(root, profile_migration.plan(root, user))
     assert config.load_config(root).subagents == ("custom",)
+    assert profile_migration.plan(root, user) is None
+
+
+@pytest.mark.parametrize("step", ["pending", "before-config", "config", "rename", "stage-link",
+                                  "link", "skills", "agents", "complete"])
+def test_process_interruption_retries_without_losing_selections_or_links(tmp_path, step):
+    root, user = legacy_root(tmp_path)
+    # Exit without exception cleanup: retry must reconstruct its state in a new process.
+    script = r'''
+import os
+import subprocess
+import sys
+from pathlib import Path
+from dotbrain import bootstrap, paths, profile_migration, runtimes
+root, user, step = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+runtimes.installed = lambda rt: False
+def stop(event):
+    if step == event:
+        os._exit(77)
+replace, unlink, symlink = os.replace, Path.unlink, Path.symlink_to
+def interrupted_replace(src, dst):
+    dst = Path(dst)
+    if dst == root / 'config.yaml':
+        stop('before-config')
+    replace(src, dst)
+    if dst == root / paths.GLOBAL_MIGRATION_PENDING:
+        stop('pending')
+    elif dst == root / 'config.yaml':
+        stop('config')
+    elif dst == root / 'subagents':
+        stop('rename')
+    elif dst == user / '.claude/agents/custom.md':
+        stop('link')
+def interrupted_unlink(path, *args, **kwargs):
+    unlink(path, *args, **kwargs)
+    if path == root / 'skills/skills.yaml':
+        stop('skills')
+    elif path == root / 'subagents/agents.yaml':
+        stop('agents')
+    elif path == root / paths.GLOBAL_MIGRATION_PENDING:
+        stop('complete')
+def interrupted_symlink(path, *args, **kwargs):
+    symlink(path, *args, **kwargs)
+    if path.name.startswith('.custom.md.') and path.name.endswith('.dotbrain-tmp'):
+        stop('stage-link')
+os.replace, Path.unlink, Path.symlink_to = interrupted_replace, interrupted_unlink, interrupted_symlink
+result = bootstrap.prepare(root, 'codex', home=user,
+    run=lambda *a, **kw: subprocess.CompletedProcess(a, 0))
+raise AssertionError(result)
+'''
+    stopped = subprocess.run([sys.executable, "-c", script, str(root), str(user), step],
+                             capture_output=True, text=True, timeout=30)
+    assert stopped.returncode == 77, stopped.stderr
+    result = bootstrap.prepare(root, "codex", home=user, run=no_git)
+
+    assert result.status == "success", result
+    cfg = config.load_config(root)
+    assert cfg.version == 4
+    assert cfg.skills == ("collection/example",) and cfg.subagents == ("custom",)
+    assert cfg.profiles == {"claude-code": ["~/.claude-work"], "codex": ["~/.codex-work"]}
+    assert (user / ".claude/agents/custom.md").read_text() == "custom"
+    assert (user / ".codex/skills/example").is_symlink()
+    assert not any((root / name).exists() for name in paths.PENDING_MIGRATION_FILES)
+    assert profile_migration.plan(root, user) is None
+    before = snapshot(root)
+    assert bootstrap.prepare(root, "codex", home=user, run=no_git).status == "success"
+    assert snapshot(root) == before
+
+
+@pytest.mark.parametrize("operation", ["symlink", "replace"])
+def test_filtered_bootstrap_retries_failed_relink(tmp_path, monkeypatch, operation):
+    root, user = legacy_root(tmp_path)
+    link = user / ".claude/agents/custom.md"
+    foreign = link.with_name(".custom.md.dotbrain-tmp")
+    foreign.write_text("operator file", encoding="utf-8")
+    real_symlink, real_replace = Path.symlink_to, profile_migration.os.replace
+
+    def denied_symlink(path, *args, **kwargs):
+        if path.name.startswith(".custom.md.") and path.name.endswith(".dotbrain-tmp"):
+            raise PermissionError("symlink denied")
+        return real_symlink(path, *args, **kwargs)
+
+    def denied_replace(src, dst):
+        if Path(dst) == link:
+            raise PermissionError("replacement denied")
+        return real_replace(src, dst)
+
+    with monkeypatch.context() as patch:
+        if operation == "symlink":
+            patch.setattr(Path, "symlink_to", denied_symlink)
+        else:
+            patch.setattr(profile_migration.os, "replace", denied_replace)
+        failed = bootstrap.prepare(root, "codex", home=user, run=no_git)
+    assert failed.status == "failure", failed
+    assert link.is_symlink()  # still discoverable even though the source directory moved
+
+    retry = bootstrap.prepare(root, "codex", home=user, run=no_git)
+    assert retry.status == "success", retry
+    assert link.read_text() == "custom"
+    assert link.resolve() == (root / "subagents/claude/custom.md").resolve()
+    assert foreign.read_text(encoding="utf-8") == "operator file"
     assert profile_migration.plan(root, user) is None
 
 
@@ -216,6 +347,21 @@ def test_filtered_bootstrap_repoints_other_runtime_links(tmp_path):
 
     assert result.status == "success", result
     assert link.is_symlink() and link.read_text() == "custom"
+    assert link.resolve() == (root / "subagents/claude/custom.md").resolve()
+
+
+def test_filtered_bootstrap_repoints_profiles_already_in_config(tmp_path):
+    root, user = legacy_root(tmp_path)
+    write(root / "config.yaml", "version: 3\nprofiles: {claude-code: [~/.claude-config]}\n")
+    write(root / "skills/skills.yaml", "global_extra: [collection/example]\n")
+    link = user / ".claude-config/agents/custom.md"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(root / "agents/claude/custom.md")
+
+    result = bootstrap.prepare(root, "codex", home=user, run=no_git)
+
+    assert result.status == "success", result
+    assert link.read_text() == "custom"
     assert link.resolve() == (root / "subagents/claude/custom.md").resolve()
 
 
@@ -245,3 +391,22 @@ def test_default_target_of_other_runtime_is_dropped(tmp_path, monkeypatch):
 
     assert any("dropped targets.hermes" in line for line in logs)
     assert not (root / "skills/skills.yaml").exists()
+
+
+def test_other_runtime_target_is_dropped_when_its_home_is_rejected(tmp_path, monkeypatch):
+    root, user = legacy_root(tmp_path)
+    unsafe = tmp_path / "checkout/.hermes"
+    (unsafe.parent / ".brain").mkdir(parents=True)
+    monkeypatch.setenv("HERMES_HOME", str(unsafe))
+    write(root / "skills/skills.yaml", "targets: {hermes: ~/old-global-skills}\n")
+
+    result = bootstrap.prepare(root, "codex", home=user, run=no_git)
+
+    assert result.status == "success", result
+    assert any("~/old-global-skills" in line and "HERMES_HOME" in line
+               for line in result.targets[0].changes)
+    errors = []
+    targets = assets.global_targets((runtimes.find("hermes"),), "skills", user,
+                                    explicit=True, errors=errors, dotbrain_home=root)
+    assert targets["hermes"] == () and any("inside a wired checkout" in error for error in errors)
+    assert not unsafe.exists()

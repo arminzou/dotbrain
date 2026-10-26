@@ -151,7 +151,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     selected = tuple(rt for rt in runtimes.select(runtime) if rt.name not in skip)
     if kind == "agents" and runtime != "all" and not selected[0].subagents:
         raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
-    leftover = [name for name in paths.LEGACY_GLOBAL_FILES if (home / name).exists()]
+    leftover = [name for name in paths.PENDING_MIGRATION_FILES if (home / name).exists()]
     if leftover:
         # Delivering before migration would prune the selections these files still hold.
         return skills.LinkResult(warnings=[f"{', '.join(leftover)}: legacy global settings; "

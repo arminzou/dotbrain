@@ -228,12 +228,14 @@ them into `config.yaml` version 4:
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
 
 Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
-`config.yaml`, removes `skills/skills.yaml` and `agents/agents.yaml`, and reports each change. If a
-step fails, for example because a file is locked, the old files are put back and the next bootstrap
-retries. Claude Code links in every runtime home that pointed into `agents/` are repointed to
+`config.yaml`, repoints links, and removes the old settings files last, reporting each change.
+If a step fails or the process stops, settings remain in the old files or the committed config.
+A pending migration record keeps global delivery paused until the next bootstrap finishes cleanup.
+Claude Code links in every runtime home that pointed into `agents/` are repointed to
 `subagents/`, even when bootstrap runs for one runtime only. A
 profile receives both skills and subagents, so a converted target can start receiving subagents
-too. A second run changes nothing. To recover, restore the files from the reported backup folder.
+too. A second run changes nothing. The reported backup folder preserves the original files for
+manual recovery.
 
 Bootstrap stops and changes no file when it cannot merge safely: unparseable YAML, anchors, merge
 keys or tags, duplicate or unknown keys, a value that conflicts with one already in `config.yaml`, a

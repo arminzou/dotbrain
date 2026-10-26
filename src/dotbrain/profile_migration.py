@@ -3,6 +3,10 @@
 ``skills/skills.yaml`` and ``agents/agents.yaml`` are merged into ``config.yaml``, backed up and
 removed, and the ``agents/`` source directory becomes ``subagents/``. Every check runs in
 :func:`plan` before :func:`apply` writes anything, so a refused migration changes no file.
+
+The old files remain until ``config.yaml``, the source directory and every link are written
+and verified; they are removed last. A durable pending config identifies our own prior write
+on retry, including when cleanup already removed some of the old inputs.
 """
 from __future__ import annotations
 
@@ -19,6 +23,8 @@ from dotbrain import adopter_repos, assets, config, paths, resource_loader, runt
 
 CONFIG_VERSION = 4
 SKILLS_FILE, AGENTS_FILE = paths.LEGACY_GLOBAL_FILES
+# Where agents.yaml sits when an interrupted migration already renamed agents/ to subagents/.
+MOVED_AGENTS_FILE = f"{paths.SUBAGENTS_DIR}/agents.yaml"
 _KNOWN_KEYS = {SKILLS_FILE: {"version", "targets", "profiles", "global_extra", "extra"},
                AGENTS_FILE: {"version", "targets", "global"}}
 
@@ -80,8 +86,9 @@ def _convert_targets(data: dict, kind: str, location: str, user_home: Path,
         if rt.key in ("claude-code", "codex"):
             default = runtimes.user_dir(rt, user_home) / kind
         else:  # the destination global delivery uses for this runtime
-            default = assets.global_targets((rt,), kind, user_home, explicit=True, errors=[],
-                                            dotbrain_home=user_home).get(rt.key, (None,))[0]
+            found = assets.global_targets((rt,), kind, user_home, explicit=True, errors=[],
+                                          dotbrain_home=user_home).get(rt.key, ())
+            default = found[0] if found else None  # none when the home is rejected
         expanded = adopter_repos.expand_path(value.replace("\\", "/"), home=user_home)
         if default is not None and expanded.resolve() == default.resolve():
             reports.append(f"{location}: dropped targets.{key}, which names the default home")
@@ -116,7 +123,14 @@ def plan(root: Path, user_home: Path) -> Plan | None:
     """Validate every retired file and compute the merged ``config.yaml``; None when nothing remains."""
     root = Path(root)
     legacy_dir = paths.confined_path(root, paths.LEGACY_SUBAGENTS_DIR)
-    present = [name for name in paths.LEGACY_GLOBAL_FILES if paths.confined_path(root, name).is_file()]
+    pending_path = paths.confined_path(root, paths.GLOBAL_MIGRATION_PENDING)
+    pending = pending_path.read_bytes() if pending_path.is_file() else None
+    if (root / AGENTS_FILE).is_file() and (root / MOVED_AGENTS_FILE).is_file():
+        raise _refuse(AGENTS_FILE, f"both {AGENTS_FILE} and {MOVED_AGENTS_FILE} hold settings")
+    # Logical name -> path that holds it now.
+    locations = {SKILLS_FILE: SKILLS_FILE,
+                 AGENTS_FILE: AGENTS_FILE if (root / AGENTS_FILE).is_file() else MOVED_AGENTS_FILE}
+    present = [name for name, where in locations.items() if paths.confined_path(root, where).is_file()]
 
     originals: dict[str, bytes] = {}
     reports: list[str] = []
@@ -125,9 +139,9 @@ def plan(root: Path, user_home: Path) -> Plan | None:
     if present:
         loaded = {}
         for name in present:
-            path = root / name
-            originals[name] = path.read_bytes()
-            loaded[name] = data = _read(path, name)
+            path = root / locations[name]
+            originals[locations[name]] = path.read_bytes()
+            loaded[name] = data = _read(path, locations[name])
             unknown = sorted(str(key) for key in data if key not in _KNOWN_KEYS[name])
             if unknown:
                 raise _refuse(name, f"unknown keys {', '.join(unknown)} cannot be carried into config.yaml")
@@ -165,9 +179,13 @@ def plan(root: Path, user_home: Path) -> Plan | None:
         for key, value in merged.items():
             if key not in current:
                 missing[key] = value
-            elif current[key] != value and value:
+            elif current[key] != value and value and not (
+                pending is not None and pending == originals.get("config.yaml") and _covered(value, current[key])
+            ):
+                # A value already holding every retired entry is this migration's own earlier write.
                 raise _refuse("config.yaml", f"{key} conflicts with the value in the retired files")
         expected = {**current, "version": CONFIG_VERSION, **missing}
+        profiles = config.parse_profiles(expected["profiles"], "config.yaml")
         text = _set_version(text)
         if missing:
             text += ("" if not text or text.endswith("\n") else "\n") + yaml.safe_dump(
@@ -175,6 +193,12 @@ def plan(root: Path, user_home: Path) -> Plan | None:
         if yaml.safe_load(text) != expected:
             raise _refuse("config.yaml", "this YAML layout cannot be merged safely")
         updated = text.encode("utf-8")
+        if pending is not None and pending != updated:
+            raise _refuse(paths.GLOBAL_MIGRATION_PENDING, "settings changed during an unfinished migration")
+    elif pending is not None:
+        config_path = paths.confined_path(root, "config.yaml")
+        if not config_path.is_file() or config_path.read_bytes() != pending:
+            raise _refuse(paths.GLOBAL_MIGRATION_PENDING, "config.yaml differs from the unfinished migration")
 
     rename_dir = remove_dir = False
     if legacy_dir.is_dir():
@@ -189,9 +213,15 @@ def plan(root: Path, user_home: Path) -> Plan | None:
     if profiles is None:
         profiles = config.load_config(root).profiles
     relinks = _stale_links(root, user_home, profiles)
-    if not (present or legacy_dir.is_dir() or relinks):
+    if not (present or legacy_dir.is_dir() or relinks or pending is not None):
         return None
     return Plan(originals, updated, rename_dir, remove_dir, reports, relinks)
+
+
+def _covered(retired, current) -> bool:
+    if isinstance(retired, dict):
+        return isinstance(current, dict) and all(_covered(homes, current.get(key, [])) for key, homes in retired.items())
+    return isinstance(current, list) and all(item in current for item in retired)
 
 
 def _stale_links(root: Path, user_home: Path, profiles: dict[str, list[str]]) -> list[tuple[Path, Path]]:
@@ -222,63 +252,78 @@ def _stale_links(root: Path, user_home: Path, profiles: dict[str, list[str]]) ->
     return found
 
 
-def apply(root: Path, migration: Plan) -> list[str]:
-    """Back up and retire the old files, write the merged ``config.yaml``, then move the sources.
+def _write_atomic(target: Path, data: bytes) -> None:
+    with tempfile.NamedTemporaryFile(prefix=".config-", suffix=".tmp", dir=target.parent, delete=False) as stream:
+        staged = Path(stream.name)
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
+    try:
+        if target.is_file():
+            shutil.copymode(target, staged)
+        os.replace(staged, target)
+    finally:
+        staged.unlink(missing_ok=True)
+    if target.read_bytes() != data:
+        raise OSError(f"{target}: written content does not match")
 
-    The old files move into the backup folder before ``config.yaml`` changes and move back if any
-    step fails, so an interruption leaves a state the next bootstrap migrates again.
+
+def _relink(link: Path, source: Path) -> None:
+    """Replace the link in one step, so a failure leaves the old, still-detectable link."""
+    with tempfile.NamedTemporaryFile(prefix=f".{link.name}.", suffix=".dotbrain-tmp",
+                                     dir=link.parent, delete=False) as stream:
+        staged = Path(stream.name)
+    try:
+        staged.unlink()
+        staged.symlink_to(os.path.relpath(source, link.parent))
+        os.replace(staged, link)
+    finally:
+        staged.unlink(missing_ok=True)
+    if link.resolve() != source.resolve():
+        raise OSError(f"{link}: does not point to {source}")
+
+
+def apply(root: Path, migration: Plan) -> list[str]:
+    """Write and verify the new state, then remove the old files last.
+
+    Delivery waits while old inputs or the pending config remain; the next bootstrap finishes
+    whatever an interruption left undone.
     """
     root = Path(root)
     for name, original in migration.originals.items():
         if (root / name).read_bytes() != original:
             raise ValueError(f"{root / name}: changed during migration; rerun dotbrain bootstrap")
     logs = list(migration.reports)
-    if migration.config_updated is not None:
-        backup_root = paths.confined_path(root, ".cache/config-backups")
-        backup_root.mkdir(parents=True, exist_ok=True)
-        backup = Path(tempfile.mkdtemp(prefix="global-settings-", dir=backup_root))
-        if "config.yaml" in migration.originals:
-            (backup / "config.yaml").write_bytes(migration.originals["config.yaml"])
-        moved = []
-        try:
-            for name in paths.LEGACY_GLOBAL_FILES:
-                if name in migration.originals:
-                    (backup / name).parent.mkdir(parents=True, exist_ok=True)
-                    os.replace(root / name, backup / name)
-                    moved.append(name)
-            with tempfile.NamedTemporaryFile(prefix=".config-", suffix=".tmp", dir=root, delete=False) as stream:
-                staged = Path(stream.name)
-                stream.write(migration.config_updated)
-                stream.flush()
-                os.fsync(stream.fileno())
-            try:
-                if (root / "config.yaml").is_file():
-                    shutil.copymode(root / "config.yaml", staged)
-                os.replace(staged, root / "config.yaml")
-            finally:
-                staged.unlink(missing_ok=True)
-        except OSError as exc:
-            for name in reversed(moved):
-                os.replace(backup / name, root / name)
-            shutil.rmtree(backup, ignore_errors=True)
-            raise ValueError(f"global settings migration interrupted ({exc}); "
-                             "no file was changed; rerun dotbrain bootstrap") from exc
-        retired = ", ".join(name for name in paths.LEGACY_GLOBAL_FILES if name in migration.originals)
-        logs.append(f"migrated {retired} into config.yaml version {CONFIG_VERSION}; originals saved to {backup}")
-    legacy_dir = root / paths.LEGACY_SUBAGENTS_DIR
+    retired = [name for name in migration.originals if name != "config.yaml"]
     try:
+        if retired:
+            backup_root = paths.confined_path(root, ".cache/config-backups")
+            backup_root.mkdir(parents=True, exist_ok=True)
+            backup = Path(tempfile.mkdtemp(prefix="global-settings-", dir=backup_root))
+            for name, original in migration.originals.items():
+                (backup / name).parent.mkdir(parents=True, exist_ok=True)
+                (backup / name).write_bytes(original)
+            logs.append(f"saved the original settings files to {backup}")
+        if migration.config_updated is not None:
+            # Persist the exact commit so a later process can distinguish retry from conflicting inputs.
+            _write_atomic(root / paths.GLOBAL_MIGRATION_PENDING, migration.config_updated)
+            _write_atomic(root / "config.yaml", migration.config_updated)
+            logs.append(f"merged {', '.join(retired)} into config.yaml version {CONFIG_VERSION}")
         if migration.rename_dir:
-            os.replace(legacy_dir, root / paths.SUBAGENTS_DIR)
+            os.replace(root / paths.LEGACY_SUBAGENTS_DIR, root / paths.SUBAGENTS_DIR)
             logs.append(f"renamed {paths.LEGACY_SUBAGENTS_DIR}/ to {paths.SUBAGENTS_DIR}/")
-        elif migration.remove_dir:
-            shutil.rmtree(legacy_dir)
-            logs.append(f"removed empty {paths.LEGACY_SUBAGENTS_DIR}/")
         for link, source in migration.relinks:
-            link.unlink()
-            link.symlink_to(os.path.relpath(source, link.parent))
+            _relink(link, source)
             logs.append(f"repointed {link} to {source}")
+        for name in retired:
+            # The rename above carried agents/agents.yaml into subagents/.
+            (root / (MOVED_AGENTS_FILE if name == AGENTS_FILE and migration.rename_dir else name)).unlink()
+            logs.append(f"removed {name}")
+        if migration.remove_dir:
+            shutil.rmtree(root / paths.LEGACY_SUBAGENTS_DIR)
+            logs.append(f"removed empty {paths.LEGACY_SUBAGENTS_DIR}/")
+        (root / paths.GLOBAL_MIGRATION_PENDING).unlink(missing_ok=True)
     except OSError as exc:
-        # Settings are already merged; the next bootstrap finishes the move and the relinking.
-        raise ValueError("; ".join(logs + [f"moving subagent sources was interrupted ({exc}); "
-                                           "rerun dotbrain bootstrap to finish"])) from exc
+        raise ValueError("; ".join(logs + [f"global settings migration interrupted ({exc}); settings are preserved "
+                                           "and global delivery waits; rerun dotbrain bootstrap to finish"])) from exc
     return logs
