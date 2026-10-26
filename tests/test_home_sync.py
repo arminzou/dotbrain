@@ -92,7 +92,11 @@ def remote(seed: Path, tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def home(seed: Path, tmp_path: Path, remote: Path) -> Path:
+def home(seed: Path, tmp_path: Path, remote: Path, monkeypatch) -> Path:
+    # The fetch/push wall-clock bound is sized for a stalled network remote. Here the remote is a
+    # local bare repo, and on a saturated test machine a healthy push can outlast it and read as
+    # "unreachable". Timeout behaviour has its own tests that fake the stall.
+    monkeypatch.setattr(home_sync, "PUSH_TIMEOUT_SECONDS", 300)
     return copy_seed(seed, "home", tmp_path)
 
 
