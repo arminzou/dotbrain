@@ -1,5 +1,5 @@
 interface:
   display_name: "Run Retrospective"
-  short_description: "Capture findings and prepare recurring public rules"
+  short_description: "Curate findings, audit the feedback loop, suggest rules"
 policy:
   allow_implicit_invocation: false

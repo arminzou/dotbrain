@@ -66,7 +66,9 @@ details. If skipped, use a one-line skip note instead of claiming that the pass 
 ## Run the gate
 
 1. Fix the review boundary before reading: target, base/range, oracle, selected mode, and whether a
-   human decision follows. Read the target's relevant context and decisions. For readiness, read
+   human decision follows. Carry the practices and limits already supplied from `.brain/RETRO.md`
+   into the reviewer request; search it again only when preparation did not cover the review area,
+   scope enters a new area, or new evidence suggests missing guidance. Read the target's relevant context and decisions. For readiness, read
    [the procedure](references/readiness.md) before pass 1. For simplify, read the bundled
    [simplification procedure](references/simplify.md) before reviewing.
 2. Keep the reviewed tree read-only: the reviewer inspects it with `git diff` and `git show` only.

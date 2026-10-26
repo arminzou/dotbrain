@@ -88,13 +88,19 @@ Every discovery the initiative produced lands in exactly one place:
 - **`CONTEXT.md`** — a concept the project now names and will keep naming.
 - **`.brain/docs/`** — a maintained "how it works now" description, which the frozen design doc is
   not.
+- **A retro candidate** — a practice from the overall approach or goal outcomes that would change
+  another initiative's decisions. Record it as a `## Retro candidate` comment on the epic before
+  closing it, and flag the epic with
+  `bd update <epic> --metadata '{"dotbrain_retro":"<UTC now>"}' --actor <lead> --json --quiet`;
+  `run-retro` curates it into `RETRO.md`. Reuse candidates and findings already recorded at task
+  closure rather than recording them again. Never write `RETRO.md` here.
 - **Nowhere** — item-local facts that die with their beads.
 
 Write the ADR ids you created into the doc's `residue:` frontmatter, so provenance survives in both
 directions.
 
 Completion: every entry under `Known Unknowns`, `Deviations`, and `Implementation Notes` has
-been placed in one of the four, and `residue:` lists every ADR the initiative produced.
+been placed in one of these destinations, and `residue:` lists every ADR the initiative produced.
 
 ### 4. Stamp and close
 

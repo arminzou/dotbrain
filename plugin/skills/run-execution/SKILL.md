@@ -48,6 +48,12 @@ Fix the item set at invocation. Readiness filters it; unrelated ready work never
 it. A set may include waiting dependents. Dispatch only after prerequisite acceptance
 and closure, with a base containing its accepted result and human gates resolved.
 Establish checks, retry limits, capacity, and overall limits before work starts.
+Before implementation or dispatch, search `.brain/RETRO.md` once for the task or related batch,
+by practice and trigger. Pass matching practices and limits through assignment Constraints or
+review inputs; source pointers stay with the lead unless the recipient needs that evidence.
+A sole writer keeps them in its own task context. Reuse them through related dispatches, reviews,
+and repair rounds; search again only for a new area or relevant new evidence. No match needs no
+note.
 For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, never
 `bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
@@ -80,6 +86,18 @@ promote with `git merge --ff-only <candidate-branch>` and confirm the delivery h
 equals it. Then set `dotbrain_phase: verified` and apply native closure through
 manage-work-graph. A candidate alone never closes an item or releases dependents.
 For multi-worker integration use the parallel reference's group procedure.
+
+Before applying closure, and when an accepted batch or integration group completes, decide
+whether the outcome supports a transferable practice. Evidence stays in the work and review
+records. A practice earns a candidate only if it would change another task's decision, states
+when it applies and what to do, and adds guidance beyond existing instructions, tests, or
+structure; check `RETRO.md` for a duplicate first. Record it as a `## Retro candidate` comment
+(practice, when, limit, evidence) on the item, or on the epic for a batch or integration practice,
+then flag that bead with
+`bd update <id> --metadata '{"dotbrain_retro":"<UTC now>"}' --actor <lead> --json --quiet`, a new time for every
+candidate. Never write
+`RETRO.md`; `run-retro` curates flagged candidates. Never delay closure for it. No candidate,
+"nothing learned" note, report, agent call, or `run-retro` invocation is required.
 
 Remove only closed items' merged branches and clean worktrees with `git branch -d`
 and `git worktree remove`, including runtime-created branches and accepted candidate

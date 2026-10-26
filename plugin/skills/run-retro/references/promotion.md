@@ -1,9 +1,11 @@
 # Public rule promotion
 
-Use the finding's dated evidence and `Seen` line in private `RETRO.md`. Three distinct supported
-days establish eligibility. Several observations on one day count once; copied reports and
-reruns add neither a day nor a rule. If the dates and count disagree, retain a hold and report
-the gap; do not invent dates. Personal preferences stay in `.brain/AGENTS.md` even if recurring.
+Use the finding's dated source pointers in private `RETRO.md`. No count establishes eligibility.
+Judge whether a finding warrants an intervention by impact if the mistake repeats, evidence
+confidence (reproduced, or one ambiguous observation), applicability to future decisions in this
+repository, and existing protection. One reproduced data-loss incident can justify a narrow
+intervention; speculative broad guidance needs further evidence. Copied reports and reruns add
+no evidence. Personal preferences stay in `.brain/AGENTS.md` even if recurring.
 
 ## Resolve delivery authority
 
@@ -28,7 +30,8 @@ ownership or no suitable file leaves a private suggestion; do not expand the all
 - **Disabled/unset:** discover repository rules, standards, and contributor conventions. Suggest
   the file, practice, rationale, and observable review check privately and in the report. No public
   edits, commits, pushes, or PRs. The user may authorize that specific proposal and destination
-  without enabling future delivery. Nightly runs report suggestions without waiting for a reply.
+  without enabling future delivery. Raise the suggestion as a `Pending:` decision; scheduled runs
+never wait for a reply.
 - **Enabled:** validate allowed destinations, inspect accepted guidance and open proposals,
   then prepare and deliver appropriate changes. This grants standing commit/push/PR authority
   only for this repository and those files. Missing or unsuitable files block delivery, not capture.
@@ -44,8 +47,10 @@ Read-only reconciliation continues in either mode. Apply the dotbrain convention
 
 ## Suggest enforcement
 
-A text rule fails silently when an agent skips it. For each eligible finding, name the strongest
-mechanical enforcement that would work, trying each level in order:
+A text rule fails silently when an agent skips it. For each finding that warrants an
+intervention, name the strongest one that fits, trying each level in order. A level fits only
+if it can detect this failure, is proportionate to the risk, and is not already provided; stop
+where existing protection already covers the failure. The cheapest option is not the default.
 
 1. **Structure:** give the state one owner or the task one supported way, so the wrong path is
    removed or unreachable.
@@ -70,7 +75,7 @@ delivery authority is unchanged.
    (the same repo or an existing authorized fork), proposal head branch, chosen file, and delivery
    authorization. Follow [PR delivery](pr.md) to resolve authentication, identities, and permissions on
    both repositories. A delivery/integration branch is not the acceptance target. Record these
-   with the finding's `Proposal:` note. Without authority, keep a `Suggestion:` instead.
+   with the finding's `Proposal:` note. Without authority, raise a `Pending:` decision instead.
 2. Compare accepted rules and open target-branch PRs by situation and required behavior.
    Reuse an equivalent rule or public proposal; amend existing guidance when needed. Several
    findings can share one proposal. Never overwrite another contributor's branch. Conflicting
@@ -130,8 +135,8 @@ pending with a gap; no all-history scan, merge watcher, background job, or polli
 After verified adoption, add `Accepted:` with the public section link (prefer commit-pinned),
 PR, merge commit, and actual merge date beside the original finding. Keep it in its work-area
 section; no separate promoted section or human notification is required. Do not use today's
-run date as the adoption date. Reconciliation never changes evidence dates, Seen count, or capture
-progress. An unchanged lookup adds no history bullet. If target guidance later removes or
+run date as the adoption date. Reconciliation never changes evidence dates or the curation
+cutoff. An unchanged lookup adds no history bullet. If target guidance later removes or
 contradicts the rule, report the discrepancy rather than assert current authority from old text.
 
 ## Holds and dispositions
@@ -141,5 +146,5 @@ Recheck a fixable condition once per later pass; preserve previous PR links and 
 Conflicts with rules or acceptance criteria require the human's decision. A rejected or
 closed-unmerged proposal remains unadopted with a hold; do not regenerate or reopen it without
 new explicit direction. A later genuine merge still needs every acceptance check and must
-resolve any hold. If evidence later falls below the threshold, record a hold and preserve the
+resolve any hold. If evidence is later withdrawn or contradicted, record a hold and preserve the
 proposal/adoption history; do not automatically erase a public rule.

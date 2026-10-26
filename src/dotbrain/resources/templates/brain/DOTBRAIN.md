@@ -14,22 +14,19 @@ Do not edit per project; packaged template changes propagate to every Brain.
   go in `.agents/skills`; configuration and agents stay in `.codex`. Skills/Claude agents are symlinks;
   Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
   commit local wiring or delivered copies.
-- `dotbrain wire` attaches a main checkout or Git worktree; Git metadata connects worktrees
-  to the main checkout's existing Brainspace without changing registration or declarations.
-- Maintain the current wired checkout with `dotbrain refresh`, `dotbrain skills link`, or
-  `dotbrain agents link`. Outside it, select `--project <name>`; asset linking also accepts a wired
-  `--repo <checkout>`. Global assets require `--scope global`.
-- `dotbrain unwire` removes checkout wiring, retaining data and other checkouts; retire Brainspaces via filesystem actions.
-- Let the CLI compute relative links under `.claude` and `.agents/skills`; hand-counted paths can dangle.
+- Wire, refresh, link, and unwire checkouts through the `dotbrain` CLI; `wire-brain` covers the
+  commands and selection flags. Worktrees share the main checkout's Brainspace. Let the CLI
+  compute relative links under `.claude` and `.agents/skills`; hand-counted paths can dangle.
 
 ## Rules
 
 - Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
 - Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
-- During implementation or review preparation, the lead or sole agent searches `.brain/RETRO.md`
-  for task-relevant findings and passes applicable findings through existing assignments.
+- Before implementation or review, the lead or sole agent searches `.brain/RETRO.md` once per
+  task or batch and passes applicable practices through assignments; at completion it records
+  transferable ones as retro candidates on its own work record, per `run-execution`.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
-  Reuse findings in context. A missing notebook blocks nothing; do not scaffold it.
+  A missing notebook blocks nothing; do not scaffold it. Only `run-retro` writes `RETRO.md`.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
@@ -49,13 +46,11 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - Before explaining how the project works (build, runtime, deployment, integrations), search
   `.brain/docs/` for documented answers. These private references are not injected.
 - Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
-- The code repo may be public; the Brain never is. Never mirror Brain content into the code
-  repo — for a public need, derive a fresh audience-specific doc instead.
-- Public repo docs must not expose private content; derive standalone guidance. The standard
-  `.brain/AGENTS.md` agent pointer is allowed.
-- Never reference private Brain context from code, tests, comments, commit messages, or
-  PR text: no ADR numbers, Brain paths, or decision-record identifiers. State the rationale
-  in plain terms; the ADR linkage stays in the Brain.
+- The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
+  for a public need, derive fresh standalone guidance (the standard `.brain/AGENTS.md` pointer is
+  allowed). Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
+  numbers, Brain paths, decision-record identifiers, or private incident details. State a
+  decision's rationale in plain terms; the linkage stays in the Brain.
 
 ## Working in loops
 
@@ -92,11 +87,9 @@ design docs speak one language:
 
 Cheap moves early — orient, grill, prototype — turn expensive late unknowns into known knowns.
 
-`find-unknowns` is read-only: investigate facts first; report the cheapest next action and blocking
-status or reasoned deferral. Choose reversible defaults within scope. `grill-decisions` owns human
-preferences, authority, acceptance changes, consequential tradeoffs, and evidence-unsettled decisions.
-These skills detail evidence and experiment limits. Active designs own uncertainty; Beads owns
-execution state. `to-design` and `to-issues` detail verifiable seams and interface/resource prerequisites.
+Choose reversible defaults within scope; take human preferences, authority, acceptance changes,
+and consequential tradeoffs to `grill-decisions`. Active designs own uncertainty; Beads owns
+execution state.
 
 ## Brain structure
 
@@ -107,19 +100,11 @@ execution state. `to-design` and `to-issues` detail verifiable seams and interfa
 - `CONTEXT.md` — domain vocabulary for this project
 - `project.yaml` — per-project skill selection and engine/tracker config
 - `adr/` — Architecture Decision Records, one file per decision
-- `designs/` — design docs, one initiative per file. Each design doc carries a `lifecycle:` field:
-  `draft`, `active`, `shipped`, `abandoned`, or `superseded`. Agents must update lifecycle when the
-  document's mutability changes. While a design is `active`, it is the living design authority for
-  the initiative: current design, verification / success criteria, known unknowns, deviations, and
-  design-relevant implementation discoveries live here. Authored by `to-design`, decomposed into
-  bead epics by `to-issues`.
-  Beads still own execution state. Once a design is `shipped`, `abandoned`, or `superseded`, it
-  freezes as a point-in-time record; durable residue lands in `adr/` (decisions) and `CONTEXT.md`
-  (vocabulary). `close-design`, run on human request, checks actual PR merge evidence for shipment; until then
-  design/epic stay active. Closed-unmerged is never shipped.
-  Design frontmatter is one field set across every Brain: `lifecycle:` (required), `started:` and
-  `ended:` (dates), `extends:` (a design this one builds on), `residue:` (ADR ids produced). Per-doc
-  invented fields drift the vocabulary; say anything else in prose
+- `designs/` — design docs, one initiative per file, each with a `lifecycle:` field (`draft`,
+  `active`, `shipped`, `abandoned`, `superseded`) kept current as its mutability changes. An
+  `active` design is the initiative's living authority for design, criteria, unknowns, and
+  deviations; beads own execution state. Lifecycle rules live in `designs/README.md`; the
+  frontmatter vocabulary lives in `to-design`'s design template
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
 - `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,

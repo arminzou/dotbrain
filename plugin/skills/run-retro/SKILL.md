@@ -1,124 +1,169 @@
 ---
 name: run-retro
-description: Maintain private retrospective findings, suggest recurring repository rules, and deliver authorized rule proposals through dedicated PRs.
+description: Curate private retrospective findings from recent work, audit whether they improve later work, suggest repository rules, and deliver authorized rule proposals through dedicated PRs.
 disable-model-invocation: true
 ---
 
 # Agent retrospective
 
-Run as a separate bounded pass, manually or from an external nightly job invoking the agent
-host. In Claude Code invoke `/dotbrain:run-retro`. In Codex select this skill from the skill picker
-and use its exposed name; `$run-retro` is not confirmed for plugin delivery. The host owns
-scheduling and serialization. This skill supplies no scheduler or CLI loop runner.
+This skill exists so agents stop repeating mistakes and so the human can see when the feedback
+loop goes wrong and steer it. Run it manually or from an external agent-host schedule. In Claude
+Code invoke `/dotbrain:run-retro`. In Codex select this skill from the skill picker and use its
+exposed name; `$run-retro` is not confirmed for plugin delivery. The host owns scheduling. This
+skill supplies no scheduler or CLI loop runner.
 
 Maintain private `RETRO.md` as plain Markdown. These are agent findings; human lessons belong
-to `teach-me`. Add no human learning entries, checkpoint hooks, handoff steps, or session-start
-injection. Public auto-delivery is disabled unless explicitly enabled in private `project.yaml`.
-Otherwise suggest rules and destinations for the user's decision. Enabled delivery or explicit
-proposal authorization permits its dedicated commit/push/PR. Apply the dotbrain convention's human gates.
+to `teach-me`. This skill is the notebook's only writer: leads record retro candidates on their
+own work records at completion, and this skill curates those into findings and recovers what they
+missed. Add no checkpoint hooks, handoff steps, or
+session-start injection. Public auto-delivery is disabled unless explicitly enabled in private
+`project.yaml`; otherwise suggest rules for the user's decision. Apply the dotbrain convention's
+human gates.
+
+## Choose the mode
+
+- **Curate** (default; scheduled or manual): consolidate findings, recover missed ones, and
+  propose interventions. Writes the notebook.
+- **Audit** (only when the human asks; never scheduled): judge whether the loop improves later
+  work enough to justify its cost, and recommend keep, revise, or stop. Read-only.
+
+A manual curate run with the human present first resolves pending decisions (see
+[Report](#report)); an audit only lists them.
 
 ## Stop before you start
 
 If the private Brain or evidence sources cannot be identified, report the missing source
-without creating a public substitute. If another writer owns the notebook, stop without
-writing. All worktrees and external jobs share the same notebook. Findings never override
-established rules, decisions, or human-owned acceptance criteria.
+without creating a public substitute. Findings never override established rules, decisions, or
+human-owned acceptance criteria. Manual and scheduled passes can overlap on one notebook: every
+write uses [the compare-and-swap save](references/retro.md#save), never a lock.
 
-## Process
+## Curate
 
-### 1. Reserve and bound the pass
-
-Acquire exclusive ownership before reading for an update. Use the host's per-notebook lease
-or an exclusive adjacent `RETRO.md.lock`, held through the final save. Exclude that lock and
-`RETRO.md.tmp.*` in the private repository's local Git exclude file before creating them.
-Record the owner and acquisition time. Recover a stale lock only after verifying its owner
-has stopped (check process creation time as well as PID). Only this writer edits the notebook.
+### 1. Bound the pass
 
 Read [the retrospective format](references/retro.md). On first use, read current root guidance
-and referenced standards, establish current HEAD as the baseline, and record scope, guidance
-links, initialization time, timezone, exclusions, and `Unfinished: none`. No history audit or
-findings are created just by reading standards. Save and report initialization, then stop.
-An explicitly requested historical pass is separate and does not move the forward boundary.
+and referenced standards, record scope, guidance links, timezone, and a curation cutoff of now,
+then save, report initialization, and stop. First use reviews no history.
 
-Reuse existing shared progress across worktrees and machines. Require an explicitly selected
-contributor scope (branches/PRs) or repository scope (integration branch); never infer ownership
-from authors or silently include all upstream commits. If scope is unset, report the missing
-choice without capturing work. In repository scope, while the notebook header has no
-`Rules file:` line or says `Rules file: offered`, follow [the rules file offer](references/retro.md),
-including on first use; contributor scope never creates a public file. On later passes, resume
-recorded unfinished work or freeze the next source head/cutoff and review forward from its
-saved boundary. Record exclusions and gaps; never imply excluded older history was reviewed or
-reset a mismatching boundary automatically.
+Require an explicitly selected contributor scope (branches/PRs) or repository scope (integration
+branch); never infer ownership from authors. If scope is unset, report the missing choice without
+capturing work. In repository scope, while the header has no `Rules file:` line or says
+`Rules file: offered`, follow [the rules file offer](references/retro.md#rules-file-offer).
 
-Completion: one writer owns the notebook and the intended scope is explicit.
+Default limit per pass: 25 changed records plus their linked evidence, or 15 minutes, whichever
+comes first, unless the request sets another. With the human present, resolve pending decisions
+now and save them on their own. Then read the notebook and record its hash; every later change in
+this pass stays in memory until step 5.
 
-### 2. Review scoped evidence
+Completion: scope is explicit, the limit is known, and the notebook hash is recorded.
 
-Use the previous reviewed Git boundary when valid; follow the reference's ancestry and gap
-rules. Inspect scoped commits, relevant work/review records (including closed items), active
-designs, and supplied human corrections. Review linked records and explicitly requested older
-evidence without a whole-tracker comment sweep. State coverage limits; parent timestamps do
-not guarantee discovery of comment edits. If there is no new evidence, skip substantive review
-and leave recurrence unchanged. Source failures remain gaps while independent sources proceed.
-Read current guidance relevant to that work, including scoped instructions; baseline links
-do not freeze standards. A proposed practice cannot override newer accepted rules.
+### 2. Select changed records
 
-Focus on reworked fixes, work that should not have landed, weak verification, and successful
-practices worth repeating. Local integrated work can support an observation before public
-merge; a candidate alone does not prove a fix worked.
+Select work and review records changed since the saved curation cutoff, oldest update first, as
+the reference describes. A lead's candidate flag write updates its bead, so new retro candidates
+arrive in this selection. On each selected bead, judge every `## Retro candidate` comment that no
+`## Retro candidate judged` comment answers, whatever its date. Read a bead's comments by header
+and open in full only the relevant ones. Then read the other evidence: CHANGES verdicts, failed checks, rejected candidates, human corrections,
+defects, and informative successes or recoveries. Commits alone are not the signal; much
+correction evidence never reaches the integration branch. Include explicitly supplied incidents
+regardless of date. Use commits and CI only as supporting evidence.
 
-Completion: the reviewed range, useful observations, and unresolved gaps are known.
+If nothing changed, no decision is pending, and no recorded `Proposal:` awaits reconciliation,
+exit silently without rewriting the notebook.
+A completion-time entry already in the notebook does not justify rereading its whole source;
+follow up only on missing evidence, changed outcomes, or a concrete conflict. State discovery
+limits; a date query can miss edited or unattributed evidence.
 
-### 3. Update findings
+Completion: the selected records, the stopping point, and source gaps are known.
 
-Write a bold practice, short reason, dated evidence, and limits. Record successful practices
-alongside mistakes with `Done right`. Separate observed facts from inference. Reuse an entry
-by situation and practice; copied sources and retries add no occurrence or date. Count distinct
-evidence dates in the recorded timezone, never run dates. Uncertain evidence remains uncounted.
-Update `Seen n× (dates)` from the supported dates. Three distinct supported dates establish
-eligibility, not adoption. Preserve pending PRs, accepted links, and unresolved holds.
+### 3. Curate findings
 
-Completion: useful findings have traceable evidence and supported counts, without duplicate entries.
+A finding earns an entry only if it would change a future task's decision, states when it applies
+and what to do, and adds guidance beyond existing instructions or protection. Successful practices
+qualify like mistakes. Merge duplicates, sharpen practices and triggers, reconcile contradictory
+evidence, and retire findings already covered by `RULES.md`, tests, skill text, or structural fixes.
+Leave unresolved observations in their source records. Separate observed facts from inference and
+preserve limits.
 
-### 4. Save progress
+Completion: each kept finding has practice, trigger, needed limits, and dated source pointers.
 
-Save findings before advancing the reviewed boundary. Write to an adjacent
-`RETRO.md.tmp.<owner>.<nonce>` and atomically replace on the same filesystem, retaining the old
-progress and unfinished range. Read back, then save the completed boundary and remaining work.
-Never advance past unread or failed evidence. On interruption, resume the named range and
-compare existing entries before appending. Compact repeated prose without discarding meaningful
-evidence, supported dates, limits, or public links. No duplicate YAML ledger or sidecar is needed.
+### 4. Suggest, deliver, and reconcile public rules
 
-Completion: findings are durable and progress describes only saved, actually reviewed work.
+Read [promotion](references/promotion.md), even when nothing new was selected. For each finding
+still unprotected, judge impact, evidence confidence, applicability, and existing protection, and
+suggest the strongest intervention that fits: structure, type, check or hook, test, then rule
+text. Record it as `Enforcement:` beside the finding. Suggest only: never build a check, hook, or
+test, even with auto-delivery enabled.
 
-### 5. Suggest, deliver, and reconcile public rules
-
-Read [promotion](references/promotion.md) for eligible findings and pending proposals, even
-when capture found no new evidence. After three distinct supported days, discover repository
-guidance and suggest an appropriate file, practice, rationale, and review check. Also suggest
-the strongest mechanical enforcement that would work (structure, type, check or hook, test),
-recorded as `Enforcement:`; rule text is the fallback. Suggest only: never build the check,
-even with auto-delivery enabled.
-
-With auto-delivery disabled/unset, keep the suggestion private and report it for the user's
-decision. Make no public edit, commit, push, or PR without proposal-specific authorization.
-A nightly run leaves the suggestion without waiting interactively. Do not enable delivery
-or select fallback destinations automatically.
+With auto-delivery disabled or unset, keep the suggestion private and raise it as a pending
+decision. Make no public edit, commit, push, or PR without proposal-specific authorization. A
+scheduled run never waits for a reply.
 
 When authorized, follow [the public rule format](references/rules.md) and the destination's
-conventions. Prepare in a clean target-based checkout/worktree; never on an unrelated feature
-branch. Use run-retro's own PR process and body, not the `pr` skill. Several findings can share a
-proposal; related rules may share a PR. Reconcile actual acceptance read-only, without changing
-capture dates or coverage. After acceptance checks, add `Accepted:` beside the original finding;
-keep it in its work-area section.
+conventions. Prepare in a clean target-based checkout or worktree, never on an unrelated feature
+branch. Use run-retro's own PR process and body, not the `pr` skill. Save proposal state before
+each public action as promotion requires, each a compare-and-swap save against the last recorded
+hash, then re-hash. If the notebook changed, write only the finding that carries the proposal, with
+its proposal line, onto the fresh notebook (or the line alone when that finding is already there),
+again by compare-and-swap, and abandon the rest of this pass. Reconcile
+actual acceptance read-only; add `Accepted:` beside the original finding only after the acceptance
+checks pass.
 
-Completion: each eligible finding has a suggestion, proposal, accepted rule, or clear hold, and an
-`Enforcement:` line;
-authorized delivery has a confirmed PR or recorded blocker.
+Completion: each unprotected finding has a suggestion, proposal, accepted rule, or clear hold.
 
-### 6. Report
+### 5. Save
 
-Report the reviewed range, finding practices and supported counts, exclusions, unfinished work,
-source gaps, suggestions, enforcement suggestions, PR URLs, and accepted destinations. Distinguish a prepared local change,
-a delivered PR, and repository acceptance. Keep private evidence out of public delivery text.
-Release ownership on exit, including partial failure. Do not create a second diary.
+Apply [the save](references/retro.md#save) once, with every change from steps 3 and 4 and the
+advanced cutoff, against the last recorded hash. If the notebook changed since then, abandon
+without writing; the next run redoes the work. Advance the cutoff only past records whose changes
+are in this save.
+
+After the save succeeds, answer every candidate this pass judged with one `## Retro candidate
+judged` comment per bead, under the pass's own actor, listing each candidate's time and outcome:
+kept as a finding, merged into one, or rejected with a reason. Count only this pass's rejections
+under SKIPPED; already answered candidates are skipped silently. Comments do not change a bead's
+update time, so the cutoff is unaffected, and because the bead holds the outcome, retiring,
+merging, compacting, or editing findings never re-offers a candidate. Never remove a
+`dotbrain_retro` flag. A failed or abandoned run loses nothing and skips no records; a crash before
+the judged comments re-offers those candidates once.
+
+Completion: the notebook and cutoff changed together, or not at all.
+
+## Audit
+
+Write nothing persistent. The human chooses the scope or period. Inspect a
+bounded sample of assignments, execution records, review findings, and verification evidence. The
+notebook names the practices under evaluation; its own claims cannot establish their effect.
+
+Report which preparations carried an applicable finding, which findings influenced later work,
+later CHANGES findings that repeat a supplied practice's failure, missed or redundant findings,
+unnecessary constraints, and curation and closeout cost. Distinguish a missed lookup, a delivered
+but ignored practice, and an inadequate practice. Judge evidence quality, transfer, cost, and harm,
+not a count: one well-evidenced case can expose harmful guidance; several similar or already
+protected tasks may prove little. Insufficient evidence is inconclusive, with the specific gap.
+
+A delivered practice with no visible effect does not by itself justify stopping the operation,
+and no relevant opportunity leaves benefit unknown rather than disproved. An early audit can still
+expose overhead or delivery failures before effectiveness is assessable.
+
+Recommend at the right level: retire or revise one finding, revise delivery, or keep or stop
+recurring curation. Retiring public rules or enforcement follows normal authorization.
+
+## Report
+
+Report only what is worth human attention: changed or retired findings, suggestions, pending
+decisions, a run that hit its limit or could not read a required source, or a stuck cutoff. A quiet
+run and a single failed run stay silent; the next run repeats the work. Follow
+[the report format](references/retro.md#report-format): plain language, decisions first, within
+about 25 lines.
+
+Each item that needs the human is a decision record stored as a `Pending:` line beside its finding:
+one question, two to four options, the recommended option with a one-line reason, an evidence
+pointer, and what happens if it goes unanswered. Silence authorizes nothing; an unanswered item stays deferred and is raised again only on
+new evidence. An answer authorizes only the chosen option, within existing delivery gates.
+
+When the human is present, resolve pending decisions first through the runtime's native question
+dialog (in Claude Code, `AskUserQuestion` with the recommended option first and marked), or as
+numbered text where no dialog exists. Record each answer beside its finding, remove its `Pending:`
+line, and save. Distinguish a prepared local change, a delivered PR, and repository acceptance.
+Keep private evidence out of public delivery text.

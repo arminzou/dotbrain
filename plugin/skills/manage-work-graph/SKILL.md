@@ -77,7 +77,7 @@ Apply the convention's human gates and criteria ownership before claiming or clo
 Claim only work you will do yourself; a delegated worker performs its own startup under
 its role contract. Never claim an epic merely to anchor scope.
 Pass your own `--actor <actor>` on every tracker write. The lead alone writes execution
-metadata. A worker retains its claim through candidate return and every fix round;
+metadata; `run-retro` appends `## Retro candidate judged` comments under its own actor. A worker retains its claim through candidate return and every fix round;
 returning a candidate changes neither assignee nor claim. Claimed work stays out of
 `bd ready`; lease expiry does not release a claim or permit another actor to claim it.
 

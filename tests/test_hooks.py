@@ -113,8 +113,10 @@ def test_packaged_convention_stays_under_the_payload_limit():
         body = path.read_bytes()
 
     payload = len(f"{hooks.CONVENTION_HEADING}\n\n".encode("utf-8")) + len(body) + 2
-    assert payload < hooks.PAYLOAD_LIMIT, (
-        f"injected convention is {payload} bytes, over the {hooks.PAYLOAD_LIMIT} limit; "
+    # A margin under the limit: the delivery cutoff was only measured between 9,961 and 10,010 bytes.
+    budget = 9_500
+    assert payload < budget < hooks.PAYLOAD_LIMIT, (
+        f"injected convention is {payload} bytes, over the {budget}-byte budget; "
         "trim DOTBRAIN.md or move detail into a skill"
     )
 

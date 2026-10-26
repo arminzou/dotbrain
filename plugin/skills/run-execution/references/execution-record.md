@@ -2,7 +2,7 @@
 
 The execution record is the recoverable state of one work item under `run-execution`. It
 follows the review-bead pattern: native Beads fields own status, assignee, dependencies,
-acceptance, and specification links; three flat `dotbrain_` metadata keys hold the item's
+acceptance, and specification links; four flat `dotbrain_` metadata keys hold the item's
 queryable current state; headed append-only comments are its evidence history; notes hold
 rationale and a resume summary. Writer permissions, claims, actors, and closure follow
 [manage-work-graph](../../manage-work-graph/SKILL.md#ownership-and-closure).
@@ -18,6 +18,7 @@ Optional until the item enters `run-execution`. Populate only facts that exist.
 | `dotbrain_phase` | `preparing`, `working`, `candidate`, `integrating`, `checking`, `verified`, or `cancelled`. |
 | `dotbrain_attempts` | Consecutive failed-check count and approved limit for each checkpoint, keyed by checkpoint reference. |
 | `dotbrain_artifacts` | References, each with a `kind`, `purpose`, and `ref`. Purposes are `work` (where the active worker's changes live), `candidate`, `integrated`, and `evidence`. |
+| `dotbrain_retro` | The UTC time of the lead's latest candidate flag write, set with every `## Retro candidate` comment and never removed. Beads comments do not change an issue's update time; this write does, so the curation pass selects the bead. |
 
 ```json
 {
@@ -63,6 +64,8 @@ Use [manage-work-graph's metadata and comment write method](../../manage-work-gr
 ## Containment @ <revision>
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
+## Retro candidate
+## Retro candidate judged
 ```
 
 Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it. Its body
