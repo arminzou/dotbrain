@@ -79,8 +79,8 @@ def test_project_and_global_reconcile_folder_add_remove_without_yaml_changes(tmp
     root = home / "skills"
     write(root / "bundle/a/SKILL.md")
     write(root / "bundle/b/SKILL.md")
-    global_yaml = "global_extra: [bundle]\n"
-    write(root / "skills.yaml", global_yaml)
+    global_yaml = "version: 4\nskills: [bundle]\n"
+    write(home / "config.yaml", global_yaml)
     brainspace = home / "brainspaces/example"
     declarations = "agents: [claude, codex]\nskills: [bundle]\n"
     write(brainspace / ".brain/project.yaml", declarations)
@@ -104,7 +104,7 @@ def test_project_and_global_reconcile_folder_add_remove_without_yaml_changes(tmp
     assert len(result.linked) == 2 and len(result.pruned) == 2
     result = assets.link_global(home, "skills", user_home=tmp_path / "user")
     assert len(result.linked) == 2 and len(result.pruned) == 2
-    assert (root / "skills.yaml").read_text() == global_yaml
+    assert (home / "config.yaml").read_text() == global_yaml
     assert (brainspace / ".brain/project.yaml").read_text() == declarations
     report = projects.inspect_project(home, target)
     assert report["skills"] == {"configured": ["bundle"], "effective": ["bundle/a", "bundle/c"]}

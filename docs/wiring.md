@@ -12,7 +12,7 @@ private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start 
 | `.beads` | Symlink | The Brainspace's execution store |
 | `.claude/skills/` | Real directory containing symlinks | Selected private skills under `~/dotbrain/skills/` |
 | `.agents/skills/` | Real directory containing symlinks | Codex's selected private skills under `~/dotbrain/skills/` |
-| `.claude/agents/` | Real directory containing symlinks | Selected private Claude agents under `~/dotbrain/agents/` |
+| `.claude/agents/` | Real directory containing symlinks | Selected private Claude agents under `~/dotbrain/subagents/` |
 | `.codex/agents/` | Real directory containing generated TOML files | Packaged roles and selected private Codex agents |
 
 `.claude` and `.codex` stay real directories so anything the project already keeps there (settings,

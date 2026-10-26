@@ -8,7 +8,7 @@ from [mattpocock/skills](https://github.com/mattpocock/skills).
 
 Skill linking is operator-managed:
 
-- global skills are selected in `~/dotbrain/skills/skills.yaml`
+- global skills are selected in `~/dotbrain/config.yaml`
 - per-project skills are selected in `brainspaces/<name>/.brain/project.yaml`
 
 ## Select and reconcile skills
@@ -35,18 +35,17 @@ skills:
 ```
 
 ```yaml
-# ~/dotbrain/skills/skills.yaml
-version: 1
+# ~/dotbrain/config.yaml
+version: 4
 profiles:
   claude-code: [~/.claude-work]
-global_extra:
+skills:
   - another-collection
 ```
 
 Global linking uses each runtime's default home. For Claude Code and Codex, `profiles` adds
 extra homes, each receiving skills in `<home>/skills`; missing homes are skipped. Use runtime
-homes rather than folders inside project checkouts. See [configuration](configuration.md#skills-skills-yaml)
-for migration from legacy `targets`.
+homes rather than folders inside project checkouts. See [configuration](configuration.md#global-skills).
 
 A directory containing `SKILL.md` selects itself, even when it has descendant skills. Otherwise
 dotbrain discovers descendant `SKILL.md` directories recursively, excluding `node_modules`.
@@ -172,9 +171,9 @@ Alongside the skills, dotbrain ships Brain-aware subagents: `worker`, `reviewer`
 `verifier`, and `researcher`. See
 [Session context](session-context.md#subagents).
 
-Global extras selected in `agents/agents.yaml` use the same default homes and `skills/skills.yaml`
+Custom subagents selected under `subagents:` in `config.yaml` use the same default homes and
 `profiles:`, delivered into `<home>/agents` for Claude Code and Codex. See
-[configuration](configuration.md#agents-agents-yaml) for legacy `targets:` migration.
+[configuration](configuration.md#global-subagents).
 
 ## Installing Them
 

@@ -38,7 +38,7 @@ def user(tmp_path, monkeypatch):
 
 def _global_extra(dotbrain_home: Path, *names: str) -> None:
     listed = "".join(f"  - {name}\n" for name in names)
-    (dotbrain_home / "skills/skills.yaml").write_text(f"global_extra:\n{listed}" if names else "global_extra: []\n")
+    (dotbrain_home / "config.yaml").write_text(f"skills:\n{listed}" if names else "skills: []\n")
 
 
 def _run_hook(tmp_path: Path, config_dir: Path, cfg, directory: Path | None = None) -> dict:
@@ -144,9 +144,6 @@ def test_doctor_reports_opencode_delivery(dotbrain_home, user):
                 if f.status == status and f.message.startswith("opencode:")}
 
     assert warnings() == set()  # not opted in
-    (dotbrain_home / "skills/skills.yaml").write_text(
-        f"targets:\n  opencode: {opencode.skills_dir(config_dir)}\nglobal_extra: []\n")
-    assert warnings() == set()  # a shared target does not opt this machine in
     opencode.plugin_file(config_dir).write_text("export default {}\n", encoding="utf-8")
     assert warnings() == set()
     opencode.plugin_file(config_dir).unlink()

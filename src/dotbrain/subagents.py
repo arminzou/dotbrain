@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -38,26 +38,14 @@ def packaged_body(role: str, runtime: str) -> str:
 
 @dataclass
 class GlobalConfig:
-    """Operator-configurable global subagent-link settings."""
+    """Global custom subagent selection from ``config.yaml``."""
 
-    targets: dict[str, str] = field(default_factory=lambda: runtimes.global_targets("agents"))
     global_names: tuple[str, ...] = ()
 
 
-def render_global_subagents(names: Sequence[str] = ()) -> str:
-    lines = [
-        "# Global vendor-native subagents linked into personal agent homes.",
-        "# Remove entries to prune dotbrain-managed links on the next relink.",
-        "# Project-scoped extras belong in project.yaml; this file is for personal-home reach and extras.",
-        "# Extra runtime homes: set profiles in skills/skills.yaml; agents go into <home>/agents.",
-    ]
-    cleaned = skills._clean(names)
-    if not cleaned:
-        lines += ["# global:", "#   - some-shared-subagent"]
-        return "\n".join(lines) + "\n"
-    lines.append("global:")
-    lines.extend(f"  - {name}" for name in cleaned)
-    return "\n".join(lines) + "\n"
+def sources_root(dotbrain_home: Path) -> Path:
+    """Data-root directory holding custom subagent sources."""
+    return Path(dotbrain_home) / paths.SUBAGENTS_DIR
 
 
 def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
@@ -66,7 +54,7 @@ def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
     resolved: dict[str, Path] = {}
     root = Path(dotbrain_home)
     for runtime, (subdir, ext) in runtime_spec().items():
-        private_src = paths.confined_path(root / "agents", f"{subdir}/{name}{ext}")
+        private_src = paths.confined_path(sources_root(root), f"{subdir}/{name}{ext}")
         if private_src.is_file():
             resolved[runtime] = private_src
     return resolved
@@ -82,7 +70,7 @@ def validate_selection(dotbrain_home: Path, names: Sequence[str], runtimes: Sequ
             continue
         available: set[str] = set()
         for runtime, (directory, suffix) in runtime_spec().items():
-            private = paths.confined_path(Path(dotbrain_home) / "agents", f"{directory}/{name}{suffix}")
+            private = paths.confined_path(sources_root(dotbrain_home), f"{directory}/{name}{suffix}")
             if private.is_file():
                 available.add(runtime)
         if not available:
@@ -132,7 +120,7 @@ def link_files_into(
     target_dir = Path(target_dir)
     materialize = runtime == "codex" or (runtime is None and bool(files) and all(src.suffix == ".toml" for src in files))
     target_dir.mkdir(parents=True, exist_ok=True)
-    private_root = (Path(dotbrain_home) / "agents").resolve()
+    private_roots = (sources_root(dotbrain_home), Path(dotbrain_home) / paths.LEGACY_SUBAGENTS_DIR)
     cache_root = (Path(dotbrain_home) / ".cache" / "agents").resolve()
     result = skills.LinkResult()
     wanted: set[str] = set()
@@ -146,7 +134,7 @@ def link_files_into(
         if not materialize and dest.is_symlink() and dest.resolve() == src.resolve():
             continue
         owned = dest.is_symlink() and (
-            skills._points_into(dest, private_root) or skills._points_into(dest, cache_root)
+            any(skills._points_into(dest, root) for root in (*private_roots, cache_root))
         )
         owned = owned or (materialize and is_managed_copy(dest))
         desired = managed_content(src) if materialize else None
@@ -174,7 +162,7 @@ def link_files_into(
     for entry in sorted(target_dir.iterdir()):
         if entry.name in wanted or entry.name.startswith(PACKAGED_PREFIX):
             continue
-        owned = (entry.is_symlink() and (skills._points_into(entry, private_root) or skills._points_into(entry, cache_root))) or (materialize and is_managed_copy(entry))
+        owned = (entry.is_symlink() and any(skills._points_into(entry, root) for root in (*private_roots, cache_root))) or (materialize and is_managed_copy(entry))
         if not owned:
             continue
         entry.unlink()
@@ -184,21 +172,9 @@ def link_files_into(
 
 
 def load_global_config(dotbrain_home: Path) -> GlobalConfig:
-    path = Path(dotbrain_home) / "agents" / "agents.yaml"
-    if not path.is_file():
-        return GlobalConfig()
-    data = skills._read_yaml_mapping(path)
-    targets = data.get("targets") or {}
-    if not isinstance(targets, dict) or not all(
-        isinstance(k, str) and isinstance(v, str) for k, v in targets.items()
-    ):
-        raise ValueError(f"{path}: targets must be a mapping of runtime -> destination")
-    merged_targets = runtimes.global_targets("agents")
-    merged_targets.update(targets)
-    return GlobalConfig(
-        targets=merged_targets,
-        global_names=skills._clean(data.get("global")),
-    )
+    from dotbrain import config
+
+    return GlobalConfig(global_names=config.load_config(dotbrain_home).subagents)
 
 
 def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:

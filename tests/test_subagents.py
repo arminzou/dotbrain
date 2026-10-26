@@ -58,51 +58,15 @@ def test_load_global_subagents_missing_file_is_empty(tmp_path: Path):
     assert subagents.load_global_subagents(tmp_path) == ()
 
 
-def test_load_global_subagents_reads_and_dedupes(tmp_path: Path):
-    _write(
-        tmp_path / "agents" / "agents.yaml",
-        "global:\n  - reviewer\n  - reviewer\n  - helper\n",
-    )
-    assert subagents.load_global_subagents(tmp_path) == ("reviewer", "helper")
+def test_load_global_subagents_reads_config_yaml_and_dedupes(tmp_path: Path):
+    _write(tmp_path / "config.yaml", "version: 4\nsubagents:\n  - helper\n  - helper\n  - other\n")
+    assert subagents.load_global_subagents(tmp_path) == ("helper", "other")
 
-
-def test_load_global_config_merges_target_overrides_and_dedupes(tmp_path: Path):
-    _write(
-        tmp_path / "agents" / "agents.yaml",
-        "targets:\n"
-        "  claude-code: ~/.claude-work/agents\n"
-        "global:\n"
-        "  - reviewer\n"
-        "  - reviewer\n"
-        "  - helper\n",
-    )
-
-    config = subagents.load_global_config(tmp_path)
-
-    assert config.targets == {
-        "claude-code": "~/.claude-work/agents",
-        "codex": "~/.codex/agents",
-    }
-    assert config.global_names == ("reviewer", "helper")
-
-
-def test_load_global_config_rejects_invalid_targets(tmp_path: Path):
-    _write(
-        tmp_path / "agents" / "agents.yaml",
-        "targets:\n  - not-a-mapping\n",
-    )
-
-    try:
-        subagents.load_global_config(tmp_path)
-    except ValueError as exc:
-        assert "targets must be a mapping of runtime -> destination" in str(exc)
-    else:
-        raise AssertionError("expected invalid targets to raise ValueError")
 
 
 def test_private_source_defines_custom_agents(dotbrain_home: Path):
-    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude-private")
-    _write(dotbrain_home / "agents" / "codex" / "custom.toml", "codex-private")
+    _write(dotbrain_home / "subagents" / "claude" / "custom.md", "claude-private")
+    _write(dotbrain_home / "subagents" / "codex" / "custom.toml", "codex-private")
 
     custom = subagents._resolve_subagent_files(dotbrain_home, "custom")
     assert custom["claude-code"].read_text() == "claude-private"
@@ -110,7 +74,7 @@ def test_private_source_defines_custom_agents(dotbrain_home: Path):
 
 
 def test_custom_subagent_with_packaged_prefix_is_rejected(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "codex" / "dotbrain-mine.toml", "x")
+    _write(dotbrain_home / "subagents" / "codex" / "dotbrain-mine.toml", "x")
     result = subagents.link_project_subagents(dotbrain_home, brainspace, (".codex",), ("dotbrain-mine",))
     assert result.warnings and "reserved for packaged subagents" in result.warnings[0]
     assert not (brainspace / ".codex" / "agents" / "dotbrain-mine.toml").exists()
@@ -142,11 +106,11 @@ def test_packaged_reconciliation_preserves_foreign_collision_and_custom_file(tmp
 def test_link_files_into_prunes_only_owned_links(dotbrain_home: Path, tmp_path: Path):
     dest = tmp_path / "global-agents"
     dest.mkdir()
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "reviewer")
-    _write(dotbrain_home / "agents" / "claude" / "helper.md", "helper")
-    files = [dotbrain_home / "agents" / "claude" / "reviewer.md"]
+    _write(dotbrain_home / "subagents" / "claude" / "reviewer.md", "reviewer")
+    _write(dotbrain_home / "subagents" / "claude" / "helper.md", "helper")
+    files = [dotbrain_home / "subagents" / "claude" / "reviewer.md"]
 
-    (dest / "old.md").symlink_to(dotbrain_home / "agents" / "claude" / "helper.md")
+    (dest / "old.md").symlink_to(dotbrain_home / "subagents" / "claude" / "helper.md")
     (dest / "foreign.md").symlink_to(tmp_path / "foreign.md")
 
     result = subagents.link_files_into(
@@ -166,13 +130,13 @@ def test_link_files_into_prunes_only_owned_links(dotbrain_home: Path, tmp_path: 
 def test_link_files_into_leaves_foreign_regular_file(dotbrain_home: Path, tmp_path: Path):
     dest = tmp_path / "global-agents"
     dest.mkdir()
-    _write(dotbrain_home / "agents" / "claude" / "reviewer.md", "reviewer")
+    _write(dotbrain_home / "subagents" / "claude" / "reviewer.md", "reviewer")
     (dest / "manual.md").write_text("keep me")
 
     result = subagents.link_files_into(
         dotbrain_home,
         dest,
-        [dotbrain_home / "agents" / "claude" / "reviewer.md"],
+        [dotbrain_home / "subagents" / "claude" / "reviewer.md"],
         label="claude-code",
     )
 
@@ -181,8 +145,8 @@ def test_link_files_into_leaves_foreign_regular_file(dotbrain_home: Path, tmp_pa
 
 
 def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude")
-    _write(dotbrain_home / "agents" / "codex" / "custom.toml", "codex")
+    _write(dotbrain_home / "subagents" / "claude" / "custom.md", "claude")
+    _write(dotbrain_home / "subagents" / "codex" / "custom.toml", "codex")
 
     result = subagents.link_project_subagents(
         dotbrain_home,
@@ -197,7 +161,7 @@ def test_link_project_subagents_links_matching_runtime(dotbrain_home: Path, brai
 
 
 def test_link_project_subagents_routes_only_existing_runtime(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "custom.md", "claude")
+    _write(dotbrain_home / "subagents" / "claude" / "custom.md", "claude")
 
     result = subagents.link_project_subagents(
         dotbrain_home,
@@ -251,7 +215,7 @@ def test_unlisted_packaged_roles_are_pruned_and_foreign_files_reported(dotbrain_
 
 
 def test_project_subagent_collision_warns_and_skips(dotbrain_home: Path, brainspace: Path):
-    _write(dotbrain_home / "agents" / "claude" / "custom.md", "custom")
+    _write(dotbrain_home / "subagents" / "claude" / "custom.md", "custom")
     collision = brainspace / ".claude" / "agents" / "custom.md"
     _write(collision, "project-owned")
 

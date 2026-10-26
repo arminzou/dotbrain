@@ -61,7 +61,7 @@ def test_asset_batch_isolates_malformed_declaration(tmp_path, kind, runtime):
 
 def test_codex_delivery_migrates_updates_prunes_and_preserves_foreign(tmp_path):
     home = tmp_path / "home"
-    source = home / "agents/codex/reviewer.toml"
+    source = home / "subagents/codex/reviewer.toml"
     write(source, 'name = "reviewer"\n')
     dest = tmp_path / "repo/.codex/agents"
     dest.mkdir(parents=True)
@@ -98,11 +98,11 @@ def test_unmarked_codex_collision_preserved(tmp_path):
 
 def test_agent_runtime_selection_failure_does_not_prune(tmp_path):
     home = tmp_path / "home"
-    write(home / "agents/claude/custom.md", "custom")
+    write(home / "subagents/claude/custom.md", "custom")
     dest = tmp_path / "workspace/.claude/agents"
     dest.mkdir(parents=True)
     old = dest / "old.md"
-    old.symlink_to(home / "agents/claude/custom.md")
+    old.symlink_to(home / "subagents/claude/custom.md")
     result = subagents.link_project_subagents(home, tmp_path, (".claude", ".codex"), ["custom"], workspace_dirs={".claude": tmp_path / "workspace/.claude"})
     assert result.warnings and old.is_symlink()
     assert not (tmp_path / ".codex").exists()

@@ -1,17 +1,15 @@
 # Configuration
 
-Most setups never edit configuration. When you do, there are four files, all in your private
-dotbrain home:
+Most setups never edit configuration. When you do, there are two files, both in your private
+dotbrain home: one for the machine and one per project.
 
 ```mermaid
 treeView-beta
   accTitle: Where dotbrain's configuration files live
   ~/dotbrain/
-    config.yaml ## machine: shared infrastructure
-    skills/
-      skills.yaml ## machine: global skills
-    agents/
-      agents.yaml ## machine: global subagents
+    config.yaml ## machine: every global setting
+    skills/ ## your skill sources
+    subagents/ ## your custom subagent sources
     brainspaces/
       my-app/
         .brain/
@@ -20,9 +18,7 @@ treeView-beta
 
 | File | Scope | Seeded by |
 | --- | --- | --- |
-| `~/dotbrain/config.yaml` | Machine: shared infrastructure | `dotbrain bootstrap` |
-| `~/dotbrain/skills/skills.yaml` | Machine: global skills | `dotbrain bootstrap` |
-| `~/dotbrain/agents/agents.yaml` | Machine: global subagents | `dotbrain bootstrap` |
+| `~/dotbrain/config.yaml` | Machine: infrastructure, runtime profiles, global skills and subagents | `dotbrain bootstrap` |
 | `brainspaces/<name>/.brain/project.yaml` | One project | `dotbrain wire` |
 
 After editing project declarations, run `dotbrain refresh` (or `dotbrain refresh --all`). Global
@@ -39,12 +35,13 @@ asset changes use `dotbrain skills link --scope global` or `dotbrain agents link
 
 ## `config.yaml`
 
-Only needed for [server-mode](beads-backend.md#server-mode) Beads or to change
-[home sync](#sync). The seeded file has the Beads block commented out.
+Every global setting lives here: [server-mode](beads-backend.md#server-mode) Beads,
+[home sync](#sync), extra runtime homes, and the skills and subagents delivered to your personal
+agent homes. The seeded file has every block commented out.
 
 ```yaml
 # ~/dotbrain/config.yaml
-version: 3
+version: 4
 
 beads:
   server:
@@ -52,6 +49,17 @@ beads:
     port: "3307"
     user: beads
     ssh_host: bastion.example.internal   # optional SSH hop, used by beads drop-db
+
+profiles:                     # extra Claude Code and Codex homes
+  claude-code: [~/.claude-work]
+  codex: [~/.codex-work]
+
+skills:                       # global skills, under ~/dotbrain/skills/
+  - my-collection/my-skill
+  - another-collection        # select every descendant skill
+
+subagents:                    # custom subagents, under ~/dotbrain/subagents/
+  - some-shared-subagent
 ```
 
 ::: warning
@@ -159,44 +167,18 @@ updates preserve unrelated keys, unknown nested values, and explicit empty selec
 comments may be reformatted during those explicit updates.
 :::
 
-## `skills/skills.yaml`
+## Global skills and profiles {#global-skills}
 
-Your global skills, linked into every agent session on this machine. List paths to skill folders
-under `~/dotbrain/skills/`:
-
-```yaml
-# ~/dotbrain/skills/skills.yaml
-version: 1
-profiles:
-  claude-code: [~/.claude-work]
-  codex: [~/.codex-work]
-global_extra:
-  - my-collection/my-skill
-  - another-collection        # select every descendant skill
-```
+`skills:` lists your global skills, linked into every agent session on this machine. Each entry is
+a path to a skill folder under `~/dotbrain/skills/`.
 
 Claude Code and Codex receive skills in `<home>/skills` for their default homes (`~/.claude`
 and `~/.codex`) and each extra home listed in `profiles`. Missing profile homes are silently
-skipped, so the file can be shared across machines. Other runtimes retain their existing
-relocation and plugin installation requirements and do not accept profiles.
+skipped, so the file can be shared across machines. Other runtimes keep their own relocation
+variables and plugin installation, and do not accept profiles.
 
 Homes inside a wired checkout or worktree are rejected before their links are changed; symlinked
 home directories are supported. Doctor also checks the dotbrain plugin in each Claude Code home.
-Legacy `targets` entries matching the default skills folder are ignored. A custom skills target
-uses its parent as an extra home and prints a notice to move that home to `profiles`.
-
-`dotbrain bootstrap` adds a missing `profiles: {}` to an existing skills configuration and removes
-simple legacy entries spelled `~/.claude/skills` or `~/.codex/skills` (including Windows separators).
-It preserves comments, selections and unknown settings, validates both global asset configurations,
-and keeps the original bytes under `~/dotbrain/.cache/config-backups/` before an atomic replacement.
-The migration is reported only when the file changes. To recover, restore the reported backup to
-`~/dotbrain/skills/skills.yaml`. Doctor recommends bootstrap without changing files.
-
-Absolute paths and custom or structurally ambiguous targets remain unchanged: a path matching this
-machine's default might mean something different on another machine. Anchored or flow-style target
-mappings are retained. Review any proposed conversion on every machine first: shared profiles affect
-**both skills and subagents**. In particular, bootstrap leaves `agents/agents.yaml` targets intact;
-moving an agents-only destination into profiles could unintentionally start delivering skills there.
 
 An entry containing `SKILL.md` selects that one skill. Otherwise its directory expands recursively
 to descendants containing `SKILL.md`, excluding `node_modules`. Overlapping entries selecting the
@@ -204,31 +186,53 @@ same source are deduplicated. Distinct sources with the same destination name fa
 linking or pruning; missing paths and empty bundles also fail. Adding or removing a skill in a
 selected bundle takes effect on the next reconciliation without rewriting this declaration.
 
-## `agents/agents.yaml`
+## Global subagents {#global-subagents}
 
-Global subagents delivered into your personal agent homes. Removing an entry prunes its managed
-resource on the next `dotbrain agents link --scope global`.
+`subagents:` lists custom subagents delivered into your personal agent homes. Each name is a
+source under `~/dotbrain/subagents/claude/<name>.md` or `~/dotbrain/subagents/codex/<name>.toml`.
+Removing an entry prunes its managed resource on the next `dotbrain agents link --scope global`.
 
-Claude Code and Codex receive agents in `<home>/agents`, using their default homes and the
-`profiles:` in `skills/skills.yaml`. Missing profiles are skipped; destinations inside wired
-checkouts are reported and skipped. Legacy `targets:` matching the default are silently ignored;
-custom targets use their parent as an extra home, with a notice to move it to `skills.yaml` `profiles:`.
+Packaged subagents (`worker`, `researcher`, `reviewer`, `verifier`) have no global scope; select
+them per project. A packaged name here is skipped, and doctor reports it.
 
-```yaml
-# ~/dotbrain/agents/agents.yaml
-# Extra runtime homes are configured in skills/skills.yaml under profiles.
-global:
-  - some-shared-subagent
-```
+Claude Code and Codex receive agents in `<home>/agents`, using their default homes and the same
+`profiles`. Missing profiles are skipped; destinations inside wired checkouts are reported and
+skipped.
 
 Skills and Claude agent definitions are symlinks. Codex agent definitions are disposable real
 TOML copies with the ownership marker `# dotbrain-managed-agent: v1`; edit source definitions under
-the private `agents/` root, not delivered copies. Dotbrain migrates owned Codex symlinks,
+`~/dotbrain/subagents/`, not delivered copies. Dotbrain migrates owned Codex symlinks,
 overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
 filename is reported instead of replaced.
 
-Runtime flags use `--runtime claude|codex|hermes|opencode|pi|cursor|all`. YAML target keys are
-`claude-code`, `codex`, `hermes`, `opencode`, `pi`, and `cursor`. Hermes, OpenCode, Pi, and Cursor have no
-subagent target.
+Runtime flags use `--runtime claude|codex|hermes|opencode|pi|cursor|all`. Profile keys are
+`claude-code` and `codex`. Hermes, OpenCode, Pi, and Cursor receive no subagents.
 Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
 with project selectors or `--all`.
+
+## Upgrading from earlier versions {#upgrading}
+
+Global settings used to live in three files. The first `dotbrain bootstrap` on this version merges
+them into `config.yaml` version 4:
+
+| Before | After |
+| --- | --- |
+| `config.yaml` version 3 | `config.yaml` version 4; `beads` and `sync` are unchanged |
+| `skills/skills.yaml` `profiles` | `config.yaml` `profiles` |
+| `skills/skills.yaml` `global_extra` (or `extra`) | `config.yaml` `skills` |
+| `agents/agents.yaml` `global` | `config.yaml` `subagents`, custom subagents only |
+| A packaged name in `agents/agents.yaml` `global` | Dropped and reported; select packaged subagents per project |
+| `targets` naming the default home, such as `~/.claude/skills` | Dropped |
+| `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
+| `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
+
+Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
+`config.yaml`, removes `skills/skills.yaml` and `agents/agents.yaml`, and reports each change. A
+profile receives both skills and subagents, so a converted target can start receiving subagents
+too. A second run changes nothing. To recover, restore the files from the reported backup folder.
+
+Bootstrap stops and changes no file when it cannot merge safely: unparseable YAML, anchors, merge
+keys or tags, duplicate or unknown keys, a value that conflicts with one already in `config.yaml`, a
+custom target for a runtime other than Claude Code or Codex, or files in both `agents/` and
+`subagents/`. Fix the reported file and run bootstrap again. Until then, global delivery waits and
+doctor reports the leftover files. After the migration, dotbrain never reads the old files.

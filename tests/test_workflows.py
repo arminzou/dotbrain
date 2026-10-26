@@ -177,7 +177,7 @@ def test_unwire_removes_managed_workspace_links_and_preserves_project_files(
     managed_skill.symlink_to(managed_target)
     managed_agent = repo / ".codex" / "agents" / "managed.toml"
     managed_agent.parent.mkdir(parents=True)
-    managed_agent.symlink_to(dotbrain_home / "agents" / "codex" / "managed.toml")
+    managed_agent.symlink_to(dotbrain_home / "subagents" / "codex" / "managed.toml")
     exclude = repo / ".git" / "info" / "exclude"
     exclude.write_text(
         "\n".join((*paths.EXCLUDE_ENTRIES, "/.claude/skills/managed", "/.codex/agents/managed.toml")) + "\n"

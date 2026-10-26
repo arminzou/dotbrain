@@ -183,7 +183,7 @@ without reading the whole retrospective notebook. A missing notebook blocks noth
 The packaged subagents can't be overridden: a file with the same name in your private agent
 sources is ignored. To customize one, write your own agent under a different name. Add your own
 subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml), or under
-`global:` in `agents/agents.yaml`; `dotbrain bootstrap` prepares the global ones in your runtime homes.
+`subagents:` in [`config.yaml`](configuration.md#global-subagents); `dotbrain bootstrap` prepares the global ones in your runtime homes.
 
 Your own Claude definitions are delivered as symlinks. Codex definitions are real TOML copies
 generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain agents link` reconciles the current wired checkout;

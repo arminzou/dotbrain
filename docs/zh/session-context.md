@@ -154,7 +154,7 @@ Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已
 | `researcher` | 根据 Brain、代码库和网络回答问题，并指出外部来源和 Brain 不一致的地方。在 Codex 上，它在主会话的权限下用 shell 命令读取本地文件；它的指令禁止写入和网络命令，但如果主会话权限更宽，这些权限也会传给它 |
 
 自带的子 Agent 不能被覆盖：你私有 Agent 源里同名的文件会被忽略。要自定义，请用不同的名字写你自己的 Agent。
-在 [`project.yaml`](configuration.md#project-yaml) 的 `subagents:` 下，或 `agents/agents.yaml` 的 `global:`
+在 [`project.yaml`](configuration.md#project-yaml) 的 `subagents:` 下，或 [`config.yaml`](configuration.md#global-subagents) 的 `subagents:`
 下添加你自己的子 Agent；`dotbrain bootstrap` 会把全局的那些准备到各运行时的主目录里。
 
 你自己的 Claude 定义以符号链接的形式分发。Codex 定义是生成的真实 TOML 副本，带有

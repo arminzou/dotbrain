@@ -9,10 +9,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import assets, bootstrap as bootstrap_mod, config, doctor, paths, resource_loader, runtimes, skills, subagents, workflows
+from dotbrain import assets, bootstrap as bootstrap_mod, config, doctor, paths, resource_loader, runtimes, subagents, workflows
 from dotbrain.cli import app
 
-from conftest import set_fake_home
+from conftest import set_fake_home, write_global_config
 
 runner = CliRunner()
 _installed_on_path = runtimes.installed
@@ -257,25 +257,20 @@ def _fresh_repo(tmp_path: Path, name: str) -> Path:
 # --------------------------------------------------------------------------- data root seeding
 
 
-def test_ensure_data_root_seeds_skills_config(tmp_path: Path):
+def test_ensure_data_root_seeds_config_version_4(tmp_path: Path):
     root = tmp_path / "dr"
     result = bootstrap_mod.ensure_data_root(root)
-    skills_config = root / "skills" / "skills.yaml"
+    config_path = root / "config.yaml"
     gitignore = root / ".gitignore"
-    assert result.skills_seeded
-    assert skills_config.is_file()
+    assert result.config_seeded
     assert gitignore.is_file()
-    generated = [
-        gitignore,
-        root / "config.yaml",
-        skills_config,
-        root / "agents" / "agents.yaml",
-    ]
-    assert all(b"\r\n" not in path.read_bytes() for path in generated)
-    before = skills_config.read_text()
-    assert skills.load_global_config(skills_config).global_extra == ()
+    assert all(b"\r\n" not in path.read_bytes() for path in (gitignore, config_path))
+    assert config.load_config(root).version == 4
+    assert not (root / "skills/skills.yaml").exists() and not (root / "agents").exists()
+    assert (root / "skills").is_dir()
+    before = config_path.read_text()
     bootstrap_mod.ensure_data_root(root)
-    assert skills_config.read_text() == before
+    assert config_path.read_text() == before
 
 
 def test_ensure_data_root_preserves_operator_gitignore(tmp_path: Path):
@@ -289,42 +284,32 @@ def test_ensure_data_root_preserves_operator_gitignore(tmp_path: Path):
     assert f"seeded .gitignore into {root}" not in result.logs
 
 
-def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path):
+def test_ensure_data_root_does_not_clobber_existing_config(tmp_path: Path):
     root = tmp_path / "dr"
-    (root / "skills").mkdir(parents=True)
-    custom = "version: 1\nprofiles: {}\nglobal_extra:\n  - misc/keep\n"
-    (root / "skills" / "skills.yaml").write_text(custom)
+    root.mkdir()
+    custom = "version: 4\nskills:\n  - misc/keep\n"
+    (root / "config.yaml").write_text(custom)
 
     result = bootstrap_mod.ensure_data_root(root)
-    assert not result.skills_seeded
-    assert (root / "skills" / "skills.yaml").read_text() == custom
+    assert not result.config_seeded
+    assert (root / "config.yaml").read_text() == custom
 
 
-def test_link_global_skills_links_configured_target(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
-    dest = tmp_path / "profile/skills"
-    dest.parent.mkdir()
-    (dotbrain_home / "skills" / "skills.yaml").write_text(
-        "targets:\n"
-        f"  codex: {dest}\n"
-        "global_extra:\n"
-        "  - misc/discovery-test\n"
-    )
+def test_link_global_skills_links_configured_profile(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
+    profile = tmp_path / "profile"
+    profile.mkdir()
+    write_global_config(dotbrain_home, profiles={"codex": [str(profile)]}, skills=["misc/discovery-test"])
 
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert result.warnings == []
-    assert (dest / "discovery-test").is_symlink()
+    assert (profile / "skills/discovery-test").is_symlink()
+    assert (fake_home / ".codex/skills/discovery-test").is_symlink()
     assert any(line.startswith("delivered global") for line in result.logs)
 
 
-def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_path: Path, fake_home: Path):
-    dest = tmp_path / "codex-skills"
-    (dotbrain_home / "skills" / "skills.yaml").write_text(
-        "targets:\n"
-        f"  codex: {dest}\n"
-        "global_extra:\n"
-        "  - misc/not-installed\n"
-    )
+def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, fake_home: Path):
+    write_global_config(dotbrain_home, skills=["misc/not-installed"])
 
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
@@ -332,18 +317,16 @@ def test_link_global_skills_reports_actual_link_count(dotbrain_home: Path, tmp_p
     assert result.logs == []
 
 
-def test_link_global_skills_expands_windows_tilde_target(
+def test_link_global_skills_expands_windows_tilde_profile(
     dotbrain_home: Path, fake_home: Path
 ):
-    (dotbrain_home / "skills" / "skills.yaml").write_text(
-        "targets:\n"
-        r"  codex: ~\.codex\skills" "\n"
-    )
+    (fake_home / ".codex-work").mkdir()
+    write_global_config(dotbrain_home, profiles={"codex": [r"~\.codex-work"]}, skills=["misc/discovery-test"])
 
     result = bootstrap_mod.link_global_skills(dotbrain_home, "codex", home=fake_home)
 
     assert result.warnings == []
-    assert (fake_home / ".codex/skills").is_dir()
+    assert (fake_home / ".codex-work/skills/discovery-test").is_symlink()
 
 
 def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_path: Path, monkeypatch):
@@ -351,22 +334,19 @@ def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_
     # 'skillsonly' has skills and hooks but no native subagents; 'later' is a runtime this version
     # does not recognize, as a newer dotbrain sharing the home might declare.
     monkeypatch.setitem(runtimes.RUNTIMES, "skillsonly",
-                        runtimes.Runtime("skillsonly", "skillsonly", "Skills Only", ".skillsonly", hooks=True))
-    dest, later = tmp_path / "skillsonly-skills", tmp_path / "later-skills"
-    (dotbrain_home / "skills" / "skills.yaml").write_text(
-        f"targets:\n  skillsonly: {dest}\n  later: {later}\nglobal_extra:\n  - misc/discovery-test\n")
+                        runtimes.Runtime("skillsonly", "skillsonly", "Skills Only", ".skillsonly", hooks=True,
+                                         default=True))
+    dest = tmp_path / ".skillsonly/skills"
+    write_global_config(dotbrain_home, skills=["misc/discovery-test"])
     for runtime in ("all", "skillsonly"):
         linked = bootstrap_mod.link_global_skills(dotbrain_home, runtime, home=tmp_path)
         assert linked.warnings == []
-        assert linked.notices == (["unsupported global skills runtime skipped: later"] if runtime == "all" else [])
         assert bootstrap_mod.link_global_subagents(dotbrain_home, runtime, home=tmp_path).warnings == []
     assert (dest / "discovery-test").is_symlink()
-    assert not later.exists()
     with pytest.raises(ValueError, match="no native subagent delivery"):
         assets.link_global(dotbrain_home, "agents", "skillsonly", user_home=tmp_path)
     findings = doctor._check_machine(dotbrain_home, tmp_path)
     assert [f.message for f in findings if f.status == "error"] == []
-    assert any(f.status == "warn" and f.message.endswith(": later") for f in findings)
     result = runner.invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "later", "--json"])
     assert result.exit_code == 2
     assert "--runtime must be claude, codex, hermes, opencode, pi, cursor, skillsonly, or all" in result.stdout
@@ -377,8 +357,8 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     result = bootstrap_mod.ensure_data_root(root)
 
     assert result.agents_seeded is True
-    assert (root / "agents" / "claude").is_dir()
-    assert (root / "agents" / "codex").is_dir()
+    assert (root / "subagents" / "claude").is_dir()
+    assert (root / "subagents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
     assert not (root / ".cache" / "agents").exists()
     linked = bootstrap_mod.link_global_subagents(root, home=tmp_path)
@@ -424,19 +404,14 @@ def test_agents_link_project_target_reports_actual_linked_files(
     assert "not declared" in result.output
 
 
-def test_link_global_subagents_links_configured_target(
+def test_link_global_subagents_links_custom_subagent(
     dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     dest = tmp_path / ".codex" / "agents"
     set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
-    (dotbrain_home / "agents/codex/custom.toml").write_text('name = "custom"\n')
-    (dotbrain_home / "agents" / "agents.yaml").write_text(
-        "targets:\n"
-        "  codex: ~/.codex/agents\n"
-        "global:\n"
-        "  - custom\n"
-    )
+    write_global_config(dotbrain_home, subagents=["custom"])
+    (dotbrain_home / "subagents/codex/custom.toml").write_text('name = "custom"\n')
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex", home=tmp_path)
 
     assert result.warnings == []
@@ -448,8 +423,7 @@ def test_link_global_subagents_warns_once_for_missing_name(
     dotbrain_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     set_fake_home(monkeypatch, tmp_path)
-    (dotbrain_home / "agents").mkdir(parents=True, exist_ok=True)
-    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - missing-agent\n")
+    write_global_config(dotbrain_home, subagents=["missing-agent"])
 
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "all")
 
@@ -544,17 +518,12 @@ def test_installed_runtimes_are_not_seeded_and_are_named(tmp_path: Path, monkeyp
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == "opencode")
     home, user = tmp_path / "dr", tmp_path / "user"
     bootstrap_mod.ensure_data_root(home, user_home=user)
-    targets = skills.load_global_config(home / "skills/skills.yaml").targets
-    assert "opencode" not in targets
-    assert "hermes" not in targets
     linked = bootstrap_mod.link_global_skills(home, "all", home=user)
     assert linked.warnings == []
     assert linked.notices == ["OpenCode is installed; run `dotbrain bootstrap --runtime opencode` to deliver dotbrain to it"]
     assert not (user / ".config/opencode").exists()
-    assert "targets:" not in (home / "skills/skills.yaml").read_text()
 
-    # An existing config gains no target: bootstrap names the command instead of delivering unasked.
-    (home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra: []\n")
+    # Bootstrap names the command again instead of delivering unasked.
     other = tmp_path / "other"
     linked = bootstrap_mod.link_global_skills(home, "all", home=other)
     assert linked.notices == ["OpenCode is installed; run `dotbrain bootstrap --runtime opencode` to deliver dotbrain to it"]

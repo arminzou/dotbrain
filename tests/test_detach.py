@@ -171,11 +171,10 @@ def test_detach_all_json_and_required_runtime(dotbrain_home, fake_home, monkeypa
     assert all(rt.label in text.stdout for rt in runtimes.RUNTIMES.values())
 
 
-def test_detach_configured_receiver_and_empty_hooks(dotbrain_home, fake_home, tmp_path):
-    dest = tmp_path / "custom-skills"
-    dest.mkdir()
+def test_detach_cursor_receiver_and_empty_hooks(dotbrain_home, fake_home, tmp_path):
+    dest = fake_home / ".cursor/skills"
+    dest.mkdir(parents=True)
     (dest / "owned").symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
-    (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  cursor: {dest.as_posix()}\n")
     cursor.reconcile_hooks(fake_home)
     result = workflows.detach_runtime(dotbrain_home, "cursor", home=fake_home)
     assert result.status == "success"
@@ -190,9 +189,10 @@ def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home
         monkeypatch.delenv(variable, raising=False)
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name == runtime)
     rt = runtimes.find(runtime)
-    receiver = fake_home / "configured" / runtime
-    config = dotbrain_home / "skills/skills.yaml"
-    config.write_text(f"targets:\n  {rt.key}: {receiver.as_posix()}\nglobal_extra: [misc/discovery-test]\n", encoding="utf-8")
+    [receiver] = assets.global_targets((rt,), "skills", fake_home, explicit=True, errors=[],
+                                       dotbrain_home=dotbrain_home)[rt.key]
+    config = dotbrain_home / "config.yaml"
+    config.write_text("skills: [misc/discovery-test]\n", encoding="utf-8")
     before = config.read_bytes()
     run = lambda *args, **kwargs: None
 
@@ -222,7 +222,7 @@ def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home
     assert config.read_bytes() == before
 
 
-@pytest.mark.parametrize("destination", ("symlinked-parent", "configured-checkout", "sibling-worktree", "profile"))
+@pytest.mark.parametrize("destination", ("symlinked-parent", "sibling-worktree", "profile"))
 @pytest.mark.parametrize("marker", ("file", "directory", "dangling-link"))
 def test_detach_skips_receivers_that_reach_project_checkouts(destination, marker, dotbrain_home, fake_home, tmp_path, monkeypatch):
     set_fake_home(monkeypatch, fake_home)
@@ -246,9 +246,7 @@ def test_detach_skips_receivers_that_reach_project_checkouts(destination, marker
         main = tmp_path / "main" if destination == "sibling-worktree" else checkout
         main.mkdir(exist_ok=True)
         (project / ".repo").write_text(str(main))
-        setting = (f"profiles:\n  codex: [{receiver.parent.as_posix()}]\n" if destination == "profile" else
-                   f"targets:\n  codex: {receiver.as_posix()}\n")
-        (dotbrain_home / "skills/skills.yaml").write_text(setting)
+        (dotbrain_home / "config.yaml").write_text(f"profiles:\n  codex: [{receiver.parent.as_posix()}]\n")
     safe = fake_home / ".claude/skills"
     safe.mkdir(parents=True)
     (safe / "owned").symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
@@ -319,7 +317,7 @@ def test_detach_includes_profile_homes(runtime, key, dotbrain_home, fake_home, t
     receiver.mkdir(parents=True)
     (receiver / "owned").symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
     (receiver / "foreign").write_text("keep")
-    (dotbrain_home / "skills/skills.yaml").write_text(f"profiles:\n  {key}: [{profile.as_posix()}]\n")
+    (dotbrain_home / "config.yaml").write_text(f"profiles:\n  {key}: [{profile.as_posix()}]\n")
 
     result = workflows.detach_runtime(dotbrain_home, runtime, home=fake_home)
 
@@ -352,8 +350,7 @@ def test_project_doctor_informs_only_about_explicit_unset_runtimes(explicit, dot
 
 
 @pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi"))
-@pytest.mark.parametrize("configured", (False, True))
-def test_relocated_checkout_home_preserved_during_detach(runtime, configured, dotbrain_home, fake_home, tmp_path, monkeypatch):
+def test_relocated_checkout_home_preserved_during_detach(runtime, dotbrain_home, fake_home, tmp_path, monkeypatch):
     rt = runtimes.find(runtime)
     checkout = tmp_path / "checkout"
     checkout.mkdir()
@@ -366,8 +363,6 @@ def test_relocated_checkout_home_preserved_during_detach(runtime, configured, do
     safe = fake_home / ".claude/skills"
     safe.mkdir(parents=True)
     (safe / "owned").symlink_to(dotbrain_home / "skills/misc/discovery-test", target_is_directory=True)
-    if configured:
-        (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  {runtime}: {tmp_path.as_posix()}/global-skills\n")
 
     result = workflows.detach_runtime(dotbrain_home, "all", home=fake_home)
 
@@ -381,16 +376,15 @@ def test_relocated_checkout_home_preserved_during_detach(runtime, configured, do
 
 
 @pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi"))
-@pytest.mark.parametrize("configured", (False, True))
-def test_bootstrap_skips_owned_copy_in_relocated_checkout_home(runtime, configured, dotbrain_home, fake_home, tmp_path, monkeypatch):
+def test_bootstrap_skips_owned_copy_in_relocated_checkout_home(runtime, dotbrain_home, fake_home, tmp_path, monkeypatch):
     rt = runtimes.find(runtime)
     checkout = tmp_path / "checkout"
     checkout.mkdir()
     (checkout / ".brain").symlink_to(tmp_path / "missing-brain", target_is_directory=True)
     monkeypatch.setenv(rt.home_env, str(checkout / "nested/runtime"))
     directory = runtimes.user_dir(rt, fake_home)
-    config = f"targets:\n  {runtime}: {tmp_path.as_posix()}/global-skills\n" if configured else ""
-    (dotbrain_home / "skills/skills.yaml").write_text(config + "global_extra: [misc/discovery-test]\n")
+
+    (dotbrain_home / "config.yaml").write_text("skills: [misc/discovery-test]\n")
 
     explicit = bootstrap.link_global_skills(dotbrain_home, runtime, home=fake_home)
 
@@ -432,12 +426,11 @@ def test_detach_leaves_cursor_hooks_in_a_checkout_home(dotbrain_home, fake_home,
     assert {p.relative_to(checkout): p.read_bytes() for p in checkout.rglob("*") if p.is_file()} == before
 
 
-@pytest.mark.parametrize("configured", (False, True))
-def test_bootstrap_writes_no_cursor_hooks_into_a_checkout_home(configured, dotbrain_home, fake_home, tmp_path):
+def test_bootstrap_writes_no_cursor_hooks_into_a_checkout_home(dotbrain_home, fake_home, tmp_path):
     checkout = _cursor_home_in_checkout(fake_home, tmp_path)
     (checkout / ".brain").touch()
-    config = f"targets:\n  cursor: {tmp_path.as_posix()}/global-skills\n" if configured else ""
-    (dotbrain_home / "skills/skills.yaml").write_text(config + "global_extra: [misc/discovery-test]\n")
+
+    (dotbrain_home / "config.yaml").write_text("skills: [misc/discovery-test]\n")
 
     result = bootstrap.link_global_skills(dotbrain_home, "cursor", home=fake_home)
 

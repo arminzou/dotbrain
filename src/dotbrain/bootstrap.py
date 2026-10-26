@@ -15,7 +15,7 @@ from typing import Callable
 
 import yaml
 
-from dotbrain import assets, paths, profile_migration, resource_loader, runtimes, skills, subagents
+from dotbrain import assets, paths, profile_migration, resource_loader, runtimes, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -42,7 +42,6 @@ class DataRootResult:
 
     created: bool = False
     config_seeded: bool = False
-    skills_seeded: bool = False
     agents_seeded: bool = False
     git_initialized: bool = False
     logs: list[str] = field(default_factory=list)
@@ -67,8 +66,8 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
     root = Path(dotbrain_home)
     result = DataRootResult()
     # Check all owned receivers before seeding any of them.
-    for relative in (".gitignore", "config.yaml", "skills/skills.yaml", "agents/agents.yaml",
-                     *(f"agents/{directory}" for directory, _ in subagents.runtime_spec().values()),
+    for relative in (".gitignore", "config.yaml", "skills", *paths.LEGACY_GLOBAL_FILES,
+                     *(f"{paths.SUBAGENTS_DIR}/{directory}" for directory, _ in subagents.runtime_spec().values()),
                      ".cache/agents"):
         paths.confined_path(root, relative)
 
@@ -98,46 +97,19 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
     if ensure_root_gitignore(root):
         result.logs.append(f"seeded .gitignore into {root}")
 
+    if migration is not None:
+        result.logs += profile_migration.apply(root, migration)
+
     config_dest = root / "config.yaml"
     if not config_dest.exists():
-        src = resource_loader.resource("config.yaml")
-        if src.is_file():
-            config_dest.write_text(
-                src.read_text(encoding="utf-8"),
-                encoding="utf-8",
-                newline="\n",
-            )
-            result.config_seeded = True
-            result.logs.append(f"seeded config.yaml into {root}")
+        config_dest.write_text(resource_loader.resource("config.yaml").read_text(encoding="utf-8"),
+                               encoding="utf-8", newline="\n")
+        result.config_seeded = True
+        result.logs.append(f"seeded config.yaml into {root}")
 
-    # Seed the operator skill-link config so there's a clear home to manage
-    # global skills. Rendered via the same function reconcile uses, so the
-    # seeded file is already normalized.
-    skills_dest = root / "skills" / "skills.yaml"
-    if not skills_dest.exists():
-        skills_dest.parent.mkdir(parents=True, exist_ok=True)
-        skills_dest.write_text(
-            skills.render_global_config(()),
-            encoding="utf-8",
-            newline="\n",
-        )
-        result.skills_seeded = True
-        result.logs.append(f"seeded skills/skills.yaml into {root}")
-    elif migration is not None:
-        result.logs.append(profile_migration.apply(root, migration))
-
-    agents_root = root / "agents"
+    (root / "skills").mkdir(exist_ok=True)
     for subdir, _ext in subagents.runtime_spec().values():
-        (agents_root / subdir).mkdir(parents=True, exist_ok=True)
-    agents_dest = agents_root / "agents.yaml"
-    if not agents_dest.exists():
-        agents_dest.write_text(
-            subagents.render_global_subagents(),
-            encoding="utf-8",
-            newline="\n",
-        )
-        result.agents_seeded = True
-        result.logs.append(f"seeded agents/agents.yaml into {root}")
+        (subagents.sources_root(root) / subdir).mkdir(parents=True, exist_ok=True)
 
     return result
 

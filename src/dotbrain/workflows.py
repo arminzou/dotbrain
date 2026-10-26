@@ -74,14 +74,14 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
     bootstrap.mark_complete(dotbrain_home)
     user_home = home or Path.home()
     report = CommandResult("detach")
-    cfg = skills.load_global_config(dotbrain_home / "skills/skills.yaml")
+    cfg = skills.load_global_config(dotbrain_home)
     for rt in selected:
         target = TargetResult(scope="global", data={"runtime": rt.name})
         report.targets.append(target)
         directory = runtimes.user_dir(rt, user_home)
         module = assets.HOME_DELIVERY.get(rt.name)
         try:
-            destinations = assets.global_targets(cfg.targets, (rt,), "skills", user_home, explicit=True,
+            destinations = assets.global_targets((rt,), "skills", user_home, explicit=True,
                                                   errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
             if target.errors:
                 target.status = "failure"

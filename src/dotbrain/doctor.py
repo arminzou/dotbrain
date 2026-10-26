@@ -62,7 +62,7 @@ def _agent_source(root: Path, name: str, runtime: str) -> tuple[Path, str]:
     """Expected link and content of a custom subagent."""
     paths.validate_project_name(name)
     directory, suffix = subagents.runtime_spec()[runtime]
-    source = paths.confined_path(paths.confined_path(root, "agents"), f"{directory}/{name}{suffix}")
+    source = paths.confined_path(subagents.sources_root(root), f"{directory}/{name}{suffix}")
     if source.is_file():
         return source, source.read_text(encoding="utf-8")
     raise ValueError(f"subagent '{name}' has no definition for runtime '{runtime}'")
@@ -124,22 +124,27 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     claude_profiles = []
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
-    try:
-        if profile_migration.plan(root, home) is not None:
-            findings.append(Finding("info", "global runtime profile configuration can be migrated",
-                                    "run dotbrain bootstrap; the original configuration is backed up"))
-    except DIAGNOSIS_ERRORS as exc:
-        findings.append(Finding("error", f"global profile migration: {exc}", "correct the global configuration"))
-    for kind in ("skills", "agents"):
+    leftover = [name for name in (*paths.LEGACY_GLOBAL_FILES, paths.LEGACY_SUBAGENTS_DIR) if (root / name).exists()]
+    if leftover:
         try:
-            cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
-            profiles = cfg.profiles if kind == "skills" else skills.load_global_config(root / "skills/skills.yaml").profiles
-            selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
-            notices = []
+            profile_migration.plan(root, home)
+            findings.append(Finding("warn", f"legacy global settings remain: {', '.join(leftover)}",
+                                    "run dotbrain bootstrap to migrate them into config.yaml; the originals are backed up"))
+        except DIAGNOSIS_ERRORS as exc:
+            findings.append(Finding("error", f"legacy global settings remain: {exc}",
+                                    "correct the file, then run dotbrain bootstrap"))
+    for kind in () if leftover else ("skills", "agents"):  # delivery waits for the migration
+        try:
+            cfg = skills.load_global_config(root)
+            selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else subagents.load_global_config(root).global_names
+            packaged = [name for name in selected if kind == "agents" and subagents.is_packaged(name)]
+            if packaged:
+                findings.append(Finding("warn", f"config.yaml subagents names packaged subagents: {', '.join(packaged)}",
+                                        "remove them; packaged subagents are selected per project in project.yaml"))
+                selected = tuple(name for name in selected if name not in packaged)
             errors = []
-            targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False,
-                                            profiles=profiles, notices=notices, errors=errors, dotbrain_home=root)
-            findings.extend(Finding("info", notice) for notice in notices)
+            targets = assets.global_targets(runtimes.RUNTIMES.values(), kind, home, explicit=False,
+                                            profiles=cfg.profiles, errors=errors, dotbrain_home=root)
             findings.extend(Finding("error", error, f"correct the global {kind} destination") for error in errors)
             for runtime, destination in ((key, folder) for key, folders in targets.items() for folder in folders):
                 recognized = runtimes.find(runtime)

@@ -1,7 +1,7 @@
 """Config store: global ``config.yaml`` + per-project ``.brain/project.yaml``.
 
-``config.yaml`` (data root, version 3) holds global infrastructure defaults
-(``beads.server``, ``sync``).  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
+``config.yaml`` (data root, version 4) holds every global setting: infrastructure defaults
+(``beads.server``, ``sync``), runtime ``profiles``, and the global ``skills`` and ``subagents``.  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
 per-project identity (beads mode, database, remote).  The old
 ``dotbrain.yaml`` is read transparently as a fallback when ``config.yaml``
 is absent.
@@ -50,10 +50,28 @@ class SyncConfig:
 
 @dataclass
 class DotbrainConfig:
-    """Parsed representation of config.yaml (schema v3)."""
-    version: int = 3
+    """Parsed representation of config.yaml (schema v4)."""
+    version: int = 4
     beads_server: BeadsServer = field(default_factory=BeadsServer)
     sync: SyncConfig = field(default_factory=SyncConfig)
+    # Extra Claude Code / Codex runtime homes that receive global skills and subagents.
+    profiles: dict[str, list[str]] = field(default_factory=dict)
+    skills: tuple[str, ...] = ()  # global skills
+    subagents: tuple[str, ...] = ()  # global custom subagents
+
+
+GLOBAL_SELECTION_KEYS = ("profiles", "skills", "subagents")
+
+
+def parse_profiles(value: Any, location: str) -> dict[str, list[str]]:
+    profiles = {} if value is None else value
+    if not isinstance(profiles, dict) or not all(
+        k in ("claude-code", "codex") and isinstance(v, list)
+        and all(isinstance(home, str) and home.strip() for home in v)
+        for k, v in profiles.items()
+    ):
+        raise ValueError(f"{location}: profiles must map claude-code or codex to lists of runtime homes")
+    return profiles
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +135,8 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
         version = int(data.get("version", 3))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{path}: version must be an integer") from exc
+    from dotbrain import skills  # deferred: skills imports this module
+
     return DotbrainConfig(
         version=version,
         beads_server=BeadsServer(
@@ -126,6 +146,9 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
             ssh_host=str(server.get("ssh_host", "")),
         ),
         sync=_parse_sync(data, str(path)),
+        profiles=parse_profiles(data.get("profiles"), str(path)),
+        skills=skills._clean(data.get("skills")),
+        subagents=skills._clean(data.get("subagents")),
     )
 
 

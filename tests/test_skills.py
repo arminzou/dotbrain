@@ -50,49 +50,16 @@ def test_discover_skills_skips_node_modules(dotbrain_home: Path):
     assert "frontend/node_modules/pkg" not in skills.discover_skills(dotbrain_home / "skills")
 
 
-def _write_global(tmp_path: Path, body: str) -> Path:
-    path = tmp_path / "skills.yaml"
-    path.write_text(body)
-    return path
-
-
-def test_load_global_config_parses_current_schema(tmp_path: Path):
-    path = _write_global(
-        tmp_path,
-        "targets:\n"
-        "  codex: ~/.codex/skills\n"
-        "global_extra:\n"
-        "  - misc/x\n",
-    )
-    config = skills.load_global_config(path)
-    assert config.targets == {"claude-code": "~/.claude/skills", "codex": "~/.codex/skills"}
+def test_load_global_config_reads_config_yaml(tmp_path: Path):
+    (tmp_path / "config.yaml").write_text(
+        "version: 4\nprofiles:\n  codex: [~/.codex-work]\nskills:\n  - misc/x\n  - misc/x\n")
+    config = skills.load_global_config(tmp_path)
     assert config.global_extra == ("misc/x",)
+    assert config.profiles == {"codex": ["~/.codex-work"]}
 
 
-def test_load_global_config_accepts_legacy_extra_key(tmp_path: Path):
-    path = _write_global(
-        tmp_path,
-        "targets:\n"
-        "  codex: ~/.codex/skills\n"
-        "global_extra:\n"
-        "  - misc/x\n",
-    )
-    config = skills.load_global_config(path)
-    assert config.global_extra == ("misc/x",)
-
-
-def test_load_global_config_rejects_bad_targets(tmp_path: Path):
-    path = _write_global(tmp_path, "targets:\n  - codex\n")
-    with pytest.raises(ValueError):
-        skills.load_global_config(path)
-
-
-def test_render_global_config_empty_global_extra():
-    text = skills.render_global_config([])
-    assert "targets:" not in text
-    assert "global_baseline:" not in text
-    assert "project_baseline:" not in text
-    assert "global_extra: []" in text
+def test_load_global_config_without_config_is_empty(tmp_path: Path):
+    assert skills.load_global_config(tmp_path) == skills.GlobalConfig()
 
 
 # ---------------------------------------------------------------------------

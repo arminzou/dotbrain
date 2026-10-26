@@ -54,8 +54,8 @@ def test_existing_discovery_avoids_another_link(dotbrain_home, tmp_path, relativ
 def test_global_selected_update_prune_and_foreign_entries(dotbrain_home, tmp_path):
     user = tmp_path / "user"
     source = skill(dotbrain_home / "skills")
-    config = dotbrain_home / "skills/skills.yaml"
-    config.write_text("global_extra: [example]\n", encoding="utf-8")
+    config = dotbrain_home / "config.yaml"
+    config.write_text("skills: [example]\n", encoding="utf-8")
     assets.link_global(dotbrain_home, "skills", "cursor", user_home=user)
     dest = user / ".cursor/skills/example"
     assert (dest / "reference.md").read_text() == "Supporting file"
@@ -66,7 +66,7 @@ def test_global_selected_update_prune_and_foreign_entries(dotbrain_home, tmp_pat
     (bundle / "skills/run-execution/SKILL.md").write_text("damaged")
     assert cursor.state(dotbrain_home) == "stale"
     assert any("stale" in f.message for f in doctor._check_home_plugin(assets.runtimes.find("cursor"), dotbrain_home))
-    config.write_text("global_extra: []\n", encoding="utf-8")
+    config.write_text("skills: []\n", encoding="utf-8")
     result = assets.link_global(dotbrain_home, "skills", "cursor", user_home=user)
     assert ".cursor/skills/example" in result.pruned
     assert not dest.exists() and foreign.is_dir()
@@ -336,7 +336,7 @@ def test_missing_delivery_and_no_agents(dotbrain_home, tmp_path):
 def test_global_opt_in_and_doctor_survive_bundle_refresh(dotbrain_home, tmp_path):
     user = tmp_path / "user"
     source = skill(dotbrain_home / "skills")
-    (dotbrain_home / "skills/skills.yaml").write_text("global_extra: [example]\n", encoding="utf-8")
+    (dotbrain_home / "config.yaml").write_text("skills: [example]\n", encoding="utf-8")
     assets.link_global(dotbrain_home, "skills", "cursor", user_home=user)
     assert cursor.global_delivery(dotbrain_home)
     (user / ".cursor/skills/example").unlink()
@@ -384,7 +384,7 @@ def test_bootstrap_completes_when_cursor_already_finds_a_copy(dotbrain_home, tmp
     set_fake_home(monkeypatch, user)
     skill(dotbrain_home / "skills")
     skill(user / ".claude/skills/synced/account")  # a copy Cursor already discovers, not dotbrain's
-    (dotbrain_home / "skills/skills.yaml").write_text("targets: {}\nglobal_extra:\n  - example\n")
+    (dotbrain_home / "config.yaml").write_text("skills:\n  - example\n")
     out = json.loads(CliRunner().invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "cursor", "--json"]).stdout)
     assert out["status"] == "success"
     assert not any("duplicate" in f["message"] for t in out["targets"] for f in t["findings"])

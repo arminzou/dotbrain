@@ -16,7 +16,7 @@ PLUGIN_ROOT = Path(__file__).resolve().parent.parent / "plugin"
 
 def _global_extra(dotbrain_home: Path, *names: str) -> None:
     listed = "".join(f"  - {name}\n" for name in names)
-    (dotbrain_home / "skills/skills.yaml").write_text(f"global_extra:\n{listed}" if names else "global_extra: []\n")
+    (dotbrain_home / "config.yaml").write_text(f"skills:\n{listed}" if names else "skills: []\n")
 
 
 def _frontmatter(path: Path) -> dict:
@@ -155,7 +155,7 @@ def test_doctor_reports_stale_pi_but_ignores_unowned_delivery(dotbrain_home, tmp
     warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
     assert f"pi: dotbrain extension copy is stale at {pi.plugin_dir(agent_dir)}" in warnings
 
-    (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  pi: {agent_dir / 'skills'}\nglobal_extra: []\n")
+    (dotbrain_home / "config.yaml").write_text("skills: []\n")
     shutil.rmtree(pi.plugin_dir(agent_dir))
     warnings = {f.message for f in doctor._check_machine(dotbrain_home, user) if f.status == "warn"}
     assert not [message for message in warnings if message.startswith("pi:")]

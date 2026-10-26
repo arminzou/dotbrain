@@ -98,6 +98,16 @@ def set_fake_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
     monkeypatch.setenv("USERPROFILE", str(home))
 
 
+def write_global_config(root: Path, **settings) -> Path:
+    """Write global settings into a test data root's ``config.yaml`` (version 4)."""
+    import yaml
+
+    path = root / "config.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump({"version": 4, **settings}), encoding="utf-8")
+    return path
+
+
 def _git_init(repo: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     # Local identity so git mv/rm in archive/offboard flows work without a global git config.

@@ -340,7 +340,7 @@ update existing scripts using this table.
 | Unwire archival, deletion, or preview flags | `unwire` removes checkout wiring; manage retained directories through filesystem actions |
 
 Hidden command aliases are removed. Bare project commands now target the current wired checkout;
-outside it, select `--project`. Existing configuration keys such as `targets.claude-code` keep
+outside it, select `--project`. Existing configuration keys keep
 their spelling. Skills and Claude agents remain symlinks; agent reconciliation migrates owned
 Codex agent symlinks into marked real files and preserves foreign entries.
 
@@ -358,8 +358,8 @@ dotbrain detach --runtime codex
 ```
 
 This removes dotbrain's global skill links from the default home and existing configured profiles.
-A later bootstrap links selected `global_extra` skills again; remove an extra profile from
-`skills/skills.yaml` to stop delivery to that profile. Remove the marketplace plugin separately:
+A later bootstrap links selected global `skills` again; remove an extra profile from
+`config.yaml` to stop delivery to that profile. Remove the marketplace plugin separately:
 `/plugin uninstall dotbrain@dotbrain` in Claude Code, or `codex plugin remove dotbrain@dotbrain`
 for Codex. Project checkout wiring is unchanged; run `dotbrain unwire` in each checkout to remove it.
 
@@ -485,7 +485,7 @@ machine. To select only OpenCode, or add it later, run `dotbrain bootstrap --run
 This copies the plugin to `~/.config/opencode/plugins/dotbrain.js` and the packaged skills to
 `~/.config/opencode/dotbrain/packaged/skills/`. On Windows, `~` is `%USERPROFILE%`; when
 `XDG_CONFIG_HOME` is set, the folder is `$XDG_CONFIG_HOME/opencode` instead. Global skills you
-select in `skills/skills.yaml` are linked into `~/.config/opencode/dotbrain/skills/`. Dotbrain does
+select in `config.yaml` are linked into `~/.config/opencode/dotbrain/skills/`. Dotbrain does
 not edit your OpenCode config files: the plugin adds both skill folders when OpenCode loads its
 configuration.
 
@@ -582,7 +582,7 @@ machine. To select only Pi, or add it later, run `dotbrain bootstrap --runtime p
 
 This copies the extension, with the packaged skills, to `~/.pi/agent/extensions/dotbrain/`, or to
 `$PI_CODING_AGENT_DIR/extensions/dotbrain/` when `PI_CODING_AGENT_DIR` is set. On Windows, `~` is
-`%USERPROFILE%`. Global skills you select in `skills/skills.yaml` are linked into
+`%USERPROFILE%`. Global skills you select in `config.yaml` are linked into
 `~/.pi/agent/skills/`. Dotbrain does not edit Pi's settings or trust files.
 
 The extension runs the `dotbrain` it finds on the `PATH` that Pi started with. Without one,
@@ -678,7 +678,7 @@ This adds three dotbrain hooks to `~/.cursor/hooks.json`, creating the file when
 keeping any hooks of your own. On Windows, `~` is `%USERPROFILE%`. Cursor gets dotbrain's packaged
 skills from your dotbrain Claude Code plugin when that plugin is installed, enabled, and current;
 otherwise from a copy dotbrain keeps in `~/dotbrain/.cache/cursor/`. Global skills you select in
-`skills/skills.yaml` are linked into `~/.cursor/skills/`, except those Cursor already finds in
+`config.yaml` are linked into `~/.cursor/skills/`, except those Cursor already finds in
 another folder it reads, such as `~/.claude/skills`.
 
 The hooks run the `dotbrain` they find on the `PATH` that Cursor started with. Without one,

@@ -242,7 +242,7 @@ def fake_hermes(monkeypatch):
 
 def _global_extra(dotbrain_home: Path, *names: str) -> None:
     listed = "".join(f"  - {name}\n" for name in names)
-    (dotbrain_home / "skills/skills.yaml").write_text(f"global_extra:\n{listed}" if names else "global_extra: []\n")
+    (dotbrain_home / "config.yaml").write_text(f"skills:\n{listed}" if names else "skills: []\n")
 
 
 def test_global_delivery_copies_the_plugin_and_links_skills(dotbrain_home, tmp_path, fake_hermes):
@@ -370,9 +370,9 @@ def test_doctor_reports_stale_and_inactive_hermes_delivery(dotbrain_home, tmp_pa
     assert not [f for f in findings if "hermes" in f.message and "agents" in f.message]
 
 
-def test_doctor_ignores_configured_hermes_target_without_owned_delivery(dotbrain_home, tmp_path):
+def test_doctor_ignores_unowned_runtime_delivery(dotbrain_home, tmp_path):
     user = tmp_path / "user"
-    (dotbrain_home / "skills/skills.yaml").write_text(f"targets:\n  hermes: {user / 'hskills'}\nglobal_extra: []\n")
+    (dotbrain_home / "config.yaml").write_text("skills: []\n")
     assert not [f for f in doctor._check_machine(dotbrain_home, user) if "hermes" in f.message]
     foreign = hermes.plugin_dir(user / ".hermes")
     foreign.mkdir(parents=True)

@@ -120,20 +120,20 @@ def test_bootstrap_failure_json(monkeypatch, tmp_path):
 def test_bootstrap_preserves_global_yaml(tmp_path, fake_home):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    config = root / "skills" / "skills.yaml"
-    original = "# keep comment\nunknown: {nested: true}\nglobal_extra: []\n"
+    config = root / "config.yaml"
+    original = "# keep comment\nversion: 4\nunknown: {nested: true}\nskills: []\n"
     config.write_text(original)
     result = runner.invoke(app, ["bootstrap", "--home", str(root), "--json"])
     assert result.exit_code == 0, result.output
-    assert config.read_text() == original + "profiles: {}\n"
+    assert config.read_text() == original
 
 
 def test_bootstrap_foreign_asset_is_preserved_and_failed(tmp_path, fake_home):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
     # A packaged subagent reaches Claude Code through the plugin, so use the operator's own agent.
-    (root / "agents" / "claude" / "custom.md").write_text("custom")
-    (root / "agents" / "agents.yaml").write_text("global: [custom]\n")
+    (root / "subagents" / "claude" / "custom.md").write_text("custom")
+    (root / "config.yaml").write_text("version: 4\nsubagents: [custom]\n")
     foreign = fake_home / ".claude" / "agents" / "custom.md"
     foreign.parent.mkdir(parents=True)
     foreign.write_text("user owned")
@@ -146,8 +146,8 @@ def test_bootstrap_foreign_asset_is_preserved_and_failed(tmp_path, fake_home):
 def test_bootstrap_symlink_privilege_failure_json(tmp_path, fake_home, monkeypatch):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    (root / "agents" / "claude" / "custom.md").write_text("custom")
-    (root / "agents" / "agents.yaml").write_text("global: [custom]\n")
+    (root / "subagents" / "claude" / "custom.md").write_text("custom")
+    (root / "config.yaml").write_text("version: 4\nsubagents: [custom]\n")
     def denied(self, target, target_is_directory=False):
         exc = OSError("A required privilege is not held by the client")
         exc.winerror = 1314
@@ -158,11 +158,11 @@ def test_bootstrap_symlink_privilege_failure_json(tmp_path, fake_home, monkeypat
     assert "Developer Mode" in json.loads(result.stdout)["targets"][0]["errors"][0]
 
 
-@pytest.mark.parametrize("config_path", ["skills/skills.yaml", "agents/agents.yaml"])
+@pytest.mark.parametrize("config_path", ["config.yaml", "skills/skills.yaml"])
 def test_bootstrap_malformed_yaml_is_operational_json_failure(tmp_path, config_path):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    (root / config_path).write_text("targets: [unterminated\n")
+    (root / config_path).write_text("skills: [unterminated\n")
     result = runner.invoke(app, ["bootstrap", "--home", str(root), "--json"])
     assert result.exit_code == 1, result.output
     report = json.loads(result.stdout)
@@ -195,8 +195,8 @@ def test_projects_malformed_yaml_is_operational_json_failure(tmp_path, command):
 def test_bootstrap_missing_subagent_runtime_preserves_destinations(tmp_path, fake_home, runtime):
     root = tmp_path / "data"
     bootstrap.ensure_data_root(root)
-    (root / "agents" / "agents.yaml").write_text("global: [custom-agent]\n")
-    source = root / "agents" / "claude" / "custom-agent.md"
+    (root / "config.yaml").write_text("version: 4\nsubagents: [custom-agent]\n")
+    source = root / "subagents" / "claude" / "custom-agent.md"
     source.write_text("custom claude definition")
     codex_dest = fake_home / ".codex" / "agents"
     codex_dest.mkdir(parents=True)

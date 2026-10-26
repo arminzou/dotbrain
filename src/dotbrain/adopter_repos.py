@@ -534,7 +534,8 @@ def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
     from dotbrain import cursor, skills
 
     root = Path(dotbrain_home).resolve()
-    source_roots = [root / relative for relative in ("skills", "agents", ".cache/skills", ".cache/agents")]
+    source_roots = [root / relative for relative in ("skills", paths.SUBAGENTS_DIR, paths.LEGACY_SUBAGENTS_DIR,
+                                                         ".cache/skills", ".cache/agents")]
     if cursor.owned(root):
         source_roots.append(cursor.plugin_dir(root))
     links: list[Path] = []

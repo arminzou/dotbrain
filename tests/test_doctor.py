@@ -93,7 +93,7 @@ def test_plugin_version_input_skips(tmp_path, registry):
 
 def test_plugin_version_reads_the_configured_claude_profile(tmp_path):
     root, home, profile = tmp_path / "root", tmp_path / "home", tmp_path / "work-profile"
-    write(root / "skills/skills.yaml", f"profiles:\n  claude-code: [{profile.as_posix()}]\n")
+    write(root / "config.yaml", f"version: 4\nprofiles:\n  claude-code: [{profile.as_posix()}]\n")
     write(profile / "plugins/installed_plugins.json", json.dumps({"plugins": {
         "dotbrain@dotbrain": [{"installPath": str(profile / "plugin"), "version": "0.0.0"}]}}))
     findings = doctor._check_machine(root, home)
@@ -362,11 +362,11 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
 def test_claude_expected_link_and_global_selections(tmp_path):
     root = tmp_path / "home"
     user = tmp_path / "user"
-    write(root / "agents/claude/custom.md", "custom")
-    write(root / "agents/agents.yaml", "global: [custom]\n")
+    write(root / "subagents/claude/custom.md", "custom")
+    write(root / "config.yaml", "version: 4\nsubagents: [custom]\n")
     receiver = user / ".claude/agents"
     receiver.mkdir(parents=True)
-    (receiver / "custom.md").symlink_to(root / "agents/claude/custom.md")
+    (receiver / "custom.md").symlink_to(root / "subagents/claude/custom.md")
     make_project(root)
     report = doctor.run_doctor(root, home=user, project="example")
     assert any("no definition for runtime 'codex'" in message for message in errors(report.machine))
