@@ -292,7 +292,7 @@ def test_ensure_data_root_preserves_operator_gitignore(tmp_path: Path):
 def test_ensure_data_root_does_not_clobber_existing_skills_config(tmp_path: Path):
     root = tmp_path / "dr"
     (root / "skills").mkdir(parents=True)
-    custom = "version: 1\ntargets:\n  codex: ~/.codex/skills\nglobal_extra:\n  - misc/keep\n"
+    custom = "version: 1\nprofiles: {}\nglobal_extra:\n  - misc/keep\n"
     (root / "skills" / "skills.yaml").write_text(custom)
 
     result = bootstrap_mod.ensure_data_root(root)

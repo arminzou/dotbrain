@@ -173,6 +173,17 @@ Claude Code 和 Codex 的技能会链接到默认主目录（`~/.claude` 和 `~/
 符号链接。Doctor 还会检查每个 Claude Code 主目录是否安装了 dotbrain 插件。旧 `targets` 中指向默认
 技能目录的条目会被忽略；自定义技能目标会将其父目录作为额外主目录，并提示迁移到 `profiles`。
 
+`dotbrain bootstrap` 会为已有技能配置补上缺失的 `profiles: {}`，并删除以
+`~/.claude/skills` 或 `~/.codex/skills` 表示的简单旧条目（也支持 Windows 路径分隔符）。
+它保留注释、资源选择和未知设置，先验证两份全局资源配置，再将原始文件备份到
+`~/dotbrain/.cache/config-backups/`，以原子替换方式写入新配置。只有文件发生变化时才报告迁移。
+需要恢复时，将报告中的备份还原到 `~/dotbrain/skills/skills.yaml`。Doctor 只提示运行 bootstrap，不修改文件。
+
+绝对路径、自定义目标和结构有歧义的目标都会保留：与本机默认目录相同的路径，在其他机器上可能有不同含义。
+使用 YAML 锚点或行内映射的 targets 也会保留。手动转换前，请在每台机器上检查：
+共享 profiles 同时影响**技能和子 Agent**。bootstrap 不会改写 `agents/agents.yaml` 中的 targets；
+将仅用于 Agent 的目标移入 profiles，可能会意外开始向那里分发技能。
+
 包含 `SKILL.md` 的条目只选中这一个技能。否则，它的目录会递归展开为所有包含 `SKILL.md` 的子目录，
 `node_modules` 除外。选中同一来源的重叠条目会去重。不同来源映射到同一个目标名时，会在任何链接或清理之前
 失败；路径不存在或技能包为空也会失败。在选中的技能包里增删技能，下次同步时就会生效，不需要改这里的声明。

@@ -115,7 +115,11 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         if legacy.resolve() != (default / kind).resolve():
             homes.append((legacy.parent, f"{kind}.yaml targets.{rt.key}"))
             if notices is not None:
-                notices.append(f"{kind}.yaml targets.{rt.key}: move {legacy.parent} to skills.yaml profiles.{rt.key}")
+                notices.append(
+                    f"{kind}.yaml targets.{rt.key}: retained custom target; proposed conversion: "
+                    f"skills.yaml profiles.{rt.key}: [{str(legacy.parent)!r}]; "
+                    "profiles deliver both skills and agents, so verify both selections on every machine before moving it"
+                )
         homes.extend((adopter_repos.expand_path(value, home=user_home), f"skills.yaml profiles.{rt.key}")
                      for value in (profiles or {}).get(rt.key, ()))
         folders = []

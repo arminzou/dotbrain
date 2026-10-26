@@ -15,7 +15,7 @@ from typing import Callable
 
 import yaml
 
-from dotbrain import assets, paths, resource_loader, runtimes, skills, subagents
+from dotbrain import assets, paths, profile_migration, resource_loader, runtimes, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -72,6 +72,8 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
                      ".cache/agents"):
         paths.confined_path(root, relative)
 
+    migration = profile_migration.plan(root, user_home or Path.home())
+
     if not root.exists():
         root.mkdir(parents=True)
         result.created = True
@@ -121,6 +123,8 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
         )
         result.skills_seeded = True
         result.logs.append(f"seeded skills/skills.yaml into {root}")
+    elif migration is not None:
+        result.logs.append(profile_migration.apply(root, migration))
 
     agents_root = root / "agents"
     for subdir, _ext in subagents.runtime_spec().values():
@@ -230,7 +234,7 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
             target.findings.append({"severity": "info", "message":
                 f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"})
     try:
-        target.changes += ensure_data_root(dotbrain_home, run=run).logs
+        target.changes += ensure_data_root(dotbrain_home, run=run, user_home=user).logs
         deliveries = (["all"] if runtime == "all" else
                       [rt.name for rt in selected if rt.name not in owned]) + [rt.name for rt in chosen]
         for delivery in deliveries:
