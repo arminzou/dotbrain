@@ -112,12 +112,6 @@ def test_discovery_answer_must_name_every_model_visible_skill():
     assert unnamed_skills("\n".join([SKILL, *(f"dotbrain:{name}" for name in visible)])) == set()
 
 
-def test_convention_arrives_before_the_first_request(sandbox, runtime):
-    events, _ = headless(sandbox, runtime, CONVENTION_PROMPT)
-    assert sandbox.convention_nonce in ADAPTERS[runtime].answer(events)
-    assert ADAPTERS[runtime].tool_calls(events) == []
-
-
 def test_one_hook_call_per_event(sandbox, runtime):
     headless(sandbox, runtime, "Reply with OK only.")
     # turn-end and session-end are launched detached and may land after the run exits.
@@ -133,5 +127,6 @@ def test_unreachable_remote_does_not_block_and_sync_records_locally(sandbox, run
     events, elapsed = headless(sandbox, runtime, CONVENTION_PROMPT)
     assert elapsed < NON_BLOCKING_SECONDS
     assert sandbox.convention_nonce in ADAPTERS[runtime].answer(events)
+    assert ADAPTERS[runtime].tool_calls(events) == []
     assert wait_for(lambda: git(sandbox, "log", "--format=%s", "--", PENDING)), "no sync commit recorded the change"
     assert int(git(sandbox, "rev-list", "--count", "@{upstream}..HEAD")) >= 1
