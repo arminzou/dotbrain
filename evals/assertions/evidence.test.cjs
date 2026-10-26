@@ -86,7 +86,7 @@ test('separate explicit-only boundaries reject reads, searches and invocation', 
 });
 
 test('packaged-role dispatch requires a successful named invocation and child activity', () => {
-  const worker = call('Agent', {subagent_type: 'dotbrain:worker'}, {id: 'dispatch'});
+  const worker = call('Agent', {subagent_type: 'dotbrain-worker'}, {id: 'dispatch'});
   const child = call('Bash', {command: 'git status'}, {parentToolUseId: 'dispatch'});
   assert.ok(checks.workerDispatched('', claude([worker, child])).pass);
   for (const calls of [[worker], [child], [{...worker, is_error: true}, child],
@@ -149,7 +149,7 @@ test('completion order requires a native reference read with corroborating outpu
 
 test('Claude completion spans link the successful lead read to dispatch timing', () => {
   const read = call('Read', {file_path: 'skills/run-execution/references/parallel-execution.md'});
-  const dispatch = call('Agent', {subagent_type: 'dotbrain:worker'});
+  const dispatch = call('Agent', {subagent_type: 'dotbrain-worker'});
   const context = claude([read, dispatch]);
   const span = (id, startTime, endTime, attributes = {}) => ({startTime, endTime,
     attributes: {'gen_ai.tool.call.id': id, 'tool.is_error': false, ...attributes}});

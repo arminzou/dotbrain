@@ -27,5 +27,5 @@ module.exports = ({vars, provider}) => {
     if (process.platform === 'win32') config.sandbox_mode = 'danger-full-access';
     else if (readOnly) config.sandbox_mode = 'read-only';
   }
-  return {prompt: vars.request.replaceAll('{{worker_role}}', claude ? 'dotbrain:worker' : 'dotbrain-worker'), config};
+  return {prompt: vars.request.replaceAll('{{worker_role}}', 'dotbrain-worker'), config};
 };

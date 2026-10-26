@@ -29,6 +29,12 @@ cites. The reviewer supplements the gate, never replaces it. Simplify uses the b
 If no independent reviewer is available, skip that optional pass with a note; it does not block
 delivery.
 
+This skill owns the [reviewer](references/reviewer.md) and [verifier](references/verifier.md)
+role contracts. Dispatch them by
+[Run Execution's role dispatch](../run-execution/SKILL.md#role-dispatch): `dotbrain-<role>` when
+present, else a generic subagent briefed with the contract. For a `simplify` review, also pass the
+simplification procedure, since the subagent cannot read this skill's files.
+
 Read [Run Execution's review verdicts](../run-execution/SKILL.md#review-verdicts),
 including the automatic-behavior severity default, before judging findings.
 

@@ -43,7 +43,7 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
       const [{vars, assert: graders}] = yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8'));
       if (!decisions[vars.case]) continue;
       const dispatched = {...terminal, metadata: {...terminal.metadata,
-        toolCalls: [{id: 'spawn', name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'}]}};
+        toolCalls: [{id: 'spawn', name: 'Agent', input: {subagent_type: 'dotbrain-worker'}, output: 'done'}]}};
       for (const grader of graders) {
         const good = {...terminal, output: decisions[vars.case]};
         assert.ok((await run(grader, good, vars)).pass, vars.case + ' ' + grader.metric);
@@ -178,7 +178,7 @@ test('native provider filters execute twenty-two combinations and keep exclusion
         'I used a serial fallback.';
       if (id.startsWith('anthropic:')) return {...terminal, output, metadata: {skillCalls,
         toolCalls: Array.from({length: count}, (_, i) => [
-          {id: 'spawn-' + i, name: 'Agent', input: {subagent_type: 'dotbrain:worker'}, output: 'done'},
+          {id: 'spawn-' + i, name: 'Agent', input: {subagent_type: 'dotbrain-worker'}, output: 'done'},
           {id: 'child-' + i, name: 'Read', input: {file_path: 'README.md'}, output: 'sample', parentToolUseId: 'spawn-' + i},
         ]).flat()}};
       const item = (method, item) => ({method, params: {threadId: 'lead', item}});

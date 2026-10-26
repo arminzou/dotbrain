@@ -8,13 +8,15 @@ This reference supplies the runtime mechanisms only.
 
 ## Prepare and dispatch
 
-Dispatch the packaged worker as `dotbrain:worker`; read-only packaged roles are
-`dotbrain:reviewer`, `dotbrain:verifier`, and `dotbrain:researcher`. For the explorer role,
-use Claude Code's built-in `Explore` agent. Dispatch packaged roles by name, never as a fork
-of the lead's conversation. The worker's definition always launches it in the
-background. For in-place work, dispatch it without isolation. For isolated work,
-set worktree isolation on the `Agent` call; its definition never sets
-isolation, so the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
+Apply [role dispatch](../SKILL.md#role-dispatch). Packaged roles are `dotbrain-worker` and the
+read-only `dotbrain-reviewer`, `dotbrain-verifier`, and `dotbrain-researcher`, available when the
+checkout's `.claude/agents/` has them. Otherwise set `subagent_type: general-purpose` and put the
+role contract at the top of the `Agent` prompt. For the explorer role, use Claude Code's built-in
+`Explore` agent. Dispatch roles by agent type, never as a fork of the lead's conversation. Always
+launch a worker in the background: the packaged definition does so itself; for a generic worker,
+set `run_in_background` on the `Agent` call. For in-place work, dispatch it without isolation.
+For isolated work, set worktree isolation on the `Agent` call; no definition sets isolation, so
+the lead chooses per dispatch. Do not pass a `name` on a worker's `Agent` call: with
 agent teams enabled, a named dispatch without call-level isolation launches as a teammate in the
 lead's working directory instead. Address the worker by its agent ID.
 
@@ -22,10 +24,10 @@ Send the self-contained assignment in the `Agent` prompt, with exact source sect
 without pasting the lead's conversation or dispatch, integration, and recovery references.
 Omit the call's `model` option unless the user explicitly requests a different model;
 otherwise inherit the configured model.
-The definition supplies role effort. Retain the original agent ID for fix rounds instead of
+A packaged definition supplies role effort; a generic subagent inherits the session's. Retain the original agent ID for fix rounds instead of
 repeating startup and discovery in a replacement session.
 
-Packaged subagents inherit the lead session's permission mode, and their permission prompts surface
+Subagents inherit the lead session's permission mode, and their permission prompts surface
 in the lead's session. In an unattended run nobody answers them, so the session must already allow
 the `git` and `bd` commands its workers and reviewers run.
 
@@ -82,11 +84,12 @@ The sections above assume a Claude Code lead using the `Agent` tool. A lead in a
 launches Claude Code workers as separate `claude -p` sessions instead. Prepare a worktree as the
 lead's own reference does, and wire it with `dotbrain wire --repo <worktree>` so the plugin and
 project resources resolve. Launch in the background from that worktree with the assignment on
-stdin, `--agent dotbrain:worker`, `--output-format json`, and full access
+stdin, `--agent dotbrain-worker` (without it, the worker role contract heads the stdin
+assignment), `--output-format json`, and full access
 (`--permission-mode bypassPermissions`); nobody answers prompts in an unattended run. Generate the worker's ID up front and
 pass it as `--session-id <uuid>`, so `Dispatched` records it as a CLI session before launch; the JSON result
-carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id> --agent
-dotbrain:worker` from the same worktree, passing `--permission-mode bypassPermissions` again, since a
+carries the same `session_id`. Resume fix rounds with `claude -p --resume <session-id>`, adding the
+same `--agent` option, from the same worktree, passing `--permission-mode bypassPermissions` again, since a
 resume starts in the default mode; the worker keeps its earlier turns. Stop a worker by
 ending its process tree. Check `claude --help` when an option is rejected.
 

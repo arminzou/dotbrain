@@ -108,7 +108,7 @@ function noDispatch(output, context) {
 
 function workers(trace) {
   if (trace.runtime === 'claude') return trace.calls.filter(call =>
-    call.name === 'Agent' && call.input?.subagent_type === 'dotbrain:worker' && !call.is_error &&
+    call.name === 'Agent' && call.input?.subagent_type === 'dotbrain-worker' && !call.is_error &&
     !call.parentToolUseId && trace.calls.some(child => child.parentToolUseId === call.id));
   throw new Error('INCONCLUSIVE: Promptfoo 0.125.0 app-server drops child-thread events; named role and child activity are unqualified');
 }

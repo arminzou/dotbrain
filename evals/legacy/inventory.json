@@ -1374,7 +1374,7 @@
           "max_turns": 80,
           "timeout_seconds": 1800
         },
-        "body": "Implement the ready items demo-4 and demo-5 with one dotbrain:worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later."
+        "body": "Implement the ready items demo-4 and demo-5 with one dotbrain-worker per item, one after the other in this checkout: Beads actor `worker-a` for demo-4 and `worker-b` for demo-5, each on its own item branch from `main`. Your own Beads actor as lead is `lead`. Commit locally only. Stop once both workers have returned committed candidates; I'll handle review and closure later."
       },
       "tags": [
         "phase-3",
@@ -1400,7 +1400,7 @@
             "frontmatter": {
               "type": "tool_used",
               "tool": "Agent",
-              "input_match": "dotbrain:worker",
+              "input_match": "dotbrain-worker",
               "min": 2
             },
             "body": "",
@@ -1788,7 +1788,7 @@
           "max_turns": 60,
           "timeout_seconds": 1200
         },
-        "body": "Implement demo-4 and demo-5 at the same time, using one dotbrain:worker for each,\nin this checkout. Your actor is lead; use worker-a and worker-b. Each works from\nmain on its own short branch. Stop after both return committed candidates; review\nand closure are later."
+        "body": "Implement demo-4 and demo-5 at the same time, using one dotbrain-worker for each,\nin this checkout. Your actor is lead; use worker-a and worker-b. Each works from\nmain on its own short branch. Stop after both return committed candidates; review\nand closure are later."
       },
       "tags": [
         "execution-rules",
@@ -1835,7 +1835,7 @@
             "frontmatter": {
               "type": "tool_used",
               "tool": "Agent",
-              "input_match": "dotbrain:worker",
+              "input_match": "dotbrain-worker",
               "min": 2
             },
             "body": "",
@@ -2446,7 +2446,7 @@
           "max_turns": 40,
           "timeout_seconds": 900
         },
-        "body": "Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the dotbrain:worker agent to implement it on a new branch from `main`, with Beads actor `worker-a`. I'll handle review myself, so just tell me what the worker produced."
+        "body": "Work item demo-2 is ready in our tracker (`bd show demo-2`). Dispatch the dotbrain-worker agent to implement it on a new branch from `main`, with Beads actor `worker-a`. I'll handle review myself, so just tell me what the worker produced."
       },
       "tags": [
         "phase-2",
@@ -2502,7 +2502,7 @@
             "frontmatter": {
               "type": "tool_used",
               "tool": "Agent",
-              "input_match": "dotbrain:worker"
+              "input_match": "dotbrain-worker"
             },
             "body": "",
             "id": "worker-dispatched",
@@ -2543,7 +2543,7 @@
           "max_turns": 30,
           "timeout_seconds": 900
         },
-        "body": "Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged, then tell me\nwhat it returned. Do not add, fill in, or reorder anything in it. After it returns, run\n`git status --porcelain` yourself and include its output.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
+        "body": "Dispatch the dotbrain-worker agent with exactly the assignment below, unchanged, then tell me\nwhat it returned. Do not add, fill in, or reorder anything in it. After it returns, run\n`git status --porcelain` yourself and include its output.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
       },
       "tags": [
         "dispatch-records",
@@ -2594,7 +2594,7 @@
             "frontmatter": {
               "type": "tool_used",
               "tool": "Agent",
-              "input_match": "dotbrain:worker"
+              "input_match": "dotbrain-worker"
             },
             "body": "",
             "id": "worker-dispatched",
@@ -2633,7 +2633,7 @@
           "max_turns": 40,
           "timeout_seconds": 900
         },
-        "body": "Dispatch the dotbrain:worker agent with exactly the assignment below, unchanged. When it\nreturns, reply with only the text it returned, verbatim, and nothing else. I'll handle review\nmyself.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place, on the current branch `contributing-guide`\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Checks:** `make test`\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
+        "body": "Dispatch the dotbrain-worker agent with exactly the assignment below, unchanged. When it\nreturns, reply with only the text it returned, verbatim, and nothing else. I'll handle review\nmyself.\n\n**Item:** demo-2 · implement · actor worker-a\n**Checkout:** in place, on the current branch `contributing-guide`\n**Change:** Add CONTRIBUTING.md telling contributors to run `make test` before sending changes.\n**Ownership:** CONTRIBUTING.md · the contributing guide · overlap: none\n**Acceptance:** CONTRIBUTING.md exists and names `make test`.\n**Checks:** `make test`\n**Limits:** role default\n**Constraints:** none\n**Overrides:** none\n**Sources:** `bd show demo-2`"
       },
       "tags": [
         "dispatch-records",
@@ -2694,7 +2694,7 @@
             "frontmatter": {
               "type": "tool_used",
               "tool": "Agent",
-              "input_match": "dotbrain:worker"
+              "input_match": "dotbrain-worker"
             },
             "body": "",
             "id": "worker-dispatched",

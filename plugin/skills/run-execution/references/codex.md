@@ -33,13 +33,13 @@ Read the relevant subcommand help only when an option is unknown or rejected. La
 codex exec --cd <worktree> --sandbox danger-full-access -c model_reasoning_effort=medium --json -o <final-response-file> -
 ```
 
-Workers and reviewers launch with full access, as shown; their role definitions, not the sandbox,
+Workers and reviewers launch with full access, as shown; their role contracts, not the sandbox,
 keep them within their roles. Worktrees isolate edits, not filesystem permissions. Supply the bounded assignment through stdin or a file and reuse
 configured authentication. Keep stdout JSONL, stderr diagnostics and the final response separate.
 On Windows use `pwsh -NoProfile`; background helpers started through `Start-Process` must be hidden.
 
-A separate CLI writer reads the packaged worker definition as instructions; that does not apply
-its TOML settings. Set `model_reasoning_effort=medium` explicitly on launch and resume. Inherit the
+A separate CLI writer reads its role contract as instructions; that does not apply
+packaged TOML settings. Set `model_reasoning_effort=medium` explicitly on launch and resume. Inherit the
 configured model unless the user explicitly requests a different model. Only for that request,
 pass the same `--model <model>` on launch and resume. Confirm model and effort from the session's
 recorded turn context.
@@ -116,7 +116,7 @@ exchange; full history is not the default assignment strategy. If no history con
 send only the compact assignment and report that inherited context could not be bounded. A fresh
 assignment must retain project rules, acceptance criteria, scope, and permission boundaries.
 Omit the spawn tool's model option unless the user explicitly requests a different model;
-the custom role file supplies effort.
+a packaged role file supplies effort; a default agent inherits the session's.
 The packaged reviewer disables cross-session memory with `features.memories = false`.
 Project instructions, assigned acceptance criteria, relevant Brain records, and explicitly
 assigned skills still supply the review's Sources; include the needed context in its assignment.
@@ -128,13 +128,15 @@ interval, respecting the session's wait limit. Repeated short status polls each 
 lead model call while the reviewer is still working. Keep lifecycle and error checks; read
 transcript content only to investigate a reported failure or evidence gap.
 
-If an assignment requires a custom agent, verify its availability by actually spawning that role
-in this CLI session. A delivered TOML file is insufficient. Apply the parallel reference's
+Apply [role dispatch](../SKILL.md#role-dispatch). Packaged subagents are spawned as
+`dotbrain-<role>`, for example a nested reviewer as `dotbrain-reviewer`, and follow the shared
+item-review rules. Verify a packaged role's availability by actually spawning it in this CLI
+session; a delivered TOML file is insufficient. When it is unavailable, spawn a default agent and
+send the role contract at the head of its message. Apply the parallel reference's
 capacity rule to nested writers and track their termination; avoid nested writers when direct CLI
-workers cover the assignment. Packaged subagents are spawned as `dotbrain-<role>`, for example
-a nested reviewer as `dotbrain-reviewer`, and follow the shared item-review rules. A `codex exec`
-writer cannot select an agent, so its assignment points it to the packaged worker's definition,
-`.codex/agents/dotbrain-worker.toml` in its checkout. Record
+workers cover the assignment. A `codex exec` writer cannot select an agent, so its assignment
+points it to `.codex/agents/dotbrain-worker.toml` in its checkout when that file exists, and
+otherwise carries the worker role contract at its head. Record
 direct execution and nested spawning separately; evidence for one does not qualify the other.
 
 ## Pre-push notification
@@ -156,10 +158,11 @@ The official [advanced configuration](https://learn.chatgpt.com/docs/config-file
 
 ## Researcher availability
 
-Spawn the packaged researcher as `dotbrain-researcher`. It uses shell tools to read, list,
+Spawn the packaged researcher as `dotbrain-researcher`, or a default agent briefed with the
+[researcher role contract](researcher.md). It uses shell tools to read, list,
 and search local Brain and codebase files, and dedicated web tools for outside sources.
-Its prompt forbids writes, shell networking, installs, permission escalation, credential reads,
-and nested delegation. It requests high effort and a read-only sandbox. Web access depends on
+Its contract forbids writes, shell networking, installs, permission escalation, credential reads,
+and nested delegation. The packaged researcher also requests high effort and a read-only sandbox. Web access depends on
 dedicated web tools exposed by the parent runtime; report missing web capability when none exists.
 If local reads are denied, it reports the missing context instead of bypassing restrictions.
 
