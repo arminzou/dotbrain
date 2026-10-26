@@ -30,6 +30,7 @@ Do not edit per project; packaged template changes propagate to every Brain.
   for task-relevant findings and passes applicable findings through existing assignments.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
   Reuse findings in context. A missing notebook blocks nothing; do not scaffold it.
+  Every `RETRO.md` write uses run-retro's compare-and-swap save.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
