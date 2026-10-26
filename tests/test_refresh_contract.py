@@ -350,10 +350,44 @@ def test_refresh_never_modifies_version_two_declaration(setup):
     assert declaration.read_text(encoding='utf-8') == '# mine\nversion: 2\nbeads: {mode: none}\n'
 
 
-@pytest.mark.parametrize('text', ['version: 2\npackaged-subagents: [nope]\n', '[not, a, mapping]\n'])
+@pytest.mark.parametrize('text', ['version: 2\npackaged-subagents: [nope]\n', '[not, a, mapping]\n',
+                                  'null\n', '~\n', '', '# only a comment\n'])
 def test_refresh_rejects_bad_packaged_record_naming_roles(setup, text):
     home, brainspace, _ = setup
-    (brainspace / '.brain' / 'project.yaml').write_text(text, encoding='utf-8')
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text.encode())
     result = workflows.refresh_project(home, 'custom')
     assert any('researcher, reviewer, verifier, worker' in error for error in result.errors)
-    assert (brainspace / '.brain' / 'project.yaml').read_text(encoding='utf-8') == text
+    assert declaration.read_bytes() == text.encode()
+
+
+@pytest.mark.parametrize('text', [
+    b'# keep\r\nagents: []\r\nbeads: {mode: none}\r\n',
+    b'agents: []\nbeads: {mode: none}',
+    b'agents: []\nbeads: {mode: none}\ncustom: |+\n  keep\n',
+])
+def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text)
+    assert not workflows.refresh_project(home, 'custom').errors
+    after = declaration.read_bytes()
+    assert after.startswith(text)
+    assert (b'\r\n' in text) == (after.count(b'\n') == after.count(b'\r\n'))
+    expected = {**yaml.safe_load(text), 'version': 2, 'packaged-subagents': list(config.PACKAGED_ROLES)}
+    assert yaml.safe_load(after) == expected
+
+
+@pytest.mark.parametrize('text', [
+    b'{agents: [], beads: {mode: none}}\n',
+    b'agents: []\nbeads: {mode: none}\n...\n',
+    b'  agents: []\n  beads: {mode: none}\n',
+])
+def test_refresh_refuses_upgrade_that_would_change_the_declaration(setup, text):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text)
+    result = workflows.refresh_project(home, 'custom')
+    assert any('cannot append the packaged-subagents record' in error for error in result.errors)
+    assert not any('upgraded' in line for line in result.logs)
+    assert declaration.read_bytes() == text

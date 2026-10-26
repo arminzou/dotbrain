@@ -261,9 +261,8 @@ def load_project_packaged(dotbrain_home: Path, name: str) -> tuple[int, tuple[st
         return PROJECT_VERSION, PACKAGED_ROLES
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     roles = ", ".join(PACKAGED_ROLES)
-    if data is not None and not isinstance(data, dict):
+    if not isinstance(data, dict):
         raise ValueError(f"{path}: expected a YAML mapping; packaged-subagents takes roles from: {roles}")
-    data = data or {}
     version = data.get("version", 1)
     raw = data.get("packaged-subagents")
     if raw is None:
@@ -281,6 +280,8 @@ def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
 
     Appends text instead of re-dumping YAML so existing lines and comments survive.
     """
+    import yaml
+
     version, _ = load_project_packaged(dotbrain_home, name)
     path = _project_config_path(dotbrain_home, name)
     if version != 1 or not path.is_file():
@@ -288,12 +289,23 @@ def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
     existing = path.read_bytes()
     eol = "\r\n" if b"\r\n" in existing else "\n"
     roles = "".join(f"  - {role}\n" for role in PACKAGED_ROLES)
-    lead = "\n" if existing and not existing.endswith(b"\n") else ""
-    block = (f"{lead}\nversion: {PROJECT_VERSION}\n"
+    lead = "\n" if not existing.endswith(b"\n") else ""
+    block = (f"{lead}version: {PROJECT_VERSION}\n"
              f"# Packaged subagents delivered to this project; remove a role to stop delivering it.\n"
-             f"packaged-subagents:\n{roles}")
+             f"packaged-subagents:\n{roles}").replace("\n", eol).encode("utf-8")
+    # Some valid layouts (flow or indented roots, document markers, kept block scalars)
+    # cannot take a top-level append; refuse them rather than change their meaning.
+    expected = {**yaml.safe_load(existing.decode("utf-8")), "version": PROJECT_VERSION,
+                "packaged-subagents": list(PACKAGED_ROLES)}
+    try:
+        proposed = yaml.safe_load((existing + block).decode("utf-8"))
+    except yaml.YAMLError:
+        proposed = None
+    if proposed != expected:
+        raise ValueError(f"{path}: cannot append the packaged-subagents record to this layout; add "
+                         f"'version: {PROJECT_VERSION}' and 'packaged-subagents: [{', '.join(PACKAGED_ROLES)}]' by hand")
     with path.open("ab") as handle:  # bytes: keep the file's own line endings
-        handle.write(block.replace("\n", eol).encode("utf-8"))
+        handle.write(block)
     return f"upgraded {path.name} to version {PROJECT_VERSION} with packaged-subagents: {', '.join(PACKAGED_ROLES)}"
 
 
