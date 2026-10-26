@@ -38,7 +38,8 @@ symlinks.
 Keep each pull request focused. Follow the dependency layering, subprocess test seams, and other
 requirements in [RULES.md](RULES.md); [Architecture](docs/architecture.md) explains the product model.
 Add a regression test for a behavior fix where practical. Run the affected tests while iterating
-and `uv run pytest` before submitting code changes. There is no configured linter.
+and `uv run pytest` before pushing or submitting code changes for review. When several agents
+work on one branch, only the integrating agent runs the full suite; see [RULES.md](RULES.md). There is no configured linter.
 
 For public docs changes, use Node.js 22 and follow [the docs editing guide](docs/AGENTS.md):
 

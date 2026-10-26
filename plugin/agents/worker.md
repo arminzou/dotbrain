@@ -65,7 +65,10 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
 - Stay inside the files and resources the assignment gives you. Never edit the
   design doc, another work item, or the work graph.
 - Run the assigned checks. When none are assigned, run the smallest relevant
-  checks you can identify and report them as your own choice. Record each result
+  checks you can identify and report them as your own choice. Run the tests your
+  change affects; never run a full test suite or another machine-wide check, which
+  the lead schedules. If the assignment lists one, skip it and report the conflict.
+  Record each result
   on your work item, when there is one, as
   `## Attempt <n>: PASS | FAIL @ <revision>`. After 3 consecutive failures on one
   checkpoint, stop and report the attempts, unless Limits names another cap.

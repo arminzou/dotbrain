@@ -23,7 +23,8 @@ execution, preserving criteria and finite limits.
 The authorized item count and active writing-worker cap are separate. Unless the human specifies
 the cap, select and announce a finite cap from actual runtime capacity, resource isolation, and
 stated limits. Account for capacity consumed by the lead and required review and verification
-operations, including nested agents. Human gates and explicit budgets and caps remain binding.
+operations, including nested agents, and each check's parallelism: a check that uses every core
+counts as the whole machine. Human gates and explicit budgets and caps remain binding.
 
 Fill available writing slots from eligible ready items inside the fixed scope; refill as workers
 finish. A returned candidate frees a writing slot without accepting its item or releasing its
@@ -32,8 +33,9 @@ integration, checks, or shared resources become bottlenecks; capacity never expa
 releases a dependent whose prerequisite is not accepted.
 
 Give simultaneous writers separate worktrees and mutable outputs or resource instances where
-possible; schedule genuinely shared resources exclusively. Build outputs, databases, and ports
-still constrain parallelism. Actual worktrees, claims, resource ownership, and exclusive
+possible; schedule genuinely shared resources exclusively. Build outputs, databases, ports, full
+test suites, and other CPU-saturating commands still constrain parallelism; the lead schedules
+such commands exclusively, at most one at a time across lead, workers, and reviewers. Actual worktrees, claims, resource ownership, and exclusive
 scheduling establish isolation; instructions to avoid collisions do not. Serialize integration
 into the target and route needed rebases to the original workers.
 
