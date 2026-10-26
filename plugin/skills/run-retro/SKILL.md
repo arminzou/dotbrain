@@ -61,8 +61,9 @@ Completion: scope is explicit, the limit is known, and the notebook hash is reco
 
 Select work and review records changed since the saved curation cutoff, oldest update first, as
 the reference describes. A lead's candidate flag write updates its bead, so new retro candidates
-arrive in this selection: judge each `## Retro candidate` comment created after the cutoff, and
-never an older one again. Then read the other evidence: CHANGES verdicts, failed checks, rejected candidates, human corrections,
+arrive in this selection. On each selected bead, judge every `## Retro candidate` comment that the
+notebook does not cite and no later `## Retro candidate judged` comment answers, whatever its
+date. Then read the other evidence: CHANGES verdicts, failed checks, rejected candidates, human corrections,
 defects, and informative successes or recoveries. Commits alone are not the signal; much
 correction evidence never reaches the integration branch. Include explicitly supplied incidents
 regardless of date. Use commits and CI only as supporting evidence.
@@ -117,9 +118,12 @@ advanced cutoff, against the last recorded hash. If the notebook changed since t
 without writing; the next run redoes the work. Advance the cutoff only past records whose changes
 are in this save.
 
-Never remove a `dotbrain_retro` flag: the cutoff, not the flag, marks what has been judged, so a
-kept, merged, or rejected candidate is not offered again (count rejections under SKIPPED). A failed
-or abandoned run loses nothing and skips no records.
+After the save succeeds, answer each candidate this pass rejected (not transferable, or already
+covered) with a `## Retro candidate judged` comment on its bead, naming the candidate's time and the
+reason, under the pass's own actor; count rejections under SKIPPED. A kept or merged candidate is
+answered by the finding that cites it. Comments do not change a bead's update time, so the cutoff
+is unaffected. Never remove a `dotbrain_retro` flag. A failed or abandoned run loses nothing and
+skips no records; a crash before the rejection comments re-offers those candidates once.
 
 Completion: the notebook and cutoff changed together, or not at all.
 

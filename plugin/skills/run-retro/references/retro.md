@@ -117,10 +117,11 @@ Findings capture normally whatever the answer.
 The header's `Curation cutoff:` is a timestamp. Select records changed after it, oldest update
 first, within the pass limit:
 
-- retro candidates: the lead's `dotbrain_retro` write (the newest candidate's UTC time) updates
-  its bead, so flagged beads arrive in the work-item query below. Judge each `## Retro candidate`
-  comment (practice, when, limit, evidence) whose `created_at` is after the cutoff; older ones were
-  judged by an earlier pass. Nothing removes the flag. `bd list --all --has-metadata-key
+- retro candidates: the lead's `dotbrain_retro` write updates its bead, so flagged beads arrive in
+  the work-item query below. On each selected bead, judge every `## Retro candidate` comment
+  (practice, when, limit, evidence) that no finding cites and no later `## Retro candidate judged`
+  comment answers, whatever its `created_at`; a candidate written before a pass whose flag landed
+  after it is still judged. Nothing removes the flag. `bd list --all --has-metadata-key
   dotbrain_retro --json` lists every bead that ever carried a candidate, for an audit;
 - work and review items: `bd list --all --updated-after <cutoff> --sort updated --reverse --json` (oldest first), then read
   each selected item's comments for CHANGES verdicts, failed checks, rejected candidates, human
@@ -155,7 +156,9 @@ rather than appending another. Each source pointer links a commit, work/review r
 or explicit correction, dated by the original event in the recorded timezone, and says in a few
 words what happened. Prefer the original event's date; a later rebase, copy, or retry adds no new
 pointer. Distinguish the observed outcome from the inferred practice; retain relevant limits and
-contradictory evidence. Several dated pointers show recurrence without a counter.
+contradictory evidence. Several dated pointers show recurrence without a counter. A pointer to a
+retro candidate names its bead and the candidate comment's `created_at`, so a later pass can tell
+the candidate was judged.
 
 Findings stay in their work-area section throughout. Preserve proposal links, accepted
 destinations, actual adoption dates, holds, and pending decisions when consolidating entries.

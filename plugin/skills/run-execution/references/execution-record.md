@@ -18,7 +18,7 @@ Optional until the item enters `run-execution`. Populate only facts that exist.
 | `dotbrain_phase` | `preparing`, `working`, `candidate`, `integrating`, `checking`, `verified`, or `cancelled`. |
 | `dotbrain_attempts` | Consecutive failed-check count and approved limit for each checkpoint, keyed by checkpoint reference. |
 | `dotbrain_artifacts` | References, each with a `kind`, `purpose`, and `ref`. Purposes are `work` (where the active worker's changes live), `candidate`, `integrated`, and `evidence`. |
-| `dotbrain_retro` | The UTC time of the bead's newest `## Retro candidate` comment, set by the lead with every candidate and never removed. Beads comments do not change an issue's update time; this write does, so the curation pass finds the candidate by date. |
+| `dotbrain_retro` | The UTC time of the lead's latest candidate flag write, set with every `## Retro candidate` comment and never removed. Beads comments do not change an issue's update time; this write does, so the curation pass selects the bead. |
 
 ```json
 {
