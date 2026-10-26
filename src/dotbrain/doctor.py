@@ -89,11 +89,28 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
                 else:
                     healthy = dest.is_symlink() and dest.resolve() == source.resolve() and dest.is_file() and dest.read_text(encoding="utf-8") == body
             if not healthy:
-                findings.append(Finding("error", f"{dest}: selected {kind} delivery is missing, stale, or points to the wrong source", f"run dotbrain {kind} link in this scope"))
+                findings.append(Finding("error", f"{dest}: selected {kind} delivery is missing, stale, or points to the wrong source", f"run dotbrain {'subagents' if kind == 'agents' else kind} link in this scope"))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", str(exc), "correct the selected asset source"))
     if not findings:
         findings.append(Finding("ok", f"{receiver}: {len(selected)} selected {kind} healthy"))
+    return findings
+
+
+def _check_packaged(receiver: Path, roles: tuple[str, ...], suffix: str) -> list[Finding]:
+    """Packaged dotbrain-* entries in one workspace against the project's listed roles."""
+    findings = []
+    for role in roles:
+        dest = receiver / f"{subagents.PACKAGED_PREFIX}{role}{suffix}"
+        if not (dest.exists() or dest.is_symlink()):
+            findings.append(Finding("warn", f"{dest}: listed packaged subagent '{role}' is not delivered", "run dotbrain refresh"))
+    entries = sorted(receiver.glob(f"{subagents.PACKAGED_PREFIX}*")) if receiver.is_dir() else []
+    for entry in entries:
+        if not subagents.is_managed_copy(entry):
+            findings.append(Finding("warn", f"{entry}: dotbrain-* file is not managed by dotbrain",
+                                    "rename or remove it; the dotbrain- prefix is reserved for packaged subagents"))
+        elif entry.name.removeprefix(subagents.PACKAGED_PREFIX).removesuffix(suffix) not in roles:
+            findings.append(Finding("warn", f"{entry}: delivered packaged subagent is not listed in project.yaml", "run dotbrain refresh"))
     return findings
 
 
@@ -517,6 +534,19 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.append(Finding("error", f"registered checkout missing: {repo}", "correct .repo.local or .repo"))
     else:
         findings.extend(_check_brainspace_links(repo, target.brainspace))
+        try:
+            version, roles = config.load_project_packaged(root, target.project)
+        except DIAGNOSIS_ERRORS as exc:
+            version, roles = config.PROJECT_VERSION, None
+            findings.append(Finding("error", str(exc), "correct packaged-subagents in project.yaml"))
+        if version == 1:
+            findings.append(Finding("warn", "project.yaml is unversioned and awaits the packaged-subagents upgrade",
+                                    "run dotbrain refresh"))
+        elif roles == ():
+            findings.append(Finding("info", "no packaged subagents listed; packaged subagents add per-role effort "
+                                    "and can be listed in project.yaml packaged-subagents"))
+        findings.extend(Finding("error", f"custom subagent '{name}' uses the reserved {subagents.PACKAGED_PREFIX} prefix",
+                                "rename the custom subagent") for name in agents if name.startswith(subagents.PACKAGED_PREFIX))
         entries = ["/.brain"] + (["/.beads"] if beads.mode != "none" else [])
         for workspace in workspaces:
             directory = repo / workspace
@@ -544,6 +574,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
+            if roles is not None:
+                findings.extend(_check_packaged(directory / "agents", roles, rt.subagents[1]))
             entries.extend(f"/{workspace}/agents/{name}{rt.subagents[1]}" for name in agents)
         try:
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
