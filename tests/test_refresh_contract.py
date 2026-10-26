@@ -365,6 +365,8 @@ def test_refresh_rejects_bad_packaged_record_naming_roles(setup, text):
     b'# keep\r\nagents: []\r\nbeads: {mode: none}\r\n',
     b'agents: []\nbeads: {mode: none}',
     b'agents: []\nbeads: {mode: none}\ncustom: |+\n  keep\n',
+    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
+    b'agents: []\nbeads: {mode: none}\nbase: &base {x: 1}\nmerged:\n  <<: *base\n  y: 2\n',
 ])
 def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
     home, brainspace, _ = setup
@@ -383,14 +385,14 @@ def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
     b'agents: []\nbeads: {mode: none}\n...\n',
     b'  agents: []\n  beads: {mode: none}\n',
     b'agents: []\nbeads: {mode: none}\nloop: &loop [*loop]\n',
-    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
-    b'agents: []\nbeads: {mode: none}\nbase: {x: 1}\nmerged:\n  <<: {x: 2}\n',
 ])
-def test_refresh_refuses_upgrade_that_would_change_the_declaration(setup, text):
+def test_refresh_skips_upgrade_that_would_change_the_declaration(setup, text):
     home, brainspace, _ = setup
     declaration = brainspace / '.brain' / 'project.yaml'
     declaration.write_bytes(text)
     result = workflows.refresh_project(home, 'custom')
-    assert any('cannot append the packaged-subagents record' in error for error in result.errors)
+    assert not result.errors
+    assert any(str(declaration) in w and 'packaged-subagents: [researcher, reviewer, verifier, worker]' in w
+               for w in result.warnings)
     assert not any('upgraded' in line for line in result.logs)
     assert declaration.read_bytes() == text

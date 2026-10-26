@@ -404,9 +404,11 @@ def refresh_projects(
             target.data['shared_brain_changes'] += shared
             target.changes += [f'shared Brain: updated {entry}' for entry in shared]
             upgraded = config.upgrade_project_packaged(dotbrain_home, selected.project)
-            if upgraded:
-                target.data['shared_brain_changes'].append(upgraded)
-                target.changes.append(f'shared Brain: {upgraded}')
+            if upgraded and upgraded[1]:
+                target.data['shared_brain_changes'].append(upgraded[0])
+                target.changes.append(f'shared Brain: {upgraded[0]}')
+            elif upgraded:
+                target.findings.append({'severity': 'warning', 'message': upgraded[0]})
             if selected.checkout is not None:
                 repo = selected.checkout
                 resolved = assets.project_workspaces(dotbrain_home, selected, 'all')

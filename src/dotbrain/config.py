@@ -275,8 +275,10 @@ def load_project_packaged(dotbrain_home: Path, name: str) -> tuple[int, tuple[st
     return version, listed
 
 
-def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
+def upgrade_project_packaged(dotbrain_home: Path, name: str) -> tuple[str, bool] | None:
     """Append ``version: 2`` and every packaged role to an unversioned ``project.yaml`` once.
+
+    Returns None when nothing applies, else ``(message, upgraded)``; a skip is a warning.
 
     Appends text instead of re-dumping YAML so existing lines and comments survive.
     """
@@ -293,24 +295,21 @@ def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
     block = (f"{lead}version: {PROJECT_VERSION}\n"
              f"# Packaged subagents delivered to this project; remove a role to stop delivering it.\n"
              f"packaged-subagents:\n{roles}").replace("\n", eol).encode("utf-8")
-    # Some valid layouts (flow or indented roots, document markers, kept block scalars)
-    # cannot take a top-level append; refuse them rather than change their meaning.
-    # Anchors, aliases and merge keys make the meaning check unsafe (aliases can recurse); refuse them.
+    # Some valid layouts (flow or indented roots, document markers, kept block scalars) cannot
+    # take a top-level append, and recursive aliases defeat the comparison; skip those unchanged.
+    # An unversioned file already reads as every packaged role, so a skip is only a warning.
     text = existing.decode("utf-8")
-    shared = any(isinstance(token, (yaml.AnchorToken, yaml.AliasToken))
-                 or (isinstance(token, yaml.ScalarToken) and token.plain and token.value == "<<")
-                 for token in yaml.scan(text))
     try:
-        safe = not shared and yaml.safe_load(text + block.decode("utf-8")) == {
+        safe = yaml.safe_load(text + block.decode("utf-8")) == {
             **yaml.safe_load(text), "version": PROJECT_VERSION, "packaged-subagents": list(PACKAGED_ROLES)}
     except (yaml.YAMLError, RecursionError):
         safe = False
     if not safe:
-        raise ValueError(f"{path}: cannot append the packaged-subagents record to this layout; add "
-                         f"'version: {PROJECT_VERSION}' and 'packaged-subagents: [{', '.join(PACKAGED_ROLES)}]' by hand")
+        return (f"{path}: skipped the packaged-subagents upgrade for this layout; add "
+                f"'version: {PROJECT_VERSION}' and 'packaged-subagents: [{', '.join(PACKAGED_ROLES)}]' by hand"), False
     with path.open("ab") as handle:  # bytes: keep the file's own line endings
         handle.write(block)
-    return f"upgraded {path.name} to version {PROJECT_VERSION} with packaged-subagents: {', '.join(PACKAGED_ROLES)}"
+    return f"upgraded {path.name} to version {PROJECT_VERSION} with packaged-subagents: {', '.join(PACKAGED_ROLES)}", True
 
 
 def load_project_agents(dotbrain_home: Path, name: str, *, defaults: tuple[str, ...] = ()) -> tuple[str, ...]:
