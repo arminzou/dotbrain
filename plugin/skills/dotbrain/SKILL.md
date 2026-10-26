@@ -76,8 +76,8 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
   for a public need, derive fresh standalone guidance (the standard `.brain/AGENTS.md` pointer is
   allowed). Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
-  numbers, Brain paths, decision-record identifiers, or paraphrased private incidents and
-  decisions. State the rationale in plain terms; the linkage stays in the Brain.
+  numbers, Brain paths, decision-record identifiers, or private incident details. State a
+  decision's rationale in plain terms; the linkage stays in the Brain.
 
 ## Working in loops
 

@@ -50,9 +50,10 @@ and closure, with a base containing its accepted result and human gates resolved
 Establish checks, retry limits, capacity, and overall limits before work starts.
 Before implementation or dispatch, search `.brain/RETRO.md` once for the task or related batch,
 by practice and trigger. Pass matching practices and limits through assignment Constraints or
-review inputs; source pointers stay with the lead unless the recipient needs that evidence. A sole writer keeps
-them in its own task context. Reuse them through related dispatches, reviews, and repair rounds;
-search again only for a new area or relevant new evidence. No match needs no note.
+review inputs; source pointers stay with the lead unless the recipient needs that evidence.
+A sole writer keeps them in its own task context. Reuse them through related dispatches, reviews,
+and repair rounds; search again only for a new area or relevant new evidence. No match needs no
+note.
 For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, never
 `bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
@@ -92,8 +93,8 @@ records. A finding earns a `RETRO.md` entry only if it would change another task
 states when it applies and what to do, and adds guidance beyond existing instructions, tests, or
 structure. Check plausible candidates for duplicates, then publish related findings in one
 [compare-and-swap save](../run-retro/references/retro.md#save); on a conflict, or when `RETRO.md`
-is missing, the evidence stays in its record and no notebook is created. Never delay closure for it. No finding, "nothing learned" note, report, agent call,
-or `run-retro` invocation is required.
+is missing, the evidence stays in its record and no notebook is created. Never delay closure for
+it. No finding, "nothing learned" note, report, agent call, or `run-retro` invocation is required.
 
 Remove only closed items' merged branches and clean worktrees with `git branch -d`
 and `git worktree remove`, including runtime-created branches and accepted candidate
