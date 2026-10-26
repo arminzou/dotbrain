@@ -163,7 +163,8 @@ a conflict rebase or integrated-check repair, needs refreshed evidence before cl
 `APPROVE` does not cover a stale revision. No item closes with an unreviewed behavior change.
 
 Acceptance/UAT records revision, environment, agreed journeys, actual checks/results,
-and gaps. An unexercised journey never passes or automatically becomes a request for
+and gaps, including [evidence kinds and any static-only exemption](references/execution-record.md#integration-groups-and-recovery)
+in every `Accepted` record. An unexercised journey never passes or automatically becomes a request for
 human checking. Required UAT with failed, missing, or stale evidence holds affected work;
 investigate and repair within remaining limits. Record every finding's disposition: blocking
 findings resolved; others applied, filed with follow-up IDs, or declined with reasons.

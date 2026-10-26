@@ -123,6 +123,20 @@ Record the delivery branch, before/after heads, group reference, refreshed revie
 references, and dependent bases. Charge checkpoint failures to affected members with
 finding references; never invent a group counter.
 
+Every `Accepted` body includes `Evidence: <kinds>` using every applicable kind from
+`live`, `integration-test`, `unit-test`, `eval`, `static-only`, matching the verifier's
+`Verification` block. These are kinds, not a ranking: `live` exercises the running product,
+`integration-test` exercises connected components, `unit-test` exercises isolated code,
+and `eval` exercises agent behavior. Use `static-only` when the evidence inspects artifacts
+without exercising the changed behavior. Classify what the checks demonstrate, not just
+the command name; a passing delivery test does not demonstrate agent behavior.
+Keep the supporting check references and coverage gaps beside the field.
+
+A behavior change with only `static-only` evidence stays unaccepted unless the human
+explicitly exempts it. In that `Accepted` body, record `Human exemption: <who, source,
+reason, and exempted behavior>`. Authorization to implement or use judgment is not an
+exemption. This does not waive any other required check, review, or human gate.
+
 For held groups, record membership, failed/uncovered criteria, evidence and waiting
 dependents on every member. `Containment` records accepted bases, isolated candidates,
 affected files/resources/consumers, exclusive repair ownership, before/after revisions

@@ -239,5 +239,7 @@ updated only for execution facts when a bead is linked. An open linked bead reco
 next, and any open question before handoff. A successful automation handoff ends with the agreed
 ready-for-review PR and the human's review requested; the
 PR body carries the audience-safe `Verification` section described in `manage-work-graph`.
+Preserve the [verifier's evidence kinds](../../agents/verifier.md) in that section;
+acceptance follows [Run Execution's evidence and exemption rules](../run-execution/references/execution-record.md#integration-groups-and-recovery).
 Follow the convention's human gates and manage-work-graph's closure boundary.
 Do not poll for merge or add retrospective checkpoints or another reflection report.

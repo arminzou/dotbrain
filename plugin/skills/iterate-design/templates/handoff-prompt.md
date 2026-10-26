@@ -57,6 +57,8 @@ Handoff delivery:
   otherwise the session report. Report notification failures in the session and remain BLOCKED.
 - At FINAL, write the Verification section and simplify count or skip note, mark the existing
   draft PR ready, and request the human's review. Never mark it ready with a blocked scoped item.
+  Preserve the verifier's `Evidence` field; every Accepted record follows Run Execution's
+  evidence kinds and explicit human exemption rule for static-only behavior acceptance.
 
 Objective:
 Complete the next bounded execution that advances this design.
