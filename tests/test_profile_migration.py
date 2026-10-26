@@ -214,6 +214,28 @@ def test_current_config_keeps_safe_delivery_when_agents_config_is_invalid(tmp_pa
     assert any("targets must be a mapping" in error for target in result.targets for error in target.errors)
 
 
+@pytest.mark.parametrize("runtime,directory,filename", [
+    ("claude", ".claude", "claude/custom.md"),
+    ("codex", ".codex", "codex/custom.toml"),
+])
+def test_migration_allows_agents_defined_only_for_selected_runtime(tmp_path, runtime, directory, filename):
+    root, user = tmp_path / "data", tmp_path / "user"
+    write(root / "skills/skills.yaml", "global_extra: [collection/example]\n")
+    write(root / "skills/collection/example/SKILL.md", "example")
+    write(root / "agents/agents.yaml", "global: [custom]\n")
+    write(root / "agents" / filename, 'description = "custom"\n')
+    assert not assets.link_global(root, "agents", runtime, user_home=user).warnings
+
+    findings = doctor._check_machine(root, user)
+    result = bootstrap.prepare(root, runtime, home=user,
+                               run=lambda *args, **kwargs: subprocess.CompletedProcess(args, 0))
+    assert result.status == "success", result
+    assert not any("global profile migration:" in finding.message for finding in findings)
+    assert yaml.safe_load((root / "skills/skills.yaml").read_text())["profiles"] == {}
+    assert (user / directory / "skills/example").is_symlink()
+    assert (user / directory / "agents" / Path(filename).name).is_file()
+
+
 def test_config_symlink_is_preserved(tmp_path):
     root = tmp_path / "data"
     source = root / "shared/config.yaml"

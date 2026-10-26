@@ -99,8 +99,8 @@ def plan(root: Path, user_home: Path) -> Plan | None:
     if errors:
         raise ValueError("; ".join(errors))
     skills.resolve_selection(root, skill_config.global_extra)
-    errors = subagents.validate_selection(root, agent_config.global_names,
-                                          tuple(rt.key for rt in runtimes.select("all") if rt.subagents))
+    # Delivery checks runtime-specific definitions; migration only needs valid selections.
+    errors = subagents.validate_selection(root, agent_config.global_names, ())
     if errors:
         raise ValueError("; ".join(errors))
     return Plan(path.resolve(), original, updated)
