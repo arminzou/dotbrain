@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -136,6 +136,12 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     claude_profiles = []
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
+    try:
+        if profile_migration.plan(root, home) is not None:
+            findings.append(Finding("info", "global runtime profile configuration can be migrated",
+                                    "run dotbrain bootstrap; the original configuration is backed up"))
+    except DIAGNOSIS_ERRORS as exc:
+        findings.append(Finding("error", f"global profile migration: {exc}", "correct the global configuration"))
     for kind in ("skills", "agents"):
         try:
             cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)

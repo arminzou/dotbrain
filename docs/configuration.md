@@ -185,6 +185,19 @@ home directories are supported. Doctor also checks the dotbrain plugin in each C
 Legacy `targets` entries matching the default skills folder are ignored. A custom skills target
 uses its parent as an extra home and prints a notice to move that home to `profiles`.
 
+`dotbrain bootstrap` adds a missing `profiles: {}` to an existing skills configuration and removes
+simple legacy entries spelled `~/.claude/skills` or `~/.codex/skills` (including Windows separators).
+It preserves comments, selections and unknown settings, validates both global asset configurations,
+and keeps the original bytes under `~/dotbrain/.cache/config-backups/` before an atomic replacement.
+The migration is reported only when the file changes. To recover, restore the reported backup to
+`~/dotbrain/skills/skills.yaml`. Doctor recommends bootstrap without changing files.
+
+Absolute paths and custom or structurally ambiguous targets remain unchanged: a path matching this
+machine's default might mean something different on another machine. Anchored or flow-style target
+mappings are retained. Review any proposed conversion on every machine first: shared profiles affect
+**both skills and subagents**. In particular, bootstrap leaves `agents/agents.yaml` targets intact;
+moving an agents-only destination into profiles could unintentionally start delivering skills there.
+
 An entry containing `SKILL.md` selects that one skill. Otherwise its directory expands recursively
 to descendants containing `SKILL.md`, excluding `node_modules`. Overlapping entries selecting the
 same source are deduplicated. Distinct sources with the same destination name fail before any

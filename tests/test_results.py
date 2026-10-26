@@ -125,7 +125,7 @@ def test_bootstrap_preserves_global_yaml(tmp_path, fake_home):
     config.write_text(original)
     result = runner.invoke(app, ["bootstrap", "--home", str(root), "--json"])
     assert result.exit_code == 0, result.output
-    assert config.read_text() == original
+    assert config.read_text() == original + "profiles: {}\n"
 
 
 def test_bootstrap_foreign_asset_is_preserved_and_failed(tmp_path, fake_home):
