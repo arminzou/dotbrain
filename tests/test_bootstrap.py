@@ -356,7 +356,6 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     root = tmp_path / "fresh-dotbrain"
     result = bootstrap_mod.ensure_data_root(root)
 
-    assert result.agents_seeded is True
     assert (root / "subagents" / "claude").is_dir()
     assert (root / "subagents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()

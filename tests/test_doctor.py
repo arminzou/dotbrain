@@ -335,7 +335,7 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     write(root / "skills/bundle/one/SKILL.md", "skill")
     brainspace = make_project(root, repo=repo, runtimes=("codex",), selected=("bundle",))
     selected_agents = ("custom",)
-    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
+    write(root / "subagents/codex/custom.toml", 'name = "custom"\n')
     declaration = brainspace / ".brain/project.yaml"
     declaration.write_text(declaration.read_text() + "\nsubagents: [custom]\n")
     subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})

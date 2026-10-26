@@ -183,7 +183,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             return result
     resolved = {}
     if kind == "agents":
-        names = [name for name in cfg.global_names if not subagents.is_packaged(name)]
+        names = [name for name in cfg.global_names if name not in config.PACKAGED_ROLES]
         if len(names) < len(cfg.global_names):
             result.notices.append("config.yaml subagents: packaged subagents have no global scope; skipped "
                                   + ", ".join(name for name in cfg.global_names if name not in names))

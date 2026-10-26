@@ -42,7 +42,6 @@ class DataRootResult:
 
     created: bool = False
     config_seeded: bool = False
-    agents_seeded: bool = False
     git_initialized: bool = False
     logs: list[str] = field(default_factory=list)
 

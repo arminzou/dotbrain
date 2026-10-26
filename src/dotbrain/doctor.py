@@ -137,7 +137,7 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         try:
             cfg = skills.load_global_config(root)
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else subagents.load_global_config(root).global_names
-            packaged = [name for name in selected if kind == "agents" and subagents.is_packaged(name)]
+            packaged = [name for name in selected if kind == "agents" and name in config.PACKAGED_ROLES]
             if packaged:
                 findings.append(Finding("warn", f"config.yaml subagents names packaged subagents: {', '.join(packaged)}",
                                         "remove them; packaged subagents are selected per project in project.yaml"))

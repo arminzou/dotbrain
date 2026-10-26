@@ -290,9 +290,9 @@ def test_skills_link_project_native(
 def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     for directory in ("claude", "codex"):
-        (dotbrain_home / "agents" / directory).mkdir(parents=True)
-    (dotbrain_home / "agents/claude/reviewer.md").write_text("custom reviewer")
-    (dotbrain_home / "agents/codex/reviewer.toml").write_text('name = "reviewer"\n')
+        (dotbrain_home / "subagents" / directory).mkdir(parents=True)
+    (dotbrain_home / "subagents/claude/reviewer.md").write_text("custom reviewer")
+    (dotbrain_home / "subagents/codex/reviewer.toml").write_text('name = "reviewer"\n')
     (brainspace / ".brain" / "project.yaml").write_text(
         "agents:\n"
         "  - claude\n"
@@ -321,9 +321,9 @@ def test_agents_link_repo_links_into_target_checkout(
     _asset_checkout(brainspace, checkout)
     (brainspace / ".brain/project.yaml").write_text("agents: [claude, codex]\nsubagents: [custom]\n")
     for directory in ("claude", "codex"):
-        (dotbrain_home / "agents" / directory).mkdir(parents=True)
-    (dotbrain_home / "agents/claude/custom.md").write_text("custom")
-    (dotbrain_home / "agents/codex/custom.toml").write_text('name = "custom"\n')
+        (dotbrain_home / "subagents" / directory).mkdir(parents=True)
+    (dotbrain_home / "subagents/claude/custom.md").write_text("custom")
+    (dotbrain_home / "subagents/codex/custom.toml").write_text('name = "custom"\n')
 
     result = runner.invoke(
         app,
