@@ -88,13 +88,17 @@ Every discovery the initiative produced lands in exactly one place:
 - **`CONTEXT.md`** — a concept the project now names and will keep naming.
 - **`.brain/docs/`** — a maintained "how it works now" description, which the frozen design doc is
   not.
+- **`.brain/RETRO.md`** — a practice from the overall approach or goal outcomes that would change
+  another initiative's decisions. Reuse findings already recorded at task closure rather than
+  writing them again, and save with
+  [run-retro's compare-and-swap save](../run-retro/references/retro.md#save).
 - **Nowhere** — item-local facts that die with their beads.
 
 Write the ADR ids you created into the doc's `residue:` frontmatter, so provenance survives in both
 directions.
 
 Completion: every entry under `Known Unknowns`, `Deviations`, and `Implementation Notes` has
-been placed in one of the four, and `residue:` lists every ADR the initiative produced.
+been placed in one of these destinations, and `residue:` lists every ADR the initiative produced.
 
 ### 4. Stamp and close
 

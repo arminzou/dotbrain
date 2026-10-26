@@ -83,7 +83,7 @@ treeView-beta
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
-| `RETRO.md` | Optional private retrospective findings and evidence | A retrospective pass records findings |
+| `RETRO.md` | Optional private retrospective findings, with pointers to their evidence | The lead records a transferable practice when work completes; `run-retro` curates it |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
@@ -114,8 +114,9 @@ Brain writes are commits in the dotbrain home, so every change can be reviewed a
 
 Public repository `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`.
 These instructions remain usable without a Brain. Shared `DOTBRAIN.md` owns private retrieval:
-the lead or sole agent searches relevant retrospective findings during implementation or review
-preparation and passes them through existing assignments. Workers and reviewers reuse supplied
+the lead or sole agent searches relevant retrospective findings once per task or batch, before
+implementation or review, and passes them through existing assignments; when work completes, it
+records any transferable practice. Workers and reviewers reuse supplied
 findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
 only shared conventions, never the notebook.
 

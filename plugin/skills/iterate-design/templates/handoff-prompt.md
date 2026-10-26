@@ -109,7 +109,8 @@ Loop protocol (every iteration, not just the first):
    Human Decisions Needed in the active design doc.
    Keep linked Beads current separately: file discovered execution work with `discovered-from` and,
    before a handoff or BLOCKED, update the bead notes with what is done, next, and any open question.
-   REFLECT does not invoke run-retro or add another reflection report.
+   Transferable practices follow run-execution's completion step; REFLECT does not invoke
+   run-retro or add another reflection report.
 8. After the integrated in-loop gate passes, apply review-gate's final whole-branch
    review rules, including reuse, named readiness review, simplify, and the PR summary.
    Admit any goal-shortfall repair through the rule above before deciding the loop outcome.
