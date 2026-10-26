@@ -118,7 +118,7 @@ def test_skill_collision_no_mutation(tmp_path):
 
 def test_catalogs_and_invalid_json_selection(tmp_path):
     write(tmp_path / "skills/test/SKILL.md", "test")
-    write(tmp_path / "agents/codex/custom.toml", 'name = "custom"\n')
+    write(tmp_path / "subagents/codex/custom.toml", 'name = "custom"\n')
     runner = CliRunner()
     for kind in ("skills", "agents"):
         result = runner.invoke(app, [kind, "list", "--home", str(tmp_path), "--runtime", "codex", "--json"])
