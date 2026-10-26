@@ -118,15 +118,25 @@ The header's `Curation cutoff:` is a timestamp. Select records changed after it,
 first, within the pass limit:
 
 - retro candidates: the lead's `dotbrain_retro` write updates its bead, so flagged beads arrive in
-  the work-item query below. On each selected bead, judge every `## Retro candidate` comment
-  (practice, when, limit, evidence) that no `## Retro candidate judged` comment answers, whatever
-  its `created_at`; a candidate written before a pass whose flag landed after it is still judged.
-  After the save, answer the bead's judged candidates in one comment, matched by candidate time:
+  the work-item query below. Match a comment only when its first line equals `## Retro candidate`
+  or `## Retro candidate judged`, respectively, with no extra text or whitespace. Prefix matches,
+  quoted headers, and headers later in a comment do not count. On each selected bead, judge every
+  candidate (practice, when, limit, evidence) that no judged comment answers by its `created_at`,
+  whatever its date; a candidate written before a pass whose flag landed after it is still judged.
+  If no unanswered candidate header is found and the bead's `dotbrain_retro` time is after the
+  cutoff, read all its comments in full. Recover candidate evidence behind malformed headers;
+  if the flag cannot be accounted for, record a source gap and leave the cutoff before that bead.
+  After the save, answer the bead's judged candidates in one comment, matched by candidate time.
+  Repeat the `Candidate:` / `Outcome:` pair once for each candidate judged in this pass; omit
+  the second pair when only one was judged:
 
   ```text
   ## Retro candidate judged
 
-  Candidate: <candidate comment created_at>
+  Candidate: <first candidate comment created_at>
+  Outcome: kept as "<practice>" | merged into "<practice>" | rejected: <reason>
+
+  Candidate: <next candidate comment created_at>
   Outcome: kept as "<practice>" | merged into "<practice>" | rejected: <reason>
   ```
 

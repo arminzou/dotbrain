@@ -574,7 +574,24 @@ def synced_home(tmp_path):
 
 
 def sync_findings(root):
-    return [(f.status, f.message) for f in doctor._check_home_sync(root, doctor._default_run)]
+    # These real-Git tests check metadata; probe deadlines are exercised with a fake runner below.
+    def run(argv, **kwargs):
+        return doctor._default_run(argv, **{**kwargs, "timeout": None})
+
+    return [(f.status, f.message) for f in doctor._check_home_sync(root, run)]
+
+
+def test_home_sync_probe_timeout_is_reported(tmp_path):
+    (tmp_path / ".git").mkdir()
+
+    def run(argv, **kwargs):
+        assert kwargs["timeout"] == doctor.PROBE_TIMEOUT
+        raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+
+    findings = doctor._check_home_sync(tmp_path, run)
+    assert len(findings) == 1 and findings[0].status == "warn"
+    assert findings[0].message.startswith("home sync check unavailable:")
+    assert f"timed out after {doctor.PROBE_TIMEOUT} seconds" in findings[0].message
 
 
 def test_clean_synced_home_reports_no_sync_problems(synced_home, tmp_path):

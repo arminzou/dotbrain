@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
+import signal
 import shutil
 import subprocess
 import sys
@@ -432,24 +434,50 @@ def test_push_fails_fast_and_times_out_as_unreachable(home: Path, monkeypatch):
     assert home_sync.sync(home, push_only=True, run=run).status != "locked"  # the lock was released
 
 
-def test_timeout_kills_the_whole_process_tree(tmp_path: Path):
+def test_timeout_kills_the_whole_process_tree(tmp_path: Path, monkeypatch):
     """A stalled child that started its own child holding the pipes, as git does with ssh."""
-    started, alive = tmp_path / "started", tmp_path / "alive"
-    grandchild = (f"import pathlib, time; pathlib.Path({str(started)!r}).touch(); time.sleep(3); "
-                  f"pathlib.Path({str(alive)!r}).touch()")
+    started = tmp_path / "started"
+    grandchild = (f"import os, pathlib, time; ready = pathlib.Path({str(started)!r}); "
+                  "ready.with_suffix('.tmp').write_text(str(os.getpid())); "
+                  "ready.with_suffix('.tmp').replace(ready); time.sleep(120)")
     child = ("import subprocess, sys, time; print('partial', flush=True); "
              f"subprocess.Popen([sys.executable, '-c', {grandchild!r}], "
-             "stdout=sys.stdout, stderr=sys.stderr); time.sleep(30)")
-    begin = time.monotonic()
-    with pytest.raises(subprocess.TimeoutExpired) as stalled:
-        home_sync.run_bounded([sys.executable, "-c", child], capture_output=True, encoding="utf-8",
-                              timeout=1.5)
-    elapsed = time.monotonic() - begin
-    time.sleep(max(0, 4.5 - elapsed))  # past the moment a surviving grandchild would write ``alive``
+             "stdout=sys.stdout, stderr=sys.stderr); time.sleep(120)")
+    command = [sys.executable, "-c", child]
+    communicate = subprocess.Popen.communicate
+    drained = []
+    processes = []
 
-    assert elapsed < 1.5 + home_sync._DRAIN_SECONDS
-    assert started.exists() and not alive.exists()
-    assert "partial" in stalled.value.stdout  # output collected before the kill is kept, as subprocess.run does
+    def after_start(proc, *args, **kwargs):
+        if proc.args == command and kwargs.get("timeout") == 0.1:
+            processes.append(proc)
+            deadline = time.monotonic() + 60  # startup watchdog, outside the timeout being tested
+            while not started.exists():
+                assert time.monotonic() < deadline, "grandchild did not start"
+                time.sleep(0.01)
+        result = communicate(proc, *args, **kwargs)
+        if proc.args == command:
+            drained.append(result)  # EOF proves the grandchild released its inherited pipes
+        return result
+
+    monkeypatch.setattr(subprocess.Popen, "communicate", after_start)
+    # Test tree termination and EOF, with scheduling margin rather than a runtime latency assertion.
+    monkeypatch.setattr(home_sync, "_DRAIN_SECONDS", 30)
+    try:
+        with pytest.raises(subprocess.TimeoutExpired) as stalled:
+            home_sync.run_bounded(command, capture_output=True, encoding="utf-8", timeout=0.1)
+        assert stalled.value.timeout == 0.1
+        assert drained, "a descendant still holds the pipes after the tree kill"
+        assert "partial" in stalled.value.stdout
+    finally:
+        if not drained:
+            for proc in processes:
+                home_sync._kill_tree(proc)
+            if started.exists():
+                try:
+                    os.kill(int(started.read_text()), signal.SIGTERM)
+                except OSError:
+                    pass  # already exited
 
 
 # Full sync between two machines: ``home`` is machine W, ``other`` (a second clone) is machine V.
