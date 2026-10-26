@@ -119,13 +119,23 @@ first, within the pass limit:
 
 - retro candidates: the lead's `dotbrain_retro` write updates its bead, so flagged beads arrive in
   the work-item query below. On each selected bead, judge every `## Retro candidate` comment
-  (practice, when, limit, evidence) that no finding cites and no later `## Retro candidate judged`
-  comment answers, whatever its `created_at`; a candidate written before a pass whose flag landed
-  after it is still judged. Nothing removes the flag. `bd list --all --has-metadata-key
+  (practice, when, limit, evidence) that no `## Retro candidate judged` comment answers, whatever
+  its `created_at`; a candidate written before a pass whose flag landed after it is still judged.
+  After the save, answer the bead's judged candidates in one comment, matched by candidate time:
+
+  ```text
+  ## Retro candidate judged
+
+  Candidate: <candidate comment created_at>
+  Outcome: kept as "<practice>" | merged into "<practice>" | rejected: <reason>
+  ```
+
+  Nothing removes the flag. `bd list --all --has-metadata-key
   dotbrain_retro --json` lists every bead that ever carried a candidate, for an audit;
-- work and review items: `bd list --all --updated-after <cutoff> --sort updated --reverse --json` (oldest first), then read
-  each selected item's comments for CHANGES verdicts, failed checks, rejected candidates, human
-  corrections, defects, and informative successes or recoveries;
+- work and review items: `bd list --all --updated-after <cutoff> --sort updated --reverse --brief --json`
+  (oldest first; `--brief` leaves out descriptions and notes), then read each selected item's
+  comments by header, opening in full only those relevant here: CHANGES verdicts, failed checks,
+  rejected candidates, human corrections, defects, and informative successes or recoveries;
 - PRs in scope merged or closed since the cutoff, with their reviews;
 - incidents the human supplies, regardless of date.
 
@@ -157,8 +167,9 @@ or explicit correction, dated by the original event in the recorded timezone, an
 words what happened. Prefer the original event's date; a later rebase, copy, or retry adds no new
 pointer. Distinguish the observed outcome from the inferred practice; retain relevant limits and
 contradictory evidence. Several dated pointers show recurrence without a counter. A pointer to a
-retro candidate names its bead and the candidate comment's `created_at`, so a later pass can tell
-the candidate was judged.
+retro candidate names its bead and the candidate comment's `created_at`. Pointers are evidence;
+the bead's judged comment, not the notebook, records that a candidate was judged, so pruning
+pointers is safe.
 
 Findings stay in their work-area section throughout. Preserve proposal links, accepted
 destinations, actual adoption dates, holds, and pending decisions when consolidating entries.

@@ -64,6 +64,8 @@ Use [manage-work-graph's metadata and comment write method](../../manage-work-gr
 ## Containment @ <revision>
 ## Claim moved: <from actor> -> <to actor>
 ## Cancelled @ <revision>
+## Retro candidate
+## Retro candidate judged
 ```
 
 Record `Dispatched` as soon as the runtime identifies the worker, before waiting on it. Its body
