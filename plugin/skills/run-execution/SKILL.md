@@ -30,7 +30,9 @@ runtime. Prefer native subagents when runtimes match. Record any uncovered mecha
 judgment so a fix round or takeover can repeat it.
 
 Never spawn an agent only to check a checkpoint. The writer runs its own checkpoint
-checks. The lead runs gate checks unless the caller names a verifier, at most one;
+checks: the tests its change affects. The full suite and any other machine-wide check is a
+gate check, run once per integrated group head before promotion; reviewers do not
+run it. The lead runs gate checks unless the caller names a verifier, at most one;
 iterate-design reserves its verifier for the once-only in-loop gate. Spawn a reviewer
 for item review. Keep exploration that feeds a design in the session that will use it.
 

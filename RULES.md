@@ -37,7 +37,7 @@ Apply the rules relevant to the change. Reviewers name the rule when reporting a
 | Tests are safe to run in parallel: the suite runs under `pytest -n auto`. | A test touches only its own `tmp_path`, binds port 0 rather than a fixed port, and changes environment variables or the working directory only through `monkeypatch`. |
 | Fixtures that need initialized Git repositories build them once per session and copy them into each test. | A fixture or helper used by many tests creates its repositories with `tmp_path_factory` and `shutil.copytree`, not with `git init`, `commit` or `push` per test. |
 | Tests never need Beads or another external tool installed. | Code that runs `bd` gets a fake runner; the suite fails any test that launches real `bd`. |
-| Run `uv run pytest` before submitting code changes; CI must pass on Linux, macOS, and Windows. | PR checks are green on all three platforms. |
+| Run `uv run pytest` before pushing or submitting code changes for review; CI must pass on Linux, macOS, and Windows. When several agents work on one branch, the integrating agent runs the full suite and contributors run affected tests (`uv run pytest tests/<file>.py`). | PR checks are green on all three platforms; no two full suites run at once. |
 
 ## Skills
 

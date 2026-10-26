@@ -74,5 +74,5 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Most of the suite's time is spent waiting on real git processes; spread it across cores.
-addopts = "-n auto"
+# Real Git subprocesses exhaust Windows process resources when every core gets a worker.
+addopts = "-n auto --maxprocesses=4"
