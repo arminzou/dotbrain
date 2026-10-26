@@ -149,7 +149,7 @@ wire 和 refresh 保留已有内容和上下文指针。仓库要求放在公开
 `dotbrain refresh` 维护当前 checkout，`dotbrain unwire` 断开连接但保留共享的
 Brainspace。在别的目录下，用 `--project <name>` 指定项目；`refresh --all`
 会处理所有已注册的项目。全局资源不会顺带同步，需要显式运行 `skills link --scope global` 或
-`agents link --scope global`。
+`subagents link --scope global`。
 
 Brain 用 Git 做版本管理，记得备份到**私有**远程仓库。Beads 数据库不进 Git，
 想备份或共享任务，得另外配一个 Dolt remote 或共享服务器。

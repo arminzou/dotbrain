@@ -312,7 +312,7 @@ CLI 现在使用统一的选择参数。旧的调用方式会直接报错，不�
 | `wire --all` | `refresh --all` |
 | `--beads-server-host`、`--beads-server-port`、`--beads-server-user` | `--server-host`、`--server-port`、`--server-user` |
 | `--beads-ssh-host`、`--beads-database`、`--beads-remote` | `--ssh-host`、`--database`、`--remote` |
-| 隐式全局范围的资源链接 | `skills link --scope global` 或 `agents link --scope global` |
+| 隐式全局范围的资源链接 | `skills link --scope global` 或 `subagents link --scope global` |
 | `update` | 用安装 CLI 的包管理器升级 |
 | `unwire --all` | 对每个项目运行 `unwire --project <name>` |
 | unwire 的归档、删除或预览参数 | `unwire` 只负责断开；保留下来的目录用文件系统操作自己处理 |

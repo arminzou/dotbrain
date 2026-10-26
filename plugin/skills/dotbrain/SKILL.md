@@ -36,8 +36,9 @@ Do not edit per project; packaged template changes propagate to every Brain.
   by hand in `~/dotbrain`, never the code repo, only for structural changes worth finding or
   reverting alone, such as retiring a Brainspace or closing a design.
 - `.claude`, `.codex`, and `.agents/skills` are real checkout directories. Codex project skills
-  go in `.agents/skills`; configuration and agents stay in `.codex`. Skills/Claude agents are symlinks;
-  Codex agents are TOML marked `# dotbrain-managed-agent: v1`. Edit private sources; never
+  go in `.agents/skills`; configuration and agents stay in `.codex`. Skills and custom Claude agents
+  are symlinks; Codex agents and packaged `dotbrain-<role>` agents are real files marked
+  `# dotbrain-managed-agent: v1`; `project.yaml` `packaged-subagents` lists the packaged roles. Edit private sources; never
   commit local wiring or delivered copies.
 - Wire, refresh, link, and unwire checkouts through the `dotbrain` CLI; `wire-brain` covers the
   commands and selection flags. Worktrees share the main checkout's Brainspace. Let the CLI

@@ -166,10 +166,13 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 See [Working with an agent team](agent-team.md#the-packaged-subagents) for when to use each role,
 example prompts, and how the lead coordinates their results.
 
-dotbrain ships packaged subagents. Claude Code receives them from the plugin as
-`dotbrain:<role>`, for example `dotbrain:worker`. Codex has no plugin agents, so `dotbrain wire`
-generates them into each wired checkout as `dotbrain-<role>`, for example `dotbrain-worker`.
-Hermes, OpenCode, Pi, and Cursor get no dotbrain subagents.
+dotbrain ships packaged subagents. A project lists the roles it wants under
+[`packaged-subagents`](configuration.md#project-yaml) in `project.yaml`; `dotbrain wire` seeds all
+four. `wire` and `refresh` deliver each listed role into the wired checkout's Claude Code and Codex
+workspaces as `dotbrain-<role>`, for example `dotbrain-worker`. There is no global delivery, and
+the plugin carries no agents. To opt out, remove a role from the list (or empty it) and run
+`dotbrain refresh`. Workflows run with or without them: without a packaged role, the lead gives a
+generic subagent the same role contract. Hermes, OpenCode, Pi, and Cursor get no dotbrain subagents.
 Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
 without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
 
@@ -180,13 +183,13 @@ without reading the whole retrospective notebook. A missing notebook blocks noth
 | `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
 | `researcher` | Answers a question from the Brain, the codebase, and the web, and flags where outside sources and the Brain disagree. On Codex it reads local files with shell commands under the lead session's permissions; its instructions forbid writes and network commands, but a lead with broader permissions passes them to it |
 
-The packaged subagents can't be overridden: a file with the same name in your private agent
-sources is ignored. To customize one, write your own agent under a different name. Add your own
-subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml), or under
+The packaged subagents can't be overridden: custom subagent names
+can't start with `dotbrain-`. To customize one, write your own agent under a different name. Add
+your own subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml), or under
 `subagents:` in [`config.yaml`](configuration.md#global-subagents); `dotbrain bootstrap` prepares the global ones in your runtime homes.
 
 Your own Claude definitions are delivered as symlinks. Codex definitions are real TOML copies
-generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain agents link` reconciles the current wired checkout;
+generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain subagents link` reconciles your custom subagents in the current wired checkout;
 use `--scope global` for global homes. Doctor checks file type and delivered content, while a
 successful role spawn confirms the runtime actually consumed a definition.
 

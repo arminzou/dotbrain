@@ -167,14 +167,16 @@ See [The packaged subagents](agent-team.md#the-packaged-subagents) for their res
 Skills describe the workflow; subagents take focused assignments from your main agent. Ask your
 main agent to delegate using these names:
 
-| Role | Claude Code | Codex |
-|---|---|---|
-| Writing | `dotbrain:worker` | `dotbrain-worker` |
-| Research | `dotbrain:researcher` | `dotbrain-researcher` |
-| Review | `dotbrain:reviewer` | `dotbrain-reviewer` |
-| Verification | `dotbrain:verifier` | `dotbrain-verifier` |
+| Role | Claude Code and Codex |
+|---|---|
+| Writing | `dotbrain-worker` |
+| Research | `dotbrain-researcher` |
+| Review | `dotbrain-reviewer` |
+| Verification | `dotbrain-verifier` |
 
-The prompts below name the role; use the runtime name above if needed. These are subagent
+These names exist only in wired checkouts whose `project.yaml` lists the role under
+[`packaged-subagents`](configuration.md#project-yaml). Without them, workflows give a generic
+subagent the same role contract. The prompts below name the role; use the name above if needed. These are subagent
 assignments, not slash commands. See [Session context](session-context.md#subagents).
 
 ### Delegate one change to a worker

@@ -152,13 +152,15 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 
 技能规定工作流程，subagent 则接收主 Agent 分配的具体任务。可以让主 Agent 用下面的名字调用它们：
 
-| 职责 | Claude Code | Codex |
-|---|---|---|
-| 写代码 | `dotbrain:worker` | `dotbrain-worker` |
-| 研究 | `dotbrain:researcher` | `dotbrain-researcher` |
-| 审阅 | `dotbrain:reviewer` | `dotbrain-reviewer` |
-| 验证 | `dotbrain:verifier` | `dotbrain-verifier` |
+| 职责 | Claude Code 和 Codex |
+|---|---|
+| 写代码 | `dotbrain-worker` |
+| 研究 | `dotbrain-researcher` |
+| 审阅 | `dotbrain-reviewer` |
+| 验证 | `dotbrain-verifier` |
 
+只有在已连接的 checkout 里、且 `project.yaml` 的 [`packaged-subagents`](configuration.md#project-yaml)
+列出了该角色时，才有这些名字。没有时，工作流会把同样的角色约定交给通用 subagent。
 下面的提示词按角色描述任务；需要明确名称时，使用上表对应的名字。这些是交给 subagent 的任务，不是 slash command。
 见[会话上下文](session-context.md#subagents)。
 

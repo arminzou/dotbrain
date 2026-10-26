@@ -141,9 +141,11 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
 
 各角色的适用场景、提示词和 lead 如何协调结果，见[和 Agent 团队一起工作](agent-team.md#the-packaged-subagents)。
 
-dotbrain 自带一组子 Agent。Claude Code 从插件获得它们，名字是 `dotbrain:<role>`，比如 `dotbrain:worker`。
-Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已连接的 checkout 里，名字是 `dotbrain-<role>`，
-比如 `dotbrain-worker`。Hermes、OpenCode、Pi 和 Cursor 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
+dotbrain 自带一组子 Agent。项目在 `project.yaml` 的 [`packaged-subagents`](configuration.md#project-yaml)
+里列出需要的角色；`dotbrain wire` 会写入全部四个。`wire` 和 `refresh` 把列出的角色分发到已连接 checkout 的
+Claude Code 和 Codex 工作区，名字是 `dotbrain-<role>`，比如 `dotbrain-worker`。没有全局分发，插件也不带 Agent。
+不想要某个角色，就把它从列表里删掉（或清空列表），再运行 `dotbrain refresh`。有没有它们，工作流都能跑：
+缺少某个角色时，lead 会把同样的角色约定交给通用子 Agent。Hermes、OpenCode、Pi 和 Cursor 都没有 dotbrain 子 Agent。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
 不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
 
 | 子 Agent | 做什么 |
@@ -153,13 +155,13 @@ Codex 没有插件 Agent，所以 `dotbrain wire` 会把它们生成到每个已
 | `verifier` | 运行验证关卡，返回带提交标记的证据，从不给主观意见 |
 | `researcher` | 根据 Brain、代码库和网络回答问题，并指出外部来源和 Brain 不一致的地方。在 Codex 上，它在主会话的权限下用 shell 命令读取本地文件；它的指令禁止写入和网络命令，但如果主会话权限更宽，这些权限也会传给它 |
 
-自带的子 Agent 不能被覆盖：你私有 Agent 源里同名的文件会被忽略。要自定义，请用不同的名字写你自己的 Agent。
+自带的子 Agent 不能被覆盖：自定义子 Agent 的名字不能以 `dotbrain-` 开头。要自定义，请用不同的名字写你自己的 Agent。
 在 [`project.yaml`](configuration.md#project-yaml) 的 `subagents:` 下，或 [`config.yaml`](configuration.md#global-subagents) 的 `subagents:`
 下添加你自己的子 Agent；`dotbrain bootstrap` 会把全局的那些准备到各运行时的主目录里。
 
 你自己的 Claude 定义以符号链接的形式分发。Codex 定义是生成的真实 TOML 副本，带有
-`# dotbrain-managed-agent: v1` 标记；dotbrain 可以覆盖或清理它们。`dotbrain agents link` 同步当前已连接的
-checkout；全局主目录请用 `--scope global`。doctor 会检查文件类型和分发的内容，而成功启动一个角色才能确认
+`# dotbrain-managed-agent: v1` 标记；dotbrain 可以覆盖或清理它们。`dotbrain subagents link` 在当前已连接的
+checkout 里同步你的自定义子 Agent；全局主目录请用 `--scope global`。doctor 会检查文件类型和分发的内容，而成功启动一个角色才能确认
 运行时确实用上了这个定义。
 
 打包的 Codex reviewer 会关闭跨会话记忆。它仍会收到项目指令，并读取相关的 Brain 记录和指定的 skill。

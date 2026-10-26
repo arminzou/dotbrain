@@ -334,7 +334,7 @@ update existing scripts using this table.
 | `wire --all` | `refresh --all` |
 | `--beads-server-host`, `--beads-server-port`, `--beads-server-user` | `--server-host`, `--server-port`, `--server-user` |
 | `--beads-ssh-host`, `--beads-database`, `--beads-remote` | `--ssh-host`, `--database`, `--remote` |
-| Asset linking with implicit global scope | `skills link --scope global` or `agents link --scope global` |
+| Asset linking with implicit global scope | `skills link --scope global` or `subagents link --scope global` |
 | `update` | Upgrade with the package manager that installed the CLI |
 | `unwire --all` | `unwire --project <name>` per project |
 | Unwire archival, deletion, or preview flags | `unwire` removes checkout wiring; manage retained directories through filesystem actions |

@@ -21,7 +21,7 @@ treeView-beta
 | `brainspaces/<name>/.brain/project.yaml` | 单个项目 | `dotbrain wire` |
 
 修改项目声明后，运行 `dotbrain refresh`（或 `dotbrain refresh --all`）。全局资源的变化用
-`dotbrain skills link --scope global` 或 `dotbrain agents link --scope global` 同步。
+`dotbrain skills link --scope global` 或 `dotbrain subagents link --scope global` 同步。
 
 ## 环境变量 {#environment}
 
@@ -108,7 +108,13 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-# subagents:                  # project-only subagents; packaged subagents are always wired
+packaged-subagents:           # exact list; remove a role and refresh to opt out
+  - researcher
+  - reviewer
+  - verifier
+  - worker
+
+# subagents:                  # project-only custom subagents
 #   - some-project-only-subagent
 ```
 
@@ -122,7 +128,8 @@ skills:                       # extra skills for this project's workspaces
 | `beads.remote` | — | embedded 跟踪器的 Dolt remote |
 | `beads.database` | 项目名 | 服务器上的数据库名 |
 | `skills` | `[]` | 链接到这个项目工作区的技能 |
-| `subagents` | `[]` | 在自带子 Agent 之外，只给这个项目用的子 Agent |
+| `packaged-subagents` | `[]` | 分发到这个项目已连接 checkout 的打包角色（`worker`、`researcher`、`reviewer`、`verifier`），名字是 `dotbrain-<role>`。`dotbrain wire` 会写入全部四个。列表是精确的；不写或为空表示不分发。 |
+| `subagents` | `[]` | 只给这个项目用的自定义子 Agent |
 | `retro.promotion.auto-deliver` | `false` | 由 skill 读取：允许自动提交、推送规则提案并创建 PR |
 | `retro.promotion.destinations` | `[]` | 允许修改的已有公开指南，相对仓库的路径数组；启用自动交付时不能为空 |
 
@@ -177,10 +184,12 @@ Claude Code 和 Codex 的技能会链接到默认主目录（`~/.claude` 和 `~/
 
 `subagents:` 列出分发到你个人 Agent 主目录的自定义子 Agent。每个名字对应
 `~/dotbrain/subagents/claude/<name>.md` 或 `~/dotbrain/subagents/codex/<name>.toml` 下的源文件。
-删除一个条目后，下次运行 `dotbrain agents link --scope global` 时会清理它对应的资源。
+删除一个条目后，下次运行 `dotbrain subagents link --scope global` 时会清理它对应的资源。
 
-打包的子 Agent（`worker`、`researcher`、`reviewer`、`verifier`）没有全局范围，请按项目选择。
-写在这里的打包名称会被跳过，doctor 也会报告。
+打包的子 Agent（`worker`、`researcher`、`reviewer`、`verifier`）没有全局范围，请写在项目的
+`packaged-subagents` 里。写在这里的打包名称会被跳过，doctor 也会报告。
+不想给某个项目分发某个角色，就把它从列表里删掉，再运行 `dotbrain refresh`。
+没有打包子 Agent 时工作流照样能跑：它们会把同样的角色约定交给通用子 Agent。
 
 Claude Code 和 Codex 会把 Agent 分发到默认主目录和同一组 `profiles` 下的 `agents/`。不存在的 profile
 会跳过；位于已连接 checkout 内的目标会报错并跳过。
@@ -209,6 +218,11 @@ Hermes、OpenCode、Pi 和 Cursor 不接收子 Agent。项目链接默认作用�
 | Claude Code 或 Codex 指向自定义目录的 `targets`，例如 `~/.codex-work/skills` | 父目录变成 profile 主目录，例如 `codex: [~/.codex-work]` |
 | Hermes、OpenCode、Pi 或 Cursor 指向自定义目录的 `targets` | 删除并报告替代做法：设置 `HERMES_HOME`、`XDG_CONFIG_HOME` 或 `PI_CODING_AGENT_DIR` 来移动该运行时；Cursor 固定使用 `~/.cursor/skills` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`，只放自定义子 Agent 的源文件 |
+| `agents list` / `agents link` 命令 | `dotbrain subagents list` / `dotbrain subagents link`，只管自定义子 Agent |
+| 打包子 Agent 总是分发给每个项目 | 在 `project.yaml` 的 `packaged-subagents` 里按项目列出；refresh 会给旧的、没有版本号的 `project.yaml` 补上这个列表（含全部四个角色），只补一次 |
+| Claude Code 插件里带插件前缀的 Agent | `dotbrain-<role>`，只在已连接的 checkout 里 |
+
+插件不再带 Agent，所以在没有用 dotbrain 连接的仓库里，Claude Code 不再有打包子 Agent。
 
 Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`、更新链接，
 最后删除旧设置文件，并逐项报告。如果某一步失败或进程中断，设置仍保存在旧文件或已写入的 config 中。

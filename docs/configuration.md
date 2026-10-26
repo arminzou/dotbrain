@@ -22,7 +22,7 @@ treeView-beta
 | `brainspaces/<name>/.brain/project.yaml` | One project | `dotbrain wire` |
 
 After editing project declarations, run `dotbrain refresh` (or `dotbrain refresh --all`). Global
-asset changes use `dotbrain skills link --scope global` or `dotbrain agents link --scope global`.
+asset changes use `dotbrain skills link --scope global` or `dotbrain subagents link --scope global`.
 
 ## Environment
 
@@ -113,7 +113,13 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-# subagents:                  # project-only subagents; packaged subagents are always wired
+packaged-subagents:           # exact list; remove a role and refresh to opt out
+  - researcher
+  - reviewer
+  - verifier
+  - worker
+
+# subagents:                  # project-only custom subagents
 #   - some-project-only-subagent
 ```
 
@@ -127,7 +133,8 @@ skills:                       # extra skills for this project's workspaces
 | `beads.remote` | — | Dolt remote for an embedded tracker |
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
-| `subagents` | `[]` | Project-only subagents in addition to the packaged subagents |
+| `packaged-subagents` | `[]` | Packaged roles (`worker`, `researcher`, `reviewer`, `verifier`) delivered into this project's wired checkouts as `dotbrain-<role>`. `dotbrain wire` seeds all four. The list is exact; absent or empty means none. |
+| `subagents` | `[]` | Project-only custom subagents |
 | `retro.promotion.auto-deliver` | `false` | Skill-read setting: allow unattended commit/push/PR delivery of rule proposals |
 | `retro.promotion.destinations` | `[]` | Allowed existing public guides as repo-relative paths; a nonempty array is required for auto-delivery |
 
@@ -190,10 +197,12 @@ selected bundle takes effect on the next reconciliation without rewriting this d
 
 `subagents:` lists custom subagents delivered into your personal agent homes. Each name is a
 source under `~/dotbrain/subagents/claude/<name>.md` or `~/dotbrain/subagents/codex/<name>.toml`.
-Removing an entry prunes its managed resource on the next `dotbrain agents link --scope global`.
+Removing an entry prunes its managed resource on the next `dotbrain subagents link --scope global`.
 
-Packaged subagents (`worker`, `researcher`, `reviewer`, `verifier`) have no global scope; select
-them per project. A packaged name here is skipped, and doctor reports it.
+Packaged subagents (`worker`, `researcher`, `reviewer`, `verifier`) have no global scope; list
+them in a project's `packaged-subagents`. A packaged name here is skipped, and doctor reports it.
+To stop delivering a packaged role to a project, remove it from that list and run `dotbrain refresh`.
+Workflows still run without packaged subagents; they give generic subagents the same role contract.
 
 Claude Code and Codex receive agents in `<home>/agents`, using their default homes and the same
 `profiles`. Missing profiles are skipped; destinations inside wired checkouts are reported and
@@ -226,6 +235,12 @@ them into `config.yaml` version 4:
 | Claude Code or Codex `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
 | Hermes, OpenCode, Pi or Cursor `targets` naming a custom folder | Dropped and reported, with the replacement: set `HERMES_HOME`, `XDG_CONFIG_HOME` or `PI_CODING_AGENT_DIR` to relocate that runtime; Cursor always uses `~/.cursor/skills` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
+| The `agents list` / `agents link` commands | `dotbrain subagents list` / `dotbrain subagents link`, custom subagents only |
+| Packaged subagents always delivered to every project | Listed per project in `project.yaml` `packaged-subagents`; refresh adds the list with all four roles to an older, unversioned `project.yaml` once |
+| Claude Code plugin agents, named with the plugin prefix | `dotbrain-<role>` in wired checkouts only |
+
+Claude Code no longer has packaged subagents in repositories that are not wired with dotbrain:
+the plugin no longer carries agents.
 
 Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
 `config.yaml`, repoints links, and removes the old settings files last, reporting each change.

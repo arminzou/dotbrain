@@ -89,7 +89,7 @@ lead 会说明原因，改为一次处理一个任务。缺少必需的能力，
 
 ## 内置 Subagent {#the-packaged-subagents}
 
-插件提供四个职责明确的角色。**技能**规定流程，**subagent** 执行具体任务。
+dotbrain 自带四个职责明确的角色。**技能**规定流程，**subagent** 执行具体任务。
 在分页功能的例子中，它们分别参与不同阶段：
 
 | 角色 | 怎样参与团队工作 |
@@ -110,10 +110,11 @@ Worker 如果发现自己在默认分支上，会停下，除非任务说明记�
 
 ### Coding Agent 怎么运行它们 {#how-the-coding-agent-runs-them}
 
-Claude Code 从插件获得这些角色。`run-execution` 按角色名分派任务，`dotbrain:worker` 在后台运行，
-同时修改代码时使用 worktree 隔离。内置角色接收自己的任务说明，不从 lead 的对话分叉。
+Claude Code 和 Codex 获得项目在 `packaged-subagents` 里列出的角色，它们以 `dotbrain-<role>` 定义的形式出现在
+每个已连接的 checkout 里。在 Claude Code 上，`run-execution` 按角色名分派任务，`dotbrain-worker` 在后台运行，
+同时修改代码时使用 worktree 隔离。没有列出某个角色时，lead 会把同样的角色约定交给通用 subagent。内置角色接收自己的任务说明，不从 lead 的对话分叉。
 
-Codex 在每个已连接的 checkout 中获得生成的 Agent 定义。当前工作流进行隔离实现时，先创建并连接 worktree，
+在 Codex 上，当前工作流进行隔离实现时，先创建并连接 worktree，
 再启动独立的 Codex CLI 会话，任务说明指向内置 worker 定义。CLI 会话不能直接选择自定义 Agent。
 Codex 原生 subagent 可以接收具体任务，但仅给它指定目录，并不能构成 worktree 隔离。
 
