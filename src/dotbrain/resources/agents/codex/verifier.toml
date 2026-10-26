@@ -53,8 +53,10 @@ Include one `Evidence: <kinds>` field in both renderings, using every applicable
 from `live`, `integration-test`, `unit-test`, `eval`, `static-only`. These are kinds,
 not a ranking: `live` exercises the running product, `integration-test` exercises
 connected components, `unit-test` exercises isolated code, and `eval` exercises agent
-behavior. Use `static-only` when the evidence inspects artifacts without exercising
-the changed behavior. Classify what the checks demonstrate, not just the command name;
+behavior. Use `static-only` alone when the complete evidence set has no exercise of
+the changed behavior; never combine it with the other kinds. Keep individual static
+command results in the check table, not the evidence-kind set.
+Classify what the checks demonstrate, not just the command name;
 a passing delivery test does not demonstrate agent behavior. Preserve coverage gaps:
 `PASS` reports the gate's result, not permission to accept a static-only behavior change.
 
