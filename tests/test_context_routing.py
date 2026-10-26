@@ -176,7 +176,7 @@ def test_bundled_consumers_keep_private_rules_and_selective_retro_retrieval():
     assert "personal preferences" in template
     assert "public root `RULES.md`" in template
     for role in ("worker", "researcher"):
-        claude = Path(f"plugin/agents/{role}.md").read_text(encoding="utf-8")
+        claude = resource_loader.resource(f"agents/claude/{role}.md").read_text(encoding="utf-8")
         codex = tomllib.loads(resource_loader.resource(f"agents/codex/{role}.toml").read_text(encoding="utf-8"))["developer_instructions"]
         for consumer in (claude, codex):
             assert "`RULES.md` (when present)" in consumer

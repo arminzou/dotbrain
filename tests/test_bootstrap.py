@@ -380,11 +380,11 @@ def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):
     assert (root / "agents" / "claude").is_dir()
     assert (root / "agents" / "codex").is_dir()
     assert subagents.load_global_subagents(root) == ()
-    # Claude Code receives packaged subagents from the plugin; Codex gets prefixed generated copies.
-    for name in ("reviewer", "worker", "verifier", "researcher"):
-        assert (root / ".cache" / "agents" / "codex" / f"dotbrain-{name}.toml").is_file()
-    assert not (root / ".cache" / "agents" / "claude").exists()
-    assert any("synced .cache/agents/codex/dotbrain-reviewer.toml" in line for line in result.logs)
+    assert not (root / ".cache" / "agents").exists()
+    linked = bootstrap_mod.link_global_subagents(root, home=tmp_path)
+    assert not linked.warnings
+    assert not list(tmp_path.rglob("dotbrain-*.toml"))
+    assert not list(tmp_path.rglob("dotbrain-*.md"))
 
 
 def test_wire_project_does_not_seed_project_default_subagents(
@@ -430,16 +430,17 @@ def test_link_global_subagents_links_configured_target(
     dest = tmp_path / ".codex" / "agents"
     set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
+    (dotbrain_home / "agents/codex/custom.toml").write_text('name = "custom"\n')
     (dotbrain_home / "agents" / "agents.yaml").write_text(
         "targets:\n"
         "  codex: ~/.codex/agents\n"
         "global:\n"
-        "  - reviewer\n"
+        "  - custom\n"
     )
     result = bootstrap_mod.link_global_subagents(dotbrain_home, "codex", home=tmp_path)
 
     assert result.warnings == []
-    assert subagents.is_managed_copy(dest / "dotbrain-reviewer.toml")
+    assert subagents.is_managed_copy(dest / "custom.toml")
     assert any(line.startswith("delivered global") for line in result.logs)
 
 

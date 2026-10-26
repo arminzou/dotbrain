@@ -130,6 +130,10 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         run=real_git_runner,
     )
     assert (repo / ".brain").is_symlink()
+    for workspace, suffix in ((".claude", ".md"), (".codex", ".toml")):
+        delivered = list((repo / workspace / "agents").glob("dotbrain-*"))
+        assert sorted(p.name for p in delivered) == sorted(f"dotbrain-{role}{suffix}" for role in config.PACKAGED_ROLES)
+        assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
     if paths.INJECT_ADOPTER_POINTER:
         assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
 
@@ -307,8 +311,7 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
         "agents:\n"
         "  - claude\n"
         "  - codex\n"
-        "subagents:\n"
-    "  - reviewer\n"
+        "subagents: []\n"
     )
     fake_home = tmp_path / "home"
     fake_home.mkdir()
@@ -326,7 +329,8 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     assert not (repo / ".claude" / "agents" / "verifier.md").exists()
     assert (repo / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
     assert (repo / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
-    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == len(subagents.PROJECT_BASELINE)  # Codex only; the plugin delivers to Claude Code
+    assert (repo / ".claude/agents/dotbrain-reviewer.md").is_file()
+    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 2 * len(config.PACKAGED_ROLES)
 
 
 def test_refresh_project_honors_declared_agent_workspaces(

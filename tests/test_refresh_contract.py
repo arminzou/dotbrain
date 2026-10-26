@@ -6,7 +6,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import assets, beads, brainspaces, config, doctor, opencode, paths, projects, runtimes, workflows
+from dotbrain import assets, beads, brainspaces, config, doctor, opencode, paths, projects, runtimes, subagents, workflows
 from dotbrain.cli import app
 
 
@@ -40,6 +40,28 @@ def setup(tmp_path):
     checkout = tmp_path / 'different-name'
     brainspace = project(home, checkout)
     return home, brainspace, checkout
+
+
+@pytest.mark.parametrize('selection', ['packaged-subagents: []\n', ''])
+def test_refresh_reconciles_packaged_roles_in_each_checkout(setup, tmp_path, selection):
+    home, brainspace, checkout = setup
+    second = tmp_path / 'second-checkout'
+    second.mkdir()
+    git(second, 'init')
+    (second / '.brain').symlink_to(brainspace / '.brain', target_is_directory=True)
+    declaration = brainspace / '.brain/project.yaml'
+    base = 'version: 2\nagents: [claude, codex]\nskills: []\nbeads: {mode: none}\n'
+    for listed in ('packaged-subagents: [worker, reviewer]\n', 'packaged-subagents: [worker]\n', selection):
+        declaration.write_text(base + listed, encoding='utf-8')
+        roles = config.load_project_packaged(home, 'custom')[1]
+        for repo in (checkout, second):
+            result = workflows.refresh_projects(home, cwd=repo)
+            assert not result.errors
+            for workspace, suffix in (('.claude', '.md'), ('.codex', '.toml')):
+                delivered = list((repo / workspace / 'agents').glob('dotbrain-*'))
+                assert sorted(p.name for p in delivered) == sorted(f'dotbrain-{role}{suffix}' for role in roles)
+                assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
+        assert declaration.read_text(encoding='utf-8') == base + listed
 
 
 @pytest.mark.parametrize('set_up', [False, True])

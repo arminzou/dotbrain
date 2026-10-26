@@ -118,6 +118,7 @@ def test_skill_collision_no_mutation(tmp_path):
 
 def test_catalogs_and_invalid_json_selection(tmp_path):
     write(tmp_path / "skills/test/SKILL.md", "test")
+    write(tmp_path / "agents/codex/custom.toml", 'name = "custom"\n')
     runner = CliRunner()
     for kind in ("skills", "agents"):
         result = runner.invoke(app, [kind, "list", "--home", str(tmp_path), "--runtime", "codex", "--json"])
@@ -130,7 +131,7 @@ def test_catalogs_and_invalid_json_selection(tmp_path):
             assert json.loads(result.stdout)["status"] == "failure"
 
 
-def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
+def test_foreign_asset_receiver_cannot_redirect_writes(tmp_path):
     import pytest
     home = tmp_path / "home"
     brainspace = home / "brainspaces/example"
@@ -143,10 +144,6 @@ def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
     (repo / ".codex/agents").symlink_to(foreign, target_is_directory=True)
     with pytest.raises(ValueError, match="foreign asset directory"):
         assets.link_project(home, projects.ProjectTarget("example", brainspace, repo), "agents")
-    assert list(foreign.iterdir()) == []
-    (home / ".cache").symlink_to(foreign, target_is_directory=True)
-    with pytest.raises(ValueError):
-        subagents.sync_packaged_subagents(home)
     assert list(foreign.iterdir()) == []
 
 

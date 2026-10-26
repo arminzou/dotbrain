@@ -24,6 +24,13 @@ SKILL_IDS = [p.parent.name for p in SKILL_FILES]
 MAX_SKILL_LINES = 500
 
 
+def test_plugin_does_not_deliver_packaged_subagents():
+    assert not (PLUGIN_ROOT / "agents").exists()
+    for runtime in ("claude", "codex"):
+        manifest = json.loads((PLUGIN_ROOT / f".{runtime}-plugin/plugin.json").read_text(encoding="utf-8"))
+        assert "agents" not in manifest
+
+
 def _frontmatter(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8").split("---")[1])
 

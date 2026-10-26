@@ -20,52 +20,20 @@ def workspace_runtimes() -> dict[str, str]:
     return {rt.workspace: rt.key for rt in runtimes.RUNTIMES.values() if rt.subagents}
 
 
-def _required_core() -> tuple[str, ...]:
-    """Read the packaged project subagent core from core.yaml."""
-
-    import yaml
-
-    src = resource_loader.resource("core.yaml")
-    data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
-    if not isinstance(data, dict):
-        raise ValueError("packaged core.yaml: expected a YAML mapping")
-    subagents_data = data.get("subagents")
-    if not isinstance(subagents_data, dict):
-        raise ValueError("packaged core.yaml: expected a subagents mapping")
-    return skills._clean(subagents_data.get("project_required"))
-
-
-PROJECT_BASELINE = _required_core()
-
-# Packaged subagents: Claude Code receives them from the plugin (namespaced dotbrain:<role>); Codex has
-# no plugin agents, so the CLI generates them as dotbrain-<role>. They are never overridden.
+# Packaged subagents are delivered per wired checkout as dotbrain-<role>; that prefix is reserved
+# for them, so custom delivery never creates, changes or prunes a dotbrain-* entry.
 PACKAGED_PREFIX = "dotbrain-"
 
 
-def is_packaged(name: str) -> bool:
-    return name in PROJECT_BASELINE
-
-
-def plugin_delivered(name: str, runtime: str) -> bool:
-    """True when the plugin, not the CLI, delivers this subagent to this runtime."""
-    return is_packaged(name) and runtime == "claude-code"
-
-
-def delivered_stem(name: str, runtime: str) -> str:
-    """File stem the CLI writes into a runtime's agent home."""
-    return f"{PACKAGED_PREFIX}{name}" if is_packaged(name) and runtime == "codex" else name
-
-
-def packaged_body(name: str, runtime: str) -> str:
-    """Packaged definition text as delivered: a Codex agent's name carries the prefix."""
+def packaged_body(role: str, runtime: str) -> str:
+    """Packaged definition text as delivered: the definition's name carries the prefix."""
     directory, suffix = runtime_spec()[runtime]
-    text = resource_loader.resource(f"agents/{directory}/{name}{suffix}").read_text(encoding="utf-8")
-    if runtime == "codex":
-        line = f'name = "{name}"'
-        if text.count(line) != 1:
-            raise ValueError(f"packaged subagent {name}: expected one {line!r} line")
-        text = text.replace(line, f'name = "{delivered_stem(name, runtime)}"', 1)
-    return text
+    text = resource_loader.resource(f"agents/{directory}/{role}{suffix}").read_text(encoding="utf-8")
+    line, new = ((f'name = "{role}"', f'name = "{PACKAGED_PREFIX}{role}"') if runtime == "codex"
+                 else (f"name: {role}\n", f"name: {PACKAGED_PREFIX}{role}\n"))
+    if text.count(line) != 1:
+        raise ValueError(f"packaged subagent {role}: expected one {line.strip()!r} line")
+    return text.replace(line, new, 1)
 
 
 @dataclass
@@ -92,42 +60,12 @@ def render_global_subagents(names: Sequence[str] = ()) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _cache_packaged(root: Path, name: str, runtime: str) -> tuple[Path, bool]:
-    directory, suffix = runtime_spec()[runtime]
-    dest = paths.confined_path(root, f".cache/agents/{directory}/{delivered_stem(name, runtime)}{suffix}")
-    desired = packaged_body(name, runtime)
-    if dest.is_file() and not dest.is_symlink() and dest.read_text(encoding="utf-8") == desired:
-        return dest, False
-    if dest.is_symlink() or dest.exists():
-        dest.unlink()
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(desired, encoding="utf-8", newline="\n")
-    return dest, True
-
-
-def sync_packaged_subagents(dotbrain_home: Path) -> list[Path]:
-    root = Path(dotbrain_home)
-    cached: list[Path] = []
-    for name in PROJECT_BASELINE:
-        for runtime in runtime_spec():
-            if plugin_delivered(name, runtime):
-                continue
-            dest, changed = _cache_packaged(root, name, runtime)
-            if changed:
-                cached.append(dest)
-    return cached
-
-
 def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
-    """Source file per runtime the CLI delivers; packaged subagents never read a private source."""
+    """Source file per runtime for a custom subagent."""
     paths.validate_project_name(name)
     resolved: dict[str, Path] = {}
     root = Path(dotbrain_home)
     for runtime, (subdir, ext) in runtime_spec().items():
-        if is_packaged(name):
-            if not plugin_delivered(name, runtime):
-                resolved[runtime] = _cache_packaged(root, name, runtime)[0]
-            continue
         private_src = paths.confined_path(root / "agents", f"{subdir}/{name}{ext}")
         if private_src.is_file():
             resolved[runtime] = private_src
@@ -135,15 +73,15 @@ def _resolve_subagent_files(dotbrain_home: Path, name: str) -> dict[str, Path]:
 
 
 def validate_selection(dotbrain_home: Path, names: Sequence[str], runtimes: Sequence[str]) -> list[str]:
-    """Check every selected source without writing the packaged cache."""
+    """Check every selected custom subagent source."""
     errors: list[str] = []
     for name in names:
         paths.validate_project_name(name)
+        if name.startswith(PACKAGED_PREFIX):
+            errors.append(f"subagent '{name}': the {PACKAGED_PREFIX} prefix is reserved for packaged subagents; rename it")
+            continue
         available: set[str] = set()
         for runtime, (directory, suffix) in runtime_spec().items():
-            if is_packaged(name):
-                available.add(runtime)
-                continue
             private = paths.confined_path(Path(dotbrain_home) / "agents", f"{directory}/{name}{suffix}")
             if private.is_file():
                 available.add(runtime)
@@ -159,14 +97,25 @@ MANAGED_MARKER = "# dotbrain-managed-agent: v1"
 GENERATED_NOTICE = "# Generated by dotbrain. Do not edit; customize the source agent definition."
 
 
+def managed_text(text: str, suffix: str) -> str:
+    """Prepend the marker; a Markdown definition keeps its frontmatter first, so it goes inside."""
+    if suffix == ".md":
+        if not text.startswith("---\n"):
+            raise ValueError("Markdown subagent definition must start with YAML frontmatter")
+        return "---\n" + GENERATED_NOTICE + "\n" + MANAGED_MARKER + "\n" + text[4:]
+    return GENERATED_NOTICE + "\n" + MANAGED_MARKER + "\n\n" + text
+
+
 def managed_content(source: Path) -> str:
-    return GENERATED_NOTICE + "\n" + MANAGED_MARKER + "\n\n" + source.read_text(encoding="utf-8")
+    return managed_text(source.read_text(encoding="utf-8"), source.suffix)
 
 
 def is_managed_copy(path: Path) -> bool:
-    if path.is_symlink() or not path.is_file() or path.suffix != ".toml":
+    if path.is_symlink() or not path.is_file() or path.suffix not in (".toml", ".md"):
         return False
     with path.open(encoding="utf-8") as stream:
+        if path.suffix == ".md" and stream.readline().rstrip("\r\n") != "---":
+            return False
         return (stream.readline().rstrip("\r\n") == GENERATED_NOTICE
                 and stream.readline().rstrip("\r\n") == MANAGED_MARKER)
 
@@ -190,6 +139,8 @@ def link_files_into(
     prefix = f"{label}/" if label else ""
 
     for src in files:
+        if src.name.startswith(PACKAGED_PREFIX):
+            raise ValueError(f"{src.name}: the {PACKAGED_PREFIX} prefix is reserved for packaged subagents")
         dest = target_dir / src.name
         wanted.add(dest.name)
         if not materialize and dest.is_symlink() and dest.resolve() == src.resolve():
@@ -221,7 +172,7 @@ def link_files_into(
         result.linked.append(f"{prefix}{dest.name}")
 
     for entry in sorted(target_dir.iterdir()):
-        if entry.name in wanted:
+        if entry.name in wanted or entry.name.startswith(PACKAGED_PREFIX):
             continue
         owned = (entry.is_symlink() and (skills._points_into(entry, private_root) or skills._points_into(entry, cache_root))) or (materialize and is_managed_copy(entry))
         if not owned:
@@ -254,10 +205,38 @@ def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
     return load_global_config(dotbrain_home).global_names
 
 
-def project_link_set(extras: Sequence[str]) -> tuple[str, ...]:
-    """Compose per-project link set: required core + operator extras."""
+def reconcile_packaged(target_dir: Path, roles: Sequence[str], runtime: str, *, label: str) -> skills.LinkResult:
+    """Make the marked dotbrain-* files in one workspace equal the listed roles.
 
-    return PROJECT_BASELINE + skills._clean(extras, exclude=PROJECT_BASELINE)
+    Real files, never symlinks: symlinked agent definitions are unavailable on Windows.
+    An unmarked dotbrain-* file is foreign: it is reported and left in place.
+    """
+    target_dir = Path(target_dir)
+    suffix = runtime_spec()[runtime][1]
+    result = skills.LinkResult()
+    wanted = {f"{PACKAGED_PREFIX}{role}{suffix}": role for role in roles}
+    if wanted:
+        target_dir.mkdir(parents=True, exist_ok=True)
+    elif not target_dir.is_dir():
+        return result
+    for name, role in wanted.items():
+        dest = target_dir / name
+        desired = managed_text(packaged_body(role, runtime), suffix)
+        if (dest.exists() or dest.is_symlink()) and not is_managed_copy(dest):
+            continue  # foreign; reported below
+        if dest.is_file() and dest.read_text(encoding="utf-8") == desired:
+            continue
+        dest.write_text(desired, encoding="utf-8", newline="\n")
+        result.linked.append(f"{label}/{name}")
+    for entry in sorted(target_dir.iterdir()):
+        if not entry.name.startswith(PACKAGED_PREFIX):
+            continue
+        if not is_managed_copy(entry):
+            result.notices.append(f"{entry} is not managed by dotbrain; left in place")
+        elif entry.name not in wanted:
+            entry.unlink()
+            result.pruned.append(f"{label}/{entry.name}")
+    return result
 
 
 def link_project_subagents(
@@ -267,7 +246,9 @@ def link_project_subagents(
     names: Sequence[str],
     *,
     workspace_dirs: Mapping[str, Path] | None = None,
+    packaged: Sequence[str] | None = None,
 ) -> skills.LinkResult:
+    """Deliver custom subagents; with ``packaged``, also reconcile the packaged roles."""
     root = Path(dotbrain_home)
     capable = workspace_runtimes()
     errors = validate_selection(root, names, [capable[workspace] for workspace in workspaces if workspace in capable])
@@ -281,16 +262,22 @@ def link_project_subagents(
         if runtime is None:
             continue
         files = [resolved[name][runtime] for name in names if runtime in resolved[name]]
+        agents_dir = ((workspace_dirs.get(workspace) if workspace_dirs else None) or Path(brainspace) / workspace) / "agents"
         ws_result = link_files_into(
             root,
-            ((workspace_dirs.get(workspace) if workspace_dirs else None) or Path(brainspace) / workspace) / "agents",
+            agents_dir,
             files,
             label=f"{workspace}/agents",
             preserve_collisions=True,
             runtime=runtime,
         )
+        if packaged is not None:
+            own = reconcile_packaged(agents_dir, packaged, runtime, label=f"{workspace}/agents")
+            for field_name in ("linked", "pruned", "notices"):
+                getattr(ws_result, field_name).extend(getattr(own, field_name))
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
         result.stashed += ws_result.stashed
         result.warnings += ws_result.warnings
+        result.notices += ws_result.notices
     return result

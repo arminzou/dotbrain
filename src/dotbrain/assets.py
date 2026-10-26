@@ -32,7 +32,9 @@ def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str)
     return tuple(rt.workspace for rt in (declared if runtime == "all" else wanted))
 
 
-def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run) -> skills.LinkResult:
+def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run,
+                 packaged: bool = False) -> skills.LinkResult:
+    """Deliver project skills or custom subagents; ``packaged`` also reconciles packaged subagents."""
     workspaces = project_workspaces(home, target, runtime)
     if kind == "agents":
         # Only runtimes with native subagent delivery receive agents; skills go to every runtime.
@@ -65,8 +67,10 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
             for field in ("linked", "pruned", "warnings", "notices"):
                 getattr(result, field).extend(getattr(cursor_result, field))
     else:
-        names = subagents.project_link_set(config.load_project_subagents(home, target.project))
-        result = subagents.link_project_subagents(home, target.brainspace, workspaces, names, workspace_dirs=workspace_dirs)
+        names = config.load_project_subagents(home, target.project)
+        roles = config.load_project_packaged(home, target.project)[1] if packaged else None
+        result = subagents.link_project_subagents(home, target.brainspace, workspaces, names,
+                                                  workspace_dirs=workspace_dirs, packaged=roles)
     linked_entries = []
     for workspace in workspaces:
         relative = runtimes.for_workspace(workspace).skill_path if kind == "skills" else f"{workspace}/agents"
@@ -226,7 +230,7 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
     if project is not None:
         target = projects.select_projects(home, project=project)[0]
         selected = set(skills.resolve_selection(home, config.load_project_skills(home, target.project)) if kind == "skills" else
-                       subagents.project_link_set(config.load_project_subagents(home, target.project)))
+                       config.load_project_subagents(home, target.project))
     if kind == "skills":
         skill_root = paths.confined_path(home, "skills")
         available = skills.discover_skills(skill_root)
@@ -240,15 +244,8 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
         if runtimes.find(k) not in wanted:
             continue
         names = {p.stem for p in (home / "agents" / directory).glob(f"*{suffix}") if p.is_file()}
-        names.update(subagents.PROJECT_BASELINE)
         for name in sorted(names):
-            private = paths.confined_path(home / "agents", f"{directory}/{name}{suffix}")
-            if subagents.plugin_delivered(name, k):
-                source = f"plugin:dotbrain:{name}"
-            elif subagents.is_packaged(name):
-                source = f"bundled:agents/{directory}/{name}{suffix}"
-            else:
-                source = str(private)
+            source = str(paths.confined_path(home / "agents", f"{directory}/{name}{suffix}"))
             entry = entries.setdefault(name, {"name": name, "selected": name in selected, "sources": {}})
             entry["sources"][runtimes.find(k).name] = source
     return [entries[name] for name in sorted(entries)]

@@ -334,19 +334,22 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     repo = tmp_path / "repo"
     write(root / "skills/bundle/one/SKILL.md", "skill")
     brainspace = make_project(root, repo=repo, runtimes=("codex",), selected=("bundle",))
-    selected_agents = subagents.project_link_set(())
+    selected_agents = ("custom",)
+    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
+    declaration = brainspace / ".brain/project.yaml"
+    declaration.write_text(declaration.read_text() + "\nsubagents: [custom]\n")
     subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})
     skills.link_project(root, brainspace, (".codex",), ["bundle"], workspace_dirs={".codex": repo / ".codex"})
-    entries = ["/.brain", "/.agents/skills/one"] + [f"/.codex/agents/dotbrain-{name}.toml" for name in selected_agents]
+    entries = ["/.brain", "/.agents/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
     write(repo / ".git/info/exclude", "\n".join(entries) + "\n")
     # Real-file Codex delivery needs no cache at diagnosis time.
     import shutil
-    shutil.rmtree(root / ".cache")
+    shutil.rmtree(root / ".cache", ignore_errors=True)
     before = snapshot(tmp_path)
     report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
     assert not errors(report.projects["example"])
     assert snapshot(tmp_path) == before and not (root / ".cache").exists()
-    dest = repo / f".codex/agents/dotbrain-{selected_agents[0]}.toml"
+    dest = repo / f".codex/agents/{selected_agents[0]}.toml"
     dest.write_text(dest.read_text() + "# stale\n")
     skill = repo / ".agents/skills/one"
     skill.unlink()
@@ -516,16 +519,12 @@ def test_bd_version_reports_releases_older_than_the_qualified_one(tmp_path, stdo
     assert doctor._check_bd_version(tmp_path, run).status == status
 
 
-def test_plugin_check_warns_when_the_plugin_lacks_packaged_claude_agents(tmp_path):
-    # Linking leaves packaged Claude Code agents to the plugin; an older plugin must not read as healthy.
+def test_plugin_check_needs_hooks_without_packaged_claude_agents(tmp_path):
     install = tmp_path / "plugin-install"
     write(install / "hooks/hooks.json", json.dumps({"hooks": {"SessionStart": [{"hooks": [{"command": "dotbrain hook session-start"}]}]}}))
     write(tmp_path / ".claude/plugins/installed_plugins.json", json.dumps({"plugins": {"dotbrain@dotbrain": [{"installPath": str(install)}]}}))
     findings = doctor._check_plugin(tmp_path, "claude-code")
-    assert any(f.status == "warn" and "lacks packaged agents" in f.message for f in findings)
-    for name in subagents.PROJECT_BASELINE:
-        write(install / "agents" / f"{name}.md", "---\nname: x\n---\n")
-    assert not any(f.status == "warn" for f in doctor._check_plugin(tmp_path, "claude-code"))
+    assert not any(f.status == "warn" for f in findings)
 
 
 def test_all_skips_shared_checkouts_absent_on_this_machine(tmp_path):

@@ -59,13 +59,9 @@ def _check_templates(root: Path) -> Finding:
 
 
 def _agent_source(root: Path, name: str, runtime: str) -> tuple[Path, str]:
-    """Expected link and content; packaged sources are read without writing cache."""
+    """Expected link and content of a custom subagent."""
     paths.validate_project_name(name)
     directory, suffix = subagents.runtime_spec()[runtime]
-    if subagents.is_packaged(name):
-        stem = subagents.delivered_stem(name, runtime)
-        return (paths.confined_path(root, f".cache/agents/{directory}/{stem}{suffix}"),
-                subagents.packaged_body(name, runtime))
     source = paths.confined_path(paths.confined_path(root, "agents"), f"{directory}/{name}{suffix}")
     if source.is_file():
         return source, source.read_text(encoding="utf-8")
@@ -79,8 +75,6 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
         return [Finding("error", f"{receiver}: foreign asset directory", "preserve it and resolve the conflict before refresh")]
     findings = []
     for name in selected:
-        if kind == "agents" and subagents.plugin_delivered(name, runtime):
-            continue  # the plugin delivers it
         try:
             if kind == "skills":
                 source = skills._resolve_skill_source(root, name)
@@ -88,7 +82,7 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
                 healthy = source is not None and dest.is_symlink() and dest.resolve() == source.resolve() and dest.is_dir()
             else:
                 source, body = _agent_source(root, name, runtime)
-                dest = receiver / f"{subagents.delivered_stem(name, runtime)}{subagents.runtime_spec()[runtime][1]}"
+                dest = receiver / f"{name}{subagents.runtime_spec()[runtime][1]}"
                 if runtime == "codex":
                     desired = subagents.GENERATED_NOTICE + "\n" + subagents.MANAGED_MARKER + "\n\n" + body
                     healthy = subagents.is_managed_copy(dest) and dest.read_text(encoding="utf-8") == desired
@@ -119,12 +113,6 @@ def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None)
             if isinstance(hooks, dict) and (hooks.get("hooks") or {}).get("SessionStart"):
                 findings = [Finding("ok", f"{label}: registered dotbrain plugin has SessionStart hook files"),
                             Finding("info", f"{label}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
-                # Linking leaves packaged Claude Code agents to the plugin, so an older plugin leaves them undelivered.
-                missing = [name for name in subagents.PROJECT_BASELINE if subagents.plugin_delivered(name, runtime)
-                           and not (Path(location).expanduser() / "agents" / f"{name}.md").is_file()]
-                if missing:
-                    findings.append(Finding("warn", f"{label}: registered dotbrain plugin lacks packaged agents: {', '.join(missing)}",
-                                            "update the dotbrain plugin"))
                 return findings
         return [Finding("warn", f"{label}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
     except DIAGNOSIS_ERRORS as exc:
@@ -507,7 +495,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
     findings.extend(Finding("warn", message, "correct project.yaml agents or upgrade dotbrain")
                     for message in brainspaces.unknown_agent_warnings(target.brainspace, root))
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
-    agents = subagents.project_link_set(config.load_project_subagents(root, target.project))
+    agents = config.load_project_subagents(root, target.project)
     if not (target.brainspace / ".brain").is_dir():
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
     findings.extend(_check_convention(target.brainspace))
@@ -551,8 +539,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
-            entries.extend(f"/{workspace}/agents/{subagents.delivered_stem(name, runtime)}{rt.subagents[1]}"
-                           for name in agents if not subagents.plugin_delivered(name, runtime))
+            entries.extend(f"/{workspace}/agents/{name}{rt.subagents[1]}" for name in agents)
         try:
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
         except DIAGNOSIS_ERRORS as exc:

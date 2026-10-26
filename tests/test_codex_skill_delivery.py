@@ -94,7 +94,9 @@ def snapshot(root):
 
 
 def test_fresh_wire_refresh_link_doctor_unwire_converge(delivery, tmp_path):
-    home, _, repo = delivery
+    home, brainspace, repo = delivery
+    declaration = brainspace / ".brain/project.yaml"
+    declaration.write_text(declaration.read_text(encoding="utf-8") + "packaged-subagents: [worker]\n", encoding="utf-8")
     config = repo / ".codex/config.toml"
     config.parent.mkdir()
     config.write_text('personality = "pragmatic"\n', encoding="utf-8")

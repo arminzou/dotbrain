@@ -198,6 +198,7 @@ def wire_project(
             raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
     if existing:
+        config.load_project_packaged(dotbrain_home, project)
         legacy = brainspace / ".brain/agents/skills.yaml"
         if legacy.exists():
             raise RuntimeError(f"{legacy}: move skills into .brain/project.yaml before wiring")
@@ -212,7 +213,7 @@ def wire_project(
             raise
         capable = subagents.workspace_runtimes()
         errors = subagents.validate_selection(dotbrain_home,
-                    subagents.project_link_set(config.load_project_subagents(dotbrain_home, project)),
+                    config.load_project_subagents(dotbrain_home, project),
                     [capable[ws] for ws in workspaces if ws in capable])
         if errors:
             raise RuntimeError("; ".join(errors))
@@ -246,7 +247,7 @@ def wire_project(
     target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
     if not result.errors:
         for kind in ("skills", "agents"):
-            linked = assets.link_project(dotbrain_home, target, kind, run=run)
+            linked = assets.link_project(dotbrain_home, target, kind, run=run, packaged=True)
             result.errors += linked.warnings
             result.warnings += linked.notices
             result.logs += [f"linked {entry}" for entry in linked.linked]
@@ -322,7 +323,7 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
         raise RuntimeError(f'{legacy}: move skills into .brain/project.yaml before refresh')
     workspaces = assets.project_workspaces(dotbrain_home, target, runtime)
     skills.resolve_selection(dotbrain_home, config.load_project_skills(dotbrain_home, target.project))
-    names = subagents.project_link_set(config.load_project_subagents(dotbrain_home, target.project))
+    names = config.load_project_subagents(dotbrain_home, target.project)
     capable = subagents.workspace_runtimes()
     errors = subagents.validate_selection(dotbrain_home, names, [capable[ws] for ws in workspaces if ws in capable])
     if errors:
@@ -427,7 +428,7 @@ def refresh_projects(
                 # An explicit runtime without native subagents has no agents to link.
                 kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
                 for kind in kinds:
-                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
+                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run, packaged=True)
                     target.errors += linked.warnings
                     target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
                     target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]

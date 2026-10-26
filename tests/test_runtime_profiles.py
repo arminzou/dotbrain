@@ -300,16 +300,18 @@ def test_global_agents_reject_checkout_paths_and_continue(tmp_path, redirect):
         if redirect == "home-with-external-destination":
             (bad / "agents").symlink_to(good / "agents", target_is_directory=True)
     configure(root, profiles={"codex": [str(bad), str(good)]})
-    write(root / "agents/agents.yaml", "global: [reviewer]\n")
+    write(root / "agents/agents.yaml", "global: [custom]\n")
+    write(root / "agents/claude/custom.md", "custom")
+    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
 
     result = assets.link_global(root, "agents", user_home=user)
 
     assert len(result.warnings) == 1
     assert "profiles.codex" in result.warnings[0] and "wired checkout" in result.warnings[0]
-    assert subagents.is_managed_copy(user / ".codex/agents/dotbrain-reviewer.toml")
-    assert subagents.is_managed_copy(good / "agents/dotbrain-reviewer.toml")
-    assert not (checkout / "dotbrain-reviewer.toml").exists()
+    assert subagents.is_managed_copy(user / ".codex/agents/custom.toml")
+    assert subagents.is_managed_copy(good / "agents/custom.toml")
+    assert not (checkout / "custom.toml").exists()
     if redirect != "home-with-external-destination":
-        assert not (checkout / "agents/dotbrain-reviewer.toml").exists()
+        assert not (checkout / "agents/custom.toml").exists()
     assert any(f.status == "error" and "agents" in f.message and "profiles.codex" in f.message
                for f in doctor._check_machine(root, user))
