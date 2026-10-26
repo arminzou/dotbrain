@@ -222,12 +222,15 @@ them into `config.yaml` version 4:
 | `skills/skills.yaml` `global_extra` (or `extra`) | `config.yaml` `skills` |
 | `agents/agents.yaml` `global` | `config.yaml` `subagents`, custom subagents only |
 | A packaged name in `agents/agents.yaml` `global` | Dropped and reported; select packaged subagents per project |
-| `targets` naming the default home, such as `~/.claude/skills` | Dropped |
+| `targets` naming a runtime's default destination, such as `~/.claude/skills` or `~/.hermes/skills` | Dropped |
 | `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
 
 Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
-`config.yaml`, removes `skills/skills.yaml` and `agents/agents.yaml`, and reports each change. A
+`config.yaml`, removes `skills/skills.yaml` and `agents/agents.yaml`, and reports each change. If a
+step fails, for example because a file is locked, the old files are put back and the next bootstrap
+retries. Claude Code links in every runtime home that pointed into `agents/` are repointed to
+`subagents/`, even when bootstrap runs for one runtime only. A
 profile receives both skills and subagents, so a converted target can start receiving subagents
 too. A second run changes nothing. To recover, restore the files from the reported backup folder.
 

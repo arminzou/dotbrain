@@ -124,6 +124,7 @@ def test_empty_legacy_directory_is_removed_when_subagents_exists(tmp_path):
     ({"agents/agents.yaml": "a: &a {global: [x]}\n<<: *a\n"}, "anchors"),
     ({"skills/skills.yaml": "global_extra: [unclosed\n"}, "unparseable"),
     ({"skills/skills.yaml": "global_extra: []\nglobal_extra: [x]\n"}, "duplicate"),
+    ({"skills/skills.yaml": "profiles:\n  codex: [~/.a]\n  codex: [~/.b]\n"}, "duplicate"),
     ({"skills/skills.yaml": "- not a mapping\n"}, "mapping"),
     ({"skills/skills.yaml": "global_extra: []\nunknown: 1\n"}, "unknown keys"),
     ({"skills/skills.yaml": "targets:\n  hermes: ~/hermes-skills\n"}, "no profile equivalent"),
@@ -185,3 +186,46 @@ def test_nothing_reads_retired_files_after_migration(tmp_path):
     write(root / "skills/skills.yaml", "global_extra: [stale]\n")
     assert config.load_config(root).skills == ("a",)
     assert Path(root / "skills/skills.yaml").is_file()
+
+
+def test_interrupted_retirement_rolls_back_and_retries(tmp_path, monkeypatch):
+    root, user = legacy_root(tmp_path)
+    before = snapshot(root)
+    real_replace = profile_migration.os.replace
+
+    def locked(src, dst):
+        if Path(src).name == "agents.yaml":
+            raise PermissionError(32, "file is in use")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(profile_migration.os, "replace", locked)
+    with pytest.raises(ValueError, match="no file was changed"):
+        profile_migration.apply(root, profile_migration.plan(root, user))
+    assert snapshot(root) == before
+    monkeypatch.setattr(profile_migration.os, "replace", real_replace)
+
+    profile_migration.apply(root, profile_migration.plan(root, user))
+    assert config.load_config(root).subagents == ("custom",)
+    assert profile_migration.plan(root, user) is None
+
+
+def test_filtered_bootstrap_repoints_other_runtime_links(tmp_path):
+    root, user = legacy_root(tmp_path)
+    link = user / ".claude/agents/custom.md"
+
+    result = bootstrap.prepare(root, "codex", home=user, run=no_git)
+
+    assert result.status == "success", result
+    assert link.is_symlink() and link.read_text() == "custom"
+    assert link.resolve() == (root / "subagents/claude/custom.md").resolve()
+
+
+def test_default_target_of_other_runtime_is_dropped(tmp_path, monkeypatch):
+    monkeypatch.delenv("HERMES_HOME", raising=False)
+    root = tmp_path / "data"
+    write(root / "skills/skills.yaml", "targets:\n  hermes: ~/.hermes/skills\n")
+
+    logs = profile_migration.apply(root, profile_migration.plan(root, tmp_path / "user"))
+
+    assert any("dropped targets.hermes" in line for line in logs)
+    assert not (root / "skills/skills.yaml").exists()

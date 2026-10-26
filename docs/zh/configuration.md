@@ -205,12 +205,13 @@ Hermes、OpenCode、Pi 和 Cursor 不接收子 Agent。项目链接默认作用�
 | `skills/skills.yaml` 的 `global_extra`（或 `extra`） | `config.yaml` 的 `skills` |
 | `agents/agents.yaml` 的 `global` | `config.yaml` 的 `subagents`，只保留自定义子 Agent |
 | `agents/agents.yaml` 的 `global` 里的打包名称 | 删除并报告；打包子 Agent 请按项目选择 |
-| 指向默认主目录的 `targets`，例如 `~/.claude/skills` | 删除 |
+| 指向运行时默认位置的 `targets`，例如 `~/.claude/skills` 或 `~/.hermes/skills` | 删除 |
 | 指向自定义目录的 `targets`，例如 `~/.codex-work/skills` | 父目录变成 profile 主目录，例如 `codex: [~/.codex-work]` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`，只放自定义子 Agent 的源文件 |
 
 Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`，删除
-`skills/skills.yaml` 和 `agents/agents.yaml`，并逐项报告。profile 会同时接收技能和子 Agent，所以由 target
+`skills/skills.yaml` 和 `agents/agents.yaml`，并逐项报告。如果某一步失败（比如文件被占用），旧文件会放回原处，
+下次 bootstrap 会重试。各运行时主目录里指向 `agents/` 的 Claude Code 链接会改指向 `subagents/`，即使这次只为一个运行时运行 bootstrap。profile 会同时接收技能和子 Agent，所以由 target
 转换来的主目录也可能开始接收子 Agent。再次运行不会有任何改动。需要恢复时，从报告里的备份目录还原文件。
 
 无法安全合并时，bootstrap 会停下来，不改任何文件。这些情况包括：YAML 无法解析；使用了锚点、合并键或标签；
