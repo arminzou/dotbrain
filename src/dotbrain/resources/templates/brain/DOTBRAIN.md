@@ -24,11 +24,9 @@ Do not edit per project; packaged template changes propagate to every Brain.
 - Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
 - Before implementation or review, the lead or sole agent searches `.brain/RETRO.md` once per
   task or batch and passes applicable practices through assignments; at completion it records
-  transferable ones per `run-execution`. Workers and reviewers reuse supplied findings; they need
-  not read the whole notebook. A missing notebook blocks nothing; do not scaffold it.
-  Write `RETRO.md` by compare-and-swap: hash it on read, write a temporary file, and swap only
-  if the hash is unchanged; on a conflict re-read and retry once, else keep the evidence in its
-  record. Never lock it or overwrite a newer version.
+  transferable ones as retro candidates on its own work record, per `run-execution`.
+  Workers and reviewers reuse supplied findings; they need not read the whole notebook.
+  A missing notebook blocks nothing; do not scaffold it. Only `run-retro` writes `RETRO.md`.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;

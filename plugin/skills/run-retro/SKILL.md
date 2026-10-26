@@ -13,8 +13,9 @@ exposed name; `$run-retro` is not confirmed for plugin delivery. The host owns s
 skill supplies no scheduler or CLI loop runner.
 
 Maintain private `RETRO.md` as plain Markdown. These are agent findings; human lessons belong
-to `teach-me`. Leads also write findings at completion points in their own workflows; this
-skill curates those and recovers what they missed. Add no checkpoint hooks, handoff steps, or
+to `teach-me`. This skill is the notebook's only writer: leads record retro candidates on their
+own work records at completion, and this skill curates those into findings and recovers what they
+missed. Add no checkpoint hooks, handoff steps, or
 session-start injection. Public auto-delivery is disabled unless explicitly enabled in private
 `project.yaml`; otherwise suggest rules for the user's decision. Apply the dotbrain convention's
 human gates.
@@ -33,8 +34,8 @@ A manual curate run with the human present first resolves pending decisions (see
 
 If the private Brain or evidence sources cannot be identified, report the missing source
 without creating a public substitute. Findings never override established rules, decisions, or
-human-owned acceptance criteria. All worktrees, sessions, and scheduled jobs share one notebook:
-every write uses [the compare-and-swap save](references/retro.md#save), never a lock.
+human-owned acceptance criteria. Manual and scheduled passes can overlap on one notebook: every
+write uses [the compare-and-swap save](references/retro.md#save), never a lock.
 
 ## Curate
 
@@ -58,8 +59,9 @@ Completion: scope is explicit, the limit is known, and the notebook hash is reco
 
 ### 2. Select changed records
 
-Select work and review records changed since the saved curation cutoff, oldest update first, as
-the reference describes: CHANGES verdicts, failed checks, rejected candidates, human corrections,
+Select every bead flagged `dotbrain_retro`, regardless of date, and read its `## Retro candidate`
+comments. Then select work and review records changed since the saved curation cutoff, oldest
+update first, as the reference describes: CHANGES verdicts, failed checks, rejected candidates, human corrections,
 defects, and informative successes or recoveries. Commits alone are not the signal; much
 correction evidence never reaches the integration branch. Include explicitly supplied incidents
 regardless of date. Use commits and CI only as supporting evidence.
@@ -98,7 +100,9 @@ scheduled run never waits for a reply.
 When authorized, follow [the public rule format](references/rules.md) and the destination's
 conventions. Prepare in a clean target-based checkout or worktree, never on an unrelated feature
 branch. Use run-retro's own PR process and body, not the `pr` skill. Save proposal state before
-each public action as promotion requires, each in its own save, then re-read and re-hash. Reconcile
+each public action as promotion requires, each against the last recorded hash, then re-hash. If
+the notebook changed, write only the proposal line onto the fresh notebook and abandon the rest of
+this pass. Reconcile
 actual acceptance read-only; add `Accepted:` beside the original finding only after the acceptance
 checks pass.
 
@@ -109,10 +113,13 @@ Completion: each unprotected finding has a suggestion, proposal, accepted rule, 
 Apply [the save](references/retro.md#save) once, with every change from steps 3 and 4 and the
 advanced cutoff, against the last recorded hash. If the notebook changed since then, abandon
 without writing; the next run redoes the work. Advance the cutoff only past records whose changes
-are in this save. A failed or abandoned run
-loses nothing and skips no records.
+are in this save. After the save succeeds, clear the flag on each candidate bead it absorbed with
+`bd update <id> --unset-metadata dotbrain_retro`. A failed or abandoned run loses nothing and
+skips no records; a crash before the flags clear only re-offers candidates the duplicate check
+absorbs.
 
-Completion: the notebook and cutoff changed together, or not at all.
+Completion: the notebook and cutoff changed together, or not at all, and only absorbed candidates
+lost their flag.
 
 ## Audit
 

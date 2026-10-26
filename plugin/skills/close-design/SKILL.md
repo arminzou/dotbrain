@@ -88,11 +88,11 @@ Every discovery the initiative produced lands in exactly one place:
 - **`CONTEXT.md`** — a concept the project now names and will keep naming.
 - **`.brain/docs/`** — a maintained "how it works now" description, which the frozen design doc is
   not.
-- **`.brain/RETRO.md`** — a practice from the overall approach or goal outcomes that would change
-  another initiative's decisions. Reuse findings already recorded at task closure rather than
-  writing them again, and save with
-  [run-retro's compare-and-swap save](../run-retro/references/retro.md#save). If `RETRO.md` is
-  missing, the practice stays in the frozen design doc; do not create a notebook.
+- **A retro candidate** — a practice from the overall approach or goal outcomes that would change
+  another initiative's decisions. Record it as a `## Retro candidate` comment on the epic before
+  closing it, and flag the epic with `bd update <epic> --set-metadata dotbrain_retro=candidate`;
+  `run-retro` curates it into `RETRO.md`. Reuse candidates and findings already recorded at task
+  closure rather than recording them again. Never write `RETRO.md` here.
 - **Nowhere** — item-local facts that die with their beads.
 
 Write the ADR ids you created into the doc's `residue:` frontmatter, so provenance survives in both

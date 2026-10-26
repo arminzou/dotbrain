@@ -89,12 +89,13 @@ For multi-worker integration use the parallel reference's group procedure.
 
 Before applying closure, and when an accepted batch or integration group completes, decide
 whether the outcome supports a transferable practice. Evidence stays in the work and review
-records. A finding earns a `RETRO.md` entry only if it would change another task's decision,
-states when it applies and what to do, and adds guidance beyond existing instructions, tests, or
-structure. Check plausible candidates for duplicates, then publish related findings in one
-[compare-and-swap save](../run-retro/references/retro.md#save); on a conflict, or when `RETRO.md`
-is missing, the evidence stays in its record and no notebook is created. Never delay closure for
-it. No finding, "nothing learned" note, report, agent call, or `run-retro` invocation is required.
+records. A practice earns a candidate only if it would change another task's decision, states
+when it applies and what to do, and adds guidance beyond existing instructions, tests, or
+structure; check `RETRO.md` for a duplicate first. Record it as a `## Retro candidate` comment
+(practice, when, limit, evidence) on the item, or on the epic for a batch or integration practice,
+then flag that bead with `bd update <id> --set-metadata dotbrain_retro=candidate`. Never write
+`RETRO.md`; `run-retro` curates flagged candidates. Never delay closure for it. No candidate,
+"nothing learned" note, report, agent call, or `run-retro` invocation is required.
 
 Remove only closed items' merged branches and clean worktrees with `git branch -d`
 and `git worktree remove`, including runtime-created branches and accepted candidate

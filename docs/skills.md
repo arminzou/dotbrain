@@ -124,7 +124,9 @@ These skills stay shipped. In Claude Code, use `/dotbrain:<name>`; in Codex, use
   and review records changed since its curation cutoff (rejected candidates, `CHANGES` verdicts,
   failed checks, your corrections, informative successes), not commits. It merges and retires
   findings in private `RETRO.md`, dedupes them against `RULES.md`, tests, skill text, and
-  structural fixes, and recovers findings that leads missed at completion. For a finding nothing
+  structural fixes, and turns the retro candidates leads record on their work records at
+  completion into findings, recovering ones they missed. It is the notebook's only writer, so
+  leads on different designs or machines never race on it. For a finding nothing
   protects yet, it suggests the strongest intervention that fits (structure, type, check or hook,
   test, then rule text). It never builds that check itself; building one is separate work you
   approve. **Audit** runs only when you ask, over a scope you choose, and is read-only: it judges

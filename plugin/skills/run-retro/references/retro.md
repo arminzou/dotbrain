@@ -50,7 +50,8 @@ counters, mandatory IDs, duplicate bookkeeping appendix, or sidecar.
 
 ## Save
 
-Every writer uses this compare-and-swap save; there is no notebook lock. Exclude `RETRO.md.tmp.*`
+Only `run-retro` writes the notebook; leads record candidates on their work records instead.
+Overlapping manual and scheduled passes use this compare-and-swap save; there is no notebook lock. Exclude `RETRO.md.tmp.*`
 in the private repository's local Git exclude file before creating one.
 
 1. Read `RETRO.md` and record its SHA-256 hash before computing changes.
@@ -58,12 +59,11 @@ in the private repository's local Git exclude file before creating one.
    `RETRO.md.tmp.<nonce>` on the same filesystem.
 3. Hash `RETRO.md` again. If it is unchanged, atomically replace it with the temporary file and
    read the result back. If it changed, delete the temporary file and do not write.
-4. On a conflict, a work session re-reads and retries once; if it conflicts again, its evidence
-   stays in the work or review record for the next curation. A curate pass abandons and leaves the
-   work to the next run. Neither waits, overwrites, or delays closure of accepted work.
+4. On a conflict, the pass abandons and leaves the work to the next run. It never waits or
+   overwrites.
 
-The window between the second hash and the replace is short but not zero. A session write lost
-there is still recoverable, because its evidence was recorded in its source record first.
+The window between the second hash and the replace is short but not zero. A pass that loses
+there is recoverable: candidate flags clear only after a save, and the cutoff moves only with one.
 
 ## First-run baseline
 
@@ -117,6 +117,9 @@ Findings capture normally whatever the answer.
 The header's `Curation cutoff:` is a timestamp. Select records changed after it, oldest update
 first, within the pass limit:
 
+- retro candidates: `bd list --all --has-metadata-key dotbrain_retro --json`, regardless of date,
+  then each bead's `## Retro candidate` comments (practice, when, limit, evidence). Clear a bead's
+  flag only after the save that absorbs its candidates;
 - work and review items: `bd list --all --updated-after <cutoff> --sort updated --reverse --json` (oldest first), then read
   each selected item's comments for CHANGES verdicts, failed checks, rejected candidates, human
   corrections, defects, and informative successes or recoveries;
@@ -124,7 +127,8 @@ first, within the pass limit:
 - incidents the human supplies, regardless of date.
 
 Read linked evidence as needed. Commits and CI support an investigation; they are not walked as a
-queue. A comment edit may not update its parent's timestamp, so a date query is a discovery aid,
+queue. Adding or editing a Beads comment does not change its issue's update time, so a date query
+misses evidence that arrived only as a comment; it is a discovery aid,
 not proof that every change was found; state that limit. Failed reads leave a gap, not a claim
 that the source was empty.
 
