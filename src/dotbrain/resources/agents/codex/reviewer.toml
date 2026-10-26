@@ -61,7 +61,8 @@ review unless the design explicitly accepts that failure mode. In a final
 whole-branch review, also return `CHANGES` for a goal shortfall, whatever its
 severity: an in-scope design goal or success criterion unmet in a case the design
 does not exclude. Support material safety claims with relevant evidence,
-a concrete trace, or a small targeted check when evidence is insufficient. Report
+a concrete trace, or a small targeted check when evidence is insufficient; never
+run a full test suite or another machine-wide check, which the lead schedules. Report
 missing evidence as a gap rather than a verified claim. On re-review, check earlier
 findings and the fix diff; a newly spotted blocker still counts. For a direct code
 review, return the verdict and findings;
