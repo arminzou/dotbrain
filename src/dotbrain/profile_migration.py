@@ -15,7 +15,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, config, paths, resource_loader, runtimes, skills, subagents
+from dotbrain import adopter_repos, assets, config, paths, resource_loader, runtimes, skills, subagents
 
 CONFIG_VERSION = 4
 SKILLS_FILE, AGENTS_FILE = paths.LEGACY_GLOBAL_FILES
@@ -80,7 +80,6 @@ def _convert_targets(data: dict, kind: str, location: str, user_home: Path,
         if rt.key in ("claude-code", "codex"):
             default = runtimes.user_dir(rt, user_home) / kind
         else:  # the destination global delivery uses for this runtime
-            from dotbrain import assets
             default = assets.global_targets((rt,), kind, user_home, explicit=True, errors=[],
                                             dotbrain_home=user_home).get(rt.key, (None,))[0]
         expanded = adopter_repos.expand_path(value.replace("\\", "/"), home=user_home)
@@ -88,7 +87,14 @@ def _convert_targets(data: dict, kind: str, location: str, user_home: Path,
             reports.append(f"{location}: dropped targets.{key}, which names the default home")
             continue
         if rt.key not in ("claude-code", "codex"):
-            raise _refuse(location, f"targets.{key} has no profile equivalent; remove it")
+            # No profile equivalent: the runtime's home variable is the only way to relocate it.
+            if rt.home_env:
+                skills_dir = assets.HOME_DELIVERY[rt.name].skills_dir(Path("<home>") / rt.home_subdir).as_posix()
+                hint = f"set {rt.home_env}=<home> instead; global skills then go to {skills_dir}"
+            else:
+                hint = f"{rt.label} global skills always go to {default.as_posix() if default else '~/' + rt.workspace + '/skills'}"
+            reports.append(f"{location}: dropped targets.{key} ({rt.label}, folder {value}); {hint}")
+            continue
         normalized = value.replace("\\", "/").rstrip("/")
         home, _, leaf = normalized.rpartition("/")
         if leaf != kind or not home:

@@ -223,7 +223,8 @@ them into `config.yaml` version 4:
 | `agents/agents.yaml` `global` | `config.yaml` `subagents`, custom subagents only |
 | A packaged name in `agents/agents.yaml` `global` | Dropped and reported; select packaged subagents per project |
 | `targets` naming a runtime's default destination, such as `~/.claude/skills` or `~/.hermes/skills` | Dropped |
-| `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
+| Claude Code or Codex `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
+| Hermes, OpenCode, Pi or Cursor `targets` naming a custom folder | Dropped and reported, with the replacement: set `HERMES_HOME`, `XDG_CONFIG_HOME` or `PI_CODING_AGENT_DIR` to relocate that runtime; Cursor always uses `~/.cursor/skills` |
 | `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
 
 Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
@@ -236,6 +237,6 @@ too. A second run changes nothing. To recover, restore the files from the report
 
 Bootstrap stops and changes no file when it cannot merge safely: unparseable YAML, anchors, merge
 keys or tags, duplicate or unknown keys, a value that conflicts with one already in `config.yaml`, a
-custom target for a runtime other than Claude Code or Codex, or files in both `agents/` and
-`subagents/`. Fix the reported file and run bootstrap again. Until then, global delivery waits and
+Claude Code or Codex target that does not end in `/skills` or `/agents`, or files in both `agents/`
+and `subagents/`. Fix the reported file and run bootstrap again. Until then, global delivery waits and
 doctor reports the leftover files. After the migration, dotbrain never reads the old files.

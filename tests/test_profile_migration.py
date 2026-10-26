@@ -127,7 +127,6 @@ def test_empty_legacy_directory_is_removed_when_subagents_exists(tmp_path):
     ({"skills/skills.yaml": "profiles:\n  codex: [~/.a]\n  codex: [~/.b]\n"}, "duplicate"),
     ({"skills/skills.yaml": "- not a mapping\n"}, "mapping"),
     ({"skills/skills.yaml": "global_extra: []\nunknown: 1\n"}, "unknown keys"),
-    ({"skills/skills.yaml": "targets:\n  hermes: ~/hermes-skills\n"}, "no profile equivalent"),
     ({"skills/skills.yaml": "targets:\n  codex: ~/elsewhere/folder\n"}, "does not end in /skills"),
     ({"skills/skills.yaml": "profiles: {hermes: [~/.hermes]}\n"}, "profiles"),
     ({"skills/skills.yaml": "global_extra: [a]\n", "config.yaml": "skills: [b]\n"}, "conflicts"),
@@ -218,6 +217,23 @@ def test_filtered_bootstrap_repoints_other_runtime_links(tmp_path):
     assert result.status == "success", result
     assert link.is_symlink() and link.read_text() == "custom"
     assert link.resolve() == (root / "subagents/claude/custom.md").resolve()
+
+
+@pytest.mark.parametrize("runtime,value,hint", [
+    ("hermes", "~/hermes-skills", "set HERMES_HOME=<home> instead; global skills then go to <home>/skills"),
+    ("opencode", "~/oc", "set XDG_CONFIG_HOME=<home> instead; global skills then go to <home>/opencode/dotbrain/skills"),
+    ("pi", "~/pi", "set PI_CODING_AGENT_DIR=<home> instead"),
+    ("cursor", "~/cursor-skills", "Cursor global skills always go to"),
+])
+def test_custom_target_of_other_runtime_is_dropped_with_replacement(tmp_path, runtime, value, hint):
+    root = tmp_path / "data"
+    write(root / "skills/skills.yaml", f"targets:\n  {runtime}: {value}\nglobal_extra: [a]\n")
+
+    logs = profile_migration.apply(root, profile_migration.plan(root, tmp_path / "user"))
+
+    [line] = [line for line in logs if f"dropped targets.{runtime}" in line]
+    assert value in line and hint in line
+    assert config.load_config(root).skills == ("a",) and config.load_config(root).profiles == {}
 
 
 def test_default_target_of_other_runtime_is_dropped(tmp_path, monkeypatch):
