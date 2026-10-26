@@ -13,19 +13,18 @@ ROLES = config.PACKAGED_ROLES
 
 
 def _claude_agent(role: str) -> tuple[dict, str]:
-    _, frontmatter, body = resource_loader.resource(f"agents/claude/{role}.md").read_text(encoding="utf-8").split("---", 2)
+    _, frontmatter, body = subagents.packaged_body(role, "claude-code").split("---", 2)
     return yaml.safe_load(frontmatter), body.strip()
 
 
 @pytest.mark.parametrize("role", ROLES)
 def test_packaged_role_is_one_definition_on_both_runtimes(role: str):
-    """Claude Code and Codex receive copies of the same role."""
+    """Claude Code and Codex receive copies of the same role, built from its contract."""
     fields, body = _claude_agent(role)
     codex = tomllib.loads(subagents.packaged_body(role, "codex"))
     assert codex["description"] == fields["description"]
     assert codex["model_reasoning_effort"] == fields["effort"]
-    if role != "researcher":  # Codex reads through the shell, so its tool rules differ.
-        assert codex["developer_instructions"].strip() == body
+    assert codex["developer_instructions"].strip() == body == subagents.role_contract(role).strip()
     # The operator's model choice wins in both runtimes.
     assert "model" not in codex and "model" not in fields
 
@@ -246,3 +245,21 @@ def test_packaged_roles_have_definitions_for_each_runtime() -> None:
     for role in ROLES:
         assert resource_loader.resource(f"agents/claude/{role}.md").read_text(encoding="utf-8").startswith(f"---\nname: {role}\n")
         assert subagents.packaged_body(role, "claude-code").startswith(f"---\nname: dotbrain-{role}\n")
+
+
+@pytest.mark.parametrize("runtime", ["claude-code", "codex"])
+def test_packaged_definition_is_settings_plus_its_role_contract(runtime: str, monkeypatch) -> None:
+    """Packaged resources hold settings only, so a contract change reaches the next delivery."""
+    directory, suffix = subagents.runtime_spec()[runtime]
+    for role in ROLES:
+        settings = resource_loader.resource(f"agents/{directory}/{role}{suffix}").read_text(encoding="utf-8")
+        assert subagents.role_contract(role).splitlines()[2] not in settings
+    contract = 'Changed contract with """quotes""" and a \\path.\n'
+    monkeypatch.setattr(subagents, "role_contract", lambda role: contract)
+    delivered = subagents.packaged_body("researcher", runtime)
+    if runtime == "codex":
+        parsed = tomllib.loads(delivered)
+        assert parsed["developer_instructions"] == contract
+        assert parsed["features"]["multi_agent"] is False
+    else:
+        assert delivered.endswith(f"---\n\n{contract}")

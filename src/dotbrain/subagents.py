@@ -25,15 +25,34 @@ def workspace_runtimes() -> dict[str, str]:
 PACKAGED_PREFIX = "dotbrain-"
 
 
+# Each role's protocol lives once, as a contract in the skill that dispatches it; the packaged
+# resource carries only the runtime settings.
+ROLE_SKILLS = {"worker": "run-execution", "researcher": "run-execution",
+               "reviewer": "review-gate", "verifier": "review-gate"}
+
+
+def role_contract(role: str) -> str:
+    """The role contract from its owning skill, read from the packaged plugin tree."""
+    with resource_loader.plugin_tree() as plugin:
+        return (plugin / "skills" / ROLE_SKILLS[role] / "references" / f"{role}.md").read_text(encoding="utf-8")
+
+
 def packaged_body(role: str, runtime: str) -> str:
-    """Packaged definition text as delivered: the definition's name carries the prefix."""
+    """Packaged definition text as delivered: runtime settings, prefixed name, and the role contract."""
     directory, suffix = runtime_spec()[runtime]
     text = resource_loader.resource(f"agents/{directory}/{role}{suffix}").read_text(encoding="utf-8")
     line, new = ((f'name = "{role}"', f'name = "{PACKAGED_PREFIX}{role}"') if runtime == "codex"
                  else (f"name: {role}\n", f"name: {PACKAGED_PREFIX}{role}\n"))
     if text.count(line) != 1:
         raise ValueError(f"packaged subagent {role}: expected one {line.strip()!r} line")
-    return text.replace(line, new, 1)
+    text = text.replace(line, new, 1)
+    contract = role_contract(role)
+    if runtime != "codex":
+        return f"{text}\n{contract}"
+    # Top-level keys precede the first table, so the instructions go before it.
+    escaped = contract.replace("\\", "\\\\").replace('"""', '""\\"')
+    keys, sep, tables = text.partition("\n[")
+    return f'{keys.rstrip()}\n\ndeveloper_instructions = """\n{escaped}"""\n' + (f"\n[{tables}" if sep else "")
 
 
 @dataclass
