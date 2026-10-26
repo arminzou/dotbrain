@@ -31,7 +31,7 @@ def delivery(dotbrain_home, migration_repo_seed, tmp_path):
     brain = brainspace / ".brain"
     brain.mkdir(parents=True)
     (brain / "project.yaml").write_text(
-        "agents: [codex]\nskills: [misc/discovery-test]\nbeads: {mode: none}\n", encoding="utf-8")
+        "version: 2\nagents: [codex]\nskills: [misc/discovery-test]\nbeads: {mode: none}\n", encoding="utf-8")
     (brainspace / ".repo").write_text(str(repo), encoding="utf-8")
     (repo / ".brain").symlink_to(brain, target_is_directory=True)
     return dotbrain_home, brainspace, repo

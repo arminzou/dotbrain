@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from dotbrain import paths
+from dotbrain import paths, resource_loader
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +240,61 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
         return ()
     data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
     return skills._clean(data.get("subagents"))
+
+
+# The packaged roles are whatever packaged definitions ship; the Codex set is the canonical list.
+PACKAGED_ROLES = tuple(sorted(rel.stem for rel, _ in resource_loader.iter_resource_files("agents/codex")
+                              if rel.suffix == ".toml"))
+PROJECT_VERSION = 2
+
+
+def load_project_packaged(dotbrain_home: Path, name: str) -> tuple[int, tuple[str, ...]]:
+    """Read ``version`` and ``packaged-subagents`` from ``.brain/project.yaml``.
+
+    On a version-2 file the list is the whole truth: absent or empty means none.
+    An unversioned (version 1) file without the list keeps every packaged role.
+    """
+    import yaml
+
+    path = _project_config_path(dotbrain_home, name)
+    if not path.is_file():
+        return PROJECT_VERSION, PACKAGED_ROLES
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    roles = ", ".join(PACKAGED_ROLES)
+    if data is not None and not isinstance(data, dict):
+        raise ValueError(f"{path}: expected a YAML mapping; packaged-subagents takes roles from: {roles}")
+    data = data or {}
+    version = data.get("version", 1)
+    raw = data.get("packaged-subagents")
+    if raw is None:
+        return version, (PACKAGED_ROLES if version == 1 else ())
+    entries = raw if isinstance(raw, list) else [raw]
+    listed = tuple(dict.fromkeys(str(entry).strip() for entry in entries if str(entry).strip()))
+    unknown = [entry for entry in listed if entry not in PACKAGED_ROLES]
+    if unknown:
+        raise ValueError(f"{path}: unknown packaged subagent {', '.join(unknown)}; packaged roles: {roles}")
+    return version, listed
+
+
+def upgrade_project_packaged(dotbrain_home: Path, name: str) -> str | None:
+    """Append ``version: 2`` and every packaged role to an unversioned ``project.yaml`` once.
+
+    Appends text instead of re-dumping YAML so existing lines and comments survive.
+    """
+    version, _ = load_project_packaged(dotbrain_home, name)
+    path = _project_config_path(dotbrain_home, name)
+    if version != 1 or not path.is_file():
+        return None
+    existing = path.read_bytes()
+    eol = "\r\n" if b"\r\n" in existing else "\n"
+    roles = "".join(f"  - {role}\n" for role in PACKAGED_ROLES)
+    lead = "\n" if existing and not existing.endswith(b"\n") else ""
+    block = (f"{lead}\nversion: {PROJECT_VERSION}\n"
+             f"# Packaged subagents delivered to this project; remove a role to stop delivering it.\n"
+             f"packaged-subagents:\n{roles}")
+    with path.open("ab") as handle:  # bytes: keep the file's own line endings
+        handle.write(block.replace("\n", eol).encode("utf-8"))
+    return f"upgraded {path.name} to version {PROJECT_VERSION} with packaged-subagents: {', '.join(PACKAGED_ROLES)}"
 
 
 def load_project_agents(dotbrain_home: Path, name: str, *, defaults: tuple[str, ...] = ()) -> tuple[str, ...]:

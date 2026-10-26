@@ -366,3 +366,33 @@ def test_sync_rejects_invalid_values(tmp_path, declaration):
     (tmp_path / "config.yaml").write_text(declaration, encoding="utf-8")
     with pytest.raises(ValueError, match="sync"):
         config.load_config(tmp_path)
+
+
+# --------------------------------------------------------------------------- packaged-subagents
+
+
+def _declare(tmp_path: Path, text: str) -> Path:
+    brain = tmp_path / "brainspaces" / "example" / ".brain"
+    brain.mkdir(parents=True)
+    (brain / "project.yaml").write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_packaged_roles_come_from_packaged_definitions():
+    assert config.PACKAGED_ROLES == ("researcher", "reviewer", "verifier", "worker")
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("version: 2\npackaged-subagents: [worker, reviewer]\n", (2, ("worker", "reviewer"))),
+    ("version: 2\n", (2, ())),
+    ("version: 2\npackaged-subagents: []\n", (2, ())),
+    ("beads: {mode: none}\n", (1, config.PACKAGED_ROLES)),
+])
+def test_load_project_packaged(tmp_path: Path, text, expected):
+    assert config.load_project_packaged(_declare(tmp_path, text), "example") == expected
+
+
+@pytest.mark.parametrize("text", ["version: 2\npackaged-subagents: [wroker]\n", "- a list\n"])
+def test_load_project_packaged_rejects_with_role_names(tmp_path: Path, text):
+    with pytest.raises(ValueError, match="researcher, reviewer, verifier, worker"):
+        config.load_project_packaged(_declare(tmp_path, text), "example")

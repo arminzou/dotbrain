@@ -316,6 +316,7 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
     declaration = paths.confined_path(target.brainspace, '.brain/project.yaml')
     if not declaration.is_file():
         raise RuntimeError(f'{declaration}: missing project declaration; restore it before refresh')
+    config.load_project_packaged(dotbrain_home, target.project)
     legacy = paths.confined_path(target.brainspace, '.brain/agents/skills.yaml')
     if legacy.exists():
         raise RuntimeError(f'{legacy}: move skills into .brain/project.yaml before refresh')
@@ -402,6 +403,10 @@ def refresh_projects(
             shared = brainspaces.seed_brain(selected.brainspace, dotbrain_home, create_missing=False)
             target.data['shared_brain_changes'] += shared
             target.changes += [f'shared Brain: updated {entry}' for entry in shared]
+            upgraded = config.upgrade_project_packaged(dotbrain_home, selected.project)
+            if upgraded:
+                target.data['shared_brain_changes'].append(upgraded)
+                target.changes.append(f'shared Brain: {upgraded}')
             if selected.checkout is not None:
                 repo = selected.checkout
                 resolved = assets.project_workspaces(dotbrain_home, selected, 'all')
