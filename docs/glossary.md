@@ -95,8 +95,8 @@ the tracker.
 ### Execution record
 
 The recoverable facts on a work item under execution: its native status and assignee, a few
-`dotbrain_` metadata keys holding its phase, attempts, and artifacts, and headed evidence comments,
-including its item reviews.
+`dotbrain_` metadata keys holding its phase, attempts, artifacts, and any pending retro candidate,
+and headed evidence comments, including its item reviews.
 
 ### Human-in-the-Loop (HITL) workflow
 

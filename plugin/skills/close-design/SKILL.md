@@ -90,7 +90,8 @@ Every discovery the initiative produced lands in exactly one place:
   not.
 - **A retro candidate** — a practice from the overall approach or goal outcomes that would change
   another initiative's decisions. Record it as a `## Retro candidate` comment on the epic before
-  closing it, and flag the epic with `bd update <epic> --set-metadata dotbrain_retro=candidate`;
+  closing it, and flag the epic with
+  `bd update <epic> --metadata '{"dotbrain_retro":"<UTC now>"}' --actor <lead> --json --quiet`;
   `run-retro` curates it into `RETRO.md`. Reuse candidates and findings already recorded at task
   closure rather than recording them again. Never write `RETRO.md` here.
 - **Nowhere** — item-local facts that die with their beads.

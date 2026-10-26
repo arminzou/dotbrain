@@ -118,8 +118,10 @@ The header's `Curation cutoff:` is a timestamp. Select records changed after it,
 first, within the pass limit:
 
 - retro candidates: `bd list --all --has-metadata-key dotbrain_retro --json`, regardless of date,
-  then each bead's `## Retro candidate` comments (practice, when, limit, evidence). Clear a bead's
-  flag only after the save that absorbs its candidates;
+  then each bead's `## Retro candidate` comments (practice, when, limit, evidence). The flag's value
+  is the newest candidate's time; record it. After the save, remove the flag from every bead whose
+  candidates were judged (kept, merged, or rejected) if it still holds the recorded time, then
+  advance the cutoff past those removals only when they are the only changes since the save;
 - work and review items: `bd list --all --updated-after <cutoff> --sort updated --reverse --json` (oldest first), then read
   each selected item's comments for CHANGES verdicts, failed checks, rejected candidates, human
   corrections, defects, and informative successes or recoveries;

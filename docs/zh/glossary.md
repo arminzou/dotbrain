@@ -83,7 +83,7 @@ dotbrain 的全局配置文件，通常在 `~/dotbrain/config.yaml`。它存放�
 
 ### Execution record
 
-执行中的工作项上可以恢复的信息：它原生的状态和负责人、几个记录阶段、尝试次数和产物的 `dotbrain_` 元数据键，
+执行中的工作项上可以恢复的信息：它原生的状态和负责人、几个记录阶段、尝试次数、产物和待处理复盘候选的 `dotbrain_` 元数据键，
 以及带标题的证据评论，包括它的 item review。
 
 ### Human-in-the-Loop (HITL) workflow

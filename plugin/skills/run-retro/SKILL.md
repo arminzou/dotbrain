@@ -100,9 +100,10 @@ scheduled run never waits for a reply.
 When authorized, follow [the public rule format](references/rules.md) and the destination's
 conventions. Prepare in a clean target-based checkout or worktree, never on an unrelated feature
 branch. Use run-retro's own PR process and body, not the `pr` skill. Save proposal state before
-each public action as promotion requires, each against the last recorded hash, then re-hash. If
-the notebook changed, write only the proposal line onto the fresh notebook and abandon the rest of
-this pass. Reconcile
+each public action as promotion requires, each a compare-and-swap save against the last recorded
+hash, then re-hash. If the notebook changed, write only the finding that carries the proposal, with
+its proposal line, onto the fresh notebook (or the line alone when that finding is already there),
+again by compare-and-swap, and abandon the rest of this pass. Reconcile
 actual acceptance read-only; add `Accepted:` beside the original finding only after the acceptance
 checks pass.
 
@@ -113,13 +114,22 @@ Completion: each unprotected finding has a suggestion, proposal, accepted rule, 
 Apply [the save](references/retro.md#save) once, with every change from steps 3 and 4 and the
 advanced cutoff, against the last recorded hash. If the notebook changed since then, abandon
 without writing; the next run redoes the work. Advance the cutoff only past records whose changes
-are in this save. After the save succeeds, clear the flag on each candidate bead it absorbed with
-`bd update <id> --unset-metadata dotbrain_retro`. A failed or abandoned run loses nothing and
-skips no records; a crash before the flags clear only re-offers candidates the duplicate check
-absorbs.
+are in this save.
 
-Completion: the notebook and cutoff changed together, or not at all, and only absorbed candidates
-lost their flag.
+After the save succeeds, remove the flag from every candidate bead this pass judged, whether its
+candidate became a finding, merged into one, or was rejected as not transferable or already
+covered (count rejections under SKIPPED). Re-read each bead's `dotbrain_retro` first and remove it
+only if it still holds the time read at selection; a newer time means another candidate arrived,
+so leave it. Remove with `bd update <id> --unset-metadata dotbrain_retro --actor <retro-actor> --json --quiet`.
+Removing a flag bumps the bead's update time. Then query records updated after the saved cutoff:
+if they are only beads this pass just unflagged, advance the cutoff to their latest update time in
+one more compare-and-swap save; otherwise leave the cutoff, and the next pass rereads them.
+
+A failed or abandoned run loses nothing and skips no records; a crash before the flags clear only
+re-offers candidates the duplicate check absorbs.
+
+Completion: the notebook and cutoff changed together, or not at all; every judged candidate lost
+its flag, and no newer one did.
 
 ## Audit
 

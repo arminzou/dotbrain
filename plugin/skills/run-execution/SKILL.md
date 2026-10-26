@@ -93,7 +93,9 @@ records. A practice earns a candidate only if it would change another task's dec
 when it applies and what to do, and adds guidance beyond existing instructions, tests, or
 structure; check `RETRO.md` for a duplicate first. Record it as a `## Retro candidate` comment
 (practice, when, limit, evidence) on the item, or on the epic for a batch or integration practice,
-then flag that bead with `bd update <id> --set-metadata dotbrain_retro=candidate`. Never write
+then flag that bead with
+`bd update <id> --metadata '{"dotbrain_retro":"<UTC now>"}' --actor <lead> --json --quiet`, a new time for every
+candidate. Never write
 `RETRO.md`; `run-retro` curates flagged candidates. Never delay closure for it. No candidate,
 "nothing learned" note, report, agent call, or `run-retro` invocation is required.
 
