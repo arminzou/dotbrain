@@ -75,7 +75,7 @@ delivery authority is unchanged.
    (the same repo or an existing authorized fork), proposal head branch, chosen file, and delivery
    authorization. Follow [PR delivery](pr.md) to resolve authentication, identities, and permissions on
    both repositories. A delivery/integration branch is not the acceptance target. Record these
-   with the finding's `Proposal:` note. Without authority, keep a `Suggestion:` instead.
+   with the finding's `Proposal:` note. Without authority, raise a `Pending:` decision instead.
 2. Compare accepted rules and open target-branch PRs by situation and required behavior.
    Reuse an equivalent rule or public proposal; amend existing guidance when needed. Several
    findings can share one proposal. Never overwrite another contributor's branch. Conflicting

@@ -30,7 +30,8 @@ When: several workers' changes are combined before closure.
 - Enforcement: check — CI runs the combined suite on the integrated head; it would have caught
   the 2026-04-05 failure.
 - Pending: Suggest a CI job on the integrated head? a) file work (recommended: the failure
-  repeated after a text reminder) b) rule text only c) decline — raised 2026-04-06.
+  repeated after a text reminder) b) rule text only c) decline — if unanswered: stays deferred,
+  raised again only on new evidence — raised 2026-04-06.
 
 **Done right: preserve user-owned content during reconciliation.**
 When: a managed file also holds content the user wrote.
@@ -128,13 +129,17 @@ not proof that every change was found; state that limit. Failed reads leave a ga
 that the source was empty.
 
 After the save, the cutoff is the update time of the last record whose changes the save contains.
-Never advance it past unread or failed evidence. If changed records updated more than one
+`--updated-after` is strict, so never stop between records that share an update time: finish every
+record with the last processed update time, even past the pass limit, or set the cutoff to the
+previous update time instead. Never advance it past unread or failed evidence. If changed records updated more than one
 scheduling interval ago (one day unless the header records a `Schedule:`) are still past the cutoff
 at the start of a pass, an earlier run did not complete: report a stuck cutoff, with this run's
 failure reason if it fails too.
 
-An older notebook may carry a Git `Reviewed through:` boundary and an `Unfinished:` frozen range.
-Record that range under `Unreviewed history:` with the reason. Never advance it or imply it was
+An older notebook may carry a Git `Reviewed through:` boundary and an `Unfinished:` frozen range,
+and no `Curation cutoff:`. Set the cutoff to the time of the last completed pass the header records,
+or to the migration time when none is recorded, and name any uncovered period under `Gaps:`.
+Record the frozen range under `Unreviewed history:` with the reason. Never advance it or imply it was
 reviewed; it is no longer a queue that must finish before recent records are considered.
 
 ## Evidence
@@ -160,7 +165,7 @@ Reports are private, so work-record and Brain pointers are allowed for follow-up
 
 NEEDS YOU (n)
 1. <question> — recommended: <option> (<one-line reason>)
-   options: a) … b) … c) … · evidence: <pointer>
+   options: a) … b) … c) … · evidence: <pointer> · if unanswered: <consequence>
 2. Stuck cutoff: <n> records older than <interval> unprocessed · last error: <reason>
 
 CHANGED (n)

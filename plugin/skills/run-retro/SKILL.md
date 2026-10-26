@@ -26,7 +26,8 @@ human gates.
 - **Audit** (only when the human asks; never scheduled): judge whether the loop improves later
   work enough to justify its cost, and recommend keep, revise, or stop. Read-only.
 
-A manual run with the human present first resolves pending decisions (see [Report](#report)).
+A manual curate run with the human present first resolves pending decisions (see
+[Report](#report)); an audit only lists them.
 
 ## Stop before you start
 
@@ -49,8 +50,9 @@ capturing work. In repository scope, while the header has no `Rules file:` line 
 `Rules file: offered`, follow [the rules file offer](references/retro.md#rules-file-offer).
 
 Default limit per pass: 25 changed records plus their linked evidence, or 15 minutes, whichever
-comes first, unless the request sets another. Read the notebook and record its hash before
-selecting.
+comes first, unless the request sets another. With the human present, resolve pending decisions
+now and save them on their own. Then read the notebook and record its hash; every later change in
+this pass stays in memory until step 5.
 
 Completion: scope is explicit, the limit is known, and the notebook hash is recorded.
 
@@ -62,7 +64,8 @@ defects, and informative successes or recoveries. Commits alone are not the sign
 correction evidence never reaches the integration branch. Include explicitly supplied incidents
 regardless of date. Use commits and CI only as supporting evidence.
 
-If nothing changed and no decision is pending, exit silently without rewriting the notebook.
+If nothing changed, no decision is pending, and no recorded `Proposal:` awaits reconciliation,
+exit silently without rewriting the notebook.
 A completion-time entry already in the notebook does not justify rereading its whole source;
 follow up only on missing evidence, changed outcomes, or a concrete conflict. State discovery
 limits; a date query can miss edited or unattributed evidence.
@@ -80,16 +83,7 @@ preserve limits.
 
 Completion: each kept finding has practice, trigger, needed limits, and dated source pointers.
 
-### 4. Save
-
-Compute every change, including the advanced cutoff, then apply [the save](references/retro.md#save)
-once. If the notebook changed since step 1, abandon without writing; the next run redoes the work.
-Advance the cutoff only past records whose changes are in this save. A failed or abandoned run
-loses nothing and skips no records.
-
-Completion: the notebook and cutoff changed together, or not at all.
-
-### 5. Suggest, deliver, and reconcile public rules
+### 4. Suggest, deliver, and reconcile public rules
 
 Read [promotion](references/promotion.md), even when nothing new was selected. For each finding
 still unprotected, judge impact, evidence confidence, applicability, and existing protection, and
@@ -103,10 +97,22 @@ scheduled run never waits for a reply.
 
 When authorized, follow [the public rule format](references/rules.md) and the destination's
 conventions. Prepare in a clean target-based checkout or worktree, never on an unrelated feature
-branch. Use run-retro's own PR process and body, not the `pr` skill. Reconcile actual acceptance
-read-only; add `Accepted:` beside the original finding only after the acceptance checks pass.
+branch. Use run-retro's own PR process and body, not the `pr` skill. Save proposal state before
+each public action as promotion requires, each in its own save, then re-read and re-hash. Reconcile
+actual acceptance read-only; add `Accepted:` beside the original finding only after the acceptance
+checks pass.
 
 Completion: each unprotected finding has a suggestion, proposal, accepted rule, or clear hold.
+
+### 5. Save
+
+Apply [the save](references/retro.md#save) once, with every change from steps 3 and 4 and the
+advanced cutoff, against the last recorded hash. If the notebook changed since then, abandon
+without writing; the next run redoes the work. Advance the cutoff only past records whose changes
+are in this save. A failed or abandoned run
+loses nothing and skips no records.
+
+Completion: the notebook and cutoff changed together, or not at all.
 
 ## Audit
 
@@ -121,6 +127,10 @@ but ignored practice, and an inadequate practice. Judge evidence quality, transf
 not a count: one well-evidenced case can expose harmful guidance; several similar or already
 protected tasks may prove little. Insufficient evidence is inconclusive, with the specific gap.
 
+A delivered practice with no visible effect does not by itself justify stopping the operation,
+and no relevant opportunity leaves benefit unknown rather than disproved. An early audit can still
+expose overhead or delivery failures before effectiveness is assessable.
+
 Recommend at the right level: retire or revise one finding, revise delivery, or keep or stop
 recurring curation. Retiring public rules or enforcement follows normal authorization.
 
@@ -133,8 +143,8 @@ run and a single failed run stay silent; the next run repeats the work. Follow
 about 25 lines.
 
 Each item that needs the human is a decision record stored as a `Pending:` line beside its finding:
-one question, two to four options, the recommended option with a one-line reason, and an evidence
-pointer. Silence authorizes nothing; an unanswered item stays deferred and is raised again only on
+one question, two to four options, the recommended option with a one-line reason, an evidence
+pointer, and what happens if it goes unanswered. Silence authorizes nothing; an unanswered item stays deferred and is raised again only on
 new evidence. An answer authorizes only the chosen option, within existing delivery gates.
 
 When the human is present, resolve pending decisions first through the runtime's native question
