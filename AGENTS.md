@@ -41,7 +41,8 @@ Select relevant checks under `tests/`:
 
 - Install dependencies: `uv sync`
 - Run affected tests: `uv run pytest tests/<file>.py`
-- Run the suite: `uv run pytest`
+- Run the suite before pushing or review: `uv run pytest` (the integrating
+  agent only, when several agents share a branch; see [RULES.md](RULES.md))
 - Install the CLI from this checkout: `uv tool install --editable --force .`
 
 Resource files being present does not prove the runtime loads them. For runtime
