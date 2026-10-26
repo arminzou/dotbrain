@@ -49,6 +49,15 @@ For gate commands that ran, report verification evidence in two renderings:
    PR body: what was verified and how, in plain public terms. Never include
    Brain references in this block.
 
+Include one `Evidence: <kinds>` field in both renderings, using every applicable kind
+from `live`, `integration-test`, `unit-test`, `eval`, `static-only`. These are kinds,
+not a ranking: `live` exercises the running product, `integration-test` exercises
+connected components, `unit-test` exercises isolated code, and `eval` exercises agent
+behavior. Use `static-only` when the evidence inspects artifacts without exercising
+the changed behavior. Classify what the checks demonstrate, not just the command name;
+a passing delivery test does not demonstrate agent behavior. Preserve coverage gaps:
+`PASS` reports the gate's result, not permission to accept a static-only behavior change.
+
 Boundaries:
 
 - Never edit files, never commit, never push, never retry with modifications.
