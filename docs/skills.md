@@ -119,28 +119,35 @@ These skills stay shipped. In Claude Code, use `/dotbrain:<name>`; in Codex, use
 
 - **`dotbrain`** — the operating convention itself. The session-start hook injects it
   automatically; in runtimes where the hook does not run, ask for it or invoke it by name.
-- **`run-retro`** — explicitly review new or changed evidence, retaining private retrospective
-  findings, successful practices, and bounded progress. Invoke manually or through an external
-  agent-host job; scheduling belongs to the host. Public auto-delivery is off by default:
-  it discovers repository rules, standards, or contributor guidance and suggests a destination
-  and rule for your decision, plus the strongest mechanical enforcement (structure, type,
-  check or hook, test) so a violation fails loudly. It never builds that check itself;
-  building one is separate work you approve. Set `retro.promotion.auto-deliver: true` and an existing
-  repo-relative `destinations` array in private project configuration to authorize unattended
-  commit/push/PR delivery. Otherwise authorize individual proposals. It reads PR/merge state
-  read-only to reconcile acceptance; approval and merge remain human-owned.
-  Findings use plain Markdown entries in private `RETRO.md`, with a short review-progress
-  header and no duplicated YAML ledger. Evidence review is scoped, not an exhaustive audit
-  of every historical record edit. An adopted `RULES.md` uses `Rule` / `What to check` tables; other guides retain
-  their conventions. Rule proposals have run-retro's own
-  PR process and body, independent of the `pr` skill used for ordinary changes.
-  First use reads existing root guidance and referenced standards, records current HEAD as
-  a baseline, and stops without reviewing history. In repository scope with no rules or
-  standards file, it offers once, on the first pass until answered, to create `RULES.md` from requirements existing guidance
-  already states and delivers it as a PR; contributor scope never creates a file in the repo.
-  Later runs review forward within explicitly
-  selected contribution branches/PRs or a maintainer-selected integration branch, reusing shared
-  progress and current applicable guidance. Missing scope is reported instead of assumed.
+- **`run-retro`** — keeps agents from repeating mistakes, while you can see and steer the loop.
+  It has two modes. **Curate** (manually, or from an agent-host schedule you set up) reads work
+  and review records changed since its curation cutoff (rejected candidates, `CHANGES` verdicts,
+  failed checks, your corrections, informative successes), not commits. It merges and retires
+  findings in private `RETRO.md`, dedupes them against `RULES.md`, tests, skill text, and
+  structural fixes, and recovers findings that leads missed at completion. For a finding nothing
+  protects yet, it suggests the strongest intervention that fits (structure, type, check or hook,
+  test, then rule text). It never builds that check itself; building one is separate work you
+  approve. **Audit** runs only when you ask, over a scope you choose, and is read-only: it judges
+  from later assignments and review verdicts whether supplied findings changed behavior, and
+  recommends keep, revise, or stop.
+  A run with nothing worth your attention is silent. Otherwise its short report puts decisions
+  first, each with a recommended option; an unanswered decision stays pending and authorizes
+  nothing. A manual run asks you about pending decisions through the runtime's question dialog
+  where one exists. Notebook writes use a compare-and-swap save, so a failed or overlapping run
+  loses nothing and the next run repeats its work.
+  Public auto-delivery is off by default: suggestions stay private for your decision. Set
+  `retro.promotion.auto-deliver: true` and an existing repo-relative `destinations` array in
+  private project configuration to authorize unattended commit/push/PR delivery. Otherwise
+  authorize individual proposals. It reads PR/merge state read-only to reconcile acceptance;
+  approval and merge remain human-owned. An adopted `RULES.md` uses `Rule` / `What to check`
+  tables; other guides retain their conventions. Rule proposals have run-retro's own PR process
+  and body, independent of the `pr` skill used for ordinary changes.
+  First use reads existing root guidance and referenced standards, records a curation cutoff,
+  and stops without reviewing history. In repository scope with no rules or standards file, it
+  offers once, on the first pass until answered, to create `RULES.md` from requirements existing
+  guidance already states and delivers it as a PR; contributor scope never creates a file in the
+  repo. Curation stays within explicitly selected contribution branches/PRs or a
+  maintainer-selected integration branch; missing scope is reported instead of assumed.
 - **`triage-public`** — classify public tracker items and promote ready work into private execution
 - **`review-architecture`** — review the codebase for architectural deepening opportunities
 

@@ -25,9 +25,9 @@ Use these areas as discovery prompts, not a template to fill:
 Create no category or rule merely to complete this list. During initialization, discover
 existing guidance and record its links; do not copy standards into retrospective findings.
 A new `RULES.md` comes only from the repository-scope [rules file offer](retro.md) and holds
-only requirements existing guidance already states, never an invented comprehensive set. Existing adopted requirements need no recurrence
-threshold. During later retrospectives, propose a specific addition or amendment only from
-supported findings under [promotion](promotion.md); three dates justify a proposal, not adoption.
+only requirements existing guidance already states, never an invented comprehensive set. Existing adopted requirements need no
+retrospective evidence. During later retrospectives, propose a specific addition or amendment only
+from supported findings under [promotion](promotion.md); a proposal is not adoption.
 
 ## Placement and detail
 
@@ -71,8 +71,8 @@ AGENTS.md routes agents to guidance; README.md describes the project.
 
 This is a format example, not an automatically adopted rule. No private evidence, finding
 IDs, recurrence counts, personal preferences, or promotion history belong in the public file.
-Public rules must stand alone in an ordinary clone. Three supported evidence dates trigger
-a proposal, not policy adoption. Several findings may support one rule, and several related
+Public rules must stand alone in an ordinary clone. A judged proposal is not policy
+adoption. Several findings may support one rule, and several related
 rules may share one PR. Other contributors' private notebooks are not shared evidence stores;
 search accepted rules and open public proposals for overlap and conflict.
 

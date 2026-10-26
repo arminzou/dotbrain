@@ -38,8 +38,10 @@ These skills stay shipped. Use `/dotbrain:<name>` in Claude Code or `$<name>` in
 - **Architecture:** [`review-architecture`](review-architecture/SKILL.md) looks for architectural deepening opportunities.
 - **Convention:** [`dotbrain`](dotbrain/SKILL.md) provides the operating convention. The session-start
   hook injects it automatically; where that hook does not run, ask for it or invoke it by name.
-- **Retrospective:** [`run-retro`](run-retro/SKILL.md) reviews changed evidence in a separate manual or
-  externally invoked pass, retaining private findings, successful practices, and source progress.
+- **Retrospective:** [`run-retro`](run-retro/SKILL.md) curates private findings from work and
+  review records changed since its curation cutoff, in a manual or externally scheduled pass, and
+  audits on request whether findings improve later work. It stays silent unless something needs
+  the user, and then reports decisions first with a recommended option.
   In repository scope it offers once to create `RULES.md` when no rules or standards file
   exists; contributor scope never creates one. It may prepare a public `RULES.md` change and
   reads PR/merge state read-only to reconcile
