@@ -99,35 +99,38 @@ A settled design becomes issues in Beads, linked by what blocks what. Agents pic
 
 <section>
 
-## Wire a project in four steps {#wire-a-project-in-three-steps}
+## Wire a project in three steps {#wire-a-project-in-three-steps}
 
 <ol class="steps" role="list">
 <li>
 <h3>Install the plugin</h3>
-<p>In Claude Code, send these as two separate prompts. For Codex, follow the <a href="./getting-started#_1-install-the-plugin">installation guide</a>.</p>
+<p>Once per machine. It brings the skills and the session-start hook to every repo.</p>
 
-```text
+::: code-group
+
+```text [Claude Code]
 /plugin marketplace add arminzou/dotbrain
-```
-
-```text
 /plugin install dotbrain@dotbrain
 ```
 
-</li>
-<li>
-<h3>Get the CLI</h3>
-<p>Invoke <code>wire-brain</code> in your coding agent. It installs the CLI and prerequisites if needed, then wires the repo. For manual setup, follow the <a href="./getting-started#_2-get-the-cli">CLI installation guide</a>.</p>
-
-</li>
-<li>
-<h3>Wire a repo</h3>
-<p>If you installed the CLI manually, create or repair the project's Brainspace and link it into the repo.</p>
-
-```bash
-dotbrain wire --repo ~/repos/my-app
+```bash [Codex]
+codex plugin marketplace add arminzou/dotbrain
+codex plugin add dotbrain@dotbrain
 ```
 
+:::
+
+<p class="note">In Claude Code, send the two lines as separate prompts. In Codex, trust the dotbrain hooks once in <code>/hooks</code>, then start a new thread.</p>
+</li>
+<li>
+<h3>Ask your agent to wire the repo</h3>
+<p>The <code>wire-brain</code> skill installs the CLI if it is missing, then links the repo to its Brainspace.</p>
+
+```text
+Use wire-brain to wire this repo with Dotbrain.
+```
+
+<p class="note">Prefer to do it by hand? Follow the <a href="./getting-started#_2-get-the-cli">CLI guide</a>.</p>
 </li>
 <li>
 <h3>Check the wiring</h3>
@@ -140,6 +143,12 @@ dotbrain doctor
 
 </li>
 </ol>
+
+<div class="cta">
+<h2>Give your project a second brain.</h2>
+<p>Install once, wire a repo, and every agent you open there starts from what the project already knows.</p>
+<div class="cta-actions"><a class="cta-btn brand" href="./getting-started">Get started</a><a class="cta-btn" href="./workflow">See the workflow</a></div>
+</div>
 
 </section>
 
