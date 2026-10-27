@@ -68,8 +68,9 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
   checkpoint, stop and report the attempts, unless Limits names another cap.
 - For long commands and checks, use the runtime's completion notification or block on the
   retained process handle with bounded output. Wait only while work is outstanding; avoid
-  repeated short polls and sleep-and-inspect loops. In Codex, read
-  [Command waits](codex.md#command-waits) for concrete intervals and tool limits.
+  repeated short polls and sleep-and-inspect loops. In Codex, collect a yielded process session
+  with `write_stdin(chars="", yield_time_ms=60000)`. Use a shorter interval only when the session
+  or tool requires it, and follow the session's progress-update requirements between waits.
 - Write comment files with the file-writing tool, never through the shell, which
   can corrupt Windows paths and quotes.
 - Run git as plain, separate commands. When told to set commit identity, set the
