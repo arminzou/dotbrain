@@ -31,6 +31,11 @@ GLOBAL_MIGRATION_PENDING = ".cache/global-settings-pending.yaml"
 PENDING_MIGRATION_FILES: tuple[str, ...] = (*LEGACY_GLOBAL_FILES, f"{SUBAGENTS_DIR}/agents.yaml",
                                          GLOBAL_MIGRATION_PENDING)
 
+
+def legacy_global_settings(dotbrain_home: Path) -> list[str]:
+    """Global settings files and folders that bootstrap has not yet migrated into config.yaml."""
+    return [name for name in (*PENDING_MIGRATION_FILES, LEGACY_SUBAGENTS_DIR) if (dotbrain_home / name).exists()]
+
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 

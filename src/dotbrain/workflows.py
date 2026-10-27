@@ -382,11 +382,16 @@ def refresh_projects(
                 continue
             assets.project_workspaces(dotbrain_home, target, runtime)
     result = RefreshResult()
+    # Refresh never migrates global settings: bootstrap owns that and may relink runtime homes.
+    leftover = paths.legacy_global_settings(dotbrain_home)
     for selected in targets:
         target = TargetResult(project=selected.project,
                     checkout=str(selected.checkout) if selected.checkout else None,
                     data={'shared_brain_changes': [], 'shared_tracker_changes': [], 'checkout_changes': []})
         result.targets.append(target)
+        if leftover:
+            target.findings.append({'severity': 'warning', 'message': f"legacy global settings remain: {', '.join(leftover)}; "
+                                    'run dotbrain bootstrap to migrate them into config.yaml'})
         if (all_projects and selected.checkout is not None and not selected.checkout.is_dir()
                 and not (selected.brainspace / '.repo.local').is_file()):
             # A shared .repo may name a checkout that lives only on another machine.
