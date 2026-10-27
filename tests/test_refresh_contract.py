@@ -64,6 +64,22 @@ def test_refresh_reconciles_packaged_roles_in_each_checkout(setup, tmp_path, sel
         assert declaration.read_text(encoding='utf-8') == base + listed
 
 
+def test_refresh_warns_about_unmigrated_global_settings_without_migrating(setup):
+    home, _, checkout = setup
+    def legacy_warnings():
+        result = workflows.refresh_projects(home, cwd=checkout)
+        assert not result.errors
+        return [f['message'] for f in result.targets[0].findings if 'legacy global settings' in f['message']]
+    assert legacy_warnings() == []
+    legacy = home / 'skills/skills.yaml'
+    legacy.parent.mkdir(exist_ok=True)
+    legacy.write_text('global: []\n', encoding='utf-8')
+    config_before = (home / 'config.yaml').read_bytes() if (home / 'config.yaml').exists() else None
+    assert legacy_warnings() == ['legacy global settings remain: skills/skills.yaml; run dotbrain bootstrap to migrate them into config.yaml']
+    assert legacy.read_text(encoding='utf-8') == 'global: []\n'
+    assert ((home / 'config.yaml').read_bytes() if (home / 'config.yaml').exists() else None) == config_before
+
+
 @pytest.mark.parametrize('set_up', [False, True])
 @pytest.mark.parametrize('cli_installed', [False, True])
 @pytest.mark.parametrize('agents', [None, '[]', '[hermes]', '[codex]', '[claude, codex]', '[claude, codex, opencode]', '[codex, claude]'])
