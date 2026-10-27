@@ -407,18 +407,25 @@ class ContainerBackend:
         self.run(["mkdir", "-p", dest])
         self._container.get_wrapped_container().put_archive(dest, data.getvalue())
 
-    def unavailable(self, runtime: str, binary: str, plugin_steps=()) -> str | None:
-        """Why a runtime's journeys cannot run in this image, or ``None``: its recorded install failure,
-        a missing binary, or a failed plugin install (``plugin_steps`` run in the checkout)."""
+    def unavailable(self, runtime: str, binary: str) -> str | None:
+        """Why a runtime's journeys cannot run in this image, or ``None``: its recorded install failure
+        or a missing binary. A failed plugin install is a product failure, not a skip: see ``install_plugin``."""
         if reason := self.read(f"/opt/uat/skip/{runtime}").strip():
             return f"{runtime} install failed in the image: {reason}"
         if self.run(["which", binary]).returncode:
             return f"{runtime}: `{binary}` is not in the image"
-        for argv in plugin_steps:
-            done = self.run(list(argv), cwd=self.checkout, timeout=300)
-            if done.returncode:
-                return f"{runtime} plugin install failed ({' '.join(argv)}): {(done.stdout + done.stderr)[-500:]}"
         return None
+
+    def install_plugin(self, steps) -> None:
+        """Run the plugin install ``steps`` in the checkout; the plugin is the checkout's own, so a failure fails."""
+        for argv in steps:
+            done = self.run(list(argv), cwd=self.checkout, timeout=300)
+            assert done.returncode == 0, f"{' '.join(argv)} -> {done.returncode}\n{done.stdout}\n{done.stderr}"
+
+    def version(self, binary: str) -> str:
+        done = self.run([binary, "--version"])
+        assert done.returncode == 0, f"{binary} --version -> {done.returncode}\n{done.stdout}\n{done.stderr}"
+        return (done.stdout.strip() or done.stderr.strip()).splitlines()[0]
 
     def leaks(self, secret):
         if not self._started:

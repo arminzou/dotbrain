@@ -52,23 +52,26 @@ _CODEX_PLUGIN = (("codex", "plugin", "marketplace", "add", MARKETPLACE),
 
 RUNTIMES: tuple[Runtime, ...] = (
     Runtime("claude", "2.1.311", "npm install --global @anthropic-ai/claude-code@2.1.311", (
+        Listing(("claude", "plugin", "list"), "plugin-hooks", "dotbrain@dotbrain, scope user, status enabled",
+                _CLAUDE_PLUGIN),
         Listing(("claude", "plugin", "details", "dotbrain"), "plugin-hooks",
-                "lists the plugin's skills and its SessionStart/Stop/SessionEnd hooks", _CLAUDE_PLUGIN),
+                "its component inventory: the SessionStart, Stop and SessionEnd hooks"),
         # A local slash command: runs logged out and makes no model call.
         Listing(("claude", "-p", "/context"), "agents",
-                "the Custom Agents and Skills tables list the checkout's .claude/agents and skills, "
-                "and the plugin's skills"),
+                "the Custom Agents table lists the `dotbrain-<role>` agents and the Skills table the selected "
+                "skill, all delivered by bootstrap/refresh; the plugin's own skills (`dotbrain:*`) are not "
+                "evidence of delivery"),
     )),
     Runtime("codex", "0.164.0", "npm install --global @openai/codex@0.164.0", (
         Listing(("codex", "debug", "prompt-input"), "skills",
-                "skill roots and names; does NOT include the SessionStart hook's convention text"),
+                "skill roots and names, including the selected skill refresh delivered; does NOT include the "
+                "SessionStart hook's convention text"),
         Listing(("codex", "plugin", "list"), "plugin-hooks", "plugin installed and enabled", _CODEX_PLUGIN),
     ), "the checkout's .codex/agents are not listed by any command"),
     Runtime("opencode", "1.18.35", "npm install --global opencode-ai@1.18.35", (
         Listing(("opencode", "debug", "skill"), "skills", "JSON with each skill's name and location"),
         Listing(("opencode", "debug", "config"), "plugin-hooks", "the resolved config names the dotbrain plugin file"),
-        Listing(("opencode", "agent", "list"), "agents", "built-in agents only: dotbrain delivers none here"),
-    )),
+    ), "`opencode agent list` shows built-in agents only: dotbrain delivers none to OpenCode"),
     Runtime("pi", "1.4.0", "npm install --global @earendil-works/pi-coding-agent@1.4.0", (),
             "`pi list` shows packages only (none for the dotbrain extension); `pi --list-models` and "
             "`pi -p /skills` need a provider login"),
@@ -78,7 +81,8 @@ RUNTIMES: tuple[Runtime, ...] = (
             "and `agent about` run but do not show delivered skills or hooks"),
     Runtime("hermes", "v0.22.0+119 (0e427d788d253630d38a3a51cd76849e73cd6925)",
             "the official install.sh pinned with --commit; no package-registry release", (
-        Listing(("hermes", "plugins", "list"), "plugin-hooks", "the dotbrain plugin: enabled, source user"),
+        Listing(("hermes", "plugins", "list", "--plain", "--no-bundled"), "plugin-hooks",
+                "the dotbrain plugin: enabled, source user"),
     ), "`hermes skills list` shows built-in skills only; `hermes hooks list` covers shell hooks, not plugins"),
 )
 

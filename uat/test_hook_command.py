@@ -25,8 +25,6 @@ from conftest import CREDENTIAL_VARS, REPO
 from observe import nonce
 from prepare import PENDING
 
-SPAWN = '"hook", "run", "--event"'  # the argv the JS plugins spawn; Hermes' differs only in quoting
-
 
 @dataclass
 class Hooks:
@@ -58,20 +56,29 @@ def delivered_hooks(backend, name) -> Hooks:
         hooks = _config_hooks(backend, "/root/.cursor/hooks.json", "sessionStart", "sessionEnd", nested=False)
         hooks.env = {"CURSOR_PROJECT_DIR": checkout}  # what Cursor sets for its hooks
         return hooks
-    # Plugin code: the delivered file names the spawned argv and the start timeout.
-    path, seconds_pattern, scale = {
-        "opencode": ("/root/.config/opencode/plugins/dotbrain.js", r"START_TIMEOUT_MS = ([\d_]+)", 1000),
-        "pi": ("/root/.pi/agent/extensions/dotbrain/index.js", r"START_TIMEOUT_MS = ([\d_]+)", 1000),
-        "hermes": ("/root/.hermes/plugins/dotbrain/__init__.py", r"START_TIMEOUT = (\d+)", 1),
+    # Plugin code: the delivered file builds the spawned argv, names the events its start and end paths send,
+    # and holds the start timeout. All three are read from it, so a changed flag or event mapping fails.
+    path, seconds_pattern, scale, start_event, end_event = {
+        "opencode": ("/root/.config/opencode/plugins/dotbrain.js", r"START_TIMEOUT_MS = ([\d_]+)", 1000,
+                     r'created\.has\(sessionID\) \? "(\w[\w-]*)"', r'busy\.has\(id\) \? "turn-end" : "([\w-]+)"'),
+        "pi": ("/root/.pi/agent/extensions/dotbrain/index.js", r"START_TIMEOUT_MS = ([\d_]+)", 1000,
+               r'startup: "([\w-]+)"', r'run\("([\w-]+)", ctx\.cwd, END_TIMEOUT_MS'),
+        "hermes": ("/root/.hermes/plugins/dotbrain/__init__.py", r"START_TIMEOUT = (\d+)", 1,
+                   r'"([\w-]+)" if is_first_turn', r'_hook_run\("([\w-]+)", END_TIMEOUT'),
     }[name]
     source = backend.read(path)
-    assert (SPAWN in source) or ('"hook", "run", "--event", event' in source), f"{path} spawns no `hook run`"
-    for event in ("startup", "session-end"):
-        assert f'"{event}"' in source, f"{path} never runs the {event} event"
+    template = re.search(r'\[(?:exe, )?("hook", [^\]]*)\]', source)
+    assert template, f"{path} builds no `hook` argv"
     seconds = int(re.search(seconds_pattern, source).group(1).replace("_", "")) / scale
-    # What the plugin spawns: `dotbrain hook run --event <event> --checkout <worktree>`, no shell.
-    command = lambda event: shlex.join(["dotbrain", "hook", "run", "--event", event, "--checkout", checkout])  # noqa: E731
-    return Hooks(command("startup"), seconds, command("session-end"), {})
+
+    def command(event_pattern):
+        event = re.search(event_pattern, source)
+        assert event, f"{path} has no call matching {event_pattern}"
+        slots = {"event": event.group(1), "checkout": checkout, "_checkout()": checkout}
+        argv = [item.strip('"') if item.startswith('"') else slots[item] for item in template.group(1).split(", ")]
+        return shlex.join(["dotbrain", *argv])  # what the plugin spawns, no shell
+
+    return Hooks(command(start_event), seconds, command(end_event), {})
 
 
 @pytest.fixture(scope="module")
@@ -96,9 +103,10 @@ def container(request, image):
     request.addfinalizer(backend.teardown)  # registered before the container exists
     backend.start()
     backend.put_dir(REPO, (".claude-plugin", "plugin"), evidence.MARKETPLACE)
-    if reason := backend.unavailable(name, rt.binary, rt.plugin_steps):
+    if reason := backend.unavailable(name, rt.binary):
         pytest.skip(reason)
-    request.node.user_properties.append(("runtime_version", backend.run([rt.binary, "--version"]).stdout.strip().splitlines()[0]))
+    backend.install_plugin(rt.plugin_steps)
+    request.node.user_properties.append(("runtime_version", backend.version(rt.binary)))
     convention_nonce = nonce("convention")
     prepared = backend.run([backend.python, backend.prepare, "--runtime", name, "--checkout", backend.checkout,
                             "--convention-nonce", convention_nonce, "--reference-nonce", nonce("reference")],
