@@ -19,6 +19,8 @@ SOURCE_REVISION = "c9c4570534c39f84207e25f8ea47f0446b88a07e"
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = Path(__file__).with_name("inventory.json")
 PREFIX = "plugin/evals/"
+# Packaged roles were renamed after the source revision; translate so regeneration keeps current names.
+RETIRED_ROLE = re.compile(rb"dotbrain:(worker|researcher|reviewer|verifier)\b")
 DECISION_CASES = frozenset({
     "accepted-automatic-failure-mode",
     "execution-recovery-boundaries",
@@ -114,7 +116,8 @@ def read_source(revision: str, *, run=subprocess.run) -> dict[str, bytes]:
     return files
 
 
-def build_inventory(files: dict[str, bytes], revision: str) -> dict:
+def build_inventory(source: dict[str, bytes], revision: str) -> dict:
+    files = {path: RETIRED_ROLE.sub(rb"dotbrain-\1", raw) for path, raw in source.items()}
     prompts = sorted(p for p in files if p.endswith("/prompt.md"))
     if not prompts:
         raise ValueError("no source cases found")
@@ -179,7 +182,8 @@ def build_inventory(files: dict[str, bytes], revision: str) -> dict:
             "packaged_roles": "Named packaged-role dispatch must be observed; a generic worker completing the task is insufficient.",
             "historical_results": "Keep original runner, tested revision, runtime/model versions and settings with local reports. This inventory revision does not relabel past results or establish a missing result revision.",
         },
-        "source_files": {p: hashlib.sha256(raw).hexdigest() for p, raw in sorted(files.items())},
+        "translations": {"dotbrain:<role>": "dotbrain-<role>"},
+        "source_files": {p: hashlib.sha256(raw).hexdigest() for p, raw in sorted(source.items())},
         "cases": cases,
     }
 

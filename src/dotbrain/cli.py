@@ -140,17 +140,25 @@ def bootstrap(
     json_output: JsonOption = False,
 ) -> None:
     """Prepare this machine for dotbrain: global skill and subagent links."""
+    status = None
+
     def confirm(found, prompt):
+        if status:  # the prompt needs the line the spinner occupies
+            status.stop()
         for line in found:
             typer.echo(line)
         typer.echo(prompt + " ", nl=False)
-        return input().strip().lower() in ("", "y", "yes")
+        answer = input().strip().lower() in ("", "y", "yes")
+        if status:
+            status.start()
+        return answer
 
     root = Path(home).expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        report = bootstrap_mod.prepare(
-            root, runtime, confirm=confirm if not json_output and sys.stdin.isatty() and sys.stdout.isatty() else None,
-        )
+        with activity("Bootstrapping...", enabled=not json_output) as status:
+            report = bootstrap_mod.prepare(
+                root, runtime, confirm=confirm if not json_output and sys.stdin.isatty() and sys.stdout.isatty() else None,
+            )
     except ValueError as exc:
         render(CommandResult("bootstrap", "failure", errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2)

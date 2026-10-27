@@ -1,4 +1,4 @@
-name = "verifier"
+name = "dotbrain-verifier"
 description = "Runs the mechanical verification gate and returns commit-stamped evidence (commands, output, pass/fail, and a public-safe Verification block), never an opinion and never an edit."
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"

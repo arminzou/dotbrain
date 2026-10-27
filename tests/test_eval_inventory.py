@@ -78,6 +78,18 @@ def test_source_checks_and_fixture_contract_are_preserved():
     assert set(result["source_files"]) == set(files)
 
 
+def test_retired_role_names_are_translated_but_source_hashes_are_not():
+    files = source_case()
+    path = "plugin/evals/sample/prompt.md"
+    files[path] = files[path].replace(b"Do the task.", b"Dispatch dotbrain:worker, not dotbrain:workers.")
+    files["plugin/evals/sample/graders/tool.md"] = files["plugin/evals/sample/graders/tool.md"].replace(b"'worker:.*'", b"dotbrain:reviewer")
+    result = inventory.build_inventory(files, inventory.SOURCE_REVISION)
+    case = result["cases"][0]
+    assert case["prompt"]["body"] == "Dispatch dotbrain-worker, not dotbrain:workers."
+    assert case["expected_checks"]["graders"][1]["frontmatter"]["input_match"] == "dotbrain-reviewer"
+    assert result["source_files"][path] == inventory.hashlib.sha256(files[path]).hexdigest()
+
+
 def test_decision_exercise_and_additional_ordering_are_distinct():
     files = source_case("execution-recovery-boundaries") | source_case("parallel-reference-before-dispatch", state=True)
     decision, ordering = inventory.build_inventory(files, inventory.SOURCE_REVISION)["cases"]

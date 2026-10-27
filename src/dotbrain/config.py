@@ -266,7 +266,7 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
 
 
 # The packaged roles are whatever packaged definitions ship; the Codex set is the canonical list.
-PACKAGED_ROLES = tuple(sorted(rel.stem for rel, _ in resource_loader.iter_resource_files("agents/codex")
+PACKAGED_ROLES = tuple(sorted(rel.stem.removeprefix("dotbrain-") for rel, _ in resource_loader.iter_resource_files("agents/codex")
                               if rel.suffix == ".toml"))
 PROJECT_VERSION = 2
 

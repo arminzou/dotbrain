@@ -243,7 +243,7 @@ def test_link_project_subagents_warns_for_missing_name(dotbrain_home: Path, brai
 
 def test_packaged_roles_have_definitions_for_each_runtime() -> None:
     for role in ROLES:
-        assert resource_loader.resource(f"agents/claude/{role}.md").read_text(encoding="utf-8").startswith(f"---\nname: {role}\n")
+        assert resource_loader.resource(f"agents/claude/dotbrain-{role}.md").read_text(encoding="utf-8").startswith(f"---\nname: dotbrain-{role}\n")
         assert subagents.packaged_body(role, "claude-code").startswith(f"---\nname: dotbrain-{role}\n")
 
 
@@ -252,7 +252,7 @@ def test_packaged_definition_is_settings_plus_its_role_contract(runtime: str, mo
     """Packaged resources hold settings only, so a contract change reaches the next delivery."""
     directory, suffix = subagents.runtime_spec()[runtime]
     for role in ROLES:
-        settings = resource_loader.resource(f"agents/{directory}/{role}{suffix}").read_text(encoding="utf-8")
+        settings = resource_loader.resource(f"agents/{directory}/dotbrain-{role}{suffix}").read_text(encoding="utf-8")
         assert subagents.role_contract(role).splitlines()[2] not in settings
     contract = 'Changed contract with """quotes""" and a \\path.\n'
     monkeypatch.setattr(subagents, "role_contract", lambda role: contract)
