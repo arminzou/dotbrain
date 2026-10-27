@@ -3,22 +3,11 @@ layout: home
 title: Dotbrain
 titleTemplate: Private project context for coding agents
 
-hero:
-  name: Dotbrain
-  text: Private context for coding agents
-  tagline: Give each coding agent your project's decisions, vocabulary, and issues. Keep that context versioned and outside your code repo.
-  image:
-    light:
-      src: /assets/mark-light-512.png
-      width: 512
-      height: 512
-      fetchpriority: high
-    dark:
-      src: /assets/mark-dark-512.png
-      width: 512
-      height: 512
-      fetchpriority: high
-    alt: Dotbrain connected brain mark with a teal dot
+homeHero:
+  title: Your project's second brain.
+  private: Private to you.
+  shared: Shared with your agents.
+  tagline: Your thinking, skills and subagents. One home, every repo.
   actions:
     - theme: brand
       text: Get started
@@ -29,6 +18,28 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/arminzou/dotbrain
+  worksWith: Works with
+  repo: Code repo · public
+  home: Private home · ~/dotbrain
+  chips:
+    thinking: thinking
+    skills: skills
+    subagents: subagents
+
+skillSpotlight:
+  tabsLabel: Show the skills a repo uses
+  linked: Skills linked from
+  loads: Every agent in this repo loads these skills
+  legend: [shared, backend, frontend, infra]
+
+workLoop:
+  core: project memory
+  stages: [Load the context, Settle the design, Work the issues, Review and learn]
+  epic: Checkout v1
+  frontier: ready frontier
+  blocks: blocks
+  legend: [ready, in progress, blocked, done]
+  issues: [Add orders table, Payments setup, Orders API, Payment webhooks, Checkout page]
 ---
 
 <main class="home" aria-label="Dotbrain overview">
@@ -61,32 +72,28 @@ treeView-beta
 </div>
 </section>
 
+<section class="split">
+<div>
+
+## Every agent in the repo gets the same skills
+
+Write skills once in `~/dotbrain/` and give each project the set it needs. Whichever agent you open in that repo loads the same set, and Claude Code and Codex get the project's subagents too. Fix a skill once and every repo that uses it gets the fix. [Choose a project's skills](./configuration#project-yaml).
+
+</div>
+<div>
+
+<SkillSpotlight />
+
+</div>
+</section>
+
 <section>
 
-## Context that carries work forward
+## Plan as a graph. Work in a loop.
 
-The Brain keeps project knowledge, the design captures current intent, and Beads tracks the issues. Focused skills connect them throughout the work.
+A settled design becomes issues in Beads, linked by what blocks what. Agents pick up whatever is ready, close it, and unblock the next. What they learn goes back into the Brain, so the next session starts further ahead. [See the workflow](./workflow).
 
-<ol class="workflow" role="list">
-<li>
-<h3>Load the context</h3>
-<p>Start from the project's vocabulary and decisions. Surface constraints and open questions before changing code.</p>
-</li>
-<li>
-<h3>Settle the design</h3>
-<p>Record the approach, unknowns, and success criteria in a living design. Turn it into scoped issues.</p>
-</li>
-<li>
-<h3>Work the issues</h3>
-<p>Implement and check each change. Feed discoveries back into the design and affected issues.</p>
-</li>
-<li>
-<h3>Review and learn</h3>
-<p>Review the result, record the evidence, and keep useful decisions in the Brain for the next session.</p>
-</li>
-</ol>
-
-For example, an unexpected API constraint becomes a design question before a workaround. Once settled, the design and issues carry that decision forward. [Explore the skills](./skills).
+<WorkLoop />
 
 </section>
 
@@ -133,35 +140,6 @@ dotbrain doctor
 
 </li>
 </ol>
-
-</section>
-
-<section>
-
-## Read the docs
-
-<div class="map">
-<div>
-<h3>Guide</h3>
-<a href="./getting-started"><strong>Getting started</strong><span>Install, wire a repo, and verify the result.</span></a>
-<a href="./prompts"><strong>Example prompts</strong><span>What to ask your agent for each common job.</span></a>
-<a href="./architecture"><strong>Architecture</strong><span>Brainspaces, the Brain and execution split, the public/private boundary.</span></a>
-<a href="./workflow"><strong>The workflow</strong><span>From first idea to closed design, one skill per step.</span></a>
-<a href="./agent-team"><strong>Agent team</strong><span>Direct the work or hand it off, with one worker or several.</span></a>
-<a href="./wiring"><strong>Wiring</strong><span>What gets linked, and when to wire, refresh, or unwire.</span></a>
-<a href="./session-context"><strong>Session context</strong><span>What the agent knows when a session starts.</span></a>
-<a href="./beads-backend"><strong>Beads backend</strong><span>Embedded and server modes for the issue tracker.</span></a>
-<a href="./brain-site"><strong>Brain site</strong><span>Browse a Brain as a private local site.</span></a>
-</div>
-<div>
-<h3>Reference</h3>
-<a href="./cli-reference"><strong>CLI reference</strong><span>Every dotbrain command and option.</span></a>
-<a href="./configuration"><strong>Configuration</strong><span>Annotated config.yaml and project.yaml.</span></a>
-<a href="./skills"><strong>Skills</strong><span>The Brain-coupled skills the plugin ships.</span></a>
-<a href="./glossary"><strong>Glossary</strong><span>The vocabulary of the dotbrain model.</span></a>
-<a href="./troubleshooting"><strong>Troubleshooting &amp; FAQ</strong><span>Fixes for common setup and wiring problems.</span></a>
-</div>
-</div>
 
 </section>
 
