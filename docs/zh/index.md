@@ -54,20 +54,28 @@ workLoop:
 </div>
 <div>
 
-```mermaid
-treeView-beta
-  accTitle: A Brainspace and the code repo that links to it
-  brainspaces/my-project/
-    .brain/
-      CONTEXT.md ## domain vocabulary
-      adr/ ## architecture decisions
-      designs/ ## design docs
-      docs/ ## derived reference
-    .beads/ ## issue tracker
-  repos/my-project/
-    .brain ## link to the Brainspace's .brain/
-    .beads ## link to the Brainspace's .beads/
-```
+<div class="tree-panel">
+<div class="tp private">
+<div class="tp-cap"><i class="tp-lock"></i>~/dotbrain/brainspaces/my-app</div>
+<div class="tp-row dir">.brain/<span class="tp-note"></span></div>
+<div class="tp-row dir in">adr/<span class="tp-note">架构决策</span></div>
+<div class="tp-row dir in">designs/<span class="tp-note">设计文档</span></div>
+<div class="tp-row dir in">docs/<span class="tp-note">衍生参考</span></div>
+<div class="tp-row file in">AGENTS.md<span class="tp-note">私有规则</span></div>
+<div class="tp-row file in">CONTEXT.md<span class="tp-note">领域术语</span></div>
+<div class="tp-row file in">DOTBRAIN.md<span class="tp-note">共享的 Brain 规则</span></div>
+<div class="tp-row file in">project.yaml<span class="tp-note">技能与任务跟踪配置</span></div>
+<div class="tp-row file in">RETRO.md<span class="tp-note">复盘经验</span></div>
+<div class="tp-row dir">.beads/<span class="tp-note">任务跟踪</span></div>
+</div>
+<div class="tp">
+<div class="tp-cap"><i class="tp-repo"></i>~/repos/my-app</div>
+<div class="tp-row link">.brain<span class="tp-chip">仅本地</span></div>
+<div class="tp-row link">.beads<span class="tp-chip">仅本地</span></div>
+<div class="tp-row file">AGENTS.md<span class="tp-note">一行指引，会提交</span></div>
+</div>
+<p class="tp-foot"><code>.brain</code> 和 <code>.beads</code> 写在 <code>.git/info/exclude</code> 里，Git 不会看到它们。</p>
+</div>
 
 </div>
 </section>
