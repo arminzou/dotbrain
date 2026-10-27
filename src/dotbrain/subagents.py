@@ -38,14 +38,9 @@ def role_contract(role: str) -> str:
 
 
 def packaged_body(role: str, runtime: str) -> str:
-    """Packaged definition text as delivered: runtime settings, prefixed name, and the role contract."""
+    """Packaged definition text as delivered: runtime settings plus the role contract."""
     directory, suffix = runtime_spec()[runtime]
-    text = resource_loader.resource(f"agents/{directory}/{role}{suffix}").read_text(encoding="utf-8")
-    line, new = ((f'name = "{role}"', f'name = "{PACKAGED_PREFIX}{role}"') if runtime == "codex"
-                 else (f"name: {role}\n", f"name: {PACKAGED_PREFIX}{role}\n"))
-    if text.count(line) != 1:
-        raise ValueError(f"packaged subagent {role}: expected one {line.strip()!r} line")
-    text = text.replace(line, new, 1)
+    text = resource_loader.resource(f"agents/{directory}/{PACKAGED_PREFIX}{role}{suffix}").read_text(encoding="utf-8")
     contract = role_contract(role)
     if runtime != "codex":
         return f"{text}\n{contract}"
