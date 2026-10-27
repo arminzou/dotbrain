@@ -106,7 +106,8 @@ the changed entry. `--set-metadata` stores an object as an escaped string; use i
 all, for `dotbrain_phase` alone. Query with `bd list --metadata-field <key>=<value>`;
 add `--all` for closed items. Keep logs in evidence comments, never metadata.
 
-Write comment files verbatim in a temporary location outside the project. Prefer the
+Write comment files verbatim to `.dotbrain-tmp/<actor>-<item>.md` in your checkout, which
+Git ignores, and delete them after posting; never name one `report*`. Prefer the
 runtime file-writing tool. Shell fallbacks are quoted heredocs in bash/zsh (including
 Git Bash) or single-quoted here-strings in PowerShell 7 with UTF-8 without BOM.
 Never use `printf` or `echo -e` for comment text: Windows path backslashes become
