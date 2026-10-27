@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import re
 import shlex
-import shutil
 import time
 from dataclasses import dataclass
 
@@ -21,9 +20,8 @@ import pytest
 
 import backends
 import evidence
-from conftest import CREDENTIAL_VARS, REPO
-from observe import nonce
-from prepare import PENDING
+from conftest import REPO
+from prepare import CONVENTION_MARKER, PENDING
 
 
 @dataclass
@@ -81,17 +79,6 @@ def delivered_hooks(backend, name) -> Hooks:
     return Hooks(command(start_event), seconds, command(end_event), {})
 
 
-@pytest.fixture(scope="module")
-def image(tmp_path_factory):
-    pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
-    uv = shutil.which("uv")
-    if uv is None:
-        pytest.skip("install uv")
-    if problem := backends.docker_problem():
-        pytest.skip(problem)
-    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, CREDENTIAL_VARS)
-
-
 @pytest.fixture(params=[r.name for r in evidence.RUNTIMES])
 def container(request, image):
     """A fresh container with the runtime installed and a scratch project delivered and wired."""
@@ -107,16 +94,13 @@ def container(request, image):
         pytest.skip(reason)
     backend.install_plugin(rt.plugin_steps)
     request.node.user_properties.append(("runtime_version", backend.version(rt.binary)))
-    convention_nonce = nonce("convention")
-    prepared = backend.run([backend.python, backend.prepare, "--runtime", name, "--checkout", backend.checkout,
-                            "--convention-nonce", convention_nonce, "--reference-nonce", nonce("reference")],
-                           timeout=300)
+    prepared = backend.run([backend.python, backend.prepare, "--runtime", name, "--checkout", backend.checkout], timeout=300)
     assert prepared.returncode == 0, prepared.stdout + prepared.stderr
-    return name, backend, convention_nonce
+    return name, backend
 
 
 def test_configured_hook_prints_convention_and_syncs_home(container):
-    name, backend, convention_nonce = container
+    name, backend = container
     hooks = delivered_hooks(backend, name)
 
     # The configured session-start command, as the runtime hands it to the shell. The data root's remote is
@@ -126,9 +110,9 @@ def test_configured_hook_prints_convention_and_syncs_home(container):
     elapsed = time.monotonic() - started
     assert start.returncode == 0, start.stdout + start.stderr
     assert elapsed < hooks.start_seconds, f"{hooks.start} took {elapsed:.1f} s of {hooks.start_seconds} s"
-    assert convention_nonce in start.stdout, start.stdout[-2000:]
+    assert CONVENTION_MARKER in start.stdout, start.stdout[-2000:]
     # The convention ends in its marker; Cursor wraps it in JSON, so the marker closes the string there.
-    assert re.search(rf"{re.escape(convention_nonce)}\s*(\\n)*\W*\s*$", start.stdout), start.stdout[-500:]
+    assert re.search(rf"{re.escape(CONVENTION_MARKER)}\s*(\\n)*\W*\s*$", start.stdout), start.stdout[-500:]
 
     # Home sync via the configured session-end command: it commits the pending change locally while the
     # push fails, leaving the data root ahead of its upstream.

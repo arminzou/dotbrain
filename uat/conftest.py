@@ -1,54 +1,27 @@
-"""Runtime delivery UAT: qualify what agent runtimes load from dotbrain, in disposable sandboxes.
+"""Runtime delivery UAT: qualify what agent runtimes load from dotbrain, in a Linux container.
 
-Opt-in: ``uv run --group uat pytest uat``. Plain ``uv run pytest`` never collects this directory,
-and ``tests/conftest.py`` is not loaded here: its guard fails any test that launches a runtime.
+Opt-in: ``uv run --group uat pytest uat``; it needs Docker and makes no model call. Plain
+``uv run pytest`` never collects this directory, and ``tests/conftest.py`` is not loaded here.
 
-A journey runs only when its runtime is installed and its credential is set; otherwise it skips,
-naming what to set, before any runtime process starts or any sandbox exists. Each journey checks
-that the live runtime config and the live data root are unchanged, removes its sandbox, and is
-stamped with runtime version, OS and dotbrain revision in the report and in ``uat/results.json``.
+Each journey runs in a fresh container and is stamped with runtime version, image digest, OS and
+dotbrain revision in the report and in ``uat/results.json``.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import platform
 import shutil
 import subprocess
-import sys
-from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
 import pytest
 
 import backends
-from backends import Backend, ContainerBackend, HostBackend
-from observe import changed, fingerprint, nonce
 
 REPO = Path(__file__).resolve().parent.parent
 RESULTS = Path(__file__).resolve().parent / "results.json"
-
-# The only variables a journey treats as a credential. A runtime's model variable names
-# provider/model; the provider's key variable must be set too, and only that one reaches the runtime.
-MODEL_VARS = {"opencode": "UAT_OPENCODE_MODEL", "pi": "UAT_PI_MODEL"}
-PROVIDER_KEYS = {
-    "openai": "OPENAI_API_KEY",
-    "anthropic": "ANTHROPIC_API_KEY",
-    "deepseek": "DEEPSEEK_API_KEY",
-    "openrouter": "OPENROUTER_API_KEY",
-}
-# Runtimes that take their own credential instead of a provider's: the first one set is passed.
-RUNTIME_KEYS = {"cursor": ("CURSOR_API_KEY", "CURSOR_AUTH_TOKEN")}
-CREDENTIAL_VARS = (*PROVIDER_KEYS.values(), *(var for keys in RUNTIME_KEYS.values() for var in keys))
-COMMANDS = {"opencode": "opencode", "pi": "pi", "cursor": "agent"}
-_LOCAL = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-# Host installs off PATH; the binary is resolved there before the sandbox swaps the environment.
-INSTALL_DIRS = {"cursor": str(_LOCAL / "cursor-agent")}
-# Runtime binaries below a live root, which the runtime's own auto-update may replace during a run.
-UNWATCHED = [_LOCAL / "cursor-agent" / name
-             for name in ("versions", "agent.cmd", "agent.ps1", "cursor-agent.cmd", "cursor-agent.ps1")]
 
 
 @cache
@@ -65,133 +38,16 @@ def os_name() -> str:
     return platform.platform()
 
 
-def credential(runtime: str) -> tuple[str, dict[str, str]] | str:
-    """``(model, {key variable: value})``, or what to set when it is missing."""
-    if runtime in RUNTIME_KEYS:
-        keys = RUNTIME_KEYS[runtime]
-        key = next((var for var in keys if os.environ.get(var)), None)
-        return ("account default", {key: os.environ[key]}) if key else f"set {' or '.join(keys)}"
-    model_var = MODEL_VARS[runtime]
-    model = os.environ.get(model_var, "")
-    provider = model.split("/", 1)[0]
-    if provider not in PROVIDER_KEYS:
-        keys = ", ".join(f"{name} ({var})" for name, var in PROVIDER_KEYS.items())
-        return f"set {model_var}=<provider>/<model> and the provider's key; providers: {keys}"
-    key = PROVIDER_KEYS[provider]
-    if not os.environ.get(key):
-        return f"set {key} for {model_var}={model}"
-    return model, {key: os.environ[key]}
-
-
-def live_roots(runtime: str) -> list[Path]:
-    """The live runtime config dirs and the live data root, which no journey may change."""
-    home = Path.home()
-
-    def xdg(var, default):
-        return Path(os.environ.get(var) or home / default)
-
-    runtime_dirs = {
-        "opencode": [xdg("XDG_CONFIG_HOME", ".config") / "opencode", xdg("XDG_DATA_HOME", ".local/share") / "opencode",
-                     xdg("XDG_STATE_HOME", ".local/state") / "opencode", xdg("XDG_CACHE_HOME", ".cache") / "opencode"],
-        "pi": [Path(os.environ.get("PI_CODING_AGENT_DIR") or home / ".pi" / "agent")],
-        # Config and data, auth, agent stores, the CLI's data dir (its binaries UNWATCHED), compile cache.
-        "cursor": [home / ".cursor", xdg("XDG_CONFIG_HOME", ".config") / "cursor",
-                   Path(os.environ.get("APPDATA") or home / "AppData" / "Roaming") / "Cursor", _LOCAL / "Cursor",
-                   _LOCAL / "cursor-agent", _LOCAL / "cursor-compile-cache"],
-    }[runtime]
-    return runtime_dirs + [Path(os.environ.get("DOTBRAIN_HOME") or home / "dotbrain")]
-
-
-@dataclass
-class Sandbox:
-    backend: Backend
-    exe: str  # the runtime binary, resolved before the environment swap
-    model: str
-    credentials: dict[str, str] = field(repr=False)
-    convention_nonce: str = ""
-    reference_nonce: str = ""
-
-    def runtime(self, *args: str, timeout: float = 300):
-        """Run the runtime in the checkout; only this process gets the credential."""
-        return self.backend.run([self.exe, *args], env=self.credentials, cwd=self.backend.checkout, timeout=timeout)
-
-
-@pytest.fixture(params=["host", "container"])
-def sandbox(request, runtime, tmp_path, tmp_path_factory):
-    props = request.node.user_properties
-    props += [("runtime", runtime), ("backend", request.param)]
-    container = request.param == "container"
-    if container:
-        pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
-    elif sys.platform != "win32":
-        pytest.skip("the host backend qualifies native Windows; run it there")
-    missing = []
-    # The container has the runtime on its own PATH.
-    exe = COMMANDS[runtime] if container else shutil.which(COMMANDS[runtime], path=INSTALL_DIRS.get(runtime))
-    if exe is None:
-        missing.append(f"install {runtime} so `{COMMANDS[runtime]}` is in {INSTALL_DIRS.get(runtime, 'PATH')}")
-    found = credential(runtime)
-    if isinstance(found, str):
-        missing.append(found)
+@pytest.fixture(scope="module")
+def image(tmp_path_factory):
+    """The suite's image: ``(tag, image id)``, built once per checkout state and shared by every worker."""
+    pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
     uv = shutil.which("uv")
     if uv is None:
-        missing.append("install uv")
-    if missing:
-        pytest.skip("; ".join(missing))
-    if container and (problem := backends.docker_problem()):
+        pytest.skip("install uv")
+    if problem := backends.docker_problem():
         pytest.skip(problem)
-    model, credentials = found
-    props.append(("model", model))
-    if container:
-        # Every xdist worker shares the base temp dir's parent, so the build lock lives there.
-        image, digest = backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent,
-                                                 CREDENTIAL_VARS)
-        props.append(("image_digest", digest))
-
-    roots = live_roots(runtime)
-    before = fingerprint(roots, UNWATCHED)
-    # Creates nothing yet: the handle exists before the sandbox does.
-    if container:
-        backend = ContainerBackend(image)
-    else:
-        backend = HostBackend(tmp_path / "sandbox", repo=REPO, uv=uv, credential_vars=CREDENTIAL_VARS,
-                              runtime_dir=os.path.dirname(exe))
-
-    # Registered before the sandbox exists, so a failing start, preparation or journey still
-    # removes it and still reports every isolation violation, beside the original failure.
-    def finalize():
-        problems = close_sandbox(backend, credentials.values(), roots, before)
-        assert not problems, "\n".join(problems)
-
-    request.addfinalizer(finalize)
-    backend.start()
-    session = Sandbox(backend, exe, model, credentials, nonce("convention"), nonce("reference"))
-    prepared = backend.run([backend.python, backend.prepare, "--runtime", runtime, "--checkout", backend.checkout,
-                            "--convention-nonce", session.convention_nonce,
-                            "--reference-nonce", session.reference_nonce], timeout=300)
-    assert prepared.returncode == 0, prepared.stdout + prepared.stderr
-    props.append(("runtime_version", backend.run([exe, "--version"]).stdout.strip()))
-    return session
-
-
-def close_sandbox(backend: Backend, secrets, roots, before) -> list[str]:
-    """Scan for leaked credentials, remove the sandbox, and compare the live roots; each step runs
-    whatever the others did. Returns every violation found."""
-    problems = []
-    try:
-        for secret in secrets:
-            problems += [f"credential written to {path}" for path in backend.leaks(secret)]
-    except Exception as error:  # noqa: BLE001 - the remaining checks must still run
-        problems.append(f"credential scan failed: {error!r}")
-    try:
-        backend.teardown()
-    except Exception as error:  # noqa: BLE001
-        problems.append(f"sandbox not removed: {error!r}")
-    try:
-        problems += [f"live path changed: {path}" for path in changed(before, fingerprint(roots, UNWATCHED))]
-    except Exception as error:  # noqa: BLE001
-        problems.append(f"isolation guard failed: {error!r}")
-    return problems
+    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent)
 
 
 # Result stamping. Workers forward their reports to the controller, which writes the results file.

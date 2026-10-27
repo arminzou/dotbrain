@@ -12,12 +12,11 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 
 import pytest
 
 import backends
-from conftest import CREDENTIAL_VARS, REPO
+from conftest import REPO
 from evidence import MARKETPLACE, RUNTIMES
 
 ROLES = ("researcher", "reviewer", "verifier", "worker")
@@ -69,17 +68,6 @@ def problems(argv: tuple[str, ...], text: str) -> list[str]:
     else:
         raise AssertionError(f"no expectation for {argv}")
     return missing
-
-
-@pytest.fixture(scope="module")
-def image(tmp_path_factory):
-    pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
-    uv = shutil.which("uv")
-    if uv is None:
-        pytest.skip("install uv")
-    if problem := backends.docker_problem():
-        pytest.skip(problem)
-    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, CREDENTIAL_VARS)
 
 
 @pytest.mark.parametrize("rt", RUNTIMES, ids=lambda rt: rt.name)
