@@ -1,7 +1,7 @@
 # The container backend's image: Linux with node, git, uv, Python, the six pinned agent runtimes
 # (Claude Code, Codex, OpenCode, Pi, Cursor, Hermes; see evidence.py) and dotbrain.
 # The suite builds it (backends.container_image) from a context it assembles: this file, prepare.py,
-# the recording `dotbrain` shim, and a dotbrain wheel built from the checkout under test.
+# and a dotbrain wheel built from the checkout under test.
 #
 # A runtime whose install fails does not fail the build: the failure's output goes to
 # /opt/uat/skip/<runtime>, and that runtime's journeys skip with it as the reason.
@@ -36,11 +36,10 @@ RUN (curl -fsSL https://hermes-agent.nousresearch.com/install.sh -o /tmp/hermes-
     && rm /tmp/hermes-install.sh && ln -s /root/.local/bin/hermes /usr/local/bin/hermes) >/tmp/i.log 2>&1 \
     || tail -c 600 /tmp/i.log >/opt/uat/skip/hermes
 
-# The real CLI stays off PATH: adapters must find the shim, which logs each call and runs it.
 COPY *.whl /tmp/wheel/
 RUN UV_TOOL_DIR=/opt/dotbrain/tools UV_TOOL_BIN_DIR=/opt/dotbrain/bin UV_PYTHON_DOWNLOADS=never \
         uv tool install /tmp/wheel/*.whl \
     && rm -rf /tmp/wheel /root/.cache/uv
-COPY dotbrain /usr/local/bin/dotbrain
+ENV PATH=/opt/dotbrain/bin:$PATH
 COPY prepare.py /opt/uat/prepare.py
-RUN chmod 755 /usr/local/bin/dotbrain && mkdir -p /work/checkout && touch /work/dotbrain-calls.log
+RUN mkdir -p /work/checkout

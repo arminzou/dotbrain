@@ -40,10 +40,6 @@ class Runtime:
     def plugin_steps(self) -> tuple[tuple[str, ...], ...]:
         return tuple(step for listing in self.listings for step in listing.setup)
 
-    @property
-    def install_hook_only(self) -> bool:
-        return not self.listings
-
 
 _CLAUDE_PLUGIN = (("claude", "plugin", "marketplace", "add", MARKETPLACE),
                   ("claude", "plugin", "install", "dotbrain@dotbrain"))

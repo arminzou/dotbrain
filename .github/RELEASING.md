@@ -42,9 +42,12 @@ Cursor, Hermes) in a fresh container, it checks that:
   and Codex plugins install from a local marketplace;
 - the runtime's own no-model listing commands show the delivered skills, the four `dotbrain-<role>`
   subagents and the plugin and hooks, where the runtime has such a command;
-- the session-start and session-end commands, read from the runtime's delivered config and run as
-  configured, print the convention whole, return within the runtime's hook limit with an unreachable
-  remote, and leave the data root with a local commit ahead of its upstream.
+- the session-start and session-end commands print the convention whole, return within the runtime's
+  hook limit with an unreachable remote, and leave the data root with a local commit ahead of its
+  upstream. For Claude Code, Codex and Cursor the commands are read from the runtime's delivered
+  config and run as configured. For OpenCode, Pi and Hermes the hook is plugin code, so the argv, the
+  start and end events and the start limit are derived from the delivered plugin file and run without
+  a shell. Only session-start is held to the runtime's limit; session-end runs with a fixed 60 s limit.
 
 Anything plain pytest already proves stays in `tests/`. CI and plain `uv run pytest` never run the
 suite. Run it before a release PR that touches runtime delivery, the hooks, or a runtime adapter

@@ -8,7 +8,6 @@ from __future__ import annotations
 import hashlib
 import math
 import os
-import shlex
 import shutil
 import subprocess
 import tempfile
@@ -17,15 +16,6 @@ from contextlib import contextmanager, suppress
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-
-# Where the image puts things (see uat/Dockerfile).
-CONTAINER_LOG = "/work/dotbrain-calls.log"
-CONTAINER_DOTBRAIN = "/opt/dotbrain/bin/dotbrain"
-
-
-def sh_shim_script(log: str, real: str) -> str:
-    """The recording `dotbrain` shim the image puts first on PATH: it logs each call, then runs the real CLI."""
-    return "\n".join(["#!/bin/sh", f'printf "%s\\n" "$*" >> {shlex.quote(log)}', f'exec {shlex.quote(real)} "$@"']) + "\n"
 
 
 def docker_problem() -> str | None:
@@ -82,8 +72,6 @@ def container_image(repo: Path, uv: str, lock_dir: Path) -> tuple[str, str]:
                            check=True, capture_output=True)
             shutil.copy(dockerfile, context)
             shutil.copy(HERE / "prepare.py", context)
-            Path(context, "dotbrain").write_text(sh_shim_script(CONTAINER_LOG, CONTAINER_DOTBRAIN),
-                                                 encoding="utf-8", newline="\n")
             image = DockerImage(context, tag=tag, clean_up=False).build()
             return tag, image.get_wrapped_image().id
 
@@ -91,7 +79,6 @@ def container_image(repo: Path, uv: str, lock_dir: Path) -> tuple[str, str]:
 class ContainerBackend:
     """A container from the UAT image: its whole filesystem is the sandbox, and teardown removes it."""
 
-    home = "/root"
     data_root = "/root/dotbrain"
     checkout = "/work/checkout"
     python = "python3"

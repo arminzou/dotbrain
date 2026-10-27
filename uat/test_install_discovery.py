@@ -44,14 +44,22 @@ def problems(argv: tuple[str, ...], text: str) -> list[str]:
              "dotbrain@dotbrain installed with status enabled")
     elif argv[:3] == ("claude", "plugin", "details"):
         need(re.search(r"Hooks \(\d+\)\s+SessionStart, Stop, SessionEnd", text), "the SessionStart, Stop, SessionEnd hooks")
+        listed = re.search(r"Skills \(\d+\)\s+(.*)", text)
+        have = set((listed.group(1) if listed else "").split(", "))
+        need(set(SKILLS) <= have, f"the plugin's skills: {sorted(set(SKILLS) - have)}")
     elif argv[:3] == ("claude", "-p", "/context"):
         for role in ROLES:
             need(re.search(rf"\| dotbrain-{role} \| Project \|", text), f"agent dotbrain-{role} from the project")
         need(re.search(rf"\| {SELECTED} \| ", text), f"skill {SELECTED}")
+        # The plugin's own skills under their plugin-qualified names: the runtime discovers the installed plugin.
+        absent = [n for n in LISTED_SKILLS if not re.search(rf"\| dotbrain:{n} \| Plugin \(dotbrain\) \|", text)]
+        need(not absent, f"plugin skills dotbrain:<name>: {absent}")
     elif argv[:3] == ("codex", "plugin", "list"):
         need(re.search(r"dotbrain@dotbrain\s+installed, enabled\s+\S+\s+\S+", text), "dotbrain@dotbrain installed, enabled")
     elif argv[:3] == ("codex", "debug", "prompt-input"):
         need(SELECTED in text, f"skill {SELECTED}")
+        absent = [n for n in LISTED_SKILLS if f"- dotbrain:{n}: " not in text]
+        need(not absent, f"plugin skills dotbrain:<name>: {absent}")
     elif argv[:3] == ("opencode", "debug", "skill"):
         skills = {skill["name"]: skill["location"] for skill in json.loads(text)}
         root = f"{OPENCODE_HOME}/dotbrain/packaged/skills"
@@ -104,7 +112,7 @@ def test_install_and_discovery(rt, image, request):
     if "packaged-subagents" not in listed:
         ok("sh", "-c", f"printf 'packaged-subagents:\\n' >> {declaration}"
            + "".join(f" && printf '  - {role}\\n' >> {declaration}" for role in ROLES))
-    skill = f"{box.data_root}/skills/scratch/{SELECTED}"  # a private skill the project selects, as prepare.py does
+    skill = f"{box.data_root}/skills/scratch/{SELECTED}"  # a private skill the project selects
     ok("mkdir", "-p", skill)
     ok("sh", "-c", f"printf -- '---\\nname: {SELECTED}\\ndescription: Probe skill. Use never.\\n---\\n\\nProbe.\\n' > {skill}/SKILL.md"
        f" && printf 'skills:\\n  - scratch/{SELECTED}\\n' >> {declaration}")
