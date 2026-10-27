@@ -1,13 +1,11 @@
-"""Prepare a sandbox inside a backend: deliver to one runtime, wire a project, plant the nonces.
+"""Prepare a container for the hook journey: deliver to one runtime and wire a project.
 
-Runs inside the backend's environment (``DOTBRAIN_HOME`` and the user home already point into the
-sandbox) with the standard library only, so any backend can run it:
+Runs inside the container with the standard library only:
 
-    python prepare.py --runtime opencode --checkout DIR --convention-nonce N --reference-nonce N
+    python prepare.py --runtime opencode --checkout DIR
 
-Afterwards the sandbox Brain's ``DOTBRAIN.md`` ends with the convention nonce, a synthetic private
-skill ``uat-probe`` is selected whose supporting reference holds the reference nonce, and the data
-root has one uncommitted change and an upstream on an unreachable remote.
+Afterwards the project Brain's ``DOTBRAIN.md`` ends with ``CONVENTION_MARKER``, and the data root has
+one uncommitted change and an upstream on an unreachable remote.
 """
 
 from __future__ import annotations
@@ -20,15 +18,13 @@ import subprocess
 from pathlib import Path
 
 PROJECT = "uat"
-SKILL = "uat-probe"
+CONVENTION_MARKER = "UAT convention end marker"
 PENDING = f"brainspaces/{PROJECT}/.brain/docs/uat-pending.md"  # data-root relative
 # TEST-NET-1 (RFC 5737): never routed, so a fetch waits for its timeout instead of failing fast.
 UNREACHABLE_REMOTE = "git://192.0.2.1/dotbrain.git"
 
 
 def run(*argv: str, cwd: str | None = None) -> str:
-    # Resolved through PATHEXT, as the adapters do, so `dotbrain` is the sandbox's recording shim;
-    # Windows' own lookup searches the interpreter's directory before PATH and could find a live dotbrain.exe.
     argv = (shutil.which(argv[0]) or argv[0], *argv[1:])
     done = subprocess.run(argv, cwd=cwd, capture_output=True, encoding="utf-8", errors="replace",
                           stdin=subprocess.DEVNULL)
@@ -39,7 +35,7 @@ def run(*argv: str, cwd: str | None = None) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    for name in ("--runtime", "--checkout", "--convention-nonce", "--reference-nonce"):
+    for name in ("--runtime", "--checkout"):
         parser.add_argument(name, required=True)
     args = parser.parse_args()
     data_root = Path(os.environ["DOTBRAIN_HOME"])
@@ -54,22 +50,11 @@ def main() -> None:
     run("git", "-C", checkout, "commit", "--allow-empty", "-q", "-m", "seed")
     run("dotbrain", "wire", "--repo", checkout, "--project", PROJECT, "--skip-beads")
 
-    skill = data_root / "skills" / PROJECT / SKILL
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        f"---\nname: {SKILL}\ndescription: Gives the UAT reference nonce. Use when asked for the UAT reference nonce.\n"
-        "---\n\nRead `reference.md` in this skill's directory and report the nonce it holds, exactly.\n",
-        encoding="utf-8")
-    (skill / "reference.md").write_text(f"UAT reference nonce: {args.reference_nonce}\n", encoding="utf-8")
-    declaration = data_root / "brainspaces" / PROJECT / ".brain" / "project.yaml"
-    declaration.write_text(declaration.read_text(encoding="utf-8") + f"skills:\n  - {PROJECT}/{SKILL}\n",
-                           encoding="utf-8")
     run("dotbrain", "refresh", cwd=checkout)
-
-    # The hook injects this file verbatim, so a nonce on its last line shows the convention arrived whole.
+    # The hook injects this file verbatim, so a marker on its last line shows the convention arrived whole.
     convention = Path(checkout) / ".brain" / "DOTBRAIN.md"
     text = convention.read_text(encoding="utf-8").rstrip("\n")
-    convention.write_text(f"{text}\n\nUAT convention nonce: {args.convention_nonce}\n", encoding="utf-8")
+    convention.write_text(f"{text}\n\n{CONVENTION_MARKER}\n", encoding="utf-8")
 
     root = str(data_root)
     run("git", "-C", root, "add", "-A")
