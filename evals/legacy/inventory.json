@@ -10,6 +10,9 @@
     "packaged_roles": "Named packaged-role dispatch must be observed; a generic worker completing the task is insufficient.",
     "historical_results": "Keep original runner, tested revision, runtime/model versions and settings with local reports. This inventory revision does not relabel past results or establish a missing result revision."
   },
+  "translations": {
+    "dotbrain:<role>": "dotbrain-<role>"
+  },
   "source_files": {
     "plugin/evals/README.md": "e0c3239e2d0fb7ed12f604d6e62eec863cdb64a7657bd3cf2b395fe66333e3af",
     "plugin/evals/_shared/check.py": "86596c67c7422c1fc8f6562b0ddee40bb9f8dca9ccd4be78f047904342ff4534",
