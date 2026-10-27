@@ -33,6 +33,14 @@ class Runtime:
     note: str = ""  # why listings is empty or limited
 
     @property
+    def binary(self) -> str:
+        return "agent" if self.name == "cursor" else self.name
+
+    @property
+    def plugin_steps(self) -> tuple[tuple[str, ...], ...]:
+        return tuple(step for listing in self.listings for step in listing.setup)
+
+    @property
     def install_hook_only(self) -> bool:
         return not self.listings
 

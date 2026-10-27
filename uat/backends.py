@@ -320,7 +320,9 @@ def container_image(repo: Path, uv: str, lock_dir: Path, credential_vars) -> tup
         return subprocess.run(["git", "-C", str(repo), *args], capture_output=True).stdout
 
     dockerfile = HERE / "Dockerfile"
-    key = hashlib.sha256(dockerfile.read_bytes() + git("rev-parse", "HEAD") + git("diff", "HEAD")).hexdigest()[:16]
+    # The shim bakes in credential_vars, so they belong in the tag: callers must agree, or get distinct images.
+    key = hashlib.sha256(dockerfile.read_bytes() + git("rev-parse", "HEAD") + git("diff", "HEAD")
+                         + repr(tuple(credential_vars)).encode()).hexdigest()[:16]
     tag = f"dotbrain-uat:{key}"
     with _locked(lock_dir / f"dotbrain-uat-{key}.lock"):
         images = DockerClient().client.images
@@ -392,6 +394,31 @@ class ContainerBackend:
 
     def read(self, path):
         return self._exec(["cat", path])[1]
+
+    def put_dir(self, source: Path, folders, dest: str) -> None:
+        """Copy ``folders`` of ``source`` into the container at ``dest`` (no ``__pycache__``)."""
+        import io
+        import tarfile
+
+        data = io.BytesIO()
+        with tarfile.open(fileobj=data, mode="w") as tar:
+            for name in folders:
+                tar.add(source / name, arcname=name, filter=lambda info: None if "__pycache__" in info.name else info)
+        self.run(["mkdir", "-p", dest])
+        self._container.get_wrapped_container().put_archive(dest, data.getvalue())
+
+    def unavailable(self, runtime: str, binary: str, plugin_steps=()) -> str | None:
+        """Why a runtime's journeys cannot run in this image, or ``None``: its recorded install failure,
+        a missing binary, or a failed plugin install (``plugin_steps`` run in the checkout)."""
+        if reason := self.read(f"/opt/uat/skip/{runtime}").strip():
+            return f"{runtime} install failed in the image: {reason}"
+        if self.run(["which", binary]).returncode:
+            return f"{runtime}: `{binary}` is not in the image"
+        for argv in plugin_steps:
+            done = self.run(list(argv), cwd=self.checkout, timeout=300)
+            if done.returncode:
+                return f"{runtime} plugin install failed ({' '.join(argv)}): {(done.stdout + done.stderr)[-500:]}"
+        return None
 
     def leaks(self, secret):
         if not self._started:

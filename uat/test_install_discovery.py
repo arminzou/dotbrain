@@ -10,15 +10,13 @@ install journey only. Results are stamped by ``conftest`` (runtime version, imag
 
 from __future__ import annotations
 
-import io
 import json
 import shutil
-import tarfile
 
 import pytest
 
 import backends
-from conftest import REPO
+from conftest import CREDENTIAL_VARS, REPO
 from evidence import MARKETPLACE, RUNTIMES, Runtime
 
 ROLES = ("researcher", "reviewer", "verifier", "worker")
@@ -44,16 +42,6 @@ def expected(rt: Runtime, argv: tuple[str, ...], proves: str) -> list[str]:
     raise AssertionError(f"no expectation for {proves}")
 
 
-def put_marketplace(box: backends.ContainerBackend) -> None:
-    """Copy the checkout's `.claude-plugin/` and `plugin/` to the container's marketplace path."""
-    data = io.BytesIO()
-    with tarfile.open(fileobj=data, mode="w") as tar:
-        for name in (".claude-plugin", "plugin"):
-            tar.add(REPO / name, arcname=name, filter=lambda info: None if "__pycache__" in info.name else info)
-    box.run(["mkdir", "-p", MARKETPLACE])
-    box._container.get_wrapped_container().put_archive(MARKETPLACE, data.getvalue())
-
-
 @pytest.fixture(scope="module")
 def image(tmp_path_factory):
     pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
@@ -62,7 +50,7 @@ def image(tmp_path_factory):
         pytest.skip("install uv")
     if problem := backends.docker_problem():
         pytest.skip(problem)
-    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, ())
+    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, CREDENTIAL_VARS)
 
 
 @pytest.mark.parametrize("rt", RUNTIMES, ids=lambda rt: rt.name)
@@ -72,6 +60,9 @@ def test_install_and_discovery(rt, image, request):
     box = backends.ContainerBackend(tag)
     request.addfinalizer(box.teardown)  # before start, so a failing start still removes the container
     box.start()
+    box.put_dir(REPO, (".claude-plugin", "plugin"), MARKETPLACE)
+    if reason := box.unavailable(rt.name, rt.binary, rt.plugin_steps):
+        pytest.skip(reason)
 
     def run(*argv, cwd=None):
         return box.run(list(argv), cwd=cwd, timeout=300)
@@ -81,8 +72,7 @@ def test_install_and_discovery(rt, image, request):
         assert done.returncode == 0, f"{' '.join(argv)} -> {done.returncode}\n{done.stdout}\n{done.stderr}"
         return done.stdout
 
-    binary = "agent" if rt.name == "cursor" else rt.name
-    request.node.user_properties.append(("runtime_version", ok(binary, "--version").splitlines()[0].strip()))
+    request.node.user_properties.append(("runtime_version", ok(rt.binary, "--version").splitlines()[0].strip()))
     report = json.loads(ok("dotbrain", "bootstrap", "--runtime", rt.name, "--json"))
     skipped = [f["message"] for t in report["targets"] for f in t["findings"] if "skipped" in f["message"]]
     assert not skipped, f"bootstrap delivered nothing: {skipped}"
@@ -97,11 +87,6 @@ def test_install_and_discovery(rt, image, request):
         ok("sh", "-c", f"printf 'packaged-subagents:\\n' >> {declaration}"
            + "".join(f" && printf '  - {role}\\n' >> {declaration}" for role in ROLES))
     ok("dotbrain", "refresh", cwd=checkout)
-
-    put_marketplace(box)
-    for listing in rt.listings:
-        for step in listing.setup:
-            ok(*step, cwd=checkout)
 
     failures = []
     for listing in rt.listings:

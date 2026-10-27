@@ -10,15 +10,12 @@ file is checked for the argv it spawns and for its timeout, and that argv is run
 
 from __future__ import annotations
 
-import io
 import json
 import re
 import shlex
 import shutil
-import tarfile
 import time
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 
 import pytest
 
@@ -77,17 +74,6 @@ def delivered_hooks(backend, name) -> Hooks:
     return Hooks(command("startup"), seconds, command("session-end"), {})
 
 
-def put_dir(container, folders, dest):
-    """Copy checkout folders into the container under ``dest``."""
-    buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode="w") as tar:
-        for folder in folders:
-            tar.add(REPO / folder, arcname=f"{PurePosixPath(dest).name}/{folder}",
-                    filter=lambda info: None if "__pycache__" in info.name else info)
-    container.exec_run(["mkdir", "-p", dest])
-    container.put_archive(str(PurePosixPath(dest).parent), buffer.getvalue())
-
-
 @pytest.fixture(scope="module")
 def image(tmp_path_factory):
     pytest.importorskip("testcontainers", reason="install the uat group: uv sync --group uat")
@@ -96,23 +82,23 @@ def image(tmp_path_factory):
         pytest.skip("install uv")
     if problem := backends.docker_problem():
         pytest.skip(problem)
-    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, CREDENTIAL_VARS)[0]
+    return backends.container_image(REPO, uv, tmp_path_factory.getbasetemp().parent, CREDENTIAL_VARS)
 
 
 @pytest.fixture(params=[r.name for r in evidence.RUNTIMES])
 def container(request, image):
     """A fresh container with the runtime installed and a scratch project delivered and wired."""
     name = request.param
-    backend = backends.ContainerBackend(image)
+    tag, digest = image
+    rt = evidence.runtime(name)
+    request.node.user_properties += [("runtime", name), ("backend", "container"), ("image_digest", digest)]
+    backend = backends.ContainerBackend(tag)
     request.addfinalizer(backend.teardown)  # registered before the container exists
     backend.start()
-    if name in ("claude", "codex"):
-        put_dir(backend._container.get_wrapped_container(), [".claude-plugin", "plugin"], evidence.MARKETPLACE)
-        setup = next(listing.setup for listing in evidence.runtime(name).listings if listing.setup)
-        for argv in setup:
-            done = backend.run(list(argv))
-            if done.returncode:
-                pytest.skip(f"{name} plugin install failed: {done.stdout[-500:]}{done.stderr[-500:]}")
+    backend.put_dir(REPO, (".claude-plugin", "plugin"), evidence.MARKETPLACE)
+    if reason := backend.unavailable(name, rt.binary, rt.plugin_steps):
+        pytest.skip(reason)
+    request.node.user_properties.append(("runtime_version", backend.run([rt.binary, "--version"]).stdout.strip().splitlines()[0]))
     convention_nonce = nonce("convention")
     prepared = backend.run([backend.python, backend.prepare, "--runtime", name, "--checkout", backend.checkout,
                             "--convention-nonce", convention_nonce, "--reference-nonce", nonce("reference")],
