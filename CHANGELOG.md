@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.15.0](https://github.com/arminzou/dotbrain/compare/v0.14.0...v0.15.0) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Packaged Claude subagents now require a wired checkout. Run dotbrain refresh to deliver the roles selected in project.yaml under dotbrain-<role> names. Global linking manages custom subagents only.
+
+### Features
+
+* **evals:** run core skill evals on Claude Code and Codex with Promptfoo ([#60](https://github.com/arminzou/dotbrain/issues/60)) ([9b51ad2](https://github.com/arminzou/dotbrain/commit/9b51ad212537d74c4c005ebed8f51602878363d7))
+* make packaged subagents optional per project ([#69](https://github.com/arminzou/dotbrain/issues/69)) ([da610b1](https://github.com/arminzou/dotbrain/commit/da610b16071e08c8c0d89266ef99af163f005b9b))
+* **skills:** curate retrospectives from work records and use findings before work ([#65](https://github.com/arminzou/dotbrain/issues/65)) ([7965b7a](https://github.com/arminzou/dotbrain/commit/7965b7ae4bccc770998655e9b5fc74aabd692873))
+* **skills:** let workflow skills start from plain requests ([#63](https://github.com/arminzou/dotbrain/issues/63)) ([4291008](https://github.com/arminzou/dotbrain/commit/42910085da22217c4eb74f7e3af6ae52e02431a6))
+* **skills:** record acceptance evidence kinds and exemptions ([62ac0bd](https://github.com/arminzou/dotbrain/commit/62ac0bda4c8861eb012666b083f4a6e887665b0f))
+* **wiring:** give agents an ignored .dotbrain-tmp folder for comment files ([#73](https://github.com/arminzou/dotbrain/issues/73)) ([e5114af](https://github.com/arminzou/dotbrain/commit/e5114af29c876d598afdd0ac8af7179aadf06327))
+
+
+### Bug Fixes
+
+* **bootstrap:** migrate legacy global profile configuration ([#66](https://github.com/arminzou/dotbrain/issues/66)) ([95c330c](https://github.com/arminzou/dotbrain/commit/95c330c1b926a01868c9dc24ce0776c7833b01bc))
+* **codex:** migrate project skills to .agents/skills ([#62](https://github.com/arminzou/dotbrain/issues/62)) ([e3e2fc0](https://github.com/arminzou/dotbrain/commit/e3e2fc0f9f439deea9f1428aa1802469e5f1db6e))
+* probe .cmd runtime CLIs on Windows and add an opt-in delivery UAT suite ([#59](https://github.com/arminzou/dotbrain/issues/59)) ([949f71c](https://github.com/arminzou/dotbrain/commit/949f71c36944e3458895706aaa70b695702fb191))
+* **refresh:** warn when global settings still need migration ([e98d044](https://github.com/arminzou/dotbrain/commit/e98d0442a2dc1f5d62c0bec4079e124a41827f44))
+* **skills:** keep static-only evidence exclusive ([295903d](https://github.com/arminzou/dotbrain/commit/295903d62ad118f2299241b23a4578567a0bcdc9))
+* **skills:** route worker dispatch through run-execution on both runtimes ([#64](https://github.com/arminzou/dotbrain/issues/64)) ([62c8567](https://github.com/arminzou/dotbrain/commit/62c856710bded06c7bf6327dcf5d10b2eb0a7bcf))
+* stabilize sync tests and recover retro candidates ([#67](https://github.com/arminzou/dotbrain/issues/67)) ([6f152da](https://github.com/arminzou/dotbrain/commit/6f152da11ebe4dc32634ca38363fa7a61d46807a))
+* **tests:** bound heavy checks and pytest worker concurrency ([#70](https://github.com/arminzou/dotbrain/issues/70)) ([9a9ef4c](https://github.com/arminzou/dotbrain/commit/9a9ef4c881f69723d672726c38dcfacc97f96154))
+
 ## [0.14.0](https://github.com/arminzou/dotbrain/compare/v0.13.0...v0.14.0) (2026-10-23)
 
 
