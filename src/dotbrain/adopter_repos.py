@@ -307,7 +307,8 @@ def remove_local_exclude_line(repo: Path, line: str, run: Runner = _default_run)
 
 
 def _exclude_needed_elsewhere(repo: Path, line: str, run: Runner) -> bool:
-    relative = line.strip("/")
+    # Agents create the folder on demand, so it stays excluded while any sibling is still wired.
+    relative = ".brain" if line == paths.AGENT_TMP_EXCLUDE else line.strip("/")
     return any(other != repo.resolve() and ((other / relative).exists() or (other / relative).is_symlink())
                for other in worktree_checkouts(repo, run))
 

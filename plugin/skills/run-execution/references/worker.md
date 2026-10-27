@@ -69,7 +69,8 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
 - Write comment files with the file-writing tool, never through the shell, which
   can corrupt Windows paths and quotes. Put them in `.dotbrain-tmp/` in your checkout,
   which Git ignores, named `<actor>-<item>.md`; never name one `report*`, which some
-  runtimes refuse.
+  runtimes refuse. Delete each file after posting it. If a write is refused, return the
+  comment text and say why.
 - Run git as plain, separate commands. When told to set commit identity, set the
   `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables in the shell you are
   using.

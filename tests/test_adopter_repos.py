@@ -307,11 +307,32 @@ def test_unwire_uses_git_common_dir_for_excludes(tmp_path: Path):
         target.mkdir(parents=True)
         (worktree / name).symlink_to(target)
     exclude = repo / ".git" / "info" / "exclude"
-    exclude.write_text("# keep\n/.brain\n/.beads\n")
+    exclude.write_text("# keep\n/.brain\n/.beads\n/.dotbrain-tmp/\n")
 
     adopter_repos.unwire_repo(worktree, dotbrain_home=home)
 
     assert exclude.read_text().splitlines() == ["# keep"]
+
+
+def test_unwire_keeps_agent_tmp_exclude_while_a_sibling_is_wired(tmp_path: Path):
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    home = tmp_path / "dotbrain"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "initial")
+    _git(repo, "worktree", "add", "-q", "-b", "slice", str(worktree))
+    target = home / "brainspaces" / "example" / ".brain"
+    target.mkdir(parents=True)
+    for checkout in (repo, worktree):
+        (checkout / ".brain").symlink_to(target)
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text("/.brain\n/.dotbrain-tmp/\n")
+
+    adopter_repos.unwire_repo(worktree, dotbrain_home=home)
+
+    # No sibling has created the folder yet; the wired main checkout still needs the entry.
+    assert exclude.read_text().splitlines() == ["/.brain", "/.dotbrain-tmp/"]
 
 
 def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
