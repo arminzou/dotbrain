@@ -82,50 +82,141 @@
   margin: 0 !important;
 }
 
+/* Wiring steps: one card per step, text on the left and its command on the right. */
 .home .steps {
   list-style: none;
   padding: 0 !important;
   margin: 32px 0 0 !important;
   display: grid;
-  gap: 32px;
+  gap: 16px;
   counter-reset: step;
 }
 .home .steps li {
   counter-increment: step;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  column-gap: 16px;
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: 0 48px;
   margin: 0 !important;
+  padding: 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-alt);
 }
 .home .steps li::before {
-  content: counter(step);
-  grid-row: 1;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 999px;
+  content: counter(step, decimal-leading-zero);
   font-family: var(--vp-font-family-mono);
-  font-size: 14px;
-  color: var(--vp-c-text-2);
-}
-/* Content always takes the text column, however many blocks a step has. */
-.home .steps li > * {
-  grid-column: 2;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-brand-1);
 }
 .home .steps h3 {
-  margin: 4px 0 4px !important;
+  margin: 8px 0 4px !important;
   font-size: 18px;
 }
-.home .steps div[class*='language-'] {
-  margin: 12px 0 0 !important;
+.home .steps p {
+  margin: 0 !important;
+  font-size: 15px;
+}
+.home .steps p.note {
+  margin-top: 12px !important;
+  font-size: 13px;
+  color: var(--vp-c-text-3);
+}
+.home .steps :is(div[class*='language-'], .vp-code-group) {
+  margin: 16px 0 0 !important;
+}
+/* Inside a card, code keeps its frame on phones instead of bleeding to the screen edge. */
+.home .steps .vp-code-group .tabs {
+  margin: 0 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+.home .steps .vp-code-group div[class*='language-'] {
+  margin: 0 !important;
+  border-radius: 0 0 8px 8px !important;
+}
+.home .steps li > div[class*='language-'] {
+  border-radius: 8px !important;
+}
+/* Short commands wrap instead of scrolling, and need no language tag. */
+.home .steps pre,
+.home .steps code {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+}
+.home .steps span.lang {
+  display: none;
+}
+
+/* Closing call to action. */
+.home .cta {
+  margin-top: 96px;
+  padding: 56px 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 20px;
+  text-align: center;
+  background: radial-gradient(600px 240px at 50% 0%, color-mix(in srgb, var(--vp-c-brand-1) 12%, transparent), transparent 70%), var(--vp-c-bg-alt);
+}
+.home .cta h2 {
+  font-size: 32px !important;
+  text-wrap: balance;
+}
+.home .cta p {
+  margin: 0 auto;
+  max-width: 46ch;
+}
+.home .cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+.home .cta-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 20px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.home .cta-btn:hover {
+  border-color: var(--vp-c-text-3);
+}
+.home .cta-btn.brand {
+  border-color: var(--vp-button-brand-border);
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+}
+.home .cta-btn.brand:hover {
+  border-color: var(--vp-button-brand-hover-border);
+  background: var(--vp-button-brand-hover-bg);
 }
 
 @media (min-width: 768px) {
   .home .split {
     grid-template-columns: 5fr 7fr;
     gap: 64px;
+  }
+  .home .steps li {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    padding: 28px 32px;
+  }
+  .home .steps li > *,
+  .home .steps li::before {
+    grid-column: 1;
+  }
+  .home .steps li > :is(div[class*='language-'], .vp-code-group) {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    align-self: center;
+    margin: 0 !important;
   }
 }
 

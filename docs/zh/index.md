@@ -99,35 +99,38 @@ treeView-beta
 
 <section>
 
-## 四步连接一个项目 {#wire-a-project-in-three-steps}
+## 三步连接一个项目 {#wire-a-project-in-three-steps}
 
 <ol class="steps" role="list">
 <li>
 <h3>安装插件</h3>
-<p>在 Claude Code 中，下面两行要分两次发送。Codex 用户请看<a href="./getting-started#_1-install-the-plugin">安装指南</a>。</p>
+<p>每台机器装一次。它把技能和会话启动 hook 带到每个仓库。</p>
 
-```text
+::: code-group
+
+```text [Claude Code]
 /plugin marketplace add arminzou/dotbrain
-```
-
-```text
 /plugin install dotbrain@dotbrain
 ```
 
-</li>
-<li>
-<h3>安装 CLI</h3>
-<p>在 Coding Agent 里调用 <code>wire-brain</code>。它会按需安装 CLI 和依赖，然后连接仓库。想手动安装，请看 <a href="./getting-started#_2-get-the-cli">CLI 安装指南</a>。</p>
-
-</li>
-<li>
-<h3>连接仓库</h3>
-<p>如果是手动安装的 CLI，用下面的命令创建或修复项目的 Brainspace，并把它链接到仓库。</p>
-
-```bash
-dotbrain wire --repo ~/repos/my-app
+```bash [Codex]
+codex plugin marketplace add arminzou/dotbrain
+codex plugin add dotbrain@dotbrain
 ```
 
+:::
+
+<p class="note">在 Claude Code 中，两行要分两次发送。在 Codex 中，先在 <code>/hooks</code> 里信任一次 dotbrain 的 hook，再新开一个线程。</p>
+</li>
+<li>
+<h3>让 Agent 连接仓库</h3>
+<p><code>wire-brain</code> 技能会在缺少 CLI 时先安装它，再把仓库链接到它的 Brainspace。</p>
+
+```text
+Use wire-brain to wire this repo with Dotbrain.
+```
+
+<p class="note">想手动操作？请看 <a href="./getting-started#_2-get-the-cli">CLI 安装指南</a>。</p>
 </li>
 <li>
 <h3>检查连接</h3>
@@ -140,6 +143,12 @@ dotbrain doctor
 
 </li>
 </ol>
+
+<div class="cta">
+<h2>给你的项目一个第二大脑。</h2>
+<p>装一次，连接一个仓库，之后你在那里打开的每个 Agent 都从项目已有的认识出发。</p>
+<div class="cta-actions"><a class="cta-btn brand" href="./getting-started">快速开始</a><a class="cta-btn" href="./workflow">查看工作流</a></div>
+</div>
 
 </section>
 
