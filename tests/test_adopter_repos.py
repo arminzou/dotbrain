@@ -381,9 +381,11 @@ def test_wire_repo_excludes_external_symlinks(dotbrain_home: Path, brainspace: P
     for name in paths.BRAINSPACE_LINKS:
         assert (repo / name).is_symlink()
     excludes = paths.exclude_entries(repo)
-    assert {"/.brain", "/.beads"} <= excludes
+    assert {"/.brain", "/.beads", paths.AGENT_TMP_EXCLUDE} <= excludes
     assert "/.claude" not in excludes
     assert "/.codex" not in excludes
+    adopter_repos.unwire_repo(repo, dotbrain_home=dotbrain_home, run=make_runner(calls))
+    assert paths.AGENT_TMP_EXCLUDE not in paths.exclude_entries(repo)
 
 
 def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tmp_path: Path):

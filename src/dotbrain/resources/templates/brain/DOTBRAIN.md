@@ -15,6 +15,8 @@ Do not edit per project; packaged template changes propagate to every Brain.
   are symlinks; Codex agents and packaged `dotbrain-<role>` agents are real files marked
   `# dotbrain-managed-agent: v1`; `project.yaml` `packaged-subagents` lists the packaged roles. Edit private sources; never
   commit local wiring or delivered copies.
+- `.dotbrain-tmp/` in each checkout holds agent working files such as comment files; `wire`
+  keeps it Git-ignored. Delete your files when done, and never name one `report*`.
 - Wire, refresh, link, and unwire checkouts through the `dotbrain` CLI; `wire-brain` covers the
   commands and selection flags. Worktrees share the main checkout's Brainspace. Let the CLI
   compute relative links under `.claude` and `.agents/skills`; hand-counted paths can dangle.

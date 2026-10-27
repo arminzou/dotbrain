@@ -496,6 +496,8 @@ def wire_repo(
         tracked = warn_if_tracked_external_symlink(repo, name, run)
         if tracked:
             warnings.append(tracked)
+    if use_local_excludes:
+        ensure_local_exclude_line(repo, paths.AGENT_TMP_EXCLUDE, run)
     return warnings
 
 
@@ -609,7 +611,8 @@ def unwire_repo(
     exclude = git_exclude_file(repo, run)
     if exclude and exclude.is_file():
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
-        excludes = {*paths.EXCLUDE_ENTRIES, *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
+        excludes = {*paths.EXCLUDE_ENTRIES, paths.AGENT_TMP_EXCLUDE,
+                    *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
         excludes.update(f"/{entry}" for entry in managed_entries)
         filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
                     or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]

@@ -34,7 +34,7 @@ def make_project(root, name="example", repo=None, runtimes=(), mode="none", sele
             (repo / ".beads").symlink_to(brainspace / ".beads", target_is_directory=True)
         for runtime in runtimes:
             (repo / f".{runtime}").mkdir()
-        write(repo / ".git/info/exclude", "/.brain\n" + ("/.beads\n" if mode != "none" else ""))
+        write(repo / ".git/info/exclude", "/.brain\n/.dotbrain-tmp/\n" + ("/.beads\n" if mode != "none" else ""))
     return brainspace
 
 
@@ -285,6 +285,15 @@ def test_current_nested_checkout_and_shared_excludes(tmp_path):
     assert not any(argv[0] == "bd" for argv, _ in calls)
 
 
+def test_missing_agent_tmp_exclude_is_reported(tmp_path):
+    root = tmp_path / "home"
+    repo = tmp_path / "repo"
+    make_project(root, repo=repo)
+    write(repo / ".git/info/exclude", "/.brain\n/.beads\n")
+    report = doctor.run_doctor(root, home=tmp_path / "user", cwd=repo, run=recording_run(repo, []))
+    assert any("missing /.dotbrain-tmp/" in message for message in errors(report.projects["example"]))
+
+
 def test_real_worktree_uses_git_shared_excludes_read_only(tmp_path):
     root = tmp_path / "home"
     main = tmp_path / "main"
@@ -296,7 +305,7 @@ def test_real_worktree_uses_git_shared_excludes_read_only(tmp_path):
     brainspace = make_project(root)
     (worktree / ".brain").symlink_to(brainspace / ".brain", target_is_directory=True)
     write(brainspace / ".repo", str(main))
-    write(main / ".git/info/exclude", "/.brain\n")
+    write(main / ".git/info/exclude", "/.brain\n/.dotbrain-tmp/\n")
     before = snapshot(tmp_path)
     report = doctor.run_doctor(root, home=tmp_path / "user", cwd=worktree)
     assert not errors(report.projects["example"])
@@ -340,7 +349,7 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     declaration.write_text(declaration.read_text() + "\nsubagents: [custom]\n")
     subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})
     skills.link_project(root, brainspace, (".codex",), ["bundle"], workspace_dirs={".codex": repo / ".codex"})
-    entries = ["/.brain", "/.agents/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
+    entries = ["/.brain", "/.dotbrain-tmp/", "/.agents/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
     write(repo / ".git/info/exclude", "\n".join(entries) + "\n")
     # Real-file Codex delivery needs no cache at diagnosis time.
     import shutil

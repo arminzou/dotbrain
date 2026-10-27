@@ -100,13 +100,16 @@ The full report is structured Markdown after the status line:
 
 Record an item or integration review yourself. The stored comment starts with the
 heading `## Review <n>: APPROVE | CHANGES @ <Observed> (round <r>)`, with the status
-line directly under it, then the full report. Write it to a file outside the reviewed
-checkout with the file-writing tool, then append it to every item in the review
-boundary in one command under your actor:
+line directly under it, then the full report. Write it with the file-writing tool to
+`.dotbrain-tmp/<reviewer-actor>-review-<n>.md` in the reviewed checkout, which Git
+ignores (never name it `report*`, which some runtimes refuse), then append it to every
+item in the review boundary in one command under your actor and delete the file:
 
 ```bash
-for id in <item-ids>; do bd comments add "$id" --file <report-file> --actor <reviewer-actor> --json; done
+for id in <item-ids>; do bd comments add "$id" --file .dotbrain-tmp/<reviewer-actor>-review-<n>.md --actor <reviewer-actor> --json; done
 ```
+
+If the write is refused, return the full report and say why.
 
 Then return only the status line and an index: per-item verdicts with unmet or
 unreviewed criteria; per finding its ID, severity, item, `file:line`, and title;

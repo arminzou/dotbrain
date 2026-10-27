@@ -67,7 +67,9 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
   `## Attempt <n>: PASS | FAIL @ <revision>`. After 3 consecutive failures on one
   checkpoint, stop and report the attempts, unless Limits names another cap.
 - Write comment files with the file-writing tool, never through the shell, which
-  can corrupt Windows paths and quotes.
+  can corrupt Windows paths and quotes. Put them in `.dotbrain-tmp/` in your checkout,
+  which Git ignores, named `<actor>-<item>.md`; never name one `report*`, which some
+  runtimes refuse.
 - Run git as plain, separate commands. When told to set commit identity, set the
   `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables in the shell you are
   using.
@@ -103,8 +105,8 @@ The lead verifies claim state from Beads; omit a Claim line.
 When the assignment names a work item, store the full report before returning.
 The stored comment starts with the heading `## Candidate @ <Observed>`, with the
 status line directly under it, then the sections. Append it to each assigned item with
-`bd comments add <id> --file <report-file> --actor <worker-actor> --json`, then
-return only the status line. Without a work item, or when that write fails,
+`bd comments add <id> --file .dotbrain-tmp/<worker-actor>-<id>.md --actor <worker-actor> --json`,
+delete the file, then return only the status line. Without a work item, or when that write fails,
 return the full report, starting with the status line, and say why.
 
 When the lead resumes you for a fix round, its message carries the consolidated
