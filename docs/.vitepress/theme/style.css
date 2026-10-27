@@ -25,8 +25,6 @@
   --vp-button-brand-active-bg: #52525b;
   --vp-button-brand-active-border: #52525b;
   --vp-button-brand-active-text: #fafafa;
-
-  --vp-home-hero-name-color: var(--vp-c-text-1);
 }
 
 .dark {
@@ -51,25 +49,6 @@
   --vp-button-brand-active-bg: #a1a1aa;
   --vp-button-brand-active-border: #a1a1aa;
   --vp-button-brand-active-text: #18181b;
-}
-
-.VPHero .image-bg {
-  display: none;
-}
-
-.VPHero .name {
-  font-size: 20px !important;
-  line-height: 1.4 !important;
-  letter-spacing: 0;
-  color: var(--vp-c-text-2) !important;
-}
-.VPHero .text {
-  letter-spacing: -0.03em;
-  max-width: 14ch !important;
-  text-wrap: balance;
-}
-.VPHero .tagline {
-  max-width: 44ch !important;
 }
 
 /* Home sections below the hero. */
@@ -143,92 +122,15 @@
   margin: 12px 0 0 !important;
 }
 
-.home .workflow {
-  list-style: none;
-  padding: 0 !important;
-  margin: 32px 0 24px !important;
-  display: grid;
-  gap: 24px;
-  counter-reset: workflow;
-}
-.home .workflow li {
-  counter-increment: workflow;
-  border-top: 1px solid var(--vp-c-divider);
-  padding-top: 20px;
-  margin: 0 !important;
-}
-.home .workflow li::before {
-  content: counter(workflow, decimal-leading-zero);
-  font-family: var(--vp-font-family-mono);
-  font-size: 14px;
-  color: var(--vp-c-brand-1);
-}
-.home .workflow h3 {
-  margin: 12px 0 8px !important;
-  font-size: 18px;
-}
-.home .workflow p {
-  margin: 0 !important;
-}
-
-.home .map {
-  display: grid;
-  gap: 40px;
-  margin-top: 32px;
-}
-.home .map h3 {
-  margin: 0 0 8px !important;
-  font-size: 14px;
-  color: var(--vp-c-text-2);
-}
-.home .map a {
-  display: block;
-  padding: 12px 0;
-  border-top: 1px solid var(--vp-c-divider);
-  text-decoration: none;
-  transition: padding-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.home .map a:hover {
-  padding-left: 6px;
-}
-.home .map a strong {
-  display: block;
-  color: var(--vp-c-text-1);
-}
-.home .map a span {
-  font-size: 14px;
-  color: var(--vp-c-text-2);
-}
-
 @media (min-width: 768px) {
   .home .split {
     grid-template-columns: 5fr 7fr;
     gap: 64px;
   }
-  .home .map {
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
-  }
-  .home .workflow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) {
-  .home .workflow {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home .map a {
-    transition: none;
-  }
 }
 
 /* Let wide code blocks scroll inside their column instead of widening the page. */
-.home .split > div,
-.home .map > div {
+.home .split > div {
   min-width: 0;
 }
 
