@@ -107,7 +107,7 @@ provides the review surface. Direct local landing needs your explicit instructio
 
 ## The Packaged Subagents
 
-The plugin supplies four focused roles. A **skill** describes a procedure; a **subagent** carries
+dotbrain ships four focused roles. A **skill** describes a procedure; a **subagent** carries
 out an assignment. In the pagination example, they contribute at different stages:
 
 | Role | Contribution to the team |
@@ -132,11 +132,14 @@ acceptance criteria.
 
 ### How the coding agent runs them
 
-Claude Code receives the roles from the plugin. `run-execution` dispatches packaged roles by name,
-with `dotbrain:worker` in the background and worktree isolation for concurrent changes.
+Claude Code and Codex receive the roles a project lists under `packaged-subagents`, as
+`dotbrain-<role>` definitions in each wired checkout. On Claude Code, `run-execution` dispatches
+packaged roles by name, with `dotbrain-worker` in the background and worktree isolation for
+concurrent changes. When a role is not listed, the lead gives a generic subagent the same role
+contract.
 Packaged jobs start with their own assignment rather than a fork of the lead's conversation.
 
-Codex receives generated agent definitions in each wired checkout. For isolated implementation,
+On Codex, for isolated implementation,
 the current workflow creates and wires worktrees, then launches separate Codex CLI sessions with
 assignments pointing to the packaged worker definition. A CLI session cannot directly select a
 custom agent. Native Codex subagents can take focused assignments, but assigning

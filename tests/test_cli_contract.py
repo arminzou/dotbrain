@@ -23,7 +23,7 @@ from dotbrain.cli import app
     ["unwire", "--dry-run"],
     ["bootstrap", "--target", "codex"],
     ["skills", "link", "--scope", "all"],
-    ["agents", "link", "--runtime", "claude-code"],
+    ["subagents", "link", "--runtime", "claude-code"],
     ["skills", "link", "--scope", "global", "--project", "sample"],
     ["beads", "load"],
     ["migrate-beads"],

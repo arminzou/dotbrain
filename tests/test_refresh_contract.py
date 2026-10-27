@@ -6,7 +6,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from dotbrain import assets, beads, brainspaces, doctor, opencode, paths, projects, runtimes, workflows
+from dotbrain import assets, beads, brainspaces, config, doctor, opencode, paths, projects, runtimes, subagents, workflows
 from dotbrain.cli import app
 
 
@@ -18,7 +18,7 @@ def project(home, checkout, name='custom', agents='[]'):
     brainspace = home / 'brainspaces' / name
     brain = brainspace / '.brain'
     brain.mkdir(parents=True)
-    declaration = f'# Preserve this comment\nagents: {agents}\nskills: []\nbeads: {{mode: none}}\ncustom: [a, b]\n'
+    declaration = f'# Preserve this comment\nversion: 2\nagents: {agents}\nskills: []\nbeads: {{mode: none}}\ncustom: [a, b]\n'
     (brain / 'project.yaml').write_text(declaration, encoding='utf-8')
     (brain / 'AGENTS.md').write_text('User instructions\n', encoding='utf-8')
     brainspaces.seed_brain(brainspace, home)
@@ -42,6 +42,28 @@ def setup(tmp_path):
     return home, brainspace, checkout
 
 
+@pytest.mark.parametrize('selection', ['packaged-subagents: []\n', ''])
+def test_refresh_reconciles_packaged_roles_in_each_checkout(setup, tmp_path, selection):
+    home, brainspace, checkout = setup
+    second = tmp_path / 'second-checkout'
+    second.mkdir()
+    git(second, 'init')
+    (second / '.brain').symlink_to(brainspace / '.brain', target_is_directory=True)
+    declaration = brainspace / '.brain/project.yaml'
+    base = 'version: 2\nagents: [claude, codex]\nskills: []\nbeads: {mode: none}\n'
+    for listed in ('packaged-subagents: [worker, reviewer]\n', 'packaged-subagents: [worker]\n', selection):
+        declaration.write_text(base + listed, encoding='utf-8')
+        roles = config.load_project_packaged(home, 'custom')[1]
+        for repo in (checkout, second):
+            result = workflows.refresh_projects(home, cwd=repo)
+            assert not result.errors
+            for workspace, suffix in (('.claude', '.md'), ('.codex', '.toml')):
+                delivered = list((repo / workspace / 'agents').glob('dotbrain-*'))
+                assert sorted(p.name for p in delivered) == sorted(f'dotbrain-{role}{suffix}' for role in roles)
+                assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
+        assert declaration.read_text(encoding='utf-8') == base + listed
+
+
 @pytest.mark.parametrize('set_up', [False, True])
 @pytest.mark.parametrize('cli_installed', [False, True])
 @pytest.mark.parametrize('agents', [None, '[]', '[hermes]', '[codex]', '[claude, codex]', '[claude, codex, opencode]', '[codex, claude]'])
@@ -53,7 +75,7 @@ def test_refresh_follows_machine_only_without_agents_and_notices_old_defaults(se
     if set_up:
         assert not opencode.deliver(runtime_home).warnings
     declaration = brainspace / '.brain/project.yaml'
-    content = 'skills: [sample]\nbeads: {mode: none}\n'
+    content = 'version: 2\nskills: [sample]\nbeads: {mode: none}\n'
     if agents is not None:
         content += f'agents: {agents}\n'
     declaration.write_text(content, encoding='utf-8')
@@ -324,3 +346,75 @@ def test_filtered_batch_undeclared_runtime_rejected_before_any_writes(setup, tmp
     with pytest.raises(ValueError, match='not declared'):
         workflows.refresh_projects(home, all_projects=True, runtime='codex')
     assert (brainspace / '.brain' / 'DOTBRAIN.md').read_text() == 'Old convention\n'
+
+
+def test_refresh_upgrades_unversioned_declaration_once_preserving_lines(setup):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    before = '# Preserve this comment\nagents: []\nbeads: {mode: none}  # trailing\n'
+    declaration.write_text(before, encoding='utf-8')
+    result = workflows.refresh_project(home, 'custom')
+    assert not result.errors
+    after = declaration.read_text(encoding='utf-8')
+    assert after.startswith(before)
+    assert yaml.safe_load(after[len(before):]) == {'version': 2, 'packaged-subagents': list(config.PACKAGED_ROLES)}
+    assert any('packaged-subagents' in line for line in result.logs)
+    second = workflows.refresh_project(home, 'custom')
+    assert declaration.read_text(encoding='utf-8') == after
+    assert not any('packaged-subagents' in line for line in second.logs)
+
+
+def test_refresh_never_modifies_version_two_declaration(setup):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_text('# mine\nversion: 2\nbeads: {mode: none}\n', encoding='utf-8')
+    assert not workflows.refresh_project(home, 'custom').errors
+    assert declaration.read_text(encoding='utf-8') == '# mine\nversion: 2\nbeads: {mode: none}\n'
+
+
+@pytest.mark.parametrize('text', ['version: 2\npackaged-subagents: [nope]\n', '[not, a, mapping]\n',
+                                  'null\n', '~\n', '', '# only a comment\n'])
+def test_refresh_rejects_bad_packaged_record_naming_roles(setup, text):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text.encode())
+    result = workflows.refresh_project(home, 'custom')
+    assert any('researcher, reviewer, verifier, worker' in error for error in result.errors)
+    assert declaration.read_bytes() == text.encode()
+
+
+@pytest.mark.parametrize('text', [
+    b'# keep\r\nagents: []\r\nbeads: {mode: none}\r\n',
+    b'agents: []\nbeads: {mode: none}',
+    b'agents: []\nbeads: {mode: none}\ncustom: |+\n  keep\n',
+    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
+    b'agents: []\nbeads: {mode: none}\nbase: &base {x: 1}\nmerged:\n  <<: *base\n  y: 2\n',
+])
+def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text)
+    assert not workflows.refresh_project(home, 'custom').errors
+    after = declaration.read_bytes()
+    assert after.startswith(text)
+    assert (b'\r\n' in text) == (after.count(b'\n') == after.count(b'\r\n'))
+    expected = {**yaml.safe_load(text), 'version': 2, 'packaged-subagents': list(config.PACKAGED_ROLES)}
+    assert yaml.safe_load(after) == expected
+
+
+@pytest.mark.parametrize('text', [
+    b'{agents: [], beads: {mode: none}}\n',
+    b'agents: []\nbeads: {mode: none}\n...\n',
+    b'  agents: []\n  beads: {mode: none}\n',
+    b'agents: []\nbeads: {mode: none}\nloop: &loop [*loop]\n',
+])
+def test_refresh_skips_upgrade_that_would_change_the_declaration(setup, text):
+    home, brainspace, _ = setup
+    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration.write_bytes(text)
+    result = workflows.refresh_project(home, 'custom')
+    assert not result.errors
+    assert any(str(declaration) in w and 'packaged-subagents: [researcher, reviewer, verifier, worker]' in w
+               for w in result.warnings)
+    assert not any('upgraded' in line for line in result.logs)
+    assert declaration.read_bytes() == text

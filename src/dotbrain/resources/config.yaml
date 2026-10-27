@@ -2,6 +2,7 @@
 # Seeded into ~/dotbrain/config.yaml by ``dotbrain bootstrap``.
 # Per-project identity (including beads mode) lives in brainspaces/<name>/.brain/project.yaml.
 # Never put credentials (passwords, tokens) here — those belong in your secrets store.
+version: 4
 
 # Beads execution store. Each project picks a mode in its .brain/project.yaml:
 #   embedded — local Dolt store in the Brainspace, optionally synced to a remote (the default)
@@ -18,3 +19,17 @@
 #     user: beads
 #     # Optional SSH hop that can reach the sql-server (used by beads drop-db).
 #     ssh_host: ""
+
+# Global skills and custom subagents, delivered to your personal runtime homes by
+# ``dotbrain bootstrap``. Skills are paths under ~/dotbrain/skills/; subagents are names of
+# sources under ~/dotbrain/subagents/. Packaged subagents are selected per project instead.
+#
+# skills:
+#   - some-collection/some-skill
+# subagents:
+#   - some-shared-subagent
+#
+# Extra Claude Code or Codex homes that receive the same global skills and subagents:
+#
+# profiles:
+#   claude-code: [~/.claude-work]

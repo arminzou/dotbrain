@@ -1,6 +1,7 @@
 # Per-project identity. Values below are active defaults; edit as needed.
 # The tool reads this file; dotbrain refresh preserves project declarations.
 
+version: 2
 execution-engine: beads
 
 # Agent runtimes to wire into this project's checkouts: claude, codex, hermes, opencode, pi, cursor.
@@ -29,6 +30,14 @@ public-tracker: none
 # skills:
 #   - some-collection/some-skill
 #
-# Project-scoped subagents only. Packaged subagents are always wired into active workspaces.
+# Packaged subagents delivered to this project; the list is exact, so remove a role
+# (or empty the list) and run dotbrain refresh to stop delivering it.
+packaged-subagents:
+  - researcher
+  - reviewer
+  - verifier
+  - worker
+#
+# Project-scoped subagents only.
 # subagents:
 #   - some-project-only-subagent

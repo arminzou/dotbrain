@@ -10,7 +10,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from dotbrain import __version__, bootstrap as bootstrap_mod, migrate, paths
+from dotbrain import __version__, bootstrap as bootstrap_mod, migrate, paths, subagents
 from dotbrain import cli
 from dotbrain.cli import app
 
@@ -22,7 +22,7 @@ runner = CliRunner()
 def test_help_lists_command_tree():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("bootstrap", "doctor", "wire", "refresh", "unwire", "beads", "skills", "agents", "projects"):
+    for command in ("bootstrap", "doctor", "wire", "refresh", "unwire", "beads", "skills", "subagents", "projects"):
         assert command in result.output
     for hidden_command in ("migrate-beads", "list-beads-db", "drop-beads-db", "worktrees"):
         assert hidden_command not in result.output
@@ -57,11 +57,17 @@ def test_update_is_retired():
     assert "No such command" in result.output
 
 
-def test_agents_help_lists_discovery_command():
-    result = runner.invoke(app, ["agents", "--help"])
+def test_subagents_help_lists_discovery_command():
+    result = runner.invoke(app, ["subagents", "--help"])
     assert result.exit_code == 0
     assert "link" in result.output
     assert "list" in result.output
+
+
+def test_agents_command_is_removed():
+    result = runner.invoke(app, ["agents", "list"])
+    assert result.exit_code == 2
+    assert "No such command" in result.output
 
 
 def test_wire_help_omits_retired_global_hook_support():
@@ -289,6 +295,10 @@ def test_skills_link_project_native(
 
 def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    for directory in ("claude", "codex"):
+        (dotbrain_home / "subagents" / directory).mkdir(parents=True)
+    (dotbrain_home / "subagents/claude/reviewer.md").write_text("custom reviewer")
+    (dotbrain_home / "subagents/codex/reviewer.toml").write_text('name = "reviewer"\n')
     (brainspace / ".brain" / "project.yaml").write_text(
         "agents:\n"
         "  - claude\n"
@@ -298,12 +308,12 @@ def test_agents_link_project_native(dotbrain_home: Path, brainspace: Path, monke
     )
 
     checkout = _asset_checkout(brainspace)
-    result = runner.invoke(app, ["agents", "link", "--project", "example"])
+    result = runner.invoke(app, ["subagents", "link", "--project", "example"])
 
     assert result.exit_code == 0, result.output
-    assert not (checkout / ".claude" / "agents" / "reviewer.md").exists()
-    assert (checkout / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
-    assert not (checkout / ".codex" / "agents" / "dotbrain-reviewer.toml").is_symlink()
+    assert (checkout / ".claude/agents/reviewer.md").is_symlink()
+    assert subagents.is_managed_copy(checkout / ".codex/agents/reviewer.toml")
+    assert not list(checkout.glob("*/agents/dotbrain-*"))
 
 
 @pytest.mark.usefixtures("claude_codex_on_path")
@@ -315,16 +325,20 @@ def test_agents_link_repo_links_into_target_checkout(
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     checkout = tmp_path / "worktree"
     _asset_checkout(brainspace, checkout)
+    (brainspace / ".brain/project.yaml").write_text("agents: [claude, codex]\nsubagents: [custom]\n")
+    for directory in ("claude", "codex"):
+        (dotbrain_home / "subagents" / directory).mkdir(parents=True)
+    (dotbrain_home / "subagents/claude/custom.md").write_text("custom")
+    (dotbrain_home / "subagents/codex/custom.toml").write_text('name = "custom"\n')
 
     result = runner.invoke(
         app,
-        ["agents", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
+        ["subagents", "link", "--scope", "project", "--project", "example", "--repo", str(checkout)],
     )
 
     assert result.exit_code == 0, result.output
-    assert not (checkout / ".claude" / "agents" / "verifier.md").exists()
-    assert (checkout / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
-    assert not (checkout / ".codex" / "agents" / "dotbrain-verifier.toml").is_symlink()
+    assert (checkout / ".claude/agents/custom.md").is_symlink()
+    assert subagents.is_managed_copy(checkout / ".codex/agents/custom.toml")
     assert not (brainspace / ".codex" / "agents").exists()
 
 
@@ -358,15 +372,16 @@ def test_agents_link_global_prunes_removed_subagent(dotbrain_home: Path, tmp_pat
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     set_fake_home(monkeypatch, tmp_path)
     bootstrap_mod.ensure_data_root(dotbrain_home)
-    (dotbrain_home / "agents" / "agents.yaml").write_text("global:\n  - reviewer\n")
+    (dotbrain_home / "subagents" / "codex" / "custom.toml").write_text('name = "custom"\n')
+    (dotbrain_home / "config.yaml").write_text("version: 4\nsubagents:\n  - custom\n")
 
-    first = runner.invoke(app, ["agents", "link", "--scope", "global", "--runtime", "codex"])
+    first = runner.invoke(app, ["subagents", "link", "--scope", "global", "--runtime", "codex"])
     assert first.exit_code == 0, first.output
-    agent_file = tmp_path / ".codex" / "agents" / "dotbrain-reviewer.toml"
+    agent_file = tmp_path / ".codex" / "agents" / "custom.toml"
     assert agent_file.is_file() and not agent_file.is_symlink()
 
-    (dotbrain_home / "agents" / "agents.yaml").write_text("global: []\n")
-    second = runner.invoke(app, ["agents", "link", "--scope", "global", "--runtime", "codex"])
+    (dotbrain_home / "config.yaml").write_text("version: 4\nsubagents: []\n")
+    second = runner.invoke(app, ["subagents", "link", "--scope", "global", "--runtime", "codex"])
 
     assert second.exit_code == 0, second.output
     assert not agent_file.exists()
@@ -378,7 +393,7 @@ def test_skills_link_rejects_invalid_scope():
 
 
 def _write_global_config(dotbrain_home: Path, body: str) -> None:
-    (dotbrain_home / "skills" / "skills.yaml").write_text(body)
+    (dotbrain_home / "config.yaml").write_text(body)
 
 
 def test_skills_link_global_renders_bootstrap_result(
@@ -388,7 +403,7 @@ def test_skills_link_global_renders_bootstrap_result(
     set_fake_home(monkeypatch, fake_home)
     _write_global_config(
         dotbrain_home,
-        "targets:\n  codex: ~/.codex/skills\nglobal_extra:\n  - misc/discovery-test\n",
+        "version: 4\nskills:\n  - misc/discovery-test\n",
     )
     result = runner.invoke(app, ["skills", "link", "--scope", "global", "--runtime", "codex"])
     assert result.exit_code == 0, result.output
@@ -396,25 +411,12 @@ def test_skills_link_global_renders_bootstrap_result(
     assert (dest / "discovery-test").is_symlink()   # extra
 
 
-@pytest.mark.parametrize("command", [["bootstrap"], ["skills", "link", "--scope", "global"]])
-def test_global_linking_warns_on_unknown_target_and_skips_it(
-    command, dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
-    set_fake_home(monkeypatch, fake_home)
-    _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n  later: ~/.later/skills\n")
-    result = runner.invoke(app, command)
-    assert result.exit_code == 0, result.output
-    assert "unsupported global skills runtime skipped: later" in result.output
-    assert not (fake_home / ".later").exists()
-
-
 def test_skills_link_global_uses_default_targets(
     dotbrain_home: Path, fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ):
     monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
     set_fake_home(monkeypatch, fake_home)
-    _write_global_config(dotbrain_home, "targets:\n  codex: ~/.codex/skills\n")
+    _write_global_config(dotbrain_home, "version: 4\n")
     result = runner.invoke(
         app, ["skills", "link", "--scope", "global", "--runtime", "claude"]
     )

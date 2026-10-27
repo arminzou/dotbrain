@@ -18,9 +18,8 @@ from dotbrain import paths, runtimes
 
 @dataclass
 class GlobalConfig:
-    """Operator-configurable skill-link settings."""
+    """Global skill settings from ``config.yaml``."""
 
-    targets: dict[str, str] = field(default_factory=lambda: runtimes.global_targets("skills"))
     global_extra: tuple[str, ...] = ()
     profiles: dict[str, list[str]] = field(default_factory=dict)
 
@@ -80,55 +79,13 @@ def _read_yaml_mapping(path: Path) -> dict[str, object]:
     return data
 
 
-def load_global_config(path: Path) -> GlobalConfig:
-    """Parse optional operator skill-link config."""
+def load_global_config(dotbrain_home: Path) -> GlobalConfig:
+    """Global skills and runtime profiles from ``config.yaml``."""
 
-    path = Path(path)
-    if not path.is_file():
-        return GlobalConfig()
+    from dotbrain import config
 
-    data = _read_yaml_mapping(path)
-    targets = data.get("targets") or {}
-    if not isinstance(targets, dict) or not all(
-        isinstance(k, str) and isinstance(v, str) for k, v in targets.items()
-    ):
-        raise ValueError(f"{path}: targets must be a mapping of runtime -> destination")
-
-    merged_targets = runtimes.global_targets("skills")
-    merged_targets.update(targets)
-    profiles = data.get("profiles", {})
-    if not isinstance(profiles, dict) or not all(
-        k in ("claude-code", "codex") and isinstance(v, list)
-        and all(isinstance(home, str) and home.strip() for home in v)
-        for k, v in profiles.items()
-    ):
-        raise ValueError(f"{path}: profiles must map claude-code or codex to lists of runtime homes")
-    return GlobalConfig(
-        targets=merged_targets,
-        global_extra=_clean(data.get("global_extra", data.get("extra"))),
-        profiles=profiles,
-    )
-
-
-def render_global_config(
-    global_extra: Iterable[str],
-) -> str:
-    """Render the optional operator-owned skill-link config."""
-
-    lines = [
-        "version: 1",
-        "# Operator skill-link config — your global skills, linked into every agent",
-        "# session. List global skills under global_extra.",
-        "profiles: {}",
-    ]
-    extra = _clean(global_extra)
-    if extra:
-        lines.append("global_extra:")
-        for skill in extra:
-            lines.append(f"  - {skill}")
-    else:
-        lines.append("global_extra: []")
-    return "\n".join(lines) + "\n"
+    cfg = config.load_config(dotbrain_home)
+    return GlobalConfig(global_extra=cfg.skills, profiles=cfg.profiles)
 
 
 def project_link_set(extras: Iterable[str]) -> tuple[str, ...]:

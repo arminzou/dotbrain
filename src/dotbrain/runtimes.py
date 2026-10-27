@@ -16,7 +16,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Runtime:
     name: str  # `agents:` declaration and --runtime value
-    key: str  # global target key in skills.yaml and agents.yaml
+    key: str  # runtime key in config.yaml profiles and global delivery reports
     label: str  # display name
     workspace: str  # agent workspace directory, in a checkout and under the user's home
     # Packaged native subagent definitions as (resource directory, file suffix); None when dotbrain

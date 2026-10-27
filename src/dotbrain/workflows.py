@@ -74,14 +74,14 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
     bootstrap.mark_complete(dotbrain_home)
     user_home = home or Path.home()
     report = CommandResult("detach")
-    cfg = skills.load_global_config(dotbrain_home / "skills/skills.yaml")
+    cfg = skills.load_global_config(dotbrain_home)
     for rt in selected:
         target = TargetResult(scope="global", data={"runtime": rt.name})
         report.targets.append(target)
         directory = runtimes.user_dir(rt, user_home)
         module = assets.HOME_DELIVERY.get(rt.name)
         try:
-            destinations = assets.global_targets(cfg.targets, (rt,), "skills", user_home, explicit=True,
+            destinations = assets.global_targets((rt,), "skills", user_home, explicit=True,
                                                   errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
             if target.errors:
                 target.status = "failure"
@@ -198,6 +198,7 @@ def wire_project(
             raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
     if existing:
+        config.load_project_packaged(dotbrain_home, project)
         legacy = brainspace / ".brain/agents/skills.yaml"
         if legacy.exists():
             raise RuntimeError(f"{legacy}: move skills into .brain/project.yaml before wiring")
@@ -212,7 +213,7 @@ def wire_project(
             raise
         capable = subagents.workspace_runtimes()
         errors = subagents.validate_selection(dotbrain_home,
-                    subagents.project_link_set(config.load_project_subagents(dotbrain_home, project)),
+                    config.load_project_subagents(dotbrain_home, project),
                     [capable[ws] for ws in workspaces if ws in capable])
         if errors:
             raise RuntimeError("; ".join(errors))
@@ -246,7 +247,7 @@ def wire_project(
     target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
     if not result.errors:
         for kind in ("skills", "agents"):
-            linked = assets.link_project(dotbrain_home, target, kind, run=run)
+            linked = assets.link_project(dotbrain_home, target, kind, run=run, packaged=True)
             result.errors += linked.warnings
             result.warnings += linked.notices
             result.logs += [f"linked {entry}" for entry in linked.linked]
@@ -316,12 +317,13 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
     declaration = paths.confined_path(target.brainspace, '.brain/project.yaml')
     if not declaration.is_file():
         raise RuntimeError(f'{declaration}: missing project declaration; restore it before refresh')
+    config.load_project_packaged(dotbrain_home, target.project)
     legacy = paths.confined_path(target.brainspace, '.brain/agents/skills.yaml')
     if legacy.exists():
         raise RuntimeError(f'{legacy}: move skills into .brain/project.yaml before refresh')
     workspaces = assets.project_workspaces(dotbrain_home, target, runtime)
     skills.resolve_selection(dotbrain_home, config.load_project_skills(dotbrain_home, target.project))
-    names = subagents.project_link_set(config.load_project_subagents(dotbrain_home, target.project))
+    names = config.load_project_subagents(dotbrain_home, target.project)
     capable = subagents.workspace_runtimes()
     errors = subagents.validate_selection(dotbrain_home, names, [capable[ws] for ws in workspaces if ws in capable])
     if errors:
@@ -402,6 +404,12 @@ def refresh_projects(
             shared = brainspaces.seed_brain(selected.brainspace, dotbrain_home, create_missing=False)
             target.data['shared_brain_changes'] += shared
             target.changes += [f'shared Brain: updated {entry}' for entry in shared]
+            upgraded = config.upgrade_project_packaged(dotbrain_home, selected.project)
+            if upgraded and upgraded[1]:
+                target.data['shared_brain_changes'].append(upgraded[0])
+                target.changes.append(f'shared Brain: {upgraded[0]}')
+            elif upgraded:
+                target.findings.append({'severity': 'warning', 'message': upgraded[0]})
             if selected.checkout is not None:
                 repo = selected.checkout
                 resolved = assets.project_workspaces(dotbrain_home, selected, 'all')
@@ -420,7 +428,7 @@ def refresh_projects(
                 # An explicit runtime without native subagents has no agents to link.
                 kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
                 for kind in kinds:
-                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
+                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run, packaged=True)
                     target.errors += linked.warnings
                     target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
                     target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]

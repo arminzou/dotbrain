@@ -36,8 +36,8 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`projects show`](#dotbrain-projects-show) | Inspect the current wired project or a named project's registered checkout. |
 | [`skills list`](#dotbrain-skills-list) | Discover locally available skills. |
 | [`skills link`](#dotbrain-skills-link) | Reconcile selected skills in project or explicit global scope. |
-| [`agents list`](#dotbrain-agents-list) | Discover locally available agents. |
-| [`agents link`](#dotbrain-agents-link) | Reconcile selected agents in project or explicit global scope. |
+| [`subagents list`](#dotbrain-subagents-list) | Discover locally available custom subagents. |
+| [`subagents link`](#dotbrain-subagents-link) | Reconcile selected custom subagents in project or explicit global scope. |
 | [`beads sync`](#dotbrain-beads-sync) | Sync declared local tracker bindings and pull configured remotes; never push. |
 | [`beads migrate`](#dotbrain-beads-migrate) | Migrate embedded trackers to a server, keeping history and rollback backups. |
 | [`beads list-db`](#dotbrain-beads-list-db) | List remote database identifiers, including databases without a Brainspace. |
@@ -183,9 +183,9 @@ dotbrain projects show [OPTIONS]
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 
-## Skills and agents
+## Skills and subagents
 
-Link skills and vendor-native subagents into agent runtimes. See [Skills](skills.md).
+Link skills and custom vendor-native subagents into agent runtimes. See [Skills](skills.md).
 
 ### `dotbrain skills list` {#dotbrain-skills-list}
 
@@ -220,12 +220,12 @@ dotbrain skills link [OPTIONS]
 | `--all` | — | Reconcile every registered project. |
 | `--json` | — | Emit one structured result. |
 
-### `dotbrain agents list` {#dotbrain-agents-list}
+### `dotbrain subagents list` {#dotbrain-subagents-list}
 
-Discover locally available agents.
+Discover locally available custom subagents.
 
 ```text
-dotbrain agents list [OPTIONS]
+dotbrain subagents list [OPTIONS]
 ```
 
 | Option | Default | Description |
@@ -235,12 +235,12 @@ dotbrain agents list [OPTIONS]
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
-### `dotbrain agents link` {#dotbrain-agents-link}
+### `dotbrain subagents link` {#dotbrain-subagents-link}
 
-Reconcile selected agents in project or explicit global scope.
+Reconcile selected custom subagents in project or explicit global scope.
 
 ```text
-dotbrain agents link [OPTIONS]
+dotbrain subagents link [OPTIONS]
 ```
 
 | Option | Default | Description |

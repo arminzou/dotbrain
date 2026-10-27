@@ -312,13 +312,13 @@ CLI 现在使用统一的选择参数。旧的调用方式会直接报错，不�
 | `wire --all` | `refresh --all` |
 | `--beads-server-host`、`--beads-server-port`、`--beads-server-user` | `--server-host`、`--server-port`、`--server-user` |
 | `--beads-ssh-host`、`--beads-database`、`--beads-remote` | `--ssh-host`、`--database`、`--remote` |
-| 隐式全局范围的资源链接 | `skills link --scope global` 或 `agents link --scope global` |
+| 隐式全局范围的资源链接 | `skills link --scope global` 或 `subagents link --scope global` |
 | `update` | 用安装 CLI 的包管理器升级 |
 | `unwire --all` | 对每个项目运行 `unwire --project <name>` |
 | unwire 的归档、删除或预览参数 | `unwire` 只负责断开；保留下来的目录用文件系统操作自己处理 |
 
 隐藏的命令别名已经移除。不带参数的项目命令现在作用于当前已连接的 checkout；在它之外，请用
-`--project` 选择项目。已有的配置键（比如 `targets.claude-code`）拼写不变。技能和 Claude 子 Agent
+`--project` 选择项目。已有的配置键拼写不变。技能和 Claude 子 Agent
 仍然是符号链接；Agent 同步时，会把 dotbrain 自己的 Codex Agent 符号链接迁移为带标记的真实文件，
 并保留其他来源的条目。
 
@@ -336,8 +336,8 @@ dotbrain detach --runtime codex
 ```
 
 这会移除默认 home 和已配置且存在的 profile home 里 dotbrain 创建的全局技能链接。
-之后运行 bootstrap 仍会链接选中的 `global_extra` 技能；要停止向额外的 profile 交付，从
-`skills/skills.yaml` 中移除该 profile。插件仍需通过 marketplace 卸载：Claude Code 使用
+之后运行 bootstrap 仍会链接选中的全局 `skills`；要停止向额外的 profile 交付，从
+`config.yaml` 中移除该 profile。插件仍需通过 marketplace 卸载：Claude Code 使用
 `/plugin uninstall dotbrain@dotbrain`，Codex 使用 `codex plugin remove dotbrain@dotbrain`。
 项目 checkout 的连接不变；需要移除时，对每个 checkout 运行 `dotbrain unwire`。
 
@@ -457,7 +457,7 @@ dotbrain bootstrap
 
 这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
 `~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了
-`XDG_CONFIG_HOME` 时，目录改为 `$XDG_CONFIG_HOME/opencode`。你在 `skills/skills.yaml` 里选的全局技能会链接到
+`XDG_CONFIG_HOME` 时，目录改为 `$XDG_CONFIG_HOME/opencode`。你在 `config.yaml` 里选的全局技能会链接到
 `~/.config/opencode/dotbrain/skills/`。Dotbrain 不改你的 OpenCode 配置文件：OpenCode 加载配置时，由 plugin 把这两个技能目录加进去。
 
 plugin 运行的是 OpenCode 启动时 `PATH` 里的 `dotbrain`。找不到的话，会话照常可用，但没有约定，也不会同步。
@@ -548,7 +548,7 @@ dotbrain bootstrap
 
 这会把扩展连同打包的技能复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
 则复制到 `$PI_CODING_AGENT_DIR/extensions/dotbrain/`。在 Windows 上，`~` 指 `%USERPROFILE%`。你在
-`skills/skills.yaml` 里选的全局技能会链接到 `~/.pi/agent/skills/`。Dotbrain 不会修改 Pi 的设置和信任文件。
+`config.yaml` 里选的全局技能会链接到 `~/.pi/agent/skills/`。Dotbrain 不会修改 Pi 的设置和信任文件。
 
 扩展会运行 Pi 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。
 
@@ -632,7 +632,7 @@ dotbrain bootstrap
 
 这会在 `~/.cursor/hooks.json` 里加入三个 dotbrain hook；文件不存在时会创建它，你自己的 hook 会保留。在 Windows 上，
 `~` 指 `%USERPROFILE%`。如果你的 dotbrain Claude Code plugin 已安装、已启用且是最新的，Cursor 从它那里获取 dotbrain
-打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `skills/skills.yaml` 里选的全局技能会
+打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `config.yaml` 里选的全局技能会
 链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。
 
 hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了

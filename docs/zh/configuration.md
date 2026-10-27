@@ -1,16 +1,14 @@
 # 配置
 
-大多数情况下都不需要改配置。真要改时，一共有四个文件，都在你私有的 dotbrain 主目录里：
+大多数情况下都不需要改配置。真要改时，一共只有两个文件，都在你私有的 dotbrain 主目录里：一个管本机，一个管单个项目。
 
 ```mermaid
 treeView-beta
   accTitle: Where dotbrain's configuration files live
   ~/dotbrain/
-    config.yaml ## machine: shared infrastructure
-    skills/
-      skills.yaml ## machine: global skills
-    agents/
-      agents.yaml ## machine: global subagents
+    config.yaml ## machine: every global setting
+    skills/ ## your skill sources
+    subagents/ ## your custom subagent sources
     brainspaces/
       my-app/
         .brain/
@@ -19,13 +17,11 @@ treeView-beta
 
 | 文件 | 范围 | 由谁初始化 |
 | --- | --- | --- |
-| `~/dotbrain/config.yaml` | 本机：共享的基础设施 | `dotbrain bootstrap` |
-| `~/dotbrain/skills/skills.yaml` | 本机：全局技能 | `dotbrain bootstrap` |
-| `~/dotbrain/agents/agents.yaml` | 本机：全局子 Agent | `dotbrain bootstrap` |
+| `~/dotbrain/config.yaml` | 本机：基础设施、运行时 profiles、全局技能和子 Agent | `dotbrain bootstrap` |
 | `brainspaces/<name>/.brain/project.yaml` | 单个项目 | `dotbrain wire` |
 
 修改项目声明后，运行 `dotbrain refresh`（或 `dotbrain refresh --all`）。全局资源的变化用
-`dotbrain skills link --scope global` 或 `dotbrain agents link --scope global` 同步。
+`dotbrain skills link --scope global` 或 `dotbrain subagents link --scope global` 同步。
 
 ## 环境变量 {#environment}
 
@@ -38,12 +34,12 @@ treeView-beta
 
 ## `config.yaml`
 
-只有使用 [server 模式](beads-backend.md#server-mode)的 Beads，或要调整[主目录同步](#sync)时才需要。
-初始化出来的文件里，Beads 这一段是注释掉的。
+所有全局设置都在这里：[server 模式](beads-backend.md#server-mode)的 Beads、[主目录同步](#sync)、
+额外的运行时主目录，以及分发到你个人 Agent 主目录的技能和子 Agent。初始化出来的文件里，这些段落都是注释掉的。
 
 ```yaml
 # ~/dotbrain/config.yaml
-version: 3
+version: 4
 
 beads:
   server:
@@ -51,6 +47,17 @@ beads:
     port: "3307"
     user: beads
     ssh_host: bastion.example.internal   # optional SSH hop, used by beads drop-db
+
+profiles:                     # extra Claude Code and Codex homes
+  claude-code: [~/.claude-work]
+  codex: [~/.codex-work]
+
+skills:                       # global skills, under ~/dotbrain/skills/
+  - my-collection/my-skill
+  - another-collection        # select every descendant skill
+
+subagents:                    # custom subagents, under ~/dotbrain/subagents/
+  - some-shared-subagent
 ```
 
 ::: warning
@@ -101,7 +108,13 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-# subagents:                  # project-only subagents; packaged subagents are always wired
+packaged-subagents:           # exact list; remove a role and refresh to opt out
+  - researcher
+  - reviewer
+  - verifier
+  - worker
+
+# subagents:                  # project-only custom subagents
 #   - some-project-only-subagent
 ```
 
@@ -115,7 +128,8 @@ skills:                       # extra skills for this project's workspaces
 | `beads.remote` | — | embedded 跟踪器的 Dolt remote |
 | `beads.database` | 项目名 | 服务器上的数据库名 |
 | `skills` | `[]` | 链接到这个项目工作区的技能 |
-| `subagents` | `[]` | 在自带子 Agent 之外，只给这个项目用的子 Agent |
+| `packaged-subagents` | `[]` | 分发到这个项目已连接 checkout 的打包角色（`worker`、`researcher`、`reviewer`、`verifier`），名字是 `dotbrain-<role>`。`dotbrain wire` 会写入全部四个。列表是精确的；不写或为空表示不分发。 |
+| `subagents` | `[]` | 只给这个项目用的自定义子 Agent |
 | `retro.promotion.auto-deliver` | `false` | 由 skill 读取：允许自动提交、推送规则提案并创建 PR |
 | `retro.promotion.destinations` | `[]` | 允许修改的已有公开指南，相对仓库的路径数组；启用自动交付时不能为空 |
 
@@ -150,64 +164,73 @@ PR 批准与合并仍由你决定。关闭自动交付后，私有记录和只�
 空选择；这类显式更新可能会重新排版 YAML 注释。
 :::
 
-## `skills/skills.yaml`
+## 全局技能和 profiles {#global-skills}
 
-你的全局技能，会链接到这台机器上的每个 Agent 会话。列出 `~/dotbrain/skills/` 下技能文件夹的路径：
-
-```yaml
-# ~/dotbrain/skills/skills.yaml
-version: 1
-profiles:
-  claude-code: [~/.claude-work]
-  codex: [~/.codex-work]
-global_extra:
-  - my-collection/my-skill
-  - another-collection        # select every descendant skill
-```
+`skills:` 列出你的全局技能，它们会链接到这台机器上的每个 Agent 会话。每一项是 `~/dotbrain/skills/`
+下某个技能文件夹的路径。
 
 Claude Code 和 Codex 的技能会链接到默认主目录（`~/.claude` 和 `~/.codex`）及 `profiles` 中每个额外
 主目录下的 `skills/`。本机不存在的 profile 主目录会静默跳过，方便多台机器共享此文件。其他运行时继续
-沿用现有的路径重定位和插件安装要求，不接受 profiles。
+沿用各自的路径重定位变量和插件安装方式，不接受 profiles。
 
 位于已连接 checkout 或 worktree 内的主目录会被拒绝，其中的链接不会被改动；主目录及其上级目录可以是
-符号链接。Doctor 还会检查每个 Claude Code 主目录是否安装了 dotbrain 插件。旧 `targets` 中指向默认
-技能目录的条目会被忽略；自定义技能目标会将其父目录作为额外主目录，并提示迁移到 `profiles`。
-
-`dotbrain bootstrap` 会为已有技能配置补上缺失的 `profiles: {}`，并删除以
-`~/.claude/skills` 或 `~/.codex/skills` 表示的简单旧条目（也支持 Windows 路径分隔符）。
-它保留注释、资源选择和未知设置，先验证两份全局资源配置，再将原始文件备份到
-`~/dotbrain/.cache/config-backups/`，以原子替换方式写入新配置。只有文件发生变化时才报告迁移。
-需要恢复时，将报告中的备份还原到 `~/dotbrain/skills/skills.yaml`。Doctor 只提示运行 bootstrap，不修改文件。
-
-绝对路径、自定义目标和结构有歧义的目标都会保留：与本机默认目录相同的路径，在其他机器上可能有不同含义。
-使用 YAML 锚点或行内映射的 targets 也会保留。手动转换前，请在每台机器上检查：
-共享 profiles 同时影响**技能和子 Agent**。bootstrap 不会改写 `agents/agents.yaml` 中的 targets；
-将仅用于 Agent 的目标移入 profiles，可能会意外开始向那里分发技能。
+符号链接。Doctor 还会检查每个 Claude Code 主目录是否安装了 dotbrain 插件。
 
 包含 `SKILL.md` 的条目只选中这一个技能。否则，它的目录会递归展开为所有包含 `SKILL.md` 的子目录，
 `node_modules` 除外。选中同一来源的重叠条目会去重。不同来源映射到同一个目标名时，会在任何链接或清理之前
 失败；路径不存在或技能包为空也会失败。在选中的技能包里增删技能，下次同步时就会生效，不需要改这里的声明。
 
-## `agents/agents.yaml`
+## 全局子 Agent {#global-subagents}
 
-分发到你个人 Agent 主目录的全局子 Agent。删除一个条目后，下次运行 `dotbrain agents link --scope global`
-时会清理它对应的资源。
+`subagents:` 列出分发到你个人 Agent 主目录的自定义子 Agent。每个名字对应
+`~/dotbrain/subagents/claude/<name>.md` 或 `~/dotbrain/subagents/codex/<name>.toml` 下的源文件。
+删除一个条目后，下次运行 `dotbrain subagents link --scope global` 时会清理它对应的资源。
 
-Claude Code 和 Codex 会将 Agent 分发到默认主目录及 `skills/skills.yaml` 的 `profiles:` 所列主目录下的
-`agents/`。不存在的 profile 会跳过；位于已连接 checkout 内的目标会报错并跳过。旧 `targets:` 中与默认值
-相同的条目会静默忽略；自定义目标的父目录会作为额外主目录，并提示迁移到 `skills.yaml` 的 `profiles:`。
+打包的子 Agent（`worker`、`researcher`、`reviewer`、`verifier`）没有全局范围，请写在项目的
+`packaged-subagents` 里。写在这里的打包名称会被跳过，doctor 也会报告。
+不想给某个项目分发某个角色，就把它从列表里删掉，再运行 `dotbrain refresh`。
+没有打包子 Agent 时工作流照样能跑：它们会把同样的角色约定交给通用子 Agent。
 
-```yaml
-# ~/dotbrain/agents/agents.yaml
-# 额外运行时主目录在 skills/skills.yaml 的 profiles 中配置。
-global:
-  - some-shared-subagent
-```
+Claude Code 和 Codex 会把 Agent 分发到默认主目录和同一组 `profiles` 下的 `agents/`。不存在的 profile
+会跳过；位于已连接 checkout 内的目标会报错并跳过。
 
 技能和 Claude Agent 定义是符号链接。Codex Agent 定义是可随时丢弃的真实 TOML 副本，带有归属标记
-`# dotbrain-managed-agent: v1`；请编辑私有 `agents/` 目录下的源定义，而不是分发出去的副本。dotbrain 会迁移
+`# dotbrain-managed-agent: v1`；请编辑 `~/dotbrain/subagents/` 下的源定义，而不是分发出去的副本。dotbrain 会迁移
 自己的 Codex 符号链接，覆盖带标记的副本，保留没有标记的文件和其他来源的链接。如果和用户自己的文件重名，
 会报告冲突，而不是替换。
 
-运行时参数用 `--runtime claude|codex|hermes|opencode|pi|cursor|all`。YAML 里的目标键是 `claude-code`、`codex`、`hermes`、`opencode`、`pi` 和 `cursor`；Hermes、OpenCode、Pi 和 Cursor 都没有子 Agent 目标。项目链接默认作用于
-当前已连接的 checkout；`--scope global` 需要显式指定，并且不能和项目选择参数或 `--all` 一起用。
+运行时参数用 `--runtime claude|codex|hermes|opencode|pi|cursor|all`。profiles 的键是 `claude-code` 和 `codex`；
+Hermes、OpenCode、Pi 和 Cursor 不接收子 Agent。项目链接默认作用于当前已连接的 checkout；`--scope global`
+需要显式指定，并且不能和项目选择参数或 `--all` 一起用。
+
+## 从旧版本升级 {#upgrading}
+
+以前的全局设置分散在三个文件里。升级后第一次运行 `dotbrain bootstrap`，会把它们合并进 `config.yaml` version 4：
+
+| 之前 | 之后 |
+| --- | --- |
+| `config.yaml` version 3 | `config.yaml` version 4；`beads` 和 `sync` 不变 |
+| `skills/skills.yaml` 的 `profiles` | `config.yaml` 的 `profiles` |
+| `skills/skills.yaml` 的 `global_extra`（或 `extra`） | `config.yaml` 的 `skills` |
+| `agents/agents.yaml` 的 `global` | `config.yaml` 的 `subagents`，只保留自定义子 Agent |
+| `agents/agents.yaml` 的 `global` 里的打包名称 | 删除并报告；打包子 Agent 请按项目选择 |
+| 指向运行时默认位置的 `targets`，例如 `~/.claude/skills` 或 `~/.hermes/skills` | 删除 |
+| Claude Code 或 Codex 指向自定义目录的 `targets`，例如 `~/.codex-work/skills` | 父目录变成 profile 主目录，例如 `codex: [~/.codex-work]` |
+| Hermes、OpenCode、Pi 或 Cursor 指向自定义目录的 `targets` | 删除并报告替代做法：设置 `HERMES_HOME`、`XDG_CONFIG_HOME` 或 `PI_CODING_AGENT_DIR` 来移动该运行时；Cursor 固定使用 `~/.cursor/skills` |
+| `~/dotbrain/agents/` | `~/dotbrain/subagents/`，只放自定义子 Agent 的源文件 |
+| `agents list` / `agents link` 命令 | `dotbrain subagents list` / `dotbrain subagents link`，只管自定义子 Agent |
+| 打包子 Agent 总是分发给每个项目 | 在 `project.yaml` 的 `packaged-subagents` 里按项目列出；refresh 会给旧的、没有版本号的 `project.yaml` 补上这个列表（含全部四个角色），只补一次 |
+| Claude Code 插件里带插件前缀的 Agent | `dotbrain-<role>`，只在已连接的 checkout 里 |
+
+插件不再带 Agent，所以在没有用 dotbrain 连接的仓库里，Claude Code 不再有打包子 Agent。
+
+Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`、更新链接，
+最后删除旧设置文件，并逐项报告。如果某一步失败或进程中断，设置仍保存在旧文件或已写入的 config 中。
+迁移记录会让全局分发继续暂停，直到下次 bootstrap 完成清理。
+各运行时主目录里指向 `agents/` 的 Claude Code 链接会改指向 `subagents/`，即使这次只为一个运行时运行 bootstrap。profile 会同时接收技能和子 Agent，所以由 target
+转换来的主目录也可能开始接收子 Agent。再次运行不会有任何改动。报告里的备份目录保留了原文件，供手动恢复。
+
+无法安全合并时，bootstrap 会停下来，不改任何文件。这些情况包括：YAML 无法解析；使用了锚点、合并键或标签；
+有重复或未知的键；某个值和 `config.yaml` 里已有的值冲突；Claude Code 或 Codex 的 target 不以 `/skills` 或 `/agents` 结尾；
+`agents/` 和 `subagents/` 里都有文件。修好报告里的文件后再运行一次 bootstrap。在那之前，全局分发会暂停，
+doctor 会报告遗留的文件。迁移完成后，dotbrain 不会再读取旧文件。

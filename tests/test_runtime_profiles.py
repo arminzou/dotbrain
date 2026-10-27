@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 import pytest
-import yaml
 
-from dotbrain import assets, doctor, skills, subagents
+from conftest import write_global_config
+from dotbrain import assets, config, doctor, subagents
 
 
 def write(path, text):
@@ -15,9 +15,7 @@ def write(path, text):
 
 def configure(root, **settings):
     write(root / "skills/collection/example/SKILL.md", "example")
-    write(root / "skills/skills.yaml", yaml.safe_dump({
-        "version": 1, "global_extra": ["collection/example"], **settings,
-    }))
+    write_global_config(root, **{"skills": ["collection/example"], **settings})
 
 
 @pytest.mark.parametrize("runtime,folder", [("claude-code", ".claude"), ("codex", ".codex")])
@@ -53,7 +51,7 @@ def test_checkout_profile_rejected_without_pruning_links(tmp_path, checkout_name
     root, user = tmp_path / "data", tmp_path / "user"
     checkout = tmp_path / checkout_name
     profile = checkout / folder
-    configure(root, profiles={runtime: [str(profile)]}, global_extra=[])
+    configure(root, profiles={runtime: [str(profile)]}, skills=[])
     profile.mkdir(parents=True)
     # A broken marker still identifies a checkout, including a detached worktree.
     (checkout / ".brain").symlink_to(tmp_path / "unavailable", target_is_directory=True)
@@ -73,7 +71,7 @@ def test_checkout_profile_rejected_without_pruning_links(tmp_path, checkout_name
 def test_default_home_redirected_into_checkout_is_rejected(tmp_path):
     root, user = tmp_path / "data", tmp_path / "user"
     checkout = tmp_path / "checkout"
-    configure(root, global_extra=[])
+    configure(root, skills=[])
     profile = checkout / ".claude"
     profile.mkdir(parents=True)
     (checkout / ".brain").touch()
@@ -88,24 +86,6 @@ def test_default_home_redirected_into_checkout_is_rejected(tmp_path):
     assert "default claude-code home" in result.warnings[0]
 
     assert old.is_symlink()
-
-
-@pytest.mark.parametrize("runtime", ["hermes", "opencode", "pi", "cursor"])
-def test_checkout_target_rejected_for_every_runtime(tmp_path, runtime):
-    root, user = tmp_path / "data", tmp_path / "user"
-    destination = tmp_path / "checkout" / f".{runtime}/skills"
-    configure(root, targets={runtime: str(destination)}, global_extra=[])
-    destination.mkdir(parents=True)
-    (tmp_path / "checkout/.brain").symlink_to(tmp_path / "missing", target_is_directory=True)
-    old = destination / "example"
-    old.symlink_to(root / "skills/collection/example", target_is_directory=True)
-
-    result = assets.link_global(root, "skills", runtime, user_home=user)
-
-    assert len(result.warnings) == 1
-    assert f"targets.{runtime}" in result.warnings[0]
-    assert old.is_symlink()
-    assert result.linked == [] and result.pruned == []
 
 
 def test_checkout_home_cannot_hide_behind_duplicate_skill_destination(tmp_path):
@@ -138,11 +118,10 @@ def test_rejected_profile_does_not_stop_safe_delivery_or_diagnosis(tmp_path, mon
     bad.mkdir(parents=True)
     good.mkdir(parents=True)
     (bad.parent / ".brain").touch()
-    configure(root, profiles={"claude-code": [str(bad), str(good)]})
     # Bootstrap must still reach the subsequent global subagent pass.
-    write(root / "agents/agents.yaml", "global: [custom]\n")
-    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
-    write(root / "agents/claude/custom.md", "custom")
+    configure(root, profiles={"claude-code": [str(bad), str(good)]}, subagents=["custom"])
+    write(root / "subagents/codex/custom.toml", 'name = "custom"\n')
+    write(root / "subagents/claude/custom.md", "custom")
 
     args = [command, "--home", str(root), "--json"]
     if command == "skills":
@@ -182,39 +161,11 @@ def test_symlinked_home_ancestor_allows_profile_linking(tmp_path):
     assert (physical_home / ".claude-work/skills/example").is_symlink()
 
 
-@pytest.mark.parametrize("runtime,folder", [("claude-code", ".claude"), ("codex", ".codex")])
-def test_legacy_default_target_is_ignored_silently(tmp_path, runtime, folder):
-    root, user = tmp_path / "data", tmp_path / "user"
-    configure(root, targets={runtime: f"~/{folder}/skills"})
-
-    result = assets.link_global(root, "skills", runtime, user_home=user)
-
-    assert not result.warnings and not result.notices
-    assert (user / folder / "skills/example").is_symlink()
-
-
-def test_legacy_custom_target_migrates_parent_to_profile_with_notice(tmp_path):
-    root, user = tmp_path / "data", tmp_path / "user"
-    profile = user / ".claude-work"
-    profile.mkdir(parents=True)
-    configure(root, targets={"claude-code": "~/.claude-work/old-folder"})
-
-    result = assets.link_global(root, "skills", "claude-code", user_home=user)
-
-    assert not result.warnings
-    assert len(result.notices) == 1
-    assert "targets.claude-code" in result.notices[0]
-    assert "profiles.claude-code" in result.notices[0]
-    assert (user / ".claude/skills/example").is_symlink()
-    assert (profile / "skills/example").is_symlink()
-    assert not (profile / "old-folder").exists()
-
-
 def test_doctor_reports_plugin_installation_for_each_claude_home(tmp_path):
     root, user = tmp_path / "data", tmp_path / "user"
     profile = user / ".claude-work"
     profile.mkdir(parents=True)
-    configure(root, profiles={"claude-code": [str(profile)]}, global_extra=[])
+    configure(root, profiles={"claude-code": [str(profile)]}, skills=[])
     plugin = tmp_path / "plugin"
     write(plugin / "hooks/hooks.json", json.dumps({"hooks": {"SessionStart": [{}]}}))
     write(user / ".claude/plugins/installed_plugins.json", json.dumps({
@@ -238,34 +189,21 @@ def test_invalid_or_unsupported_profiles_name_setting(tmp_path, profiles):
     configure(tmp_path, profiles=profiles)
 
     with pytest.raises(ValueError, match="profiles"):
-        skills.load_global_config(tmp_path / "skills/skills.yaml")
+        config.load_config(tmp_path)
 
 
 @pytest.mark.parametrize("runtime,folder,suffix", [("claude-code", ".claude", ".md"), ("codex", ".codex", ".toml")])
-@pytest.mark.parametrize("legacy", [None, "default", "custom"])
-def test_global_agents_use_shared_profiles_and_migrate_targets(tmp_path, runtime, folder, suffix, legacy):
+def test_global_agents_use_shared_profiles(tmp_path, runtime, folder, suffix):
     root, user = tmp_path / "data", tmp_path / "user"
     profile = user / f"{folder}-work"
     profile.mkdir(parents=True)
-    configure(root, profiles={runtime: [str(profile), str(user / "missing")]})
-    settings = {"global": ["custom"]}
-    if legacy:
-        settings["targets"] = {runtime: f"~/{folder}/agents" if legacy == "default" else f"~/{folder}-legacy/old-folder"}
-        if legacy == "custom":
-            (user / f"{folder}-legacy").mkdir()
-    write(root / "agents/agents.yaml", yaml.safe_dump(settings))
-    write(root / "agents/claude/custom.md", "custom")
-    write(root / "agents/codex/custom.toml", 'name = "custom"\n')
+    configure(root, profiles={runtime: [str(profile), str(user / "missing")]}, subagents=["custom"])
+    write(root / "subagents/claude/custom.md", "custom")
+    write(root / "subagents/codex/custom.toml", 'name = "custom"\n')
 
     result = assets.link_global(root, "agents", user_home=user)
 
-    assert not result.warnings
-    assert len(result.notices) == (1 if legacy == "custom" else 0)
-    if legacy == "custom":
-        assert "agents.yaml targets." + runtime in result.notices[0]
-        assert "skills.yaml profiles." + runtime in result.notices[0]
-        assert (user / f"{folder}-legacy/agents/custom{suffix}").is_file()
-        assert not (user / f"{folder}-legacy/old-folder").exists()
+    assert not result.warnings and not result.notices
     for directory in (user / folder, profile):
         dest = directory / f"agents/custom{suffix}"
         assert dest.is_file()
@@ -284,6 +222,18 @@ def test_global_agents_use_shared_profiles_and_migrate_targets(tmp_path, runtime
     assert any(f.status == "error" and str(profile / f"agents/custom{suffix}") in f.message for f in findings)
 
 
+def test_global_packaged_subagent_is_skipped(tmp_path):
+    root, user = tmp_path / "data", tmp_path / "user"
+    configure(root, subagents=["reviewer"])
+
+    result = assets.link_global(root, "agents", user_home=user)
+
+    assert not result.warnings and "reviewer" in result.notices[0]
+    assert not (user / ".codex/agents/dotbrain-reviewer.toml").exists()
+    assert any(f.status == "warn" and "packaged subagents: reviewer" in f.message
+               for f in doctor._check_machine(root, user))
+
+
 @pytest.mark.parametrize("redirect", ["home", "destination", "home-with-external-destination"])
 def test_global_agents_reject_checkout_paths_and_continue(tmp_path, redirect):
     root, user = tmp_path / "data", tmp_path / "user"
@@ -299,17 +249,18 @@ def test_global_agents_reject_checkout_paths_and_continue(tmp_path, redirect):
         bad.symlink_to(checkout, target_is_directory=True)
         if redirect == "home-with-external-destination":
             (bad / "agents").symlink_to(good / "agents", target_is_directory=True)
-    configure(root, profiles={"codex": [str(bad), str(good)]})
-    write(root / "agents/agents.yaml", "global: [reviewer]\n")
+    configure(root, profiles={"codex": [str(bad), str(good)]}, subagents=["custom"])
+    write(root / "subagents/codex/custom.toml", 'name = "custom"\n')
+    write(root / "subagents/claude/custom.md", "custom")
 
     result = assets.link_global(root, "agents", user_home=user)
 
     assert len(result.warnings) == 1
     assert "profiles.codex" in result.warnings[0] and "wired checkout" in result.warnings[0]
-    assert subagents.is_managed_copy(user / ".codex/agents/dotbrain-reviewer.toml")
-    assert subagents.is_managed_copy(good / "agents/dotbrain-reviewer.toml")
-    assert not (checkout / "dotbrain-reviewer.toml").exists()
+    assert subagents.is_managed_copy(user / ".codex/agents/custom.toml")
+    assert subagents.is_managed_copy(good / "agents/custom.toml")
+    assert not (checkout / "custom.toml").exists()
     if redirect != "home-with-external-destination":
-        assert not (checkout / "agents/dotbrain-reviewer.toml").exists()
+        assert not (checkout / "agents/custom.toml").exists()
     assert any(f.status == "error" and "agents" in f.message and "profiles.codex" in f.message
                for f in doctor._check_machine(root, user))

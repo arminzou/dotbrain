@@ -93,7 +93,7 @@ def test_plugin_version_input_skips(tmp_path, registry):
 
 def test_plugin_version_reads_the_configured_claude_profile(tmp_path):
     root, home, profile = tmp_path / "root", tmp_path / "home", tmp_path / "work-profile"
-    write(root / "skills/skills.yaml", f"profiles:\n  claude-code: [{profile.as_posix()}]\n")
+    write(root / "config.yaml", f"version: 4\nprofiles:\n  claude-code: [{profile.as_posix()}]\n")
     write(profile / "plugins/installed_plugins.json", json.dumps({"plugins": {
         "dotbrain@dotbrain": [{"installPath": str(profile / "plugin"), "version": "0.0.0"}]}}))
     findings = doctor._check_machine(root, home)
@@ -334,19 +334,22 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
     repo = tmp_path / "repo"
     write(root / "skills/bundle/one/SKILL.md", "skill")
     brainspace = make_project(root, repo=repo, runtimes=("codex",), selected=("bundle",))
-    selected_agents = subagents.project_link_set(())
+    selected_agents = ("custom",)
+    write(root / "subagents/codex/custom.toml", 'name = "custom"\n')
+    declaration = brainspace / ".brain/project.yaml"
+    declaration.write_text(declaration.read_text() + "\nsubagents: [custom]\n")
     subagents.link_project_subagents(root, brainspace, (".codex",), selected_agents, workspace_dirs={".codex": repo / ".codex"})
     skills.link_project(root, brainspace, (".codex",), ["bundle"], workspace_dirs={".codex": repo / ".codex"})
-    entries = ["/.brain", "/.agents/skills/one"] + [f"/.codex/agents/dotbrain-{name}.toml" for name in selected_agents]
+    entries = ["/.brain", "/.agents/skills/one"] + [f"/.codex/agents/{name}.toml" for name in selected_agents]
     write(repo / ".git/info/exclude", "\n".join(entries) + "\n")
     # Real-file Codex delivery needs no cache at diagnosis time.
     import shutil
-    shutil.rmtree(root / ".cache")
+    shutil.rmtree(root / ".cache", ignore_errors=True)
     before = snapshot(tmp_path)
     report = doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
     assert not errors(report.projects["example"])
     assert snapshot(tmp_path) == before and not (root / ".cache").exists()
-    dest = repo / f".codex/agents/dotbrain-{selected_agents[0]}.toml"
+    dest = repo / f".codex/agents/{selected_agents[0]}.toml"
     dest.write_text(dest.read_text() + "# stale\n")
     skill = repo / ".agents/skills/one"
     skill.unlink()
@@ -359,11 +362,11 @@ def test_selected_skill_and_codex_copy_health_no_cache_writes(tmp_path):
 def test_claude_expected_link_and_global_selections(tmp_path):
     root = tmp_path / "home"
     user = tmp_path / "user"
-    write(root / "agents/claude/custom.md", "custom")
-    write(root / "agents/agents.yaml", "global: [custom]\n")
+    write(root / "subagents/claude/custom.md", "custom")
+    write(root / "config.yaml", "version: 4\nsubagents: [custom]\n")
     receiver = user / ".claude/agents"
     receiver.mkdir(parents=True)
-    (receiver / "custom.md").symlink_to(root / "agents/claude/custom.md")
+    (receiver / "custom.md").symlink_to(root / "subagents/claude/custom.md")
     make_project(root)
     report = doctor.run_doctor(root, home=user, project="example")
     assert any("no definition for runtime 'codex'" in message for message in errors(report.machine))
@@ -516,16 +519,12 @@ def test_bd_version_reports_releases_older_than_the_qualified_one(tmp_path, stdo
     assert doctor._check_bd_version(tmp_path, run).status == status
 
 
-def test_plugin_check_warns_when_the_plugin_lacks_packaged_claude_agents(tmp_path):
-    # Linking leaves packaged Claude Code agents to the plugin; an older plugin must not read as healthy.
+def test_plugin_check_needs_hooks_without_packaged_claude_agents(tmp_path):
     install = tmp_path / "plugin-install"
     write(install / "hooks/hooks.json", json.dumps({"hooks": {"SessionStart": [{"hooks": [{"command": "dotbrain hook session-start"}]}]}}))
     write(tmp_path / ".claude/plugins/installed_plugins.json", json.dumps({"plugins": {"dotbrain@dotbrain": [{"installPath": str(install)}]}}))
     findings = doctor._check_plugin(tmp_path, "claude-code")
-    assert any(f.status == "warn" and "lacks packaged agents" in f.message for f in findings)
-    for name in subagents.PROJECT_BASELINE:
-        write(install / "agents" / f"{name}.md", "---\nname: x\n---\n")
-    assert not any(f.status == "warn" for f in doctor._check_plugin(tmp_path, "claude-code"))
+    assert not any(f.status == "warn" for f in findings)
 
 
 def test_all_skips_shared_checkouts_absent_on_this_machine(tmp_path):
@@ -658,3 +657,42 @@ def test_merge_or_replay_in_progress_fails(synced_home, tmp_path, state, marker)
     assert result.exit_code == 1
     machine = next(t for t in json.loads(result.stdout)["targets"] if t["scope"] == "machine")
     assert any(f["severity"] == "error" and f["message"].startswith("home sync blocked") for f in machine["findings"])
+
+
+def packaged_messages(report):
+    return [f.message for f in report.projects["example"]
+            if "packaged" in f.message or "dotbrain-" in f.message or "unversioned" in f.message]
+
+
+def test_packaged_subagent_findings(tmp_path):
+    from dotbrain import config
+    root, repo = tmp_path / "home", tmp_path / "repo"
+    brainspace = make_project(root, repo=repo, runtimes=("codex",))
+    declaration = brainspace / ".brain/project.yaml"
+    base = declaration.read_text()
+    first, second = config.PACKAGED_ROLES[:2]
+    agents_dir = repo / ".codex/agents"
+    subagents.reconcile_packaged(agents_dir, [first], "codex", label="agents")
+
+    def run():
+        return doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
+
+    declaration.write_text(base + f"version: 2\npackaged-subagents: [{first}]\n")
+    assert packaged_messages(run()) == []
+
+    declaration.write_text(base)
+    assert any("unversioned" in m for m in packaged_messages(run()))
+
+    declaration.write_text(base + f"version: 2\npackaged-subagents: [{second}]\nsubagents: [dotbrain-mine]\n")
+    write(agents_dir / "dotbrain-foreign.toml", 'name = "x"\n')
+    messages = packaged_messages(run())
+    assert any(f"'{second}' is not delivered" in m for m in messages)
+    assert any(f"dotbrain-{first}.toml: delivered packaged subagent is not listed" in m for m in messages)
+    assert any("dotbrain-foreign.toml: dotbrain-* file is not managed" in m for m in messages)
+    assert any("'dotbrain-mine' uses the reserved" in m for m in messages)
+
+    declaration.write_text(base + "version: 2\npackaged-subagents: []\n")
+    (agents_dir / f"dotbrain-{first}.toml").unlink()
+    (agents_dir / "dotbrain-foreign.toml").unlink()
+    messages = packaged_messages(run())
+    assert len(messages) == 1 and "per-role effort" in messages[0]

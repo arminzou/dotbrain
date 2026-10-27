@@ -1,7 +1,7 @@
 """Config store: global ``config.yaml`` + per-project ``.brain/project.yaml``.
 
-``config.yaml`` (data root, version 3) holds global infrastructure defaults
-(``beads.server``, ``sync``).  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
+``config.yaml`` (data root, version 4) holds every global setting: infrastructure defaults
+(``beads.server``, ``sync``), runtime ``profiles``, and the global ``skills`` and ``subagents``.  ``brainspaces/<name>/.brain/project.yaml`` (version 1) holds
 per-project identity (beads mode, database, remote).  The old
 ``dotbrain.yaml`` is read transparently as a fallback when ``config.yaml``
 is absent.
@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from dotbrain import paths
+from dotbrain import paths, resource_loader
 
 
 # ---------------------------------------------------------------------------
@@ -50,10 +50,28 @@ class SyncConfig:
 
 @dataclass
 class DotbrainConfig:
-    """Parsed representation of config.yaml (schema v3)."""
-    version: int = 3
+    """Parsed representation of config.yaml (schema v4)."""
+    version: int = 4
     beads_server: BeadsServer = field(default_factory=BeadsServer)
     sync: SyncConfig = field(default_factory=SyncConfig)
+    # Extra Claude Code / Codex runtime homes that receive global skills and subagents.
+    profiles: dict[str, list[str]] = field(default_factory=dict)
+    skills: tuple[str, ...] = ()  # global skills
+    subagents: tuple[str, ...] = ()  # global custom subagents
+
+
+GLOBAL_SELECTION_KEYS = ("profiles", "skills", "subagents")
+
+
+def parse_profiles(value: Any, location: str) -> dict[str, list[str]]:
+    profiles = {} if value is None else value
+    if not isinstance(profiles, dict) or not all(
+        k in ("claude-code", "codex") and isinstance(v, list)
+        and all(isinstance(home, str) and home.strip() for home in v)
+        for k, v in profiles.items()
+    ):
+        raise ValueError(f"{location}: profiles must map claude-code or codex to lists of runtime homes")
+    return profiles
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +135,8 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
         version = int(data.get("version", 3))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{path}: version must be an integer") from exc
+    from dotbrain import skills  # deferred: skills imports this module
+
     return DotbrainConfig(
         version=version,
         beads_server=BeadsServer(
@@ -126,6 +146,9 @@ def load_config(dotbrain_home: Path) -> DotbrainConfig:
             ssh_host=str(server.get("ssh_host", "")),
         ),
         sync=_parse_sync(data, str(path)),
+        profiles=parse_profiles(data.get("profiles"), str(path)),
+        skills=skills._clean(data.get("skills")),
+        subagents=skills._clean(data.get("subagents")),
     )
 
 
@@ -240,6 +263,76 @@ def load_project_subagents(dotbrain_home: Path, name: str) -> tuple[str, ...]:
         return ()
     data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
     return skills._clean(data.get("subagents"))
+
+
+# The packaged roles are whatever packaged definitions ship; the Codex set is the canonical list.
+PACKAGED_ROLES = tuple(sorted(rel.stem for rel, _ in resource_loader.iter_resource_files("agents/codex")
+                              if rel.suffix == ".toml"))
+PROJECT_VERSION = 2
+
+
+def load_project_packaged(dotbrain_home: Path, name: str) -> tuple[int, tuple[str, ...]]:
+    """Read ``version`` and ``packaged-subagents`` from ``.brain/project.yaml``.
+
+    On a version-2 file the list is the whole truth: absent or empty means none.
+    An unversioned (version 1) file without the list keeps every packaged role.
+    """
+    import yaml
+
+    path = _project_config_path(dotbrain_home, name)
+    if not path.is_file():
+        return PROJECT_VERSION, PACKAGED_ROLES
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    roles = ", ".join(PACKAGED_ROLES)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: expected a YAML mapping; packaged-subagents takes roles from: {roles}")
+    version = data.get("version", 1)
+    raw = data.get("packaged-subagents")
+    if raw is None:
+        return version, (PACKAGED_ROLES if version == 1 else ())
+    entries = raw if isinstance(raw, list) else [raw]
+    listed = tuple(dict.fromkeys(str(entry).strip() for entry in entries if str(entry).strip()))
+    unknown = [entry for entry in listed if entry not in PACKAGED_ROLES]
+    if unknown:
+        raise ValueError(f"{path}: unknown packaged subagent {', '.join(unknown)}; packaged roles: {roles}")
+    return version, listed
+
+
+def upgrade_project_packaged(dotbrain_home: Path, name: str) -> tuple[str, bool] | None:
+    """Append ``version: 2`` and every packaged role to an unversioned ``project.yaml`` once.
+
+    Returns None when nothing applies, else ``(message, upgraded)``; a skip is a warning.
+
+    Appends text instead of re-dumping YAML so existing lines and comments survive.
+    """
+    import yaml
+
+    version, _ = load_project_packaged(dotbrain_home, name)
+    path = _project_config_path(dotbrain_home, name)
+    if version != 1 or not path.is_file():
+        return None
+    existing = path.read_bytes()
+    eol = "\r\n" if b"\r\n" in existing else "\n"
+    roles = "".join(f"  - {role}\n" for role in PACKAGED_ROLES)
+    lead = "\n" if not existing.endswith(b"\n") else ""
+    block = (f"{lead}version: {PROJECT_VERSION}\n"
+             f"# Packaged subagents delivered to this project; remove a role to stop delivering it.\n"
+             f"packaged-subagents:\n{roles}").replace("\n", eol).encode("utf-8")
+    # Some valid layouts (flow or indented roots, document markers, kept block scalars) cannot
+    # take a top-level append, and recursive aliases defeat the comparison; skip those unchanged.
+    # An unversioned file already reads as every packaged role, so a skip is only a warning.
+    text = existing.decode("utf-8")
+    try:
+        safe = yaml.safe_load(text + block.decode("utf-8")) == {
+            **yaml.safe_load(text), "version": PROJECT_VERSION, "packaged-subagents": list(PACKAGED_ROLES)}
+    except (yaml.YAMLError, RecursionError):
+        safe = False
+    if not safe:
+        return (f"{path}: skipped the packaged-subagents upgrade for this layout; add "
+                f"'version: {PROJECT_VERSION}' and 'packaged-subagents: [{', '.join(PACKAGED_ROLES)}]' by hand"), False
+    with path.open("ab") as handle:  # bytes: keep the file's own line endings
+        handle.write(block)
+    return f"upgraded {path.name} to version {PROJECT_VERSION} with packaged-subagents: {', '.join(PACKAGED_ROLES)}", True
 
 
 def load_project_agents(dotbrain_home: Path, name: str, *, defaults: tuple[str, ...] = ()) -> tuple[str, ...]:

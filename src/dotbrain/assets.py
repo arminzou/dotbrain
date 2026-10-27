@@ -32,7 +32,9 @@ def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str)
     return tuple(rt.workspace for rt in (declared if runtime == "all" else wanted))
 
 
-def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run) -> skills.LinkResult:
+def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run,
+                 packaged: bool = False) -> skills.LinkResult:
+    """Deliver project skills or custom subagents; ``packaged`` also reconciles packaged subagents."""
     workspaces = project_workspaces(home, target, runtime)
     if kind == "agents":
         # Only runtimes with native subagent delivery receive agents; skills go to every runtime.
@@ -65,15 +67,18 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
             for field in ("linked", "pruned", "warnings", "notices"):
                 getattr(result, field).extend(getattr(cursor_result, field))
     else:
-        names = subagents.project_link_set(config.load_project_subagents(home, target.project))
-        result = subagents.link_project_subagents(home, target.brainspace, workspaces, names, workspace_dirs=workspace_dirs)
+        names = config.load_project_subagents(home, target.project)
+        roles = config.load_project_packaged(home, target.project)[1] if packaged else None
+        result = subagents.link_project_subagents(home, target.brainspace, workspaces, names,
+                                                  workspace_dirs=workspace_dirs, packaged=roles)
     linked_entries = []
     for workspace in workspaces:
         relative = runtimes.for_workspace(workspace).skill_path if kind == "skills" else f"{workspace}/agents"
         directory = target.checkout / relative
         if directory.is_dir():
             for entry in directory.iterdir():
-                roots = (home / "skills", home / ".cache/skills") if kind == "skills" else (home / "agents", home / ".cache/agents")
+                roots = ((home / "skills", home / ".cache/skills") if kind == "skills" else
+                         (subagents.sources_root(home), home / paths.LEGACY_SUBAGENTS_DIR, home / ".cache/agents"))
                 if kind == "skills" and cursor.owned(home):
                     roots += (cursor.plugin_dir(home),)
                 if (entry.is_symlink() and any(skills._points_into(entry, root) for root in roots)) or (kind == "agents" and subagents.is_managed_copy(entry)):
@@ -83,16 +88,15 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     return result
 
 
-def global_targets(configured: dict[str, str], selected, kind: str, user_home: Path, *, explicit: bool,
+def global_targets(selected, kind: str, user_home: Path, *, explicit: bool,
                    errors: list[str], dotbrain_home: Path,
-                   profiles: dict[str, list[str]] | None = None,
-                   notices: list[str] | None = None) -> dict[str, tuple[Path, ...]]:
+                   profiles: dict[str, list[str]] | None = None) -> dict[str, tuple[Path, ...]]:
     """Resolve global folders, including existing profiles, before any delivery or pruning.
 
     Such a runtime (Hermes, OpenCode, Pi) is opted in by an explicit --runtime request or by an
     existing owned plugin copy, so later unfiltered runs keep its delivery current.
     """
-    targets = dict(configured)
+    targets = runtimes.global_targets(kind)
     selected = tuple(selected)
     for rt in selected:
         if kind != "skills" or rt.name not in HOME_DELIVERY:
@@ -100,10 +104,9 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         directory = runtimes.user_dir(rt, user_home)
         owned = cursor.global_delivery(dotbrain_home) if rt.name == "cursor" else HOME_DELIVERY[rt.name].owned(directory)
         if not explicit and not owned:
-            targets.pop(rt.key, None)
             continue
         destination = HOME_DELIVERY[rt.name].skills_dir(directory) if rt.home_env else user_home / ".cursor/skills"
-        targets.setdefault(rt.key, str(destination))
+        targets[rt.key] = str(destination)
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
     settings = {}
     for rt in selected:
@@ -111,16 +114,7 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
             continue
         default = runtimes.user_dir(rt, user_home)
         homes = [(default, f"default {rt.key} home")]
-        legacy = adopter_repos.expand_path(configured.get(rt.key, f"~/{rt.workspace}/{kind}").replace("\\", "/"), home=user_home)
-        if legacy.resolve() != (default / kind).resolve():
-            homes.append((legacy.parent, f"{kind}.yaml targets.{rt.key}"))
-            if notices is not None:
-                notices.append(
-                    f"{kind}.yaml targets.{rt.key}: retained custom target; proposed conversion: "
-                    f"skills.yaml profiles.{rt.key}: [{str(legacy.parent)!r}]; "
-                    "profiles deliver both skills and agents, so verify both selections on every machine before moving it"
-                )
-        homes.extend((adopter_repos.expand_path(value, home=user_home), f"skills.yaml profiles.{rt.key}")
+        homes.extend((adopter_repos.expand_path(value, home=user_home), f"config.yaml profiles.{rt.key}")
                      for value in (profiles or {}).get(rt.key, ()))
         folders = []
         for directory, setting in homes:
@@ -143,7 +137,7 @@ def global_targets(configured: dict[str, str], selected, kind: str, user_home: P
         for folder in destinations.get(rt.key, ()):
             # Check the home too: an asset symlink must not hide a checkout marker above it.
             if paths.inside_wired_checkout(folder.parent) or paths.inside_wired_checkout(folder):
-                setting = settings.get((rt.key, folder), f"{kind}.yaml targets.{rt.key} / {rt.home_env or rt.workspace}")
+                setting = settings.get((rt.key, folder), rt.home_env or rt.workspace)
                 errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:
                 safe.append(folder)
@@ -157,14 +151,18 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     selected = tuple(rt for rt in runtimes.select(runtime) if rt.name not in skip)
     if kind == "agents" and runtime != "all" and not selected[0].subagents:
         raise ValueError(f"runtime '{runtime}' has no native subagent delivery")
-    cfg = (skills.load_global_config(home / "skills/skills.yaml") if kind == "skills"
+    leftover = [name for name in paths.PENDING_MIGRATION_FILES if (home / name).exists()]
+    if leftover:
+        # Delivering before migration would prune the selections these files still hold.
+        return skills.LinkResult(warnings=[f"{', '.join(leftover)}: legacy global settings; "
+                                           "run dotbrain bootstrap to migrate them into config.yaml"])
+    cfg = (skills.load_global_config(home) if kind == "skills"
            else subagents.load_global_config(home))
-    profiles = cfg.profiles if kind == "skills" else skills.load_global_config(home / "skills/skills.yaml").profiles
+    profiles = skills.load_global_config(home).profiles
     user_home = user_home or Path.home()
-    notices = []
     errors = []
-    targets = global_targets(cfg.targets, selected, kind, user_home, explicit=runtime != "all",
-                             profiles=profiles, notices=notices, errors=errors, dotbrain_home=home)
+    targets = global_targets(selected, kind, user_home, explicit=runtime != "all",
+                             profiles=profiles, errors=errors, dotbrain_home=home)
     for name in skip:
         targets.pop(runtimes.find(name).key, None)
     known = [rt.key for rt in selected if kind == "skills" or rt.subagents]
@@ -172,7 +170,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
     keys = [k for k in targets if k in known] if runtime == "all" else known
     if any(k not in targets for k in keys):
         raise ValueError(f"runtime '{runtime}' has no configured global target")
-    result = skills.LinkResult(warnings=errors, notices=notices + [f"unsupported global {kind} runtime skipped: {k}"
+    result = skills.LinkResult(warnings=errors, notices=[f"unsupported global {kind} runtime skipped: {k}"
                                         for k in targets if runtime == "all" and k not in keys])
     if kind == "skills" and runtime == "all":
         # Installed but never set up: say how, rather than deliver unasked and undo a removal.
@@ -185,11 +183,15 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             return result
     resolved = {}
     if kind == "agents":
-        errors = subagents.validate_selection(home, cfg.global_names, keys)
+        names = [name for name in cfg.global_names if name not in config.PACKAGED_ROLES]
+        if len(names) < len(cfg.global_names):
+            result.notices.append("config.yaml subagents: packaged subagents have no global scope; skipped "
+                                  + ", ".join(name for name in cfg.global_names if name not in names))
+        errors = subagents.validate_selection(home, names, keys)
         if errors:
             result.warnings.extend(errors)
             return result
-        resolved = {name: subagents._resolve_subagent_files(home, name) for name in cfg.global_names}
+        resolved = {name: subagents._resolve_subagent_files(home, name) for name in names}
     for k, dest in destinations:
         try:
             if kind == "skills":
@@ -203,6 +205,14 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             continue
         for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
+        if kind == "agents":
+            # Packaged subagents have no global scope: remove copies an older version left here.
+            for entry in sorted(dest.glob(f"{subagents.PACKAGED_PREFIX}*")):
+                if subagents.is_managed_copy(entry) or (entry.is_symlink() and skills._points_into(entry, home / ".cache")):
+                    entry.unlink()
+                    result.pruned.append(f"{k}/{entry.name}")
+                else:
+                    result.notices.append(f"{entry} is not managed by dotbrain; left in place")
         if kind == "skills" and k == "cursor":
             delivered_hooks = cursor.reconcile_hooks(user_home)
             result.linked += delivered_hooks.linked
@@ -226,7 +236,7 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
     if project is not None:
         target = projects.select_projects(home, project=project)[0]
         selected = set(skills.resolve_selection(home, config.load_project_skills(home, target.project)) if kind == "skills" else
-                       subagents.project_link_set(config.load_project_subagents(home, target.project)))
+                       config.load_project_subagents(home, target.project))
     if kind == "skills":
         skill_root = paths.confined_path(home, "skills")
         available = skills.discover_skills(skill_root)
@@ -239,16 +249,10 @@ def catalog(home: Path, kind: str, runtime: str = "all", project: str | None = N
     for k, (directory, suffix) in subagents.runtime_spec().items():
         if runtimes.find(k) not in wanted:
             continue
-        names = {p.stem for p in (home / "agents" / directory).glob(f"*{suffix}") if p.is_file()}
-        names.update(subagents.PROJECT_BASELINE)
+        names = {p.stem for p in (subagents.sources_root(home) / directory).glob(f"*{suffix}")
+                 if p.is_file() and not p.name.startswith(subagents.PACKAGED_PREFIX)}
         for name in sorted(names):
-            private = paths.confined_path(home / "agents", f"{directory}/{name}{suffix}")
-            if subagents.plugin_delivered(name, k):
-                source = f"plugin:dotbrain:{name}"
-            elif subagents.is_packaged(name):
-                source = f"bundled:agents/{directory}/{name}{suffix}"
-            else:
-                source = str(private)
+            source = str(paths.confined_path(subagents.sources_root(home), f"{directory}/{name}{suffix}"))
             entry = entries.setdefault(name, {"name": name, "selected": name in selected, "sources": {}})
             entry["sources"][runtimes.find(k).name] = source
     return [entries[name] for name in sorted(entries)]

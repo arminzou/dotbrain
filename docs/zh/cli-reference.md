@@ -29,8 +29,8 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`projects show`](#dotbrain-projects-show) | 查看当前已连接的项目，或某个指定项目已注册的 checkout。 |
 | [`skills list`](#dotbrain-skills-list) | 查找本地可用的技能。 |
 | [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能。 |
-| [`agents list`](#dotbrain-agents-list) | 查找本地可用的 Agent。 |
-| [`agents link`](#dotbrain-agents-link) | 在项目范围或显式的全局范围内同步选定的 Agent。 |
+| [`subagents list`](#dotbrain-subagents-list) | 查找本地可用的自定义子 Agent。 |
+| [`subagents link`](#dotbrain-subagents-link) | 在项目范围或显式的全局范围内同步选定的自定义子 Agent。 |
 | [`beads sync`](#dotbrain-beads-sync) | 同步声明的本地任务跟踪绑定，拉取已配置的 remote；从不推送。 |
 | [`beads migrate`](#dotbrain-beads-migrate) | 把 embedded 跟踪器迁移到服务器，保留历史和用于回滚的备份。 |
 | [`beads list-db`](#dotbrain-beads-list-db) | 列出远程数据库标识，包括没有对应 Brainspace 的数据库。 |
@@ -216,12 +216,12 @@ dotbrain skills link [OPTIONS]
 | `--all` | — | 同步所有已注册的项目。 |
 | `--json` | — | 输出一个结构化结果。 |
 
-### `dotbrain agents list` {#dotbrain-agents-list}
+### `dotbrain subagents list` {#dotbrain-subagents-list}
 
-查找本地可用的 Agent。
+查找本地可用的自定义子 Agent。
 
 ```text
-dotbrain agents list [OPTIONS]
+dotbrain subagents list [OPTIONS]
 ```
 
 | 选项 | 默认值 | 说明 |
@@ -231,12 +231,12 @@ dotbrain agents list [OPTIONS]
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
-### `dotbrain agents link` {#dotbrain-agents-link}
+### `dotbrain subagents link` {#dotbrain-subagents-link}
 
-在项目范围或显式的全局范围内同步选定的 Agent。
+在项目范围或显式的全局范围内同步选定的自定义子 Agent。
 
 ```text
-dotbrain agents link [OPTIONS]
+dotbrain subagents link [OPTIONS]
 ```
 
 | 选项 | 默认值 | 说明 |

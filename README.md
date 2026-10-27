@@ -156,7 +156,7 @@ Use `dotbrain projects list` to discover registered projects. Inside a wired che
 `dotbrain refresh` maintains that checkout and `dotbrain unwire` removes its wiring while retaining the
 shared Brainspace. From elsewhere, select `--project <name>`; use `refresh --all` for registered
 projects. Machine-global asset reconciliation is explicit: `skills link --scope global` or
-`agents link --scope global`.
+`subagents link --scope global`.
 
 Git versions the Brain. Back it up to a **private** remote; the Beads database is Git-ignored
 and needs its own Dolt remote or shared server to back up or share issues.

@@ -7,7 +7,7 @@ Brain 维护。其中有几个借鉴并改编自 [mattpocock/skills](https://git
 
 技能的链接由你自己管理：
 
-- 全局技能在 `~/dotbrain/skills/skills.yaml` 里选择
+- 全局技能在 `~/dotbrain/config.yaml` 里选择
 - 项目技能在 `brainspaces/<name>/.brain/project.yaml` 里选择
 
 ## 选择和同步技能 {#select-and-reconcile-skills}
@@ -30,17 +30,17 @@ skills:
 ```
 
 ```yaml
-# ~/dotbrain/skills/skills.yaml
-version: 1
+# ~/dotbrain/config.yaml
+version: 4
 profiles:
   claude-code: [~/.claude-work]
-global_extra:
+skills:
   - another-collection
 ```
 
 全局链接使用各运行时的默认主目录。Claude Code 和 Codex 还可通过 `profiles` 添加额外主目录，技能会
 链接到每个主目录下的 `skills/`，不存在的主目录会跳过。请填写运行时主目录，不要填写项目 checkout
-内的目录。旧 `targets` 的迁移方式见[配置](configuration.md#skills-skills-yaml)。
+内的目录。详见[配置](configuration.md#global-skills)。
 
 包含 `SKILL.md` 的目录只选中它自己，即使它下面还有子技能。否则，dotbrain 会递归查找所有包含 `SKILL.md` 的
 子目录，`node_modules` 除外。重复选中同一来源会去重。不同来源映射到同一个目标名（包括在不区分大小写的文件系统
@@ -138,9 +138,9 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 除了技能，dotbrain 还自带能读 Brain 的子 Agent：`worker`、`reviewer`、`verifier` 和 `researcher`。见
 [会话上下文](session-context.md#subagents)。
 
-`agents/agents.yaml` 选中的全局额外 Agent 共用默认主目录和 `skills/skills.yaml` 的 `profiles:`，
-分发到 Claude Code 和 Codex 各主目录下的 `agents/`。旧 `targets:` 的迁移方式见
-[配置](configuration.md#agents-agents-yaml)。
+`config.yaml` 的 `subagents:` 选中的自定义子 Agent 共用默认主目录和 `profiles:`，
+分发到 Claude Code 和 Codex 各主目录下的 `agents/`。详见
+[配置](configuration.md#global-subagents)。
 
 ## 安装 {#installing-them}
 

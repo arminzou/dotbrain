@@ -18,6 +18,19 @@ BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads")
 # the current name; ``projects`` is the legacy name still accepted for back-compat.
 DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
 
+# Data-root directory holding custom subagent sources. Bootstrap renames the legacy ``agents``
+# directory; links delivered from it are still recognized as dotbrain-owned so they are replaced.
+SUBAGENTS_DIR = "subagents"
+LEGACY_SUBAGENTS_DIR = "agents"
+
+# Global settings files retired into ``config.yaml``; only the bootstrap migration reads them.
+LEGACY_GLOBAL_FILES: tuple[str, ...] = ("skills/skills.yaml", "agents/agents.yaml")
+# Every place a retired file can sit, including agents.yaml after an interrupted directory rename.
+# While any exists the migration is unfinished and global delivery waits.
+GLOBAL_MIGRATION_PENDING = ".cache/global-settings-pending.yaml"
+PENDING_MIGRATION_FILES: tuple[str, ...] = (*LEGACY_GLOBAL_FILES, f"{SUBAGENTS_DIR}/agents.yaml",
+                                         GLOBAL_MIGRATION_PENDING)
+
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
 

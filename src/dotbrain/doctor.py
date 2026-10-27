@@ -59,14 +59,10 @@ def _check_templates(root: Path) -> Finding:
 
 
 def _agent_source(root: Path, name: str, runtime: str) -> tuple[Path, str]:
-    """Expected link and content; packaged sources are read without writing cache."""
+    """Expected link and content of a custom subagent."""
     paths.validate_project_name(name)
     directory, suffix = subagents.runtime_spec()[runtime]
-    if subagents.is_packaged(name):
-        stem = subagents.delivered_stem(name, runtime)
-        return (paths.confined_path(root, f".cache/agents/{directory}/{stem}{suffix}"),
-                subagents.packaged_body(name, runtime))
-    source = paths.confined_path(paths.confined_path(root, "agents"), f"{directory}/{name}{suffix}")
+    source = paths.confined_path(subagents.sources_root(root), f"{directory}/{name}{suffix}")
     if source.is_file():
         return source, source.read_text(encoding="utf-8")
     raise ValueError(f"subagent '{name}' has no definition for runtime '{runtime}'")
@@ -79,8 +75,6 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
         return [Finding("error", f"{receiver}: foreign asset directory", "preserve it and resolve the conflict before refresh")]
     findings = []
     for name in selected:
-        if kind == "agents" and subagents.plugin_delivered(name, runtime):
-            continue  # the plugin delivers it
         try:
             if kind == "skills":
                 source = skills._resolve_skill_source(root, name)
@@ -88,18 +82,35 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
                 healthy = source is not None and dest.is_symlink() and dest.resolve() == source.resolve() and dest.is_dir()
             else:
                 source, body = _agent_source(root, name, runtime)
-                dest = receiver / f"{subagents.delivered_stem(name, runtime)}{subagents.runtime_spec()[runtime][1]}"
+                dest = receiver / f"{name}{subagents.runtime_spec()[runtime][1]}"
                 if runtime == "codex":
                     desired = subagents.GENERATED_NOTICE + "\n" + subagents.MANAGED_MARKER + "\n\n" + body
                     healthy = subagents.is_managed_copy(dest) and dest.read_text(encoding="utf-8") == desired
                 else:
                     healthy = dest.is_symlink() and dest.resolve() == source.resolve() and dest.is_file() and dest.read_text(encoding="utf-8") == body
             if not healthy:
-                findings.append(Finding("error", f"{dest}: selected {kind} delivery is missing, stale, or points to the wrong source", f"run dotbrain {kind} link in this scope"))
+                findings.append(Finding("error", f"{dest}: selected {kind} delivery is missing, stale, or points to the wrong source", f"run dotbrain {'subagents' if kind == 'agents' else kind} link in this scope"))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", str(exc), "correct the selected asset source"))
     if not findings:
         findings.append(Finding("ok", f"{receiver}: {len(selected)} selected {kind} healthy"))
+    return findings
+
+
+def _check_packaged(receiver: Path, roles: tuple[str, ...], suffix: str) -> list[Finding]:
+    """Packaged dotbrain-* entries in one workspace against the project's listed roles."""
+    findings = []
+    for role in roles:
+        dest = receiver / f"{subagents.PACKAGED_PREFIX}{role}{suffix}"
+        if not (dest.exists() or dest.is_symlink()):
+            findings.append(Finding("warn", f"{dest}: listed packaged subagent '{role}' is not delivered", "run dotbrain refresh"))
+    entries = sorted(receiver.glob(f"{subagents.PACKAGED_PREFIX}*")) if receiver.is_dir() else []
+    for entry in entries:
+        if not subagents.is_managed_copy(entry):
+            findings.append(Finding("warn", f"{entry}: dotbrain-* file is not managed by dotbrain",
+                                    "rename or remove it; the dotbrain- prefix is reserved for packaged subagents"))
+        elif entry.name.removeprefix(subagents.PACKAGED_PREFIX).removesuffix(suffix) not in roles:
+            findings.append(Finding("warn", f"{entry}: delivered packaged subagent is not listed in project.yaml", "run dotbrain refresh"))
     return findings
 
 
@@ -119,12 +130,6 @@ def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None)
             if isinstance(hooks, dict) and (hooks.get("hooks") or {}).get("SessionStart"):
                 findings = [Finding("ok", f"{label}: registered dotbrain plugin has SessionStart hook files"),
                             Finding("info", f"{label}: hook trust, activation, and current session consumption are not verified", "inspect runtime hooks and start a new session after enabling them")]
-                # Linking leaves packaged Claude Code agents to the plugin, so an older plugin leaves them undelivered.
-                missing = [name for name in subagents.PROJECT_BASELINE if subagents.plugin_delivered(name, runtime)
-                           and not (Path(location).expanduser() / "agents" / f"{name}.md").is_file()]
-                if missing:
-                    findings.append(Finding("warn", f"{label}: registered dotbrain plugin lacks packaged agents: {', '.join(missing)}",
-                                            "update the dotbrain plugin"))
                 return findings
         return [Finding("warn", f"{label}: registered dotbrain SessionStart hook files not found", "repair the dotbrain plugin installation")]
     except DIAGNOSIS_ERRORS as exc:
@@ -136,22 +141,27 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
     claude_profiles = []
     if not root.is_dir():
         findings.append(Finding("error", "private data root does not exist", "run dotbrain bootstrap"))
-    try:
-        if profile_migration.plan(root, home) is not None:
-            findings.append(Finding("info", "global runtime profile configuration can be migrated",
-                                    "run dotbrain bootstrap; the original configuration is backed up"))
-    except DIAGNOSIS_ERRORS as exc:
-        findings.append(Finding("error", f"global profile migration: {exc}", "correct the global configuration"))
-    for kind in ("skills", "agents"):
+    leftover = [name for name in (*paths.PENDING_MIGRATION_FILES, paths.LEGACY_SUBAGENTS_DIR) if (root / name).exists()]
+    if leftover:
         try:
-            cfg = skills.load_global_config(root / "skills/skills.yaml") if kind == "skills" else subagents.load_global_config(root)
-            profiles = cfg.profiles if kind == "skills" else skills.load_global_config(root / "skills/skills.yaml").profiles
-            selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else cfg.global_names
-            notices = []
+            profile_migration.plan(root, home)
+            findings.append(Finding("warn", f"legacy global settings remain: {', '.join(leftover)}",
+                                    "run dotbrain bootstrap to migrate them into config.yaml; the originals are backed up"))
+        except DIAGNOSIS_ERRORS as exc:
+            findings.append(Finding("error", f"legacy global settings remain: {exc}",
+                                    "correct the file, then run dotbrain bootstrap"))
+    for kind in () if leftover else ("skills", "agents"):  # delivery waits for the migration
+        try:
+            cfg = skills.load_global_config(root)
+            selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else subagents.load_global_config(root).global_names
+            packaged = [name for name in selected if kind == "agents" and name in config.PACKAGED_ROLES]
+            if packaged:
+                findings.append(Finding("warn", f"config.yaml subagents names packaged subagents: {', '.join(packaged)}",
+                                        "remove them; packaged subagents are selected per project in project.yaml"))
+                selected = tuple(name for name in selected if name not in packaged)
             errors = []
-            targets = assets.global_targets(cfg.targets, runtimes.RUNTIMES.values(), kind, home, explicit=False,
-                                            profiles=profiles, notices=notices, errors=errors, dotbrain_home=root)
-            findings.extend(Finding("info", notice) for notice in notices)
+            targets = assets.global_targets(runtimes.RUNTIMES.values(), kind, home, explicit=False,
+                                            profiles=cfg.profiles, errors=errors, dotbrain_home=root)
             findings.extend(Finding("error", error, f"correct the global {kind} destination") for error in errors)
             for runtime, destination in ((key, folder) for key, folders in targets.items() for folder in folders):
                 recognized = runtimes.find(runtime)
@@ -507,7 +517,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
     findings.extend(Finding("warn", message, "correct project.yaml agents or upgrade dotbrain")
                     for message in brainspaces.unknown_agent_warnings(target.brainspace, root))
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
-    agents = subagents.project_link_set(config.load_project_subagents(root, target.project))
+    agents = config.load_project_subagents(root, target.project)
     if not (target.brainspace / ".brain").is_dir():
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
     findings.extend(_check_convention(target.brainspace))
@@ -524,6 +534,19 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.append(Finding("error", f"registered checkout missing: {repo}", "correct .repo.local or .repo"))
     else:
         findings.extend(_check_brainspace_links(repo, target.brainspace))
+        try:
+            version, roles = config.load_project_packaged(root, target.project)
+        except DIAGNOSIS_ERRORS as exc:
+            version, roles = config.PROJECT_VERSION, None
+            findings.append(Finding("error", str(exc), "correct packaged-subagents in project.yaml"))
+        if version == 1:
+            findings.append(Finding("warn", "project.yaml is unversioned and awaits the packaged-subagents upgrade",
+                                    "run dotbrain refresh"))
+        elif roles == ():
+            findings.append(Finding("info", "no packaged subagents listed; packaged subagents add per-role effort "
+                                    "and can be listed in project.yaml packaged-subagents"))
+        findings.extend(Finding("error", f"custom subagent '{name}' uses the reserved {subagents.PACKAGED_PREFIX} prefix",
+                                "rename the custom subagent") for name in agents if name.startswith(subagents.PACKAGED_PREFIX))
         entries = ["/.brain"] + (["/.beads"] if beads.mode != "none" else [])
         for workspace in workspaces:
             directory = repo / workspace
@@ -551,8 +574,9 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
-            entries.extend(f"/{workspace}/agents/{subagents.delivered_stem(name, runtime)}{rt.subagents[1]}"
-                           for name in agents if not subagents.plugin_delivered(name, runtime))
+            if roles is not None:
+                findings.extend(_check_packaged(directory / "agents", roles, rt.subagents[1]))
+            entries.extend(f"/{workspace}/agents/{name}{rt.subagents[1]}" for name in agents)
         try:
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
         except DIAGNOSIS_ERRORS as exc:

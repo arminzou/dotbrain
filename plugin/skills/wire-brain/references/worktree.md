@@ -27,7 +27,7 @@ operation. Use the CLI's diagnostics rather than hand-creating links.
 ```bash
 dotbrain refresh
 dotbrain skills link
-dotbrain agents link
+dotbrain subagents link
 dotbrain unwire
 ```
 
@@ -45,8 +45,8 @@ sweeping every worktree.
 - `dotbrain doctor` reports no relevant errors from the attached worktree.
 - `.brain` resolves directly to the same Brainspace as the main checkout; enabled `.beads`
   resolves directly to its shared execution store.
-- Runtime directories match the declared `agents:` selection. Skills and Claude agents are
-  symlinks; Codex agents are marked real TOML files.
+- Runtime directories match the declared `agents:` selection. Skills and custom Claude agents are
+  symlinks; Codex agents and packaged `dotbrain-<role>` agents are marked real files.
 - `git rev-parse --git-path info/exclude` identifies the exclusion file holding managed entries.
 - `git status --short` shows no unexpected tracked changes.
 - Enabled Beads works with `bd ready`, including a valid empty tracker.

@@ -69,8 +69,7 @@ report the serial fallback before continuing, keeping scope, isolation, checks, 
 At most one active writer owns an item. Delegated workers return
 candidates, checks, discoveries, and design learning. Apply manage-work-graph's writer
 permissions and actor rules. Worker startup is defined only
-in the worker role: [`dotbrain:worker`](../../agents/worker.md) in Claude Code, the
-`dotbrain-worker` agent in Codex. An unwired linked
+in the [worker role contract](references/worker.md). An unwired linked
 worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
 never rely on where one began.
 
@@ -171,11 +170,23 @@ human checking. Required UAT with failed, missing, or stale evidence holds affec
 investigate and repair within remaining limits. Record every finding's disposition: blocking
 findings resolved; others applied, filed with follow-up IDs, or declined with reasons.
 
+## Role dispatch
+
+Dispatch by role. Each role's protocol lives in its role contract: the
+[worker](references/worker.md) and [researcher](references/researcher.md) here, the
+[reviewer](../review-gate/references/reviewer.md) and
+[verifier](../review-gate/references/verifier.md) in review-gate. Use the packaged
+`dotbrain-<role>` subagent when the checkout has it; it already carries the contract. Otherwise
+start the runtime's generic subagent (Claude Code `general-purpose`, a Codex default agent) and
+pass the role's contract verbatim as its brief, ahead of the assignment or request: subagents
+cannot read plugin skill files. With no subagent mechanism, the missing-capability rules above
+apply unchanged: serial fallback for optional parallelism, and a required independent review
+blocks.
+
 ## Worker assignment
 
 Every delegated writing worker receives, in its runtime message, the labelled assignment that
-[the worker role](../../agents/worker.md#the-assignment) defines (the same section of the
-`dotbrain-worker` agent in Codex), with every label in order;
+[the worker role contract](references/worker.md#the-assignment) defines, with every label in order;
 reviewer requests keep their own inputs. The worker's actor follows manage-work-graph's actor
 rules. Make the assignment self-contained: settled constraints and exact source sections with
 enough context to resolve conflicts, not the lead's conversation or whole workflow documents.
@@ -194,7 +205,7 @@ Runtime references own history controls and how to apply model and effort settin
 Launch each delegated writing worker in the background, so the launch returns before the worker
 finishes, and record `Dispatched` with the full assignment as
 [the execution record](references/execution-record.md#comment-headers) specifies. Workers and
-reviewers launch with full access; their role definitions, not runtime configuration, keep them
+reviewers launch with full access; their role contracts, not runtime configuration, keep them
 within their roles. If a runtime can launch only in the foreground, record `Dispatched` before launching,
 naming the branch and base, and add the checkout to the `work` artifact once the worker reports it.
 

@@ -97,7 +97,7 @@ test('provider configuration binds the same scenario to separate fixture resourc
     const vars = {fixtureRoot: root, case: 'activation-review-gate', request: 'Dispatch {{worker_role}}.'};
     const claude = request({vars, provider: {id: 'anthropic:claude-agent-sdk'}});
     const codex = request({vars, provider: {id: 'openai:codex-app-server'}});
-    assert.equal(claude.prompt, 'Dispatch dotbrain:worker.');
+    assert.equal(claude.prompt, 'Dispatch dotbrain-worker.');
     assert.equal(codex.prompt, 'Dispatch dotbrain-worker.');
     assert.equal(claude.config.env.DOTBRAIN_HOME, codex.config.cli_env.DOTBRAIN_HOME);
     assert.equal(codex.config.working_dir, path.join(root, 'workspace'));

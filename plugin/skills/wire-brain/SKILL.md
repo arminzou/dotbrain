@@ -75,7 +75,7 @@ this table only carries the routing.
 | Existing Brainspaces need registered-checkout reconciliation | `dotbrain refresh --all` |
 | Config, skills, agents, hooks, or templates changed | `dotbrain refresh --project <project>` / `--all` |
 | Prepare machine-global resources | `dotbrain bootstrap` |
-| Global skills or subagents are stale | `dotbrain skills link --scope global` / `dotbrain agents link --scope global` |
+| Global skills or subagents are stale | `dotbrain skills link --scope global` / `dotbrain subagents link --scope global` |
 | Need a health report before deciding | `dotbrain doctor` |
 | Detach a repo from its Brainspace | `dotbrain unwire` |
 
@@ -95,7 +95,8 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 - `beads.mode`: `embedded`, `server`, or `none`.
 - `agents`: active workspaces, usually `claude` and/or `codex`.
 - `skills`: project skill selection linked into the active workspaces.
-- `subagents`: project subagent extras.
+- `packaged-subagents`: packaged roles delivered as `dotbrain-<role>`; exact list, absent or empty means none. Edit it and run `dotbrain refresh` to opt out.
+- `subagents`: project custom subagent extras.
 - `public-tracker` and `public-tracker-id`: public intake and contributor-collaboration metadata,
   never a mirror of private execution.
 
@@ -113,8 +114,8 @@ A wired adopter repo points at its Brainspace through local, gitignored symlinks
 - `.claude` is a real directory when the `claude` agent workspace is active.
 - `.codex` is a real directory when the `codex` agent workspace is active.
 
-Skills and Claude agents use symlinks. Codex agent TOML definitions are generated real files with
-the marker `# dotbrain-managed-agent: v1`; customize their source in the private home. Dotbrain
+Skills and custom Claude agents use symlinks. Codex agent TOML definitions and packaged
+`dotbrain-<role>` definitions are generated real files with the marker `# dotbrain-managed-agent: v1`; customize their source in the private home. Dotbrain
 overwrites or prunes marked copies and preserves unmarked files and foreign links.
 
 The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public

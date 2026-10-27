@@ -39,7 +39,7 @@ def test_missing_project_agents_follows_installed_cli_runtimes(tmp_path, monkeyp
     assert assets.project_agents(tmp_path, "missing") == installed
 
 
-@pytest.mark.parametrize("kind", ["skills", "agents"])
+@pytest.mark.parametrize("kind", ["skills", "subagents"])
 @pytest.mark.parametrize("runtime", ["all", "codex"])
 def test_asset_batch_isolates_malformed_declaration(tmp_path, kind, runtime):
     home = tmp_path / "home"
@@ -61,7 +61,7 @@ def test_asset_batch_isolates_malformed_declaration(tmp_path, kind, runtime):
 
 def test_codex_delivery_migrates_updates_prunes_and_preserves_foreign(tmp_path):
     home = tmp_path / "home"
-    source = home / "agents/codex/reviewer.toml"
+    source = home / "subagents/codex/reviewer.toml"
     write(source, 'name = "reviewer"\n')
     dest = tmp_path / "repo/.codex/agents"
     dest.mkdir(parents=True)
@@ -98,11 +98,11 @@ def test_unmarked_codex_collision_preserved(tmp_path):
 
 def test_agent_runtime_selection_failure_does_not_prune(tmp_path):
     home = tmp_path / "home"
-    write(home / "agents/claude/custom.md", "custom")
+    write(home / "subagents/claude/custom.md", "custom")
     dest = tmp_path / "workspace/.claude/agents"
     dest.mkdir(parents=True)
     old = dest / "old.md"
-    old.symlink_to(home / "agents/claude/custom.md")
+    old.symlink_to(home / "subagents/claude/custom.md")
     result = subagents.link_project_subagents(home, tmp_path, (".claude", ".codex"), ["custom"], workspace_dirs={".claude": tmp_path / "workspace/.claude"})
     assert result.warnings and old.is_symlink()
     assert not (tmp_path / ".codex").exists()
@@ -118,8 +118,9 @@ def test_skill_collision_no_mutation(tmp_path):
 
 def test_catalogs_and_invalid_json_selection(tmp_path):
     write(tmp_path / "skills/test/SKILL.md", "test")
+    write(tmp_path / "subagents/codex/custom.toml", 'name = "custom"\n')
     runner = CliRunner()
-    for kind in ("skills", "agents"):
+    for kind in ("skills", "subagents"):
         result = runner.invoke(app, [kind, "list", "--home", str(tmp_path), "--runtime", "codex", "--json"])
         assert result.exit_code == 0, result.output
         rows = json.loads(result.stdout)["targets"][0]["data"]["assets"]
@@ -130,7 +131,7 @@ def test_catalogs_and_invalid_json_selection(tmp_path):
             assert json.loads(result.stdout)["status"] == "failure"
 
 
-def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
+def test_foreign_asset_receiver_cannot_redirect_writes(tmp_path):
     import pytest
     home = tmp_path / "home"
     brainspace = home / "brainspaces/example"
@@ -143,10 +144,6 @@ def test_foreign_asset_receiver_and_cache_cannot_redirect_writes(tmp_path):
     (repo / ".codex/agents").symlink_to(foreign, target_is_directory=True)
     with pytest.raises(ValueError, match="foreign asset directory"):
         assets.link_project(home, projects.ProjectTarget("example", brainspace, repo), "agents")
-    assert list(foreign.iterdir()) == []
-    (home / ".cache").symlink_to(foreign, target_is_directory=True)
-    with pytest.raises(ValueError):
-        subagents.sync_packaged_subagents(home)
     assert list(foreign.iterdir()) == []
 
 

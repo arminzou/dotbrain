@@ -11,7 +11,7 @@
 | `.beads` | 符号链接 | Brainspace 的执行存储 |
 | `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有技能 |
 | `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有技能 |
-| `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/agents/` 下选中的私有 Claude Agent |
+| `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/subagents/` 下选中的私有 Claude Agent |
 | `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 内置角色和选中的私有 Codex Agent |
 
 `.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。技能和 Claude

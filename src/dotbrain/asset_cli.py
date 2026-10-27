@@ -9,7 +9,7 @@ from dotbrain.results import CommandResult, TargetResult, render
 
 
 def report(kind, operation, home, runtime, project, json_output, scope="project", repo=None, all_projects=False):
-    result = CommandResult(f"{kind} {operation}")
+    result = CommandResult(f"{'subagents' if kind == 'agents' else kind} {operation}")
     exit_code = 1
     try:
         root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
