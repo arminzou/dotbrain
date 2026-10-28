@@ -379,9 +379,10 @@ def warn_if_tracked_external_symlinks(repo: Path, names: Sequence[str], run: Run
     if not external:
         return []
     res = run(["git", "-C", str(repo), "ls-files", "--", *external], check=False)
-    tracked = set((res.stdout or "").splitlines()) if res.returncode == 0 else set()
+    tracked = (res.stdout or "").splitlines() if res.returncode == 0 else []
+    # The index may hold the link itself or files from when the name was a directory.
     return [f"{Path(repo) / name} points outside {repo} but is tracked; remove it with git rm --cached {name}"
-            for name in external if name in tracked]
+            for name in external if any(path == name or path.startswith(f"{name}/") for path in tracked)]
 
 
 def remove_agent_context_pointer(repo: Path) -> list[str]:

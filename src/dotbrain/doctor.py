@@ -1,6 +1,7 @@
 """Read-only health checks with shared project selection and bounded probes."""
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import re
@@ -632,16 +633,16 @@ def _run_doctor(dotbrain_home, home, *, project, all_projects, cwd, run, progres
                 errors[brainspace.name] = [Finding("error", f"project selection failed: {exc}", "correct project registration")]
     else:
         targets = projects.select_projects(root, project=project, cwd=cwd, run=bounded)
-    done = []
+    finished = itertools.count(1)  # next() is atomic, so each project gets its own number
 
     def check(target):
         try:
             findings = _check_project(target, root, run, skip_absent=all_projects, home=home)
         except DIAGNOSIS_ERRORS as exc:
             findings = [Finding("error", f"project diagnosis failed: {exc}", "correct the declaration or inaccessible paths")]
-        done.append(target.project)
+        index = next(finished)
         if progress:
-            progress(target.project, len(done), len(targets))
+            progress(target.project, index, len(targets))
         return findings
 
     # Checks only read, and most of their time is waiting on bd and git, so the machine and

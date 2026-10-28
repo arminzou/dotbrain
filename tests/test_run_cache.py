@@ -7,9 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import cursor, doctor, projects, run_cache, runtimes, workflows
+from dotbrain import cursor, doctor, hermes, projects, run_cache, runtimes, workflows
 from dotbrain.doctor import Finding
 
+# The shipped, memoized lookup; conftest replaces it with a stub for every test.
+SHIPPED_INSTALLED = runtimes.installed
 # Subprocesses one more project may add to a repeat run, measured when the per-run cache landed.
 PER_PROJECT_BUDGET = {"refresh": 5, "doctor": 2}
 
@@ -55,15 +57,29 @@ def _machine(tmp_path, home_template, repo_template, count):
 
 @pytest.fixture
 def counters(monkeypatch, tmp_path):
-    """Count each run's subprocesses, PATH lookups and Cursor home-folder reads."""
-    counts = {"argv": [], "which": 0, "home listings": Counter()}
+    """Count each run's subprocesses, PATH lookups, machine-agent checks and Cursor home-folder reads."""
+    counts = {"argv": [], "which": 0, "machine agents": 0, "home listings": Counter()}
     user = Path.home()
+    commands = {runtimes.command(rt) for rt in runtimes.RUNTIMES.values()}
+    which = shutil.which
 
-    def installed(rt):
+    def counted_which(command, *args, **kwargs):
+        if command not in commands:
+            return which(command, *args, **kwargs)
         counts["which"] += 1
-        return rt.name in ("claude", "codex")
+        return f"/fake/{command}" if command in ("claude", "codex") else None
 
-    monkeypatch.setattr(runtimes, "installed", run_cache.memo(installed))
+    monkeypatch.setattr(runtimes, "installed", SHIPPED_INSTALLED)
+    monkeypatch.setattr(shutil, "which", counted_which)
+    owned = hermes.owned
+
+    def counted_owned(directory):
+        # Hermes is declared by no project, so only the machine-agent lookup and doctor's
+        # one machine check ask whether it is set up.
+        counts["machine agents"] += 1
+        return owned(directory)
+
+    monkeypatch.setattr(hermes, "owned", counted_owned)
     listing = cursor._listing
 
     def counted_listing(directory):
@@ -83,6 +99,7 @@ def counters(monkeypatch, tmp_path):
     def reset():
         counts["argv"].clear()
         counts["which"] = 0
+        counts["machine agents"] = 0
         counts["home listings"].clear()
 
     return counts, run, reset
@@ -109,7 +126,7 @@ def _repeat_run(command, tmp_path, home_template, repo_template, counters, count
     return {"subprocesses": len(counts["argv"]),
             "exclude lookups": Counter(argv[2] for argv in counts["argv"] if "--git-common-dir" in argv
                                        and "--git-dir" not in argv),
-            "machine": {"PATH lookups": counts["which"],
+            "machine": {"PATH lookups": counts["which"], "machine agent checks": counts["machine agents"],
                         "bd version": sum(argv[-1] == "version" for argv in counts["argv"]),
                         "most reads of one home folder": max(counts["home listings"].values(), default=0)}}
 

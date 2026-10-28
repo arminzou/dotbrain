@@ -478,3 +478,25 @@ def test_materialize_workspace_refuses_a_repo_that_does_not_exist(tmp_path: Path
     assert warning is not None
     assert "does not exist" in warning
     assert not (tmp_path / "gone").exists()
+
+
+@pytest.mark.parametrize("index, warned", [
+    ("", []), (".beads\n", [".beads"]), (".brain/AGENTS.md\n.beads/issues.jsonl\n", [".brain", ".beads"]),
+    (".brainstorm\n", []),
+])
+def test_tracked_external_symlinks_warn_with_one_git_call(tmp_path: Path, index, warned) -> None:
+    repo, outside = tmp_path / "repo", tmp_path / "brainspace"
+    repo.mkdir()
+    for name in (".brain", ".beads"):
+        (outside / name).mkdir(parents=True)
+        (repo / name).symlink_to(outside / name, target_is_directory=True)
+    (repo / ".local").mkdir()  # a real directory is never asked about
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, index, "")
+
+    warnings = adopter_repos.warn_if_tracked_external_symlinks(repo, (".brain", ".beads", ".local"), run)
+    assert calls == [["git", "-C", str(repo), "ls-files", "--", ".brain", ".beads"]]
+    assert [warning.split(" points outside")[0] for warning in warnings] == [str(repo / name) for name in warned]
