@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import claude_plugins, owned_copy, paths, resource_loader, skills
+from dotbrain import claude_plugins, owned_copy, paths, resource_loader, run_cache, skills
 
 KIND = "skill bundle"
 ROOTS = (".cursor/skills", ".claude/skills", ".codex/skills", ".grok/skills", ".agents/skills")
@@ -105,6 +105,7 @@ def global_delivery(home: Path) -> bool:
     return owned(home) and (plugin_dir(home) / GLOBAL).is_file()
 
 
+@run_cache.memo
 def _identity(directory: Path) -> str:
     body = (directory / "SKILL.md").read_text(encoding="utf-8")
     metadata = yaml.safe_load(body.split("---", 2)[1]) if body.startswith("---") else {}
@@ -129,30 +130,49 @@ def sources(home: Path, selection, *, scopes: tuple[Path, ...] = ()) -> dict[str
     return result
 
 
+def _listing(directory: Path) -> tuple[Path, bool, tuple[Path, ...]] | None:
+    """A folder's real path, whether it holds a skill, and the subfolders to search."""
+    if not directory.is_dir():
+        return None
+    if (directory / "SKILL.md").is_file():
+        return directory.resolve(), True, ()
+    return directory.resolve(), False, tuple(entry for entry in directory.iterdir()
+                                             if entry.name != "node_modules" and entry.is_dir())
+
+
+def _forget_listings(receiver: Path) -> None:
+    """Drop cached folders a delivery just changed, however their path was spelled."""
+    real = receiver.resolve()
+    run_cache.forget(lambda key, listing: key[0] == "cursor-listing" and (
+        key[1].is_relative_to(receiver) or (listing is not None and listing[0].is_relative_to(real))))
+
+
 def discovered(*scopes: Path, exclude: Path | None = None, include_stale: bool = True) -> dict[str, set[Path]]:
     """Native discovery roots, deduplicated by real path; supporting files stay beside SKILL.md."""
     found: dict[str, set[Path]] = {}
     visited: set[Path] = set()
+    excluded = exclude.resolve() if exclude else None
 
-    def directories(root):
-        if not root.is_dir() or root.resolve() in visited or (exclude and root.resolve() == exclude.resolve()):
+    def directories(root, cached):
+        # The user home (the last scope) and plugin installs are the same for every project in a run;
+        # only checkouts, which project delivery writes into, are read afresh.
+        listing = run_cache.get(("cursor-listing", root), lambda: _listing(root)) if cached else _listing(root)
+        if listing is None or listing[0] in visited or listing[0] == excluded:
             return
-        visited.add(root.resolve())
-        if (root / "SKILL.md").is_file():
-            yield root
+        visited.add(listing[0])
+        if listing[1]:
+            yield root, listing[0]
             return
-        for entry in root.iterdir():
-            if entry.name != "node_modules" and entry.is_dir():
-                yield from directories(entry)
+        for entry in listing[2]:
+            yield from directories(entry, cached)
 
     for scope in dict.fromkeys(scopes):
         for relative in (*ROOTS, ".cursor/skills-cursor"):
-            root = scope / relative
-            for directory in directories(root):
-                found.setdefault(_identity(directory), set()).add(directory.resolve())
+            for directory, resolved in directories(scope / relative, scope == scopes[-1]):
+                found.setdefault(_identity(directory), set()).add(resolved)
     for _, installation in claude_plugins.enabled_installs(scopes, include_stale=include_stale):
-        for directory in directories(installation / "skills"):
-            found.setdefault(_identity(directory), set()).add(directory.resolve())
+        for directory, resolved in directories(installation / "skills", True):
+            found.setdefault(_identity(directory), set()).add(resolved)
     return found
 
 
@@ -181,6 +201,7 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         if entry.name not in desired or entry.resolve() != desired[entry.name].resolve() or entry.name in elsewhere:
             entry.unlink()
             result.pruned.append(f".cursor/skills/{entry.name}")
+    _forget_listings(receiver)
     visible = discovered(*scopes, include_stale=False)
     for name, source in desired.items():
         seen = visible.get(name, set())
@@ -193,4 +214,5 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
         elif source.is_dir() and (source.is_relative_to(home / "skills") or current != "foreign"):
             dest.symlink_to(os.path.relpath(source, receiver), target_is_directory=True)
             result.linked.append(f".cursor/skills/{name}")
+    _forget_listings(receiver)
     return result

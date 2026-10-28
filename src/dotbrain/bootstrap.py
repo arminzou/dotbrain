@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -168,24 +169,29 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
     found = []
     ready = []
     probe_failed = False
-    for rt in selected:
-        if rt.name not in owned:
-            continue
-        present = runtimes.installed(rt)
-        if not present and not owned[rt.name] and runtime == "all":
-            continue
-        status = "ready"
+
+    def probe(rt):
         try:
-            if not present:
+            if not runtimes.installed(rt):
                 raise OSError("command not on PATH")
+            if owned[rt.name]:
+                return "ready"  # an earlier bootstrap already proved this runtime runs
             # Probe the resolved path: without a shell, Windows cannot launch a bare name that exists only as .cmd.
             executable = shutil.which(runtimes.command(rt)) or runtimes.command(rt)
             completed = run([executable, "--version"], timeout=30)  # a cold first launch can take several seconds
             if completed.returncode:
                 raise RuntimeError(f"exit {completed.returncode}")
         except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
-            probe_failed = True
-            status = f"skipped ({exc})"
+            return f"skipped ({exc})"
+        return "ready"
+
+    candidates = [rt for rt in selected if rt.name in owned
+                  and (runtimes.installed(rt) or owned[rt.name] or runtime != "all")]
+    # Each probe can take seconds on a cold start, so they run side by side.
+    with ThreadPoolExecutor(max_workers=max(len(candidates), 1)) as pool:
+        statuses = list(pool.map(probe, candidates))
+    for rt, status in zip(candidates, statuses):
+        probe_failed = probe_failed or status != "ready"
         found.append(f"{rt.label}: {status}")
         if status == "ready":
             ready.append(rt)

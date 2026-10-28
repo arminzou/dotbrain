@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
-from dotbrain import paths, resource_loader
+from dotbrain import paths, resource_loader, run_cache
 
 MARKER = ".dotbrain-managed"
 
@@ -34,6 +34,12 @@ def digest(root: Path, names: Sequence[str]) -> str:
     return h.hexdigest()
 
 
+def _stamps(root: Path, names: Sequence[str]) -> list[tuple[str, int, int]]:
+    """Each file's path, size and modification time; copies keep the source's times."""
+    return [(path.relative_to(root).as_posix(), *((s := path.stat()).st_size, s.st_mtime_ns))
+            if path.is_file() else (path.relative_to(root).as_posix(), -1, -1) for path in _files(root, names)]
+
+
 def owned(target: Path) -> bool:
     return not target.is_symlink() and (target / MARKER).is_file()
 
@@ -44,6 +50,7 @@ def remove(target: Path) -> bool:
         return False
     paths.refuse_checkout(target)
     shutil.rmtree(target)
+    run_cache.clear()
     return True
 
 
@@ -55,7 +62,8 @@ def state(target: Path, names: Sequence[str]) -> str:
         return "foreign"
     # Compare the delivered files themselves, so a damaged copy is repaired despite its marker.
     with resource_loader.plugin_tree() as source:
-        current = digest(target, names) == digest(source, names)
+        # Matching sizes and times mean an untouched copy; anything else is decided by content.
+        current = _stamps(target, names) == _stamps(source, names) or digest(target, names) == digest(source, names)
     return "current" if current else "stale"
 
 
@@ -76,6 +84,7 @@ def install(target: Path, names: Sequence[str]) -> None:
         if target.exists():
             shutil.rmtree(target)
         staging.rename(target)
+        run_cache.clear()
     finally:
         if staging.exists():
             shutil.rmtree(staging)
