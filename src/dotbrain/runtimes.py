@@ -12,6 +12,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotbrain import run_cache
+
 
 @dataclass(frozen=True)
 class Runtime:
@@ -84,6 +86,7 @@ def global_targets(kind: str) -> dict[str, str]:
             if rt.default and (kind == "skills" or rt.subagents)}
 
 
+@run_cache.memo
 def installed(rt: Runtime) -> bool:
     """The runtime's CLI is on PATH."""
     return shutil.which(command(rt)) is not None

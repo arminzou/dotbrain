@@ -7,12 +7,13 @@ import re
 import shutil
 import subprocess
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, site, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -446,7 +447,7 @@ def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[F
     if not (brainspace / ".brain/site").is_dir():
         return []
     try:
-        site.check_node(lambda argv, **kwargs: run(argv, timeout=PROBE_TIMEOUT, **kwargs))
+        run_cache.get(("node", run), lambda: site.check_node(lambda argv, **kwargs: run(argv, timeout=PROBE_TIMEOUT, **kwargs)))
         return [Finding("ok", "Brain site: Node available")]
     except (site.SiteError, OSError, subprocess.SubprocessError) as exc:
         return [Finding("warn", f"Brain site: {exc}", f"install Node {site.MIN_NODE_TEXT} or later to run dotbrain site")]
@@ -470,6 +471,11 @@ QUALIFIED_BD = (1, 3, 1)
 
 
 def _check_bd_version(brainspace: Path, run: Runner) -> Finding:
+    # One bd binary serves every project, so a run asks it once.
+    return run_cache.get(("bd-version", run), lambda: _bd_version(brainspace, run))
+
+
+def _bd_version(brainspace: Path, run: Runner) -> Finding:
     qualified = ".".join(map(str, QUALIFIED_BD))
     try:
         response = run(["bd", "--readonly", "version"], cwd=brainspace, check=False, timeout=PROBE_TIMEOUT,
@@ -604,7 +610,14 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
 
 
 def run_doctor(dotbrain_home: Path, home: Path | None = None, *, project: str | None = None,
-               all_projects: bool = False, cwd: Path | None = None, run: Runner = _default_run) -> DoctorReport:
+               all_projects: bool = False, cwd: Path | None = None, run: Runner = _default_run,
+               progress: Callable[[str, int, int], None] | None = None) -> DoctorReport:
+    with run_cache.scope():
+        return _run_doctor(dotbrain_home, home, project=project, all_projects=all_projects, cwd=cwd, run=run,
+                           progress=progress)
+
+
+def _run_doctor(dotbrain_home, home, *, project, all_projects, cwd, run, progress) -> DoctorReport:
     root = Path(dotbrain_home).resolve()
     if all_projects and project is not None:
         raise ValueError("--all cannot be combined with --project")
@@ -619,15 +632,29 @@ def run_doctor(dotbrain_home: Path, home: Path | None = None, *, project: str | 
                 errors[brainspace.name] = [Finding("error", f"project selection failed: {exc}", "correct project registration")]
     else:
         targets = projects.select_projects(root, project=project, cwd=cwd, run=bounded)
-    report = DoctorReport(machine=_check_machine(root, home or Path.home()) + _check_home_sync(root, run), projects=errors)
+    done = []
+
+    def check(target):
+        try:
+            findings = _check_project(target, root, run, skip_absent=all_projects, home=home)
+        except DIAGNOSIS_ERRORS as exc:
+            findings = [Finding("error", f"project diagnosis failed: {exc}", "correct the declaration or inaccessible paths")]
+        done.append(target.project)
+        if progress:
+            progress(target.project, len(done), len(targets))
+        return findings
+
+    # Checks only read, and most of their time is waiting on bd and git, so the machine and
+    # projects run side by side; the report keeps their serial order.
+    with ThreadPoolExecutor(max_workers=min(len(targets) + 1, 16)) as pool:
+        machine = pool.submit(lambda: _check_machine(root, home or Path.home()) + _check_home_sync(root, run))
+        results = list(pool.map(check, targets))
+        report = DoctorReport(machine=machine.result(), projects=errors)
     if all_projects and not targets and not errors:
         report.machine.append(Finding("warn", "no registered projects", "create a project with dotbrain wire"))
-    for target in targets:
+    for target, findings in zip(targets, results):
         report.checkouts[target.project] = str(target.checkout) if target.checkout else None
-        try:
-            report.projects[target.project] = _check_project(target, root, run, skip_absent=all_projects, home=home)
-        except DIAGNOSIS_ERRORS as exc:
-            report.projects[target.project] = [Finding("error", f"project diagnosis failed: {exc}", "correct the declaration or inaccessible paths")]
+        report.projects[target.project] = findings
     return report
 
 

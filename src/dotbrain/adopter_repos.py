@@ -21,7 +21,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import paths, runtimes
+from dotbrain import paths, run_cache, runtimes
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -230,6 +230,7 @@ def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
     return Path((res.stdout or "").strip()).resolve()
 
 
+@run_cache.memo
 def worktree_checkouts(repo: Path, run: Runner = _default_run) -> list[Path]:
     """Git's checkout inventory, with the main checkout first (including submodules)."""
     result = run(["git", "-C", str(repo), "worktree", "list", "--porcelain", "-z"], check=True)
@@ -282,6 +283,7 @@ def remove_exclude_line(exclude_file: Path, line: str) -> None:
         exclude_file.write_text("".join(filtered), encoding="utf-8", newline="\n")
 
 
+@run_cache.memo
 def git_exclude_file(repo: Path, run: Runner = _default_run) -> Path | None:
     """Return the shared exclude file used by a repo and all its worktrees."""
     res = run(["git", "-C", str(repo), "rev-parse", "--git-common-dir"], check=False)
@@ -371,14 +373,15 @@ def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:
     return _symlink_directory(path, target_str)
 
 
-def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _default_run) -> str | None:
-    path = Path(repo) / name
-    if not path.is_symlink() or not target_is_outside_repo(repo, path):
-        return None
-    res = run(["git", "-C", str(repo), "ls-files", "--error-unmatch", name], check=False)
-    if res.returncode == 0:
-        return f"{path} points outside {repo} but is tracked; remove it with git rm --cached {name}"
-    return None
+def warn_if_tracked_external_symlinks(repo: Path, names: Sequence[str], run: Runner = _default_run) -> list[str]:
+    external = [name for name in names
+                if (Path(repo) / name).is_symlink() and target_is_outside_repo(repo, Path(repo) / name)]
+    if not external:
+        return []
+    res = run(["git", "-C", str(repo), "ls-files", "--", *external], check=False)
+    tracked = set((res.stdout or "").splitlines()) if res.returncode == 0 else set()
+    return [f"{Path(repo) / name} points outside {repo} but is tracked; remove it with git rm --cached {name}"
+            for name in external if name in tracked]
 
 
 def remove_agent_context_pointer(repo: Path) -> list[str]:
@@ -491,12 +494,10 @@ def wire_repo(
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")
     for name in result.collisions:
         warnings.append(f"{repo / name} exists and is not a symlink; leaving it unchanged")
-    for name in targets:
-        if use_local_excludes:
+    if use_local_excludes:
+        for name in targets:
             ensure_local_exclude_line(repo, f"/{name}", run)
-        tracked = warn_if_tracked_external_symlink(repo, name, run)
-        if tracked:
-            warnings.append(tracked)
+    warnings += warn_if_tracked_external_symlinks(repo, tuple(targets), run)
     if use_local_excludes:
         ensure_local_exclude_line(repo, paths.AGENT_TMP_EXCLUDE, run)
     return warnings

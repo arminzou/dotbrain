@@ -13,7 +13,7 @@ import typer
 import yaml
 from dotbrain.options import HomeOption, RuntimeOption, JsonOption
 from dotbrain.results import CommandResult, TargetResult, HelpTyper, ResultGroup, render
-from dotbrain.presentation import activity
+from dotbrain.presentation import activity, project_progress
 
 from dotbrain import __version__
 from dotbrain import projects
@@ -188,8 +188,9 @@ def doctor(home: HomeOption = None,
     label = "Checking machine and all projects..." if all_projects else "Checking machine and project..."
     try:
         root = home.expanduser().resolve() if home else paths.resolve_dotbrain_home()
-        with activity(label, enabled=not json_output):
-            report = doctor_mod.run_doctor(root, project=project, all_projects=all_projects)
+        with activity(label, enabled=not json_output) as status:
+            report = doctor_mod.run_doctor(root, project=project, all_projects=all_projects,
+                                           progress=project_progress(status, "Checked") if all_projects else None)
     except ValueError as exc:
         render(CommandResult("doctor", "failure", errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc
@@ -257,8 +258,9 @@ def refresh(
     """Repair setup while preserving project declarations and content."""
     root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
     try:
-        with activity("Refreshing all projects..." if all_projects else "Refreshing project...", enabled=not json_output):
-            result = workflows.refresh_projects(root, project=project, all_projects=all_projects, runtime=runtime)
+        with activity("Refreshing all projects..." if all_projects else "Refreshing project...", enabled=not json_output) as status:
+            result = workflows.refresh_projects(root, project=project, all_projects=all_projects, runtime=runtime,
+                                                progress=project_progress(status, "Refreshing") if all_projects else None)
     except ValueError as exc:
         render(CommandResult('refresh', 'failure', errors=[str(exc)]), json_output=json_output)
         raise typer.Exit(2) from exc

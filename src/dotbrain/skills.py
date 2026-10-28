@@ -13,7 +13,7 @@ from typing import Iterable, Mapping, Sequence
 
 import yaml
 
-from dotbrain import paths, runtimes
+from dotbrain import paths, run_cache, runtimes
 
 
 @dataclass
@@ -117,6 +117,11 @@ def _resolve_skill_source(dotbrain_home: Path, skill_path: str) -> Path | None:
 
 def resolve_selection(dotbrain_home: Path, entries: Iterable[str]) -> tuple[str, ...]:
     """Expand declarations to a complete, confined, collision-free skill set."""
+    entries = tuple(entries)
+    return run_cache.get(("skill-selection", Path(dotbrain_home), entries), lambda: _resolve_selection(dotbrain_home, entries))
+
+
+def _resolve_selection(dotbrain_home: Path, entries: tuple[str, ...]) -> tuple[str, ...]:
     root = paths.confined_path(Path(dotbrain_home), "skills")
     effective: dict[Path, str] = {}
     for entry in sorted(_clean(list(entries))):

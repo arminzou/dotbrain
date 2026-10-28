@@ -32,6 +32,13 @@ def activity(label: str, *, enabled: bool = True):
     return nullcontext()
 
 
+def project_progress(status, verb: str):
+    """Name each project on the spinner; without a terminal there is no spinner to update."""
+    if status is None:
+        return None
+    return lambda project, index, total: status.update(Text(f"{verb} {project} ({index}/{total})...", style=NAME_STYLE))
+
+
 def render_help(command, ctx) -> str:
     output = console()
     if ctx.terminal_width:
