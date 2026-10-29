@@ -56,6 +56,19 @@ to the worker's `work` entry in `dotbrain_artifacts`, where a fix round or takeo
 record it in `Dispatched` as a CLI session.
 Do not use an ephemeral session when same-session resume is required.
 
+## Command waits
+
+For long-running commands, including worker processes and tests, retain the process handle and
+block on completion. When `exec_command` yields a session ID, collect it with
+`write_stdin(chars="", yield_time_ms=60000)` and bounded output. Use a shorter interval only when
+the session or tool requires it. Follow the session's progress-update requirements between waits;
+continue waiting only while work remains outstanding. Avoid one-second polls and shell
+sleep-and-inspect loops. Other process launchers should block on their retained handle likewise.
+
+The 60000 ms interval leaves room for progress updates. Initial `exec_command` waits and
+subsequent process collection can have different limits; read the exposed tool descriptions
+for the current session and use the returned session ID for subsequent waits.
+
 ## Collect and fix
 
 Apply the shared [completion handling](execution-record.md#completion-handling) rules when processing
@@ -123,10 +136,14 @@ assigned skills still supply the review's Sources; include the needed context in
 Point a nested reviewer at the detached review worktree the lead created, and record a native
 subagent's ID in `Dispatched` as an in-session subagent. Keep fix rounds in the same worker or
 reviewer session, sending the shared fix-round message.
-Collect native results with the runtime's blocking agent-wait tool and a long supported wait
-interval, respecting the session's wait limit. Repeated short status polls each spend another
-lead model call while the reviewer is still working. Keep lifecycle and error checks; read
-transcript content only to investigate a reported failure or evidence gap.
+While native agents are outstanding, collect results with `wait_agent(timeout_ms=60000)`, or the
+runtime's equivalent blocking agent-wait tool. Use a shorter interval only when the session or
+tool requires it, and follow the session's progress-update requirements between waits. Messages
+as well as completion can wake the wait; inspect the update before deciding whether to wait again.
+Read the current tool description for supported timeout limits; a declared maximum is not
+evidence that it has been exercised in the current environment.
+Keep lifecycle and error checks; read transcript content only to investigate a reported failure
+or evidence gap.
 
 Apply [role dispatch](../SKILL.md#role-dispatch). Packaged subagents are spawned as
 `dotbrain-<role>`, for example a nested reviewer as `dotbrain-reviewer`, and follow the shared

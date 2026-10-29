@@ -66,6 +66,11 @@ If any step fails, stop and report it. Launch alone does not authorize edits.
   on your work item, when there is one, as
   `## Attempt <n>: PASS | FAIL @ <revision>`. After 3 consecutive failures on one
   checkpoint, stop and report the attempts, unless Limits names another cap.
+- For long commands and checks, use the runtime's completion notification or block on the
+  retained process handle with bounded output. Wait only while work is outstanding; avoid
+  repeated short polls and sleep-and-inspect loops. In Codex, collect a yielded process session
+  with `write_stdin(chars="", yield_time_ms=60000)`. Use a shorter interval only when the session
+  or tool requires it, and follow the session's progress-update requirements between waits.
 - Write comment files with the file-writing tool, never through the shell, which
   can corrupt Windows paths and quotes. Put them in `.dotbrain-tmp/` in your checkout,
   which Git ignores, named `<actor>-<item>.md`; never name one `report*`, which some
