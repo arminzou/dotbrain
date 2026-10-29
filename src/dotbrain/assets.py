@@ -2,12 +2,13 @@
 import os
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, run_cache, runtimes, skills, subagents
 
 # The owned plugin delivery of each runtime that has no marketplace install.
 HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi, "cursor": cursor}
 
 
+@run_cache.memo
 def machine_agents(home: Path) -> tuple[str, ...]:
     """Runtimes set up on this machine, by CLI presence or owned delivery."""
     # Cursor keeps its bundle in the data root; the others keep a plugin in their runtime home.

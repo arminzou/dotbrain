@@ -307,11 +307,32 @@ def test_unwire_uses_git_common_dir_for_excludes(tmp_path: Path):
         target.mkdir(parents=True)
         (worktree / name).symlink_to(target)
     exclude = repo / ".git" / "info" / "exclude"
-    exclude.write_text("# keep\n/.brain\n/.beads\n")
+    exclude.write_text("# keep\n/.brain\n/.beads\n/.dotbrain-tmp/\n")
 
     adopter_repos.unwire_repo(worktree, dotbrain_home=home)
 
     assert exclude.read_text().splitlines() == ["# keep"]
+
+
+def test_unwire_keeps_agent_tmp_exclude_while_a_sibling_is_wired(tmp_path: Path):
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    home = tmp_path / "dotbrain"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "initial")
+    _git(repo, "worktree", "add", "-q", "-b", "slice", str(worktree))
+    target = home / "brainspaces" / "example" / ".brain"
+    target.mkdir(parents=True)
+    for checkout in (repo, worktree):
+        (checkout / ".brain").symlink_to(target)
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text("/.brain\n/.dotbrain-tmp/\n")
+
+    adopter_repos.unwire_repo(worktree, dotbrain_home=home)
+
+    # No sibling has created the folder yet; the wired main checkout still needs the entry.
+    assert exclude.read_text().splitlines() == ["/.brain", "/.dotbrain-tmp/"]
 
 
 def test_ensure_symlink_create_repair_and_collision(tmp_path: Path):
@@ -381,9 +402,11 @@ def test_wire_repo_excludes_external_symlinks(dotbrain_home: Path, brainspace: P
     for name in paths.BRAINSPACE_LINKS:
         assert (repo / name).is_symlink()
     excludes = paths.exclude_entries(repo)
-    assert {"/.brain", "/.beads"} <= excludes
+    assert {"/.brain", "/.beads", paths.AGENT_TMP_EXCLUDE} <= excludes
     assert "/.claude" not in excludes
     assert "/.codex" not in excludes
+    adopter_repos.unwire_repo(repo, dotbrain_home=dotbrain_home, run=make_runner(calls))
+    assert paths.AGENT_TMP_EXCLUDE not in paths.exclude_entries(repo)
 
 
 def test_wire_repo_can_skip_beads_link(dotbrain_home: Path, brainspace: Path, tmp_path: Path):
@@ -455,3 +478,25 @@ def test_materialize_workspace_refuses_a_repo_that_does_not_exist(tmp_path: Path
     assert warning is not None
     assert "does not exist" in warning
     assert not (tmp_path / "gone").exists()
+
+
+@pytest.mark.parametrize("index, warned", [
+    ("", []), (".beads\n", [".beads"]), (".brain/AGENTS.md\n.beads/issues.jsonl\n", [".brain", ".beads"]),
+    (".brainstorm\n", []),
+])
+def test_tracked_external_symlinks_warn_with_one_git_call(tmp_path: Path, index, warned) -> None:
+    repo, outside = tmp_path / "repo", tmp_path / "brainspace"
+    repo.mkdir()
+    for name in (".brain", ".beads"):
+        (outside / name).mkdir(parents=True)
+        (repo / name).symlink_to(outside / name, target_is_directory=True)
+    (repo / ".local").mkdir()  # a real directory is never asked about
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, index, "")
+
+    warnings = adopter_repos.warn_if_tracked_external_symlinks(repo, (".brain", ".beads", ".local"), run)
+    assert calls == [["git", "-C", str(repo), "ls-files", "--", ".brain", ".beads"]]
+    assert [warning.split(" points outside")[0] for warning in warnings] == [str(repo / name) for name in warned]

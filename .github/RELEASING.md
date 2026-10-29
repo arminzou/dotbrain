@@ -33,40 +33,50 @@ Commit PR titles so squash merges contribute accurate versions and release notes
 
 ## Runtime delivery UAT
 
-`uat/` holds an opt-in suite that checks, in disposable sandboxes, what agent runtimes actually
-load from dotbrain: packaged and selected skills, the convention before the first request, one
-hook call per event, and home sync that does not block on an unreachable remote. CI and plain
-`uv run pytest` never run it, and it makes paid model calls.
+`uat/` holds an opt-in suite that checks, in a Linux container, what the real agent runtimes and
+their plugin tools do with what dotbrain installs. It needs Docker and `uv`, uses no API keys or
+logins, and makes no model calls. For each of the six runtimes (Claude Code, Codex, OpenCode, Pi,
+Cursor, Hermes) in a fresh container, it checks that:
 
-Run it before a release PR that touches runtime delivery, the hooks, or a runtime adapter
-(`plugin/`), and after upgrading a runtime it covers:
+- the clean install works: `dotbrain bootstrap`, `wire` and `refresh` deliver, and the Claude Code
+  and Codex plugins install from a local marketplace;
+- the runtime's own no-model listing commands show the delivered skills, the four `dotbrain-<role>`
+  subagents and the plugin and hooks, where the runtime has such a command;
+- the session-start and session-end commands print the convention whole, return within the runtime's
+  hook limit with an unreachable remote, and leave the data root with a local commit ahead of its
+  upstream. For Claude Code, Codex and Cursor the commands are read from the runtime's delivered
+  config and run as configured. For OpenCode, Pi and Hermes the hook is plugin code, so the argv, the
+  start and end events and the start limit are derived from the delivered plugin file and run without
+  a shell. Only session-start is held to the runtime's limit; session-end runs with a fixed 60 s limit.
+
+Anything plain pytest already proves stays in `tests/`. CI and plain `uv run pytest` never run the
+suite. Run it before a release PR that touches runtime delivery, the hooks, or a runtime adapter
+(`plugin/`), and after upgrading a pinned runtime:
 
 ```bash
-uv run --group uat pytest uat
+uv run --group uat pytest -n 4 uat
 ```
 
-Each journey runs on two backends. The host backend runs on native Windows with the runtime
-installed. The container backend needs Docker running and builds `uat/Dockerfile` (Linux, with a
-pinned runtime version and dotbrain from the checkout under test) once per checkout state; the
-first build downloads base images and packages, and later runs reuse it. Without Docker, the
-container journeys skip. Both backends need `uv` and these variables:
+The first run builds `uat/Dockerfile` (pinned runtime versions, dotbrain from the checkout under
+test) and downloads packages; later runs on the same checkout state reuse the image. Without Docker
+the journeys skip. A runtime whose install fails in the image skips with the install error.
 
-| Runtime | Variables |
+What each runtime's journey shows (the table is `uat/evidence.py`):
+
+| Runtime | Evidence |
 | --- | --- |
-| OpenCode | `UAT_OPENCODE_MODEL` as `<provider>/<model>`, and the provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY` |
-| Pi | `UAT_PI_MODEL` as `<provider>/<model>`, and the provider's key: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY` |
-| Cursor | `CURSOR_API_KEY` or `CURSOR_AUTH_TOKEN`; the account's default model answers. The host backend runs the CLI from its installer's location, `%LOCALAPPDATA%\cursor-agent` |
+| Claude Code | install; plugin and its hooks (`claude plugin list`, `details`); project subagents and skills (`claude -p /context`); hook command |
+| Codex | install; skills (`codex debug prompt-input`); plugin installed and enabled (`codex plugin list`); hook command. The checkout's `.codex/agents` are not listed by any command |
+| OpenCode | install; skills with locations (`opencode debug skill`); plugin file in the resolved config (`opencode debug config`); hook command. No dotbrain agents are delivered |
+| Hermes | install; plugin enabled (`hermes plugins list`); hook command. Skills are not listed |
+| Pi | install and hook command only |
+| Cursor | install and hook command only; every listing needs a login |
 
-Only that key is passed, and only to the runtime process; a journey fails if it finds the key in
-any sandbox file. A journey whose runtime or variables are missing skips and names what to set.
+Accepted gaps: the suite never fires a runtime's hook through the runtime, so when a runtime calls
+the hook is not covered; and it does not run on native Windows.
 
-Each journey fingerprints the live runtime config and the live data root before and after, and
-fails if they changed. Quit the runtime and other agent sessions on the machine first: their own
-writes and home sync would fail the run.
-
-Results, stamped with runtime version, OS, dotbrain revision, and for the container backend the
-image digest, print at the end of the run and are written to `uat/results.json`. Cite them in the
-release PR.
+Results, stamped with runtime version, image digest, OS and dotbrain revision, print at the end of
+the run and are written to `uat/results.json`. Cite them in the release PR.
 
 ## Failure recovery
 

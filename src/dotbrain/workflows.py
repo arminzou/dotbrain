@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, hermes, paths, runtimes, skills, subagents
+from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, hermes, paths, run_cache, runtimes, skills, subagents
 from dotbrain.adopter_repos import UnwireResult, unwire_repo
 from dotbrain.results import CommandResult, TargetResult
 
@@ -363,7 +363,14 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
 def refresh_projects(
     dotbrain_home: Path, *, project: str | None = None, all_projects: bool = False,
     runtime: str = 'all', cwd: Path | None = None, run: Runner = _default_run,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> RefreshResult:
+    with run_cache.scope():
+        return _refresh_projects(dotbrain_home, project=project, all_projects=all_projects,
+                                 runtime=runtime, cwd=cwd, run=run, progress=progress)
+
+
+def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run, progress) -> RefreshResult:
     dotbrain_home = Path(dotbrain_home).resolve()
     if not (dotbrain_home / '.git').exists():
         raise RuntimeError(f'{dotbrain_home} is not a dotbrain git checkout')
@@ -384,7 +391,9 @@ def refresh_projects(
     result = RefreshResult()
     # Refresh never migrates global settings: bootstrap owns that and may relink runtime homes.
     leftover = paths.legacy_global_settings(dotbrain_home)
-    for selected in targets:
+    for index, selected in enumerate(targets, 1):
+        if progress:
+            progress(selected.project, index, len(targets))
         target = TargetResult(project=selected.project,
                     checkout=str(selected.checkout) if selected.checkout else None,
                     data={'shared_brain_changes': [], 'shared_tracker_changes': [], 'checkout_changes': []})

@@ -88,8 +88,8 @@ def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
         text = str(result)
         assert (f"dotbrain bootstrap --runtime {name}" if answer == "n" else
                 f"dotbrain detach --runtime {name}") in text
-    assert [argv for argv, _ in calls if argv[-1] == "--version"] == [
-        ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"], ["agent", "--version"]]
+    assert sorted(argv for argv, _ in calls if argv[-1] == "--version") == [  # probes run in parallel
+        ["agent", "--version"], ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"]]
     assert all(kwargs["timeout"] == 30 for argv, kwargs in calls if argv[-1] == "--version")
 
 
@@ -112,6 +112,33 @@ def test_bootstrap_skips_broken_runtime(tmp_path, monkeypatch, name, failure):
     assert not (root / ".cache/bootstrap-complete").exists()
     assert not runtimes.user_dir(runtimes.find(name), user).exists()
     assert not assets.HOME_DELIVERY[name].owned(root if name == "cursor" else user)
+
+
+def test_repeat_bootstrap_skips_probes_and_rehashing_for_set_up_runtimes(tmp_path, monkeypatch):
+    from dotbrain import owned_copy
+    root, user = tmp_path / "data", tmp_path / "user"
+    monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
+    probes = []
+
+    def run(argv, **kwargs):
+        if argv[-1] == "--version":
+            probes.append(argv[0])
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    assert bootstrap_mod.prepare(root, home=user, run=run).status == "success"
+    assert len(probes) == len(assets.HOME_DELIVERY)
+    probes.clear()
+    hashed = []
+    digest = owned_copy.digest
+    monkeypatch.setattr(owned_copy, "digest", lambda *args: hashed.append(args) or digest(*args))
+    result = bootstrap_mod.prepare(root, home=user, run=run)
+    assert result.status == "success"
+    assert probes == [] and hashed == []  # set up earlier, and every copy is untouched
+    assert all(f"{rt.label}: ready" in str(result) for rt in map(runtimes.find, assets.HOME_DELIVERY))
+    # A copy edited in place is still caught by its content.
+    skill = next((root / ".cache/cursor/skills").rglob("SKILL.md"))
+    skill.write_text(skill.read_text(encoding="utf-8") + "edited\n", encoding="utf-8")
+    assert assets.HOME_DELIVERY["cursor"].state(root) == "stale"
 
 
 def test_later_bootstrap_hints_without_prompt_or_setup(tmp_path, monkeypatch):

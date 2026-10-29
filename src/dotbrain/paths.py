@@ -38,6 +38,8 @@ def legacy_global_settings(dotbrain_home: Path) -> list[str]:
 
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
+# Agent working files (comment files, scratch scripts) that live in a checkout but are never committed.
+AGENT_TMP_EXCLUDE = "/.dotbrain-tmp/"
 
 # Reported for a Brainspace with no registered checkout, such as a retired Brain-only one.
 NO_CHECKOUT = "no registered checkout"

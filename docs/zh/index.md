@@ -3,22 +3,11 @@ layout: home
 title: Dotbrain
 titleTemplate: 为 Coding Agent 提供私有的项目上下文
 
-hero:
-  name: Dotbrain
-  text: 为 Coding Agent 提供私有上下文
-  tagline: 让每个 Coding Agent 都能读到项目的决策、术语和任务。这些上下文有版本记录，但不放在代码仓库里。
-  image:
-    light:
-      src: /assets/mark-light-512.png
-      width: 512
-      height: 512
-      fetchpriority: high
-    dark:
-      src: /assets/mark-dark-512.png
-      width: 512
-      height: 512
-      fetchpriority: high
-    alt: Dotbrain 的标志：相连的大脑图形和一个青色圆点
+homeHero:
+  title: 你项目的第二大脑。
+  private: 只属于你。
+  shared: 与你的 Agent 共享。
+  tagline: 你的思考、技能和子 Agent。一处存放，接入每个仓库。
   actions:
     - theme: brand
       text: 快速开始
@@ -29,6 +18,28 @@ hero:
     - theme: alt
       text: 在 GitHub 上查看
       link: https://github.com/arminzou/dotbrain
+  worksWith: 支持的 Agent
+  repo: 代码仓库 · 公开
+  home: 私有目录 · ~/dotbrain
+  chips:
+    thinking: 思考
+    skills: 技能
+    subagents: 子 Agent
+
+skillSpotlight:
+  tabsLabel: 查看某个仓库使用的技能
+  linked: 技能链接自
+  loads: 这个仓库里的每个 Agent 都加载这些技能
+  legend: [共用, 后端, 前端, 基础设施]
+
+workLoop:
+  core: 项目记忆
+  stages: [加载上下文, 敲定设计, 处理任务, 审阅与沉淀]
+  epic: 结账 v1
+  frontier: 可开工
+  blocks: 阻塞
+  legend: [可开工, 进行中, 被阻塞, 已完成]
+  issues: [新建订单表, 配置支付, 订单 API, 支付 Webhook, 结账页面]
 ---
 
 <main class="home" aria-label="Dotbrain 概览">
@@ -43,84 +54,91 @@ hero:
 </div>
 <div>
 
-```mermaid
-treeView-beta
-  accTitle: A Brainspace and the code repo that links to it
-  brainspaces/my-project/
-    .brain/
-      CONTEXT.md ## domain vocabulary
-      adr/ ## architecture decisions
-      designs/ ## design docs
-      docs/ ## derived reference
-    .beads/ ## issue tracker
-  repos/my-project/
-    .brain ## link to the Brainspace's .brain/
-    .beads ## link to the Brainspace's .beads/
-```
+<div class="tree-panel">
+<div class="tp private">
+<div class="tp-cap"><i class="tp-lock"></i>~/dotbrain/brainspaces/my-app</div>
+<div class="tp-row dir">.brain/<span class="tp-note"></span></div>
+<div class="tp-row dir in">adr/<span class="tp-note">架构决策</span></div>
+<div class="tp-row dir in">designs/<span class="tp-note">设计文档</span></div>
+<div class="tp-row dir in">docs/<span class="tp-note">衍生参考</span></div>
+<div class="tp-row file in">AGENTS.md<span class="tp-note">私有规则</span></div>
+<div class="tp-row file in">CONTEXT.md<span class="tp-note">领域术语</span></div>
+<div class="tp-row file in">DOTBRAIN.md<span class="tp-note">共享的 Brain 规则</span></div>
+<div class="tp-row file in">project.yaml<span class="tp-note">技能与任务跟踪配置</span></div>
+<div class="tp-row file in">RETRO.md<span class="tp-note">复盘经验</span></div>
+<div class="tp-row dir">.beads/<span class="tp-note">任务跟踪</span></div>
+</div>
+<div class="tp">
+<div class="tp-cap"><i class="tp-repo"></i>~/repos/my-app</div>
+<div class="tp-row link">.brain<span class="tp-chip">仅本地</span></div>
+<div class="tp-row link">.beads<span class="tp-chip">仅本地</span></div>
+<div class="tp-row file">AGENTS.md<span class="tp-note">一行指引，会提交</span></div>
+</div>
+<p class="tp-foot"><code>.brain</code> 和 <code>.beads</code> 写在 <code>.git/info/exclude</code> 里，Git 不会看到它们。</p>
+</div>
+
+</div>
+</section>
+
+<section class="split">
+<div>
+
+## 仓库里的每个 Agent 都用同一套技能 {#every-agent-in-the-repo-gets-the-same-skills}
+
+技能只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要的那一套。无论在仓库里打开哪个 Agent，加载的都是同一套技能；Claude Code 和 Codex 还会拿到项目的子 Agent。技能改一次，所有用到它的仓库都会跟着更新。[为项目选择技能](./configuration#project-yaml)。
+
+</div>
+<div>
+
+<SkillSpotlight />
 
 </div>
 </section>
 
 <section>
 
-## 让上下文推动工作向前
+## 用图规划，循环推进 {#plan-as-a-graph-work-in-a-loop}
 
-Brain 存项目知识，设计记录当前意图，Beads 跟踪任务。一组专注的技能在整个过程中把它们串起来。
+敲定的设计会拆成 Beads 里的任务，并按阻塞关系连起来。Agent 接手可以开工的任务，完成后解开下一个。过程中学到的东西会回到 Brain，下一次会话从更靠前的地方开始。[查看工作流](./workflow)。
 
-<ol class="workflow" role="list">
-<li>
-<h3>加载上下文</h3>
-<p>从项目的术语和决策出发，在改代码之前先找出约束和未解决的问题。</p>
-</li>
-<li>
-<h3>敲定设计</h3>
-<p>把方案、未知项和成功标准写进一份持续更新的设计，再拆成范围明确的任务。</p>
-</li>
-<li>
-<h3>处理任务</h3>
-<p>实现并检查每个改动，把新发现反馈到设计和相关任务里。</p>
-</li>
-<li>
-<h3>审阅与沉淀</h3>
-<p>审阅结果，记录证据，把有用的决策留在 Brain 里，留给下一个会话。</p>
-</li>
-</ol>
-
-比如意外碰到一个 API 限制，它会先成为一个设计问题，而不是直接绕过去。定下来之后，设计和任务会把这个决策带下去。[了解这些技能](./skills)。
+<WorkLoop />
 
 </section>
 
 <section>
 
-## 四步连接一个项目 {#wire-a-project-in-three-steps}
+## 三步连接一个项目 {#wire-a-project-in-three-steps}
 
 <ol class="steps" role="list">
 <li>
 <h3>安装插件</h3>
-<p>在 Claude Code 中，下面两行要分两次发送。Codex 用户请看<a href="./getting-started#_1-install-the-plugin">安装指南</a>。</p>
+<p>每台机器装一次。它把技能和会话启动 hook 带到每个仓库。</p>
 
-```text
+::: code-group
+
+```text [Claude Code]
 /plugin marketplace add arminzou/dotbrain
-```
-
-```text
 /plugin install dotbrain@dotbrain
 ```
 
-</li>
-<li>
-<h3>安装 CLI</h3>
-<p>在 Coding Agent 里调用 <code>wire-brain</code>。它会按需安装 CLI 和依赖，然后连接仓库。想手动安装，请看 <a href="./getting-started#_2-get-the-cli">CLI 安装指南</a>。</p>
-
-</li>
-<li>
-<h3>连接仓库</h3>
-<p>如果是手动安装的 CLI，用下面的命令创建或修复项目的 Brainspace，并把它链接到仓库。</p>
-
-```bash
-dotbrain wire --repo ~/repos/my-app
+```bash [Codex]
+codex plugin marketplace add arminzou/dotbrain
+codex plugin add dotbrain@dotbrain
 ```
 
+:::
+
+<p class="note">在 Claude Code 中，两行要分两次发送。在 Codex 中，先在 <code>/hooks</code> 里信任一次 dotbrain 的 hook，再新开一个线程。</p>
+</li>
+<li>
+<h3>让 Agent 连接仓库</h3>
+<p><code>wire-brain</code> 技能会在缺少 CLI 时先安装它，再把仓库链接到它的 Brainspace。</p>
+
+```text
+Use wire-brain to wire this repo with Dotbrain.
+```
+
+<p class="note">想手动操作？请看 <a href="./getting-started#_2-get-the-cli">CLI 安装指南</a>。</p>
 </li>
 <li>
 <h3>检查连接</h3>
@@ -134,33 +152,10 @@ dotbrain doctor
 </li>
 </ol>
 
-</section>
-
-<section>
-
-## 阅读文档
-
-<div class="map">
-<div>
-<h3>指南</h3>
-<a href="./getting-started"><strong>快速开始</strong><span>安装、连接仓库并验证结果。</span></a>
-<a href="./prompts"><strong>示例提示词</strong><span>每类常见工作该怎么跟 Agent 说。</span></a>
-<a href="./architecture"><strong>架构</strong><span>Brainspace、Brain 与执行的分离，以及公开/私有的边界。</span></a>
-<a href="./workflow"><strong>工作流程</strong><span>从最初的想法到结束设计，每一步对应一个技能。</span></a>
-<a href="./agent-team"><strong>Agent 团队</strong><span>由你指挥或交给 Agent，了解一个或多个 worker 怎样协作。</span></a>
-<a href="./wiring"><strong>项目连接</strong><span>会链接哪些东西，什么时候该 wire、refresh 或 unwire。</span></a>
-<a href="./session-context"><strong>会话上下文</strong><span>会话开始时 Agent 知道些什么。</span></a>
-<a href="./beads-backend"><strong>Beads 后端</strong><span>任务跟踪的 embedded 模式和 server 模式。</span></a>
-<a href="./brain-site"><strong>Brain 站点</strong><span>把 Brain 当作一个私有的本地网站来浏览。</span></a>
-</div>
-<div>
-<h3>参考</h3>
-<a href="./cli-reference"><strong>CLI 参考</strong><span>dotbrain 的所有命令和选项。</span></a>
-<a href="./configuration"><strong>配置</strong><span>带注释的 config.yaml 和 project.yaml。</span></a>
-<a href="./skills"><strong>技能</strong><span>插件自带的、与 Brain 配合的技能。</span></a>
-<a href="./glossary"><strong>术语表</strong><span>dotbrain 模型中的术语。</span></a>
-<a href="./troubleshooting"><strong>故障排查与常见问题</strong><span>常见安装和连接问题的解决办法。</span></a>
-</div>
+<div class="cta">
+<h2>给你的项目一个第二大脑。</h2>
+<p>装一次，连接一个仓库，之后你在那里打开的每个 Agent 都从项目已有的认识出发。</p>
+<div class="cta-actions"><a class="cta-btn brand" href="./getting-started">快速开始</a><a class="cta-btn" href="./workflow">查看工作流</a></div>
 </div>
 
 </section>

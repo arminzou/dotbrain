@@ -21,7 +21,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotbrain import paths, runtimes
+from dotbrain import paths, run_cache, runtimes
 
 # A subprocess seam: same shape as ``subprocess.run`` but easy to fake in tests.
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -230,6 +230,7 @@ def repo_root(repo: Path | None, run: Runner = _default_run) -> Path:
     return Path((res.stdout or "").strip()).resolve()
 
 
+@run_cache.memo
 def worktree_checkouts(repo: Path, run: Runner = _default_run) -> list[Path]:
     """Git's checkout inventory, with the main checkout first (including submodules)."""
     result = run(["git", "-C", str(repo), "worktree", "list", "--porcelain", "-z"], check=True)
@@ -282,6 +283,7 @@ def remove_exclude_line(exclude_file: Path, line: str) -> None:
         exclude_file.write_text("".join(filtered), encoding="utf-8", newline="\n")
 
 
+@run_cache.memo
 def git_exclude_file(repo: Path, run: Runner = _default_run) -> Path | None:
     """Return the shared exclude file used by a repo and all its worktrees."""
     res = run(["git", "-C", str(repo), "rev-parse", "--git-common-dir"], check=False)
@@ -307,7 +309,8 @@ def remove_local_exclude_line(repo: Path, line: str, run: Runner = _default_run)
 
 
 def _exclude_needed_elsewhere(repo: Path, line: str, run: Runner) -> bool:
-    relative = line.strip("/")
+    # Agents create the folder on demand, so it stays excluded while any sibling is still wired.
+    relative = ".brain" if line == paths.AGENT_TMP_EXCLUDE else line.strip("/")
     return any(other != repo.resolve() and ((other / relative).exists() or (other / relative).is_symlink())
                for other in worktree_checkouts(repo, run))
 
@@ -370,14 +373,16 @@ def ensure_symlink(repo: Path, name: str, target: Path) -> str | None:
     return _symlink_directory(path, target_str)
 
 
-def warn_if_tracked_external_symlink(repo: Path, name: str, run: Runner = _default_run) -> str | None:
-    path = Path(repo) / name
-    if not path.is_symlink() or not target_is_outside_repo(repo, path):
-        return None
-    res = run(["git", "-C", str(repo), "ls-files", "--error-unmatch", name], check=False)
-    if res.returncode == 0:
-        return f"{path} points outside {repo} but is tracked; remove it with git rm --cached {name}"
-    return None
+def warn_if_tracked_external_symlinks(repo: Path, names: Sequence[str], run: Runner = _default_run) -> list[str]:
+    external = [name for name in names
+                if (Path(repo) / name).is_symlink() and target_is_outside_repo(repo, Path(repo) / name)]
+    if not external:
+        return []
+    res = run(["git", "-C", str(repo), "ls-files", "--", *external], check=False)
+    tracked = (res.stdout or "").splitlines() if res.returncode == 0 else []
+    # The index may hold the link itself or files from when the name was a directory.
+    return [f"{Path(repo) / name} points outside {repo} but is tracked; remove it with git rm --cached {name}"
+            for name in external if any(path == name or path.startswith(f"{name}/") for path in tracked)]
 
 
 def remove_agent_context_pointer(repo: Path) -> list[str]:
@@ -490,12 +495,12 @@ def wire_repo(
         warnings.append(f"{targets[name]} is missing; skipping {repo}/{name}")
     for name in result.collisions:
         warnings.append(f"{repo / name} exists and is not a symlink; leaving it unchanged")
-    for name in targets:
-        if use_local_excludes:
+    if use_local_excludes:
+        for name in targets:
             ensure_local_exclude_line(repo, f"/{name}", run)
-        tracked = warn_if_tracked_external_symlink(repo, name, run)
-        if tracked:
-            warnings.append(tracked)
+    warnings += warn_if_tracked_external_symlinks(repo, tuple(targets), run)
+    if use_local_excludes:
+        ensure_local_exclude_line(repo, paths.AGENT_TMP_EXCLUDE, run)
     return warnings
 
 
@@ -609,7 +614,8 @@ def unwire_repo(
     exclude = git_exclude_file(repo, run)
     if exclude and exclude.is_file():
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
-        excludes = {*paths.EXCLUDE_ENTRIES, *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
+        excludes = {*paths.EXCLUDE_ENTRIES, paths.AGENT_TMP_EXCLUDE,
+                    *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
         excludes.update(f"/{entry}" for entry in managed_entries)
         filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
                     or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]

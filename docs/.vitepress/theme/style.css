@@ -25,8 +25,6 @@
   --vp-button-brand-active-bg: #52525b;
   --vp-button-brand-active-border: #52525b;
   --vp-button-brand-active-text: #fafafa;
-
-  --vp-home-hero-name-color: var(--vp-c-text-1);
 }
 
 .dark {
@@ -51,25 +49,6 @@
   --vp-button-brand-active-bg: #a1a1aa;
   --vp-button-brand-active-border: #a1a1aa;
   --vp-button-brand-active-text: #18181b;
-}
-
-.VPHero .image-bg {
-  display: none;
-}
-
-.VPHero .name {
-  font-size: 20px !important;
-  line-height: 1.4 !important;
-  letter-spacing: 0;
-  color: var(--vp-c-text-2) !important;
-}
-.VPHero .text {
-  letter-spacing: -0.03em;
-  max-width: 14ch !important;
-  text-wrap: balance;
-}
-.VPHero .tagline {
-  max-width: 44ch !important;
 }
 
 /* Home sections below the hero. */
@@ -103,101 +82,220 @@
   margin: 0 !important;
 }
 
+/* Wiring steps: one card per step, text on the left and its command on the right. */
 .home .steps {
   list-style: none;
   padding: 0 !important;
   margin: 32px 0 0 !important;
   display: grid;
-  gap: 32px;
+  gap: 16px;
   counter-reset: step;
 }
 .home .steps li {
   counter-increment: step;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  column-gap: 16px;
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: 0 48px;
   margin: 0 !important;
+  padding: 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-alt);
 }
 .home .steps li::before {
-  content: counter(step);
-  grid-row: 1;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 999px;
+  content: counter(step, decimal-leading-zero);
   font-family: var(--vp-font-family-mono);
-  font-size: 14px;
-  color: var(--vp-c-text-2);
-}
-/* Content always takes the text column, however many blocks a step has. */
-.home .steps li > * {
-  grid-column: 2;
-}
-.home .steps h3 {
-  margin: 4px 0 4px !important;
-  font-size: 18px;
-}
-.home .steps div[class*='language-'] {
-  margin: 12px 0 0 !important;
-}
-
-.home .workflow {
-  list-style: none;
-  padding: 0 !important;
-  margin: 32px 0 24px !important;
-  display: grid;
-  gap: 24px;
-  counter-reset: workflow;
-}
-.home .workflow li {
-  counter-increment: workflow;
-  border-top: 1px solid var(--vp-c-divider);
-  padding-top: 20px;
-  margin: 0 !important;
-}
-.home .workflow li::before {
-  content: counter(workflow, decimal-leading-zero);
-  font-family: var(--vp-font-family-mono);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--vp-c-brand-1);
 }
-.home .workflow h3 {
-  margin: 12px 0 8px !important;
+.home .steps h3 {
+  margin: 8px 0 4px !important;
   font-size: 18px;
 }
-.home .workflow p {
+.home .steps p {
   margin: 0 !important;
+  font-size: 15px;
+}
+.home .steps p.note {
+  margin-top: 12px !important;
+  font-size: 13px;
+  color: var(--vp-c-text-3);
+}
+.home .steps :is(div[class*='language-'], .vp-code-group) {
+  margin: 16px 0 0 !important;
+}
+/* Inside a card, code keeps its frame on phones instead of bleeding to the screen edge. */
+.home .steps .vp-code-group .tabs {
+  margin: 0 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+.home .steps .vp-code-group div[class*='language-'] {
+  margin: 0 !important;
+  border-radius: 0 0 8px 8px !important;
+}
+.home .steps li > div[class*='language-'] {
+  border-radius: 8px !important;
+}
+/* Short commands wrap instead of scrolling, and need no language tag. */
+.home .steps pre,
+.home .steps code {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+}
+.home .steps span.lang {
+  display: none;
 }
 
-.home .map {
-  display: grid;
-  gap: 40px;
-  margin-top: 32px;
+/* "The repo stays clean": the private Brainspace above, and what the code repo actually holds. */
+.home .tree-panel {
+  --i-folder: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 6.5A2.5 2.5 0 0 1 5.5 4h3.6l2 2h7.4A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z'/%3E%3C/svg%3E");
+  --i-file: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z'/%3E%3Cpath d='M14 3v5h5'/%3E%3C/svg%3E");
+  --i-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Crect x='4' y='11' width='16' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.home .map h3 {
-  margin: 0 0 8px !important;
-  font-size: 14px;
-  color: var(--vp-c-text-2);
+.home .tp {
+  min-width: 0;
+  padding: 16px 0 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-alt);
 }
-.home .map a {
-  display: block;
-  padding: 12px 0;
-  border-top: 1px solid var(--vp-c-divider);
-  text-decoration: none;
-  transition: padding-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+.home .tp.private {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(color-mix(in srgb, var(--vp-c-brand-1) 5%, var(--vp-c-bg)), color-mix(in srgb, var(--vp-c-brand-1) 5%, var(--vp-c-bg))) padding-box,
+    linear-gradient(160deg, var(--vp-c-brand-1), transparent 55%) border-box;
+  box-shadow: 0 0 70px color-mix(in srgb, var(--vp-c-brand-1) 12%, transparent);
 }
-.home .map a:hover {
-  padding-left: 6px;
+.home .tp-cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 20px;
+  font: 500 12px var(--vp-font-family-mono);
+  color: var(--vp-c-text-3);
 }
-.home .map a strong {
-  display: block;
+.home .tp.private .tp-cap {
+  color: var(--vp-c-brand-1);
+}
+.home .tp-cap i,
+.home .tp-row::before {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background: var(--vp-c-text-3);
+  mask: var(--i-folder) center / contain no-repeat;
+}
+.home .tp-cap i {
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+}
+.home .tp-cap .tp-lock {
+  mask-image: var(--i-lock);
+}
+.home .tp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 0 20px;
+  font: 400 14px var(--vp-font-family-mono);
   color: var(--vp-c-text-1);
+  white-space: nowrap;
 }
-.home .map a span {
+.home .tp-row::before {
+  content: '';
+}
+.home .tp-row.file::before {
+  mask-image: var(--i-file);
+}
+.home .tp-row.in {
+  padding-left: 46px;
+}
+.home .tp-row.link {
+  color: var(--vp-c-brand-1);
+}
+.home .tp-row.link::before {
+  background: var(--vp-c-brand-1);
+}
+.home .tp-note {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 400 13px var(--vp-font-family-base);
+  color: var(--vp-c-text-3);
+}
+.home .tp-chip {
+  margin-left: auto;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1) 30%, transparent);
+  border-radius: 999px;
+  background: var(--vp-c-brand-soft);
+  font: 600 11px var(--vp-font-family-base);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.home p.tp-foot {
+  margin: 0 !important;
+  font-size: 13px;
+  color: var(--vp-c-text-3);
+}
+
+/* Closing call to action. */
+.home .cta {
+  margin-top: 96px;
+  padding: 56px 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 20px;
+  text-align: center;
+  background: radial-gradient(600px 240px at 50% 0%, color-mix(in srgb, var(--vp-c-brand-1) 12%, transparent), transparent 70%), var(--vp-c-bg-alt);
+}
+.home .cta h2 {
+  font-size: 32px !important;
+  text-wrap: balance;
+}
+.home .cta p {
+  margin: 0 auto;
+  max-width: 46ch;
+}
+.home .cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+.home .cta-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 20px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
   font-size: 14px;
-  color: var(--vp-c-text-2);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.home .cta-btn:hover {
+  border-color: var(--vp-c-text-3);
+}
+.home .cta-btn.brand {
+  border-color: var(--vp-button-brand-border);
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+}
+.home .cta-btn.brand:hover {
+  border-color: var(--vp-button-brand-hover-border);
+  background: var(--vp-button-brand-hover-bg);
 }
 
 @media (min-width: 768px) {
@@ -205,30 +303,24 @@
     grid-template-columns: 5fr 7fr;
     gap: 64px;
   }
-  .home .map {
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
+  .home .steps li {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    padding: 28px 32px;
   }
-  .home .workflow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .home .steps li > *,
+  .home .steps li::before {
+    grid-column: 1;
   }
-}
-
-@media (min-width: 1024px) {
-  .home .workflow {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home .map a {
-    transition: none;
+  .home .steps li > :is(div[class*='language-'], .vp-code-group) {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    align-self: center;
+    margin: 0 !important;
   }
 }
 
 /* Let wide code blocks scroll inside their column instead of widening the page. */
-.home .split > div,
-.home .map > div {
+.home .split > div {
   min-width: 0;
 }
 
