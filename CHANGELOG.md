@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.15.1](https://github.com/arminzou/dotbrain/compare/v0.15.0...v0.15.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **cli:** keep the tracked-link warning for files under a link and number doctor progress uniquely ([236e157](https://github.com/arminzou/dotbrain/commit/236e157471ef62cdabcaf9722444f3db89de2391))
+* **skills:** use bounded completion waits for Codex workers ([#79](https://github.com/arminzou/dotbrain/issues/79)) ([b8c5f32](https://github.com/arminzou/dotbrain/commit/b8c5f32f3e4228bd1fc4fa1743432f345f17958c))
+
+
+### Performance Improvements
+
+* **cli:** look up machine facts once per run in refresh, doctor and bootstrap ([ef47138](https://github.com/arminzou/dotbrain/commit/ef47138a833ef6ff46cc9040f5a8d0b937be6df6))
+
+
+### Documentation
+
+* **site:** cut the homepage wiring to three steps and close with a call to action ([cd0c5ba](https://github.com/arminzou/dotbrain/commit/cd0c5ba46cc17b61bdfc571af1c31f86b6bda807))
+* **site:** redesign the homepage around the second-brain message ([de4851e](https://github.com/arminzou/dotbrain/commit/de4851e16faef2df92a1f16b3fcd6f224554add2))
+* **site:** replace the social preview with 1200x630 cards ([3a2ba7b](https://github.com/arminzou/dotbrain/commit/3a2ba7be1bd87857b54d73734e624d125e229886))
+* **site:** show the Brainspace and repo contents as a static panel ([b19c25a](https://github.com/arminzou/dotbrain/commit/b19c25a2b131d1c979821fb74c7bd7bf8020a7c3))
+
 ## [0.15.0](https://github.com/arminzou/dotbrain/compare/v0.14.0...v0.15.0) (2026-10-27)
 
 
