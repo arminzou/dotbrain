@@ -1,9 +1,9 @@
 """Per-run lookups: machine facts are asked once per command, and cost grows only per project."""
 import shutil
 import subprocess
-import time
 from collections import Counter
 from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -156,14 +156,24 @@ def test_parallel_doctor_reports_projects_in_serial_order(tmp_path, _home_templa
     assert _doctor(home, run, user).projects == serial
     assert list(serial) == [f"project-{index}" for index in range(4)]
 
-    # The first project finishing last still reports first.
+    # Release each project only after the previous completion was reported.
+    ready = [Event() for _ in range(4)]
+    ready[3].set()
+
     def check(target, *args, **kwargs):
-        time.sleep(0.05 * (4 - int(target.project[-1])))
+        assert ready[int(target.project[-1])].wait(timeout=30), "previous project did not report completion"
         return [Finding("ok", target.project)]
 
     monkeypatch.setattr(doctor, "_check_project", check)
     progress = []
-    report = doctor.run_doctor(home, user, all_projects=True, run=run, progress=lambda *step: progress.append(step))
+
+    def on_progress(name, completed, total):
+        progress.append((name, completed, total))
+        index = int(name[-1])
+        if index:
+            ready[index - 1].set()
+
+    report = doctor.run_doctor(home, user, all_projects=True, run=run, progress=on_progress)
     assert [(name, [f.message for f in findings]) for name, findings in report.projects.items()] == [
         (f"project-{index}", [f"project-{index}"]) for index in range(4)]
     assert [step[1:] for step in progress] == [(1, 4), (2, 4), (3, 4), (4, 4)]
