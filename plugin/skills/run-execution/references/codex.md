@@ -65,10 +65,9 @@ the session or tool requires it. Follow the session's progress-update requiremen
 continue waiting only while work remains outstanding. Avoid one-second polls and shell
 sleep-and-inspect loops. Other process launchers should block on their retained handle likewise.
 
-Codex CLI 0.164.0 on Windows accepted a 300000 ms empty-input process wait and returned on process
-exit before that deadline. The 60000 ms interval leaves room for progress updates. Initial
-`exec_command` waits have a separate effective Windows range of 10000–30000 ms; use the returned
-session ID for subsequent waits. Check the exposed tool limits in other versions and environments.
+The 60000 ms interval leaves room for progress updates. Initial `exec_command` waits and
+subsequent process collection can have different limits; read the exposed tool descriptions
+for the current session and use the returned session ID for subsequent waits.
 
 ## Collect and fix
 
@@ -141,8 +140,8 @@ While native agents are outstanding, collect results with `wait_agent(timeout_ms
 runtime's equivalent blocking agent-wait tool. Use a shorter interval only when the session or
 tool requires it, and follow the session's progress-update requirements between waits. Messages
 as well as completion can wake the wait; inspect the update before deciding whether to wait again.
-Codex CLI 0.164.0 returned from this wait on worker completion before the timeout. Its tool
-description declares a 10000–3600000 ms range; the maximum was not live-validated in the CLI.
+Read the current tool description for supported timeout limits; a declared maximum is not
+evidence that it has been exercised in the current environment.
 Keep lifecycle and error checks; read transcript content only to investigate a reported failure
 or evidence gap.
 
