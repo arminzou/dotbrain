@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.2](https://github.com/arminzou/dotbrain/compare/v0.15.1...v0.15.2) (2026-10-31)
+
+
+### Documentation
+
+* polish public guides and clarify runtime support ([a29b3f3](https://github.com/arminzou/dotbrain/commit/a29b3f362df99505335651c35ee9dfa092e6d0ff))
+
 ## [0.15.1](https://github.com/arminzou/dotbrain/compare/v0.15.0...v0.15.1) (2026-10-29)
 
 
