@@ -37,7 +37,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 // OpenCode records no version for file plugins, so the release is named here.
-const VERSION = "0.15.1" // x-release-please-version
+const VERSION = "0.15.2" // x-release-please-version
 
 const CONFIG_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const SKILL_ROOTS = [
