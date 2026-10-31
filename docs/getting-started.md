@@ -1,7 +1,11 @@
 # Getting Started
 
-Dotbrain ships as a plugin. Install it into your coding agent first, and the plugin's
-`wire-brain` skill installs the CLI for you on first use. This guide walks that path in about five minutes:
+Dotbrain supports Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI.
+For Claude Code and Codex, install the marketplace plugin first; its `wire-brain` skill installs
+the CLI for you on first use. The steps below follow that path.
+
+For CLI-based setup, follow the guide for [Hermes](#hermes), [OpenCode](#opencode),
+[Pi](#pi), or [Cursor CLI](#cursor).
 
 1. Install the plugin.
 2. Get the CLI.
@@ -11,7 +15,7 @@ Dotbrain ships as a plugin. Install it into your coding agent first, and the plu
 
 | You need | Notes |
 | --- | --- |
-| Claude Code or Codex | Either runtime, or both. Hermes, OpenCode, Pi, and Cursor work too: see [Hermes](#hermes), [OpenCode](#opencode), [Pi](#pi), and [Cursor](#cursor) |
+| A supported coding agent | Claude Code, Codex, Hermes, OpenCode, Pi, or Cursor CLI |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -32,7 +36,7 @@ before wiring, so dotbrain can create directory symlinks without Administrator p
 ## 1. Install the Plugin
 
 The Brain-coupled skills, the dotbrain convention, and the session-start hook are delivered as a
-plugin, so each agent runtime installs them once per machine rather than per repo.
+plugin for Claude Code and Codex, installed once per runtime on each machine rather than per repo.
 
 ::: code-group
 

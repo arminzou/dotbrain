@@ -16,14 +16,16 @@ English | [简体中文](README.zh-CN.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-117967?style=flat)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-read-117967?style=flat)](https://arminzou.github.io/dotbrain/)
 
-**Private project context for Claude Code and Codex.**
+**Private project context for your coding agents.**
+
+Supports Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI.
 
 Dotbrain brings the Dotfiles convention to your project work. Keep your working notes, plans,
 instructions, and selected agent resources in a private home, then wire them into the checkouts
 where you work.
 
 Your context stays in local files with its own Git history. The CLI connects your workspace to
-the code repo; the plugin's workflow skills guide how your agent uses and maintains it with you.
+the code repo; bundled workflow skills guide how your agent uses and maintains it with you.
 
 [https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9](https://github.com/user-attachments/assets/021fc13a-db20-4549-8aab-b5240d289bde)
 
@@ -57,7 +59,8 @@ If a few standing instructions in `AGENTS.md` or `CLAUDE.md` cover your needs, k
 
 ## Get started
 
-Install the plugin into your coding agent. You do not need to clone this repo.
+Setup depends on your coding agent. Claude Code and Codex use marketplace plugins;
+Hermes, OpenCode, Pi, and Cursor CLI use CLI-based setup. You do not need to clone this repo.
 
 **Claude Code** — send these as two separate prompts:
 
@@ -103,7 +106,7 @@ backups, a second machine, and troubleshooting.
 
 ### Update
 
-Update the plugin and the CLI together. In Claude Code, run `/plugin`, update dotbrain from the
+For Claude Code and Codex, update the plugin and the CLI together. In Claude Code, run `/plugin`, update dotbrain from the
 menu, then `/reload-plugins`. In Codex:
 
 ```bash
@@ -121,6 +124,8 @@ dotbrain refresh --all
 
 Installed the CLI with pipx or pip? Upgrade with that tool instead. See
 [Staying current](https://arminzou.github.io/dotbrain/getting-started#staying-current).
+For Hermes, OpenCode, Pi, and Cursor CLI, upgrade the CLI and run `dotbrain bootstrap`
+to update their integrations; see the runtime-specific setup guides linked above.
 
 ## How it works
 
@@ -136,13 +141,19 @@ the checkout while their files and history stay outside the code repo.
   <img src="docs/public/assets/how-it-works-light.png" alt="Claude Code and Codex work in the code repo. Gitignored links connect it to a separate private Brainspace holding the Brain and Beads." width="1000">
 </picture>
 
-Wiring also delivers selected skills and subagents into the repo: Claude resources under `.claude/`,
+The diagram uses Claude Code and Codex as examples; all supported runtimes share the same Brainspace model.
+
+Wiring also makes selected skills available in each configured runtime's project skill directory.
+Dotbrain delivers native subagents for Claude Code and Codex: Claude resources under `.claude/`,
 Codex skills under `.agents/skills/`, and Codex agents under `.codex/agents/`. Codex configuration stays in `.codex/`.
 Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
+Hermes, OpenCode, Pi, and Cursor CLI receive skills and session integrations, but no Dotbrain native subagents.
 
-At session start, the plugin hook supplies only `DOTBRAIN.md`, the shared convention.
+At session start, the runtime integration supplies only `DOTBRAIN.md`, the shared convention.
+See [Runtime notes](https://arminzou.github.io/dotbrain/session-context#runtime-notes)
+for how context loading and sync differ between runtimes.
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
 without a Brain. The lead or sole agent searches private retrospective findings for the task
 and passes relevant findings through assignments; the notebook is never injected.

@@ -6,7 +6,7 @@ keeping that context connected, current, and private has become enough work to j
 ## What do I get that my coding agent doesn't already provide?
 
 Dotbrain gives you a consistent home for project knowledge and execution state, plus commands
-to connect it to Claude Code and Codex. Your Brain holds vocabulary, decisions, working rules,
+to connect it to Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI. Your Brain holds vocabulary, decisions, working rules,
 and designs. Selected skills and subagents are delivered into the agent's workspace.
 
 For example, after recording why a project uses a particular database, a later session can read
@@ -60,7 +60,7 @@ to be written, discoverable, and maintained. See [Session context](session-conte
 
 ## What changes when I use multiple agents or worktrees?
 
-Claude Code and Codex can reach the same project Brain and execution store. A linked Git
+Different coding agents can reach the same project Brain and execution store. A linked Git
 worktree connects to its main checkout's Brainspace rather than getting a separate copy of
 the context. Selected resources are delivered in the format each runtime uses.
 

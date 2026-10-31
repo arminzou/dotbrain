@@ -10,7 +10,7 @@ without moving that private state into the repo.
 ### Dotbrain home
 
 The private data root, conventionally `~/dotbrain`, that holds every project's Brainspace under
-`brainspaces/`, user-managed skills under `skills/`, subagent sources under `agents/`, and global
+`brainspaces/`, user-managed skills under `skills/`, subagent sources under `subagents/`, and global
 `config.yaml`. It is a separate Git repository from your code checkouts. Set `DOTBRAIN_HOME` or
 pass `--home <path>` to select a different location.
 

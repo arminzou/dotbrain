@@ -9,19 +9,19 @@
 | --- | --- | --- |
 | `.brain` | 符号链接 | Brainspace 的 Brain |
 | `.beads` | 符号链接 | Brainspace 的执行存储 |
-| `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有技能 |
-| `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有技能 |
+| `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有 skills |
+| `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有 skills |
 | `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/subagents/` 下选中的私有 Claude Agent |
 | `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 内置角色和选中的私有 Codex Agent |
 
-`.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。技能和 Claude
+`.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。skills 和 Claude
 Agent 是符号链接。Codex Agent 是生成的真实 TOML 文件，带有 `# dotbrain-managed-agent: v1` 标记。
 dotbrain 可以覆盖和清理带标记的副本；要自定义，请改私有主目录里的源文件。没有标记的文件和其他来源的
 链接都会保留。每个分发的资源都单独被忽略。
 
-Codex 项目技能放在 `.agents/skills/`，配置和子 Agent 仍在 `.codex/` 下。`wire`、`refresh` 和
+Codex 项目 skills 放在 `.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。`wire`、`refresh` 和
 `skills link` 会在新链接分发成功后移除自有的 `.codex/skills/` 旧链接，保留并报告其他来源的条目和冲突。
-迁移细节见[技能](skills.md#select-and-reconcile-skills)。全局技能主目录的位置不变。
+迁移细节见[Skills](skills.md#select-and-reconcile-skills)。全局 skills 主目录的位置不变。
 
 Brainspace 放在 `~/dotbrain/brainspaces/<name>/` 下。旧的 `~/dotbrain/projects/<name>/` 布局仍然能识别；
 新的 Brainspace 会建在 `brainspaces/` 下。
@@ -60,7 +60,7 @@ dotbrain wire --repo ~/repos/my-app
 - 私有的 Brainspace，从 Brain 模板初始化
 - 仓库根目录的 `.brain` 和 `.beads` 链接，以及它们的忽略规则
 - 项目的 `project.yaml`
-- `agents:` 下列出的每个工作区里选定的技能和子 Agent
+- `agents:` 下列出的每个工作区里选定的 skills 和 subagents
 - Beads 任务跟踪，除非你传了 `--skip-beads`
 
 第一次连接主 checkout 时，Brainspace 的名字默认是仓库的目录名；想换名字可以传 `--project`。
@@ -114,7 +114,7 @@ dotbrain refresh
 dotbrain unwire
 ```
 
-连接时会创建真实的本地运行时目录，保留项目自己的文件，不改动主 checkout 的注册信息和声明。它不会重新初始化
+连接时会创建真实的本地 runtime 目录，保留项目自己的文件，不改动主 checkout 的注册信息和声明。它不会重新初始化
 共享的 Brain，也不会同步任务跟踪；worktree 和主 checkout 共用这两者，由 `refresh` 维护。在已连接的
 worktree 里运行不带参数的维护命令和资源链接命令，只影响这个 checkout；refresh 还会维护共享的 Brain 约定和
 任务跟踪状态。按名字选择和 `--all` 用的是已注册的 checkout，不会扫描所有 worktree。
@@ -129,7 +129,7 @@ checkout 的操作；`doctor` 会给出警告，`--all` 链接资源时会跳过
 
 `--all` 不能和 `--project`、`--repo` 一起用。适用的子命令都接受 `--home <path>` 和 `--json`。JSON 输出是
 一个完整的结果，在部分成功的批量操作中也会保留每个项目的结果；退出码 0 表示成功，1 表示操作未完成，
-2 表示选择或调用无效。运行时过滤只会选择已声明的运行时，从不启用未声明的工作区。
+2 表示选择或调用无效。runtime 过滤只会选择已声明的 runtime，从不启用未声明的工作区。
 
 ::: danger 不要手动创建链接
 `.claude` 和 `.agents/skills` 下的链接使用相对路径，是根据 checkout 的真实位置计算出来的。手数 `../` 层数写出来的

@@ -86,7 +86,7 @@ dotbrain beads sync --all        # every Brainspace that uses beads
 有名字的 remote；否则 sync 会报一个可以照着处理的错误，而不是去拉另一个 remote。缺少绑定时，用
 `bd dolt remote add <name> <declared-url>` 配置，再重新运行 sync。
 
-`--json` 返回一个包含每个项目结果的结果；某个目标失败后，互不相关的目标会继续。跟踪器子进程的等待时间
+`--json` 返回各项目的处理结果；某个目标失败后，互不相关的目标会继续。跟踪器子进程的等待时间
 有上限。sync 失败、缺少工具或拉取失败时，以失败状态退出。
 
 ### `beads migrate`
@@ -131,7 +131,7 @@ dotbrain beads drop-db orphaned_tracker --server-host db.example.internal --yes
 
 ## 使用任务跟踪 {#working-with-the-tracker}
 
-Agent 通过 `manage-work-graph` 技能操作 Beads，你也可以在任何已连接的仓库里直接用 `bd`：
+Agent 通过 `manage-work-graph` skill 操作 Beads，你也可以在任何已连接的仓库里直接用 `bd`：
 
 ```bash
 bd ready              # issues with no open blockers

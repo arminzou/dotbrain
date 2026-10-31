@@ -75,7 +75,7 @@ export default defineConfig({
               { text: 'CLI 参考', link: '/zh/cli-reference' },
               { text: '配置', link: '/zh/configuration' },
               { text: 'Brain 站点配置', link: '/zh/brain-site-configuration' },
-              { text: '技能', link: '/zh/skills' },
+              { text: 'Skills', link: '/zh/skills' },
               { text: '术语表', link: '/zh/glossary' },
             ],
           },

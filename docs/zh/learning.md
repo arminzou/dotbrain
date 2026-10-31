@@ -1,14 +1,14 @@
 # 学习你的项目
 
-Dotbrain 能帮你跨多个会话学习自己在做的项目。`teach-me` 技能会根据项目的 Brain 和当前代码来讲解，
+Dotbrain 能帮你跨多个会话学习自己在做的项目。`teach-me` skill 会根据项目的 Brain 和当前代码来讲解，
 检查你的理解，并保存足够的私有学习状态，让下一个会话能从你上次停下的地方接着来。
 
-先在装好 dotbrain 插件的[已连接项目](getting-started.md)里调用技能：Claude Code 用 `/dotbrain:teach-me`，
+先在装好 dotbrain 插件的[已连接项目](getting-started.md)里调用 skill：Claude Code 用 `/dotbrain:teach-me`，
 Codex 用 `$teach-me`，再告诉 Agent 你想学什么：
 
 > 教我理解这个项目怎么处理投递失败。我希望学完能自己排查。
 
-只说“teach me”不再启动这个技能。每次开新会话学习，都要先按名称调用。
+只说“teach me”不再启动这个 skill。每次开新会话学习，都要先按名称调用。
 
 Agent 会先确认主题和你的目标，然后在对话中讲解。实现过程中的一个小问题，简单回答就行，
 不需要学习路径，也不需要保存成课程。
@@ -58,7 +58,7 @@ Agent 会找到或创建一个 `learn: <topic> backlog` 学习待办 bead，为�
 目前的答案，以及它是在哪里冒出来的。每个概念单独一条评论，问题多了也容易区分。
 
 恢复学习时，Agent 会读这些评论，帮你把概念变成一节课大小的步骤。“并入第 2 步”“已讲”“放弃”这类结果
-会作为新评论记下，并引用原来的评论。更正时也会保留之前的评论。旧版本技能存在 Notes 里的概念同样会被读取。
+会作为新评论记下，并引用原来的评论。更正时也会保留之前的评论。旧版本 skill 存在 Notes 里的概念同样会被读取。
 
 ## 学习和实现分开 {#keep-learning-separate-from-implementation}
 
@@ -66,7 +66,7 @@ Agent 会找到或创建一个 `learn: <topic> backlog` 学习待办 bead，为�
 epic 和子项都带 `learning` 标签。
 
 epic 用来把学习内容归在一起方便浏览。**每个子项也必须保持 deferred 状态**，这样它们才不会出现在
-Beads 的 `bd ready` 实现队列里。把父项设为 deferred 并不会让子项也变成 deferred。执行技能还会额外
+Beads 的 `bd ready` 实现队列里。把父项设为 deferred 并不会让子项也变成 deferred。执行 skills 还会额外
 跳过带 learning 标签的条目，作为兜底。
 
 可以用 Beads 查看这些状态：
@@ -78,7 +78,7 @@ bd defer <learning-child-id>
 bd ready --json
 ```
 
-Dotbrain 的技能通过 Beads 维护这些状态，并没有单独的 Dotbrain 学习 CLI。如果项目没有执行引擎，
+Dotbrain 的 skills 通过 Beads 维护这些状态，并没有单独的 Dotbrain 学习 CLI。如果项目没有执行引擎，
 路径就只留在对话里，概念也不会存成 bead。
 
 ## 有用时再保存成课程 {#capture-a-lesson-when-it-helps}
@@ -108,4 +108,4 @@ Agent 会先提出标题、主题、章节、问题和来源，经你认可后�
 
 编写或发布公开文档和教学是两件事。起草前先商定读者和范围，提交或发布也要单独授权。
 
-这套流程由内置的 [teach-me 技能](skills.md#learning)定义。
+这套流程由内置的 [teach-me skills](skills.md#learning)定义。

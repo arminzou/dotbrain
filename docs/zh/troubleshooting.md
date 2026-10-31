@@ -43,7 +43,7 @@ dotbrain refresh        # maintain the current wired worktree
 
 :::
 
-worktree 使用主 checkout 的 Brain。CLI 通过 Git 元数据找到主 checkout，并分发本地运行时资源。
+worktree 使用主 checkout 的 Brain。CLI 通过 Git 元数据找到主 checkout，并分发本地 runtime 资源。
 `.claude` 和 `.codex` 里的资源请用 CLI 来同步。
 
 ### Windows 上创建符号链接失败 {#symlink-creation-fails-on-windows}
@@ -64,16 +64,16 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 
 按[保持更新](getting-started.md#staying-current)里的说明，两者一起更新。CLI 用哪个包管理器装的，就用它的升级命令。
 
-### Pi 看不到项目的技能 {#pi-does-not-see-project-skills}
+### Pi 看不到项目的 skills {#pi-does-not-see-project-skills}
 
 在 Pi 信任这个 checkout 之前，`dotbrain doctor` 会警告 `project skills load only from a trusted checkout`。
 在 checkout 里启动 `pi` 并接受信任提示即可。详见[Pi](getting-started.md#pi)。
 
-### OpenCode 加载了另一份技能 {#opencode-loads-a-different-copy-of-a-skill}
+### OpenCode 加载了另一份 skills {#opencode-loads-a-different-copy-of-a-skill}
 
-如果 OpenCode 会找到同一个 dotbrain 技能的两份：一份来自 dotbrain，一份来自你自己的目录（比如
+如果 OpenCode 会找到同一个 dotbrain skills 的两份：一份来自 dotbrain，一份来自你自己的目录（比如
 `~/.config/opencode/skills` 链接或 `~/.claude/skills`），`dotbrain doctor --verbose` 会报告
-`OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的技能目录，然后重启 OpenCode。
+`OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的 skills 目录，然后重启 OpenCode。
 详见[OpenCode](getting-started.md#opencode)。
 
 ### `dotbrain site` 失败 {#dotbrain-site-fails}

@@ -60,7 +60,7 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 <div class="tp-row dir">.brain/<span class="tp-note"></span></div>
 <div class="tp-row dir in">adr/<span class="tp-note">architecture decisions</span></div>
 <div class="tp-row dir in">designs/<span class="tp-note">design docs</span></div>
-<div class="tp-row dir in">docs/<span class="tp-note">derived reference</span></div>
+<div class="tp-row dir in">docs/<span class="tp-note">reference docs</span></div>
 <div class="tp-row file in">AGENTS.md<span class="tp-note">private rules</span></div>
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">domain vocabulary</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">shared Brain rules</span></div>
@@ -111,8 +111,9 @@ A settled design becomes issues in Beads, linked by what blocks what. Agents pic
 
 <ol class="steps" role="list">
 <li>
-<h3>Install the plugin</h3>
-<p>Once per machine. It brings the skills and the session-start hook to every repo.</p>
+<h3>Set up your coding agent</h3>
+<p>For Claude Code and Codex, install the plugin once per machine. It provides skills and session hooks.</p>
+<p>For CLI-based setup, see <a href="./getting-started#hermes">Hermes</a>, <a href="./getting-started#opencode">OpenCode</a>, <a href="./getting-started#pi">Pi</a>, or <a href="./getting-started#cursor">Cursor CLI</a>.</p>
 
 ::: code-group
 

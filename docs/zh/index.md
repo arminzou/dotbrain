@@ -7,7 +7,7 @@ homeHero:
   title: 你项目的第二大脑。
   private: 只属于你。
   shared: 与你的 Agent 共享。
-  tagline: 你的思考、技能和子 Agent。一处存放，接入每个仓库。
+  tagline: 你的思考、skills 和 subagents。一处存放，接入每个仓库。
   actions:
     - theme: brand
       text: 快速开始
@@ -23,13 +23,13 @@ homeHero:
   home: 私有目录 · ~/dotbrain
   chips:
     thinking: 思考
-    skills: 技能
-    subagents: 子 Agent
+    skills: skills
+    subagents: subagents
 
 skillSpotlight:
-  tabsLabel: 查看某个仓库使用的技能
-  linked: 技能链接自
-  loads: 这个仓库里的每个 Agent 都加载这些技能
+  tabsLabel: 查看某个仓库使用的 skills
+  linked: skills 链接自
+  loads: 这个仓库里的每个 Agent 都加载这些 skills
   legend: [共用, 后端, 前端, 基础设施]
 
 workLoop:
@@ -49,7 +49,7 @@ workLoop:
 
 ## 代码仓库保持干净
 
-每个项目的 Brain 和任务跟踪都放在 `~/dotbrain/` 下。代码仓库通过被 gitignore 的链接和生成的运行时文件连到这个私有目录。Agent 在会话开始时加载上下文，私有内容不会进入提交。
+每个项目的 Brain 和任务跟踪都放在 `~/dotbrain/` 下。代码仓库通过被 gitignore 的链接和生成的 runtime 文件连到这个私有目录。Agent 在会话开始时加载上下文，私有内容不会进入提交。
 
 </div>
 <div>
@@ -60,11 +60,11 @@ workLoop:
 <div class="tp-row dir">.brain/<span class="tp-note"></span></div>
 <div class="tp-row dir in">adr/<span class="tp-note">架构决策</span></div>
 <div class="tp-row dir in">designs/<span class="tp-note">设计文档</span></div>
-<div class="tp-row dir in">docs/<span class="tp-note">衍生参考</span></div>
+<div class="tp-row dir in">docs/<span class="tp-note">参考文档</span></div>
 <div class="tp-row file in">AGENTS.md<span class="tp-note">私有规则</span></div>
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">领域术语</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">共享的 Brain 规则</span></div>
-<div class="tp-row file in">project.yaml<span class="tp-note">技能与任务跟踪配置</span></div>
+<div class="tp-row file in">project.yaml<span class="tp-note">skills 与任务跟踪配置</span></div>
 <div class="tp-row file in">RETRO.md<span class="tp-note">复盘经验</span></div>
 <div class="tp-row dir">.beads/<span class="tp-note">任务跟踪</span></div>
 </div>
@@ -83,9 +83,9 @@ workLoop:
 <section class="split">
 <div>
 
-## 仓库里的每个 Agent 都用同一套技能 {#every-agent-in-the-repo-gets-the-same-skills}
+## 仓库里的每个 Agent 都用同一套 skills {#every-agent-in-the-repo-gets-the-same-skills}
 
-技能只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要的那一套。无论在仓库里打开哪个 Agent，加载的都是同一套技能；Claude Code 和 Codex 还会拿到项目的子 Agent。技能改一次，所有用到它的仓库都会跟着更新。[为项目选择技能](./configuration#project-yaml)。
+skills 只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要的那一套。无论在仓库里打开哪个 Agent，加载的都是同一套 skills；Claude Code 和 Codex 还会拿到项目的 subagents。skills 改一次，所有用到它的仓库都会跟着更新。[为项目选择 skills](./configuration#project-yaml)。
 
 </div>
 <div>
@@ -111,8 +111,9 @@ workLoop:
 
 <ol class="steps" role="list">
 <li>
-<h3>安装插件</h3>
-<p>每台机器装一次。它把技能和会话启动 hook 带到每个仓库。</p>
+<h3>配置你的 Coding Agent</h3>
+<p>Claude Code 和 Codex 每台机器只需安装一次插件，即可使用 skills 和会话 hook。</p>
+<p>其他 runtime 通过 CLI 配置，见 <a href="./getting-started#hermes">Hermes</a>、<a href="./getting-started#opencode">OpenCode</a>、<a href="./getting-started#pi">Pi</a> 或 <a href="./getting-started#cursor">Cursor CLI</a>。</p>
 
 ::: code-group
 
@@ -132,7 +133,7 @@ codex plugin add dotbrain@dotbrain
 </li>
 <li>
 <h3>让 Agent 连接仓库</h3>
-<p><code>wire-brain</code> 技能会在缺少 CLI 时先安装它，再把仓库链接到它的 Brainspace。</p>
+<p><code>wire-brain</code> skill 会在缺少 CLI 时先安装它，再把仓库链接到它的 Brainspace。</p>
 
 ```text
 Use wire-brain to wire this repo with Dotbrain.

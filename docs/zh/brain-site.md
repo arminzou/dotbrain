@@ -46,6 +46,6 @@ Brain 站点则让这些内容在学习过程中更方便查看和使用。
 ## 配置阅读体验 {#set-up-the-reading-experience}
 
 按 [Brain 站点配置](brain-site-configuration.md)创建站点、在本地运行、安排侧边栏并调整外观。
-也可以让 Agent 的 `brain-site` 技能帮忙维护。
+也可以让 Agent 的 `brain-site` skill 帮忙维护。
 
 Markdown 仍然是源文件。继续用你习惯的工具编辑，在浏览器里看渲染后的页面。

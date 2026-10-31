@@ -1,17 +1,17 @@
 # 术语表
 
-术语名保留英文，因为命令、文件和技能里用的都是这些名字。
+术语名保留英文，因为命令、文件和 skills 里用的都是这些名字。
 
 ## 核心术语 {#core-terms}
 
 ### Dotbrain
 
-工具本身。dotbrain 把一个私有的 Brainspace 以及技能和运行时配置连接到代码仓库，而不会把这些私有状态搬进仓库。
+工具本身。dotbrain 把一个私有的 Brainspace 以及 skills 和 runtime 配置连接到代码仓库，而不会把这些私有状态搬进仓库。
 
 ### Dotbrain home
 
 私有的数据目录，按约定是 `~/dotbrain`。它在 `brainspaces/` 下存放所有项目的 Brainspace，在 `skills/` 下存放
-用户自己管理的技能，在 `agents/` 下存放子 Agent 的源文件，还有全局的 `config.yaml`。它是一个独立于代码
+用户自己管理的 skills，在 `subagents/` 下存放 subagents 的源文件，还有全局的 `config.yaml`。它是一个独立于代码
 checkout 的 Git 仓库。设置 `DOTBRAIN_HOME` 或传 `--home <path>` 可以换一个位置。
 
 ### Brainspace
@@ -61,7 +61,7 @@ dotbrain 的全局配置文件，通常在 `~/dotbrain/config.yaml`。它存放�
 ### `project.yaml`
 
 每个项目的配置文件，位于 `~/dotbrain/brainspaces/<name>/.brain/project.yaml`。它声明项目级的设置，比如执行引擎、
-公开任务跟踪、初始化哪些 Agent 工作区、与默认值不同的 beads 配置，以及额外的技能。
+公开任务跟踪、初始化哪些 Agent 工作区、与默认值不同的 beads 配置，以及额外的 skills。
 
 ### Execution engine
 
@@ -123,7 +123,7 @@ dotbrain 连接的 Coding Agent 环境，比如 Claude Code 或 Codex。
 
 ### Agent workspace
 
-仓库里特定运行时的工作区目录，比如 `.claude/` 或 `.codex/`。dotbrain 只在里面链接选定的资源。
+仓库里特定 runtime 的工作区目录，比如 `.claude/` 或 `.codex/`。dotbrain 只在里面链接选定的资源。
 
 ### Public tracker
 
@@ -138,7 +138,7 @@ dotbrain 连接的 Coding Agent 环境，比如 Claude Code 或 Codex。
 
 ### Bootstrap
 
-由 `dotbrain bootstrap` 运行的本机配置步骤。它初始化全局配置并链接全局技能。
+由 `dotbrain bootstrap` 运行的本机配置步骤。它初始化全局配置并链接全局 skills。
 
 ### Skill
 
@@ -146,7 +146,7 @@ dotbrain 连接的 Coding Agent 环境，比如 Claude Code 或 Codex。
 
 ### Brain-coupled skill
 
-直接操作项目 Brain 或执行状态的技能。dotbrain 把这类技能中必需的那一组作为其运作模型的一部分一起发布。
+直接操作项目 Brain 或执行状态的 skills。dotbrain 把这类 skills 中必需的那一组作为其运作模型的一部分一起发布。
 
 ### Adopter repo
 
@@ -166,10 +166,10 @@ dotbrain 连接的 Coding Agent 环境，比如 Claude Code 或 Codex。
 
 ### Plugin and packaged subagent
 
-Plugin 是运行时原生支持的包，用来交付 dotbrain 的共享技能、约定和运行时集成。
+Plugin 是 runtime 原生支持的包，用来交付 dotbrain 的共享 skills、约定和 runtime 集成。
 packaged subagent 是 dotbrain 随包提供的 Agent 定义：负责写入的 `worker`，以及只读的
 `researcher`、`reviewer` 和 `verifier`。packaged worker 完成分配的工作并提交候选改动，由 lead 负责交付。
-运行时如何发现和加载这些定义，见[会话上下文](session-context.md#subagents)。
+runtime 如何发现和加载这些定义，见[会话上下文](session-context.md#subagents)。
 
 ### Review bead
 
@@ -203,14 +203,14 @@ item review 和 integration review 直接记在各自涉及的工作项上，不
 
 ### Verifier gate and verification evidence
 
-verifier gate 是约定好的、能机械判定通过或失败的检查，比如测试、构建或指标。
+verifier gate 是约定好的、有明确通过或失败标准的检查，比如测试、构建或指标。
 verification evidence 记录实际跑了什么、输出和缺口，以及证据对应的版本和环境。
 verifier 角色负责跑检查并返回证据，审阅负责补充判断。各层检查由谁来跑，见[工作流程](workflow.md)。
 
 ### Acceptance and UAT
 
 Acceptance 表示约定的条件和证据已满足，可以把工作项或集成候选结果验收到 delivery branch。
-UAT（用户验收测试）在明确的运行时、版本和操作系统环境中验证约定的用户流程。
+UAT（用户验收测试）在明确的 runtime、版本和操作系统环境中验证约定的用户流程。
 Agent 可以执行并记录这些检查；PR 的批准和合并仍由人决定。
 
 ### Review surface

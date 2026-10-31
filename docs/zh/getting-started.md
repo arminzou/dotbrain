@@ -1,7 +1,11 @@
 # 快速开始
 
-Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次使用时，插件的 `wire-brain` 技能会帮你
-安装 CLI。按这条路走大约五分钟：
+Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
+使用 Claude Code 或 Codex 时，先安装 marketplace 插件，首次使用时，`wire-brain` skill 会帮你安装 CLI。
+下面的步骤介绍这条安装路径。
+
+使用其他 Coding Agent 时，请直接查看 [Hermes](#hermes)、[OpenCode](#opencode)、
+[Pi](#pi) 或 [Cursor CLI](#cursor) 的 CLI 配置步骤。
 
 1. 安装插件。
 2. 安装 CLI。
@@ -11,7 +15,7 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 | 需要 | 说明 |
 | --- | --- |
-| Claude Code 或 Codex | 任选其一，或两个都用。Hermes、OpenCode、Pi 和 Cursor 也可以用，见 [Hermes](#hermes)、[OpenCode](#opencode)、[Pi](#pi) 和 [Cursor](#cursor) |
+| 受支持的 Coding Agent | Claude Code、Codex、Hermes、OpenCode、Pi 或 Cursor CLI |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -30,8 +34,8 @@ Dotbrain 以插件形式发布。先把它装进你的 Coding Agent，第一次�
 
 ## 1. 安装插件 {#_1-install-the-plugin}
 
-与 Brain 配合的技能、dotbrain 约定和会话启动 hook 都以插件形式分发，所以每个 Agent 运行时
-每台机器只装一次，不用每个仓库装一次。
+在 Claude Code 和 Codex 中，配合 Brain 使用的 skills、dotbrain 约定和会话启动 hook 都由插件提供。
+每台机器上的每个 runtime 只需安装一次，不用为每个仓库重复安装。
 
 ::: code-group
 
@@ -51,11 +55,11 @@ codex plugin add dotbrain@dotbrain
 
 ::: tip Codex 还需要多做一步
 Codex 在你批准之前不会运行插件的 hook：启动 `codex`，打开 `/hooks`，信任 dotbrain 的几个 hook，
-然后新开一个 thread。在此之前，技能可以加载，但会话开始时不会注入 Brain 上下文，dotbrain 主目录
+然后新开一个 thread。在此之前，skills 可以加载，但会话开始时不会注入 Brain 上下文，dotbrain 主目录
 也不会同步。Claude Code 装好插件后就会运行这些 hook。
 :::
 
-插件装在用户级别，所以它的技能在每个会话里都可用，包括还没连接的仓库。这也是为什么在连接任何
+插件装在用户级别，所以它的 skills 在每个会话里都可用，包括还没连接的仓库。这也是为什么在连接任何
 东西之前就能调用 `wire-brain`。
 
 ### Windows 上 `marketplace add` 失败怎么办 {#if-marketplace-add-fails-on-windows}
@@ -75,7 +79,7 @@ git clone https://github.com/arminzou/dotbrain \
 
 ## 2. 安装 CLI {#_2-get-the-cli}
 
-插件负责分发技能和 Brain 上下文，`dotbrain` CLI 负责连接。两者需要分别安装。
+插件负责分发 skills 和 Brain 上下文，`dotbrain` CLI 负责连接。两者需要分别安装。
 
 **已经有 dotbrain 主目录了？** 如果你在别的机器上用过 dotbrain，你的 `~/dotbrain` 就是一个存着所有
 Brainspace 的 git 仓库。先把它克隆下来，这样这台机器会用上已有的 Brain，而不是从一个空的开始：
@@ -86,7 +90,7 @@ git clone <your-remote> ~/dotbrain
 
 `wire-brain` 找不到 dotbrain 主目录时也会问你这件事，但先克隆可以省一轮来回。
 
-**让 Agent 来做。** 让它连接仓库，或者直接调用 `wire-brain`。这个技能会检查 `PATH` 上有没有
+**让 Agent 来做。** 让它连接仓库，或者直接调用 `wire-brain`。这个 skill 会检查 `PATH` 上有没有
 `dotbrain`；如果没有，就运行插件自带的安装脚本。脚本会提供 `uv`、`bd`（Beads）和与这个插件版本
 锁定的 CLI，然后运行 `dotbrain bootstrap`。
 
@@ -110,7 +114,7 @@ pipx install dotbrain
 `bd` 1.3.1 或更高版本。项目配置了任务跟踪之后，doctor 会检查它是否就绪。
 
 **或者手动运行插件的安装脚本。** 如果缺少 `uv` 或 `bd`，它会帮你装好，再安装 CLI，不需要任何前置条件。
-脚本在运行时的插件缓存里：
+脚本在 runtime 的插件缓存里：
 
 ::: code-group
 
@@ -125,21 +129,21 @@ pwsh -NoProfile -File "$env:USERPROFILE\.claude\plugins\cache\dotbrain\dotbrain\
 :::
 
 两个脚本都会在缺少时安装 `uv` 和 `bd`，安装锁定版本的 CLI，并运行 `dotbrain bootstrap`。
-bootstrap 会用配置初始化全局的 dotbrain 主目录，并分发选定的全局技能和子 Agent。会话启动 hook
+bootstrap 会用配置初始化全局的 dotbrain 主目录，并分发选定的全局 skills 和 subagents。会话启动 hook
 由插件提供。重复运行安装脚本是安全的。
 
 本机首次运行 bootstrap 时，dotbrain 会限时运行 Hermes、OpenCode、Pi 和 Cursor 的 CLI
-`--version` 命令（Cursor 用 `agent --version`），列出找到的每个运行时及其状态。命令失败或超时的
-运行时会被跳过，其主目录不会被修改。stdin 和 stdout 都是终端时，会一次询问是否设置所有能运行的
-运行时；按 Enter 接受，输入 `n` 则全部跳过，并给出逐个设置的命令。非交互运行或使用 `--json` 时，
-会自动设置。结果会列出设置了哪些运行时，以及用于撤销的 `dotbrain detach --runtime <name>` 命令。
+`--version` 命令（Cursor 用 `agent --version`），列出找到的每个 runtime 及其状态。命令失败或超时的
+runtime 会被跳过，其主目录不会被修改。stdin 和 stdout 都是终端时，会一次询问是否设置所有能运行的
+runtime；按 Enter 接受，输入 `n` 则全部跳过，并给出逐个设置的命令。非交互运行或使用 `--json` 时，
+会自动设置。结果会列出设置了哪些 runtime，以及用于撤销的 `dotbrain detach --runtime <name>` 命令。
 
-首次运行指本机既没有 bootstrap 完成标记，也没有这四个运行时的任何 dotbrain 交付副本。
+首次运行指本机既没有 bootstrap 完成标记，也没有这四个 runtime 的任何 dotbrain 交付副本。
 克隆 dotbrain 主目录时不会带上本机缓存，因此新机器仍按首次运行处理。Bootstrap 会在被 gitignore
-忽略的 `.cache/bootstrap-complete` 中记录完成状态，包括你拒绝设置或没有找到能运行的运行时的情况。
-已有交付副本也算完成过设置。之后的 bootstrap 会更新已有交付；新发现的运行时只会提示
+忽略的 `.cache/bootstrap-complete` 中记录完成状态，包括你拒绝设置或没有找到能运行的 runtime 的情况。
+已有交付副本也算完成过设置。之后的 bootstrap 会更新已有交付；新发现的 runtime 只会提示
 `dotbrain bootstrap --runtime <name>`，不会自动设置。用 `--runtime <name>` 可以精确选择要设置的
-运行时，不会询问确认。Dotbrain 不保存退出列表。Detach 会保留完成标记，即使移除所有交付，
+runtime，不会询问确认。Dotbrain 不保存退出列表。Detach 会保留完成标记，即使移除所有交付，
 bootstrap 也不会再次自动设置。
 
 ::: warning
@@ -197,7 +201,7 @@ Brain：在连接任何东西之前，先[在那台机器上克隆它](#_2-get-t
 [主目录同步](session-context.md#home-sync)：
 
 - **会话开始时**，记录本地改动，拉取另一台机器的工作，然后推送。
-- **Agent 每轮结束后**，只记录和推送，不拉取，这样文件不会在 Agent 运行时被改动。
+- **Agent 每轮结束后**，只记录和推送，不拉取，这样文件不会在 Agent 运行期间被改动。
 - **会话结束时**，再做一次完整同步。
 
 每个有改动的 Brainspace 单独一个提交，例如
@@ -318,7 +322,7 @@ CLI 现在使用统一的选择参数。旧的调用方式会直接报错，不�
 | unwire 的归档、删除或预览参数 | `unwire` 只负责断开；保留下来的目录用文件系统操作自己处理 |
 
 隐藏的命令别名已经移除。不带参数的项目命令现在作用于当前已连接的 checkout；在它之外，请用
-`--project` 选择项目。已有的配置键拼写不变。技能和 Claude 子 Agent
+`--project` 选择项目。已有的配置键拼写不变。skills 和 Claude subagents
 仍然是符号链接；Agent 同步时，会把 dotbrain 自己的 Codex Agent 符号链接迁移为带标记的真实文件，
 并保留其他来源的条目。
 
@@ -328,14 +332,14 @@ JSON 结果中的严重级别 `advisory` 现在改为 `warning`，与已有的 w
 
 ## Claude Code 和 Codex 卸载 {#claude-codex-remove}
 
-先退出运行时，再运行对应的命令：
+先退出 runtime，再运行对应的命令：
 
 ```bash
 dotbrain detach --runtime claude
 dotbrain detach --runtime codex
 ```
 
-这会移除默认 home 和已配置且存在的 profile home 里 dotbrain 创建的全局技能链接。
+这会移除默认 home 和已配置且存在的 profile home 里 dotbrain 创建的全局 skills 链接。
 之后运行 bootstrap 仍会链接选中的全局 `skills`；要停止向额外的 profile 交付，从
 `config.yaml` 中移除该 profile。插件仍需通过 marketplace 卸载：Claude Code 使用
 `/plugin uninstall dotbrain@dotbrain`，Codex 使用 `codex plugin remove dotbrain@dotbrain`。
@@ -347,10 +351,10 @@ Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 
 
 ::: warning 限制
 - Hermes 用 Hermes CLI 测过。Hermes 的消息 gateway 没有测过。
-- Dotbrain 不为 Hermes 提供子 Agent，所以 Hermes 没有原生的 dotbrain worker。在 `run-execution`
+- Dotbrain 不为 Hermes 提供 subagents，所以 Hermes 没有原生的 dotbrain worker。在 `run-execution`
   里它只能当 lead。
-- Hermes 只从你信任过的 checkout 加载项目技能。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
-- 只能手动调用的技能（比如 `dotbrain:run-retro`）会出现在 Hermes 的技能列表里，但模型加载不了。
+- Hermes 只从你信任过的 checkout 加载项目 skills。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
+- 只能手动调用的 skills（比如 `dotbrain:run-retro`）会出现在 Hermes 的 skills 列表里，但模型加载不了。
   要用时自己输入 `/dotbrain:<skill>`。
 - 移除 Hermes 的机器级交付，见[卸载](#hermes-remove)。
 :::
@@ -364,7 +368,7 @@ Hermes 没有 dotbrain 的 marketplace，插件由 CLI 复制到 Hermes 主目�
 dotbrain bootstrap
 ```
 
-首次运行会询问是否设置 Hermes 及本机找到的其他能运行的运行时。只设置 Hermes，或之后再添加它，
+首次运行会询问是否设置 Hermes 及本机找到的其他能运行的 runtime。只设置 Hermes，或之后再添加它，
 请运行 `dotbrain bootstrap --runtime hermes`。
 
 这会把插件复制到 `~/.hermes/plugins/dotbrain`（或 `$HERMES_HOME/plugins/dotbrain`），再运行
@@ -373,7 +377,7 @@ dotbrain bootstrap
 一分钟，所以启用这一步可能会超时。
 
 本机配置好 Hermes 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
-`hermes`。然后刷新技能链接，并信任这个 checkout：
+`hermes`。然后刷新 skills 链接，并信任这个 checkout：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -387,13 +391,13 @@ hermes skills trust ~/repos/my-app
 dotbrain doctor
 ```
 
-插件副本缺失、过期或被禁用时，doctor 会报告；选了技能但没被信任的 checkout，doctor 也会报告。
-装好后，在 checkout 里新开一个 Hermes 会话。打包的技能显示为 `dotbrain:<skill>`，你选的私有技能用它们自己的名字。
+插件副本缺失、过期或被禁用时，doctor 会报告；选了 skills 但没被信任的 checkout，doctor 也会报告。
+装好后，在 checkout 里新开一个 Hermes 会话。打包的 skills 显示为 `dotbrain:<skill>`，你选的私有 skills 用它们自己的名字。
 
 ### Hermes 会话里会发生什么 {#hermes-sessions}
 
 插件通过 Hermes 的 hook 执行同样的[主目录同步](session-context.md#home-sync)，并注入约定。详见
-[Hermes 的运行时说明](session-context.md#runtime-notes)。
+[Hermes 的 runtime 说明](session-context.md#runtime-notes)。
 
 ### 更新 {#hermes-update}
 
@@ -409,7 +413,7 @@ dotbrain refresh --all
 
 ### 卸载 {#hermes-remove}
 
-对单个 checkout，`dotbrain unwire` 会删掉它的 Hermes 技能链接。如果想保留连接、只去掉 Hermes，就从
+对单个 checkout，`dotbrain unwire` 会删掉它的 Hermes skills 链接。如果想保留连接、只去掉 Hermes，就从
 `agents:` 里删掉 `hermes`，再手动删除 checkout 里 `.hermes/skills/` 下 dotbrain 创建的链接；
 `dotbrain refresh` 不会删它们。然后撤销信任：
 
@@ -423,7 +427,7 @@ hermes skills untrust ~/repos/my-app
 dotbrain detach --runtime hermes
 ```
 
-这会移除 dotbrain 的插件副本和全局技能链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
+这会移除 dotbrain 的插件副本和全局 skills 链接。Hermes 命令可用时，会先尝试禁用插件；禁用失败会显示警告，仍会继续移除。
 不带参数的 bootstrap 不会再给 Hermes 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime hermes`。
 
@@ -434,12 +438,12 @@ Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
 ::: warning 限制
 - OpenCode 用 OpenCode 1.18.35 测过，通过 `opencode run` 和 TUI。其他 OpenCode 版本，以及 OpenCode
   的桌面应用和 server 都没有测过。
-- Dotbrain 不为 OpenCode 提供子 Agent，所以 OpenCode 没有原生的 dotbrain worker。在 `run-execution`
+- Dotbrain 不为 OpenCode 提供 subagents，所以 OpenCode 没有原生的 dotbrain worker。在 `run-execution`
   里它只能当 lead。
-- 如果你自己给 dotbrain 的技能建过链接或副本，先删掉。比如指向 dotbrain plugin 的
+- 如果你自己给 dotbrain 的 skills 建过链接或副本，先删掉。比如指向 dotbrain plugin 的
   `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
-  也会读这些目录，遇到两个同名技能时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的技能。
-- OpenCode 不限制只能手动调用的技能（比如 `run-retro`）：它们照样出现在技能列表里，模型也可以自己调用。
+  也会读这些目录，遇到两个同名 skill 时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的 skill。
+- OpenCode 不限制只能手动调用的 skills（比如 `run-retro`）：它们照样出现在 skills 列表里，模型也可以自己调用。
 - 移除 OpenCode 的机器级交付，见[卸载](#opencode-remove)。
 :::
 
@@ -452,18 +456,18 @@ OpenCode 没有 dotbrain 的 marketplace，plugin 由 CLI 复制到 OpenCode 的
 dotbrain bootstrap
 ```
 
-首次运行会询问是否设置 OpenCode 及本机找到的其他能运行的运行时。只设置 OpenCode，或之后再添加它，
+首次运行会询问是否设置 OpenCode 及本机找到的其他能运行的 runtime。只设置 OpenCode，或之后再添加它，
 请运行 `dotbrain bootstrap --runtime opencode`。
 
-这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的技能复制到
+这会把 plugin 复制到 `~/.config/opencode/plugins/dotbrain.js`，把打包的 skills 复制到
 `~/.config/opencode/dotbrain/packaged/skills/`。在 Windows 上，`~` 指 `%USERPROFILE%`；设置了
-`XDG_CONFIG_HOME` 时，目录改为 `$XDG_CONFIG_HOME/opencode`。你在 `config.yaml` 里选的全局技能会链接到
-`~/.config/opencode/dotbrain/skills/`。Dotbrain 不改你的 OpenCode 配置文件：OpenCode 加载配置时，由 plugin 把这两个技能目录加进去。
+`XDG_CONFIG_HOME` 时，目录改为 `$XDG_CONFIG_HOME/opencode`。你在 `config.yaml` 里选的全局 skills 会链接到
+`~/.config/opencode/dotbrain/skills/`。Dotbrain 不改你的 OpenCode 配置文件：OpenCode 加载配置时，由 plugin 把这两个 skills 目录加进去。
 
 plugin 运行的是 OpenCode 启动时 `PATH` 里的 `dotbrain`。找不到的话，会话照常可用，但没有约定，也不会同步。
 
 本机配置好 OpenCode 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
-`opencode`。然后刷新技能链接：
+`opencode`。然后刷新 skills 链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -476,18 +480,18 @@ dotbrain refresh                   # 把选中的技能链接到 .opencode/skill
 dotbrain doctor
 ```
 
-plugin 缺失、过期或不是 dotbrain 的，doctor 会报告；OpenCode 会找到两份的技能，doctor 也会报告。
-装好后，在 checkout 里新开一个 OpenCode 会话。打包的技能用它们自己的名字，比如 `wire-brain`，不带
-`dotbrain:` 前缀。你选的私有技能也用它们自己的名字。
+plugin 缺失、过期或不是 dotbrain 的，doctor 会报告；OpenCode 会找到两份的 skills，doctor 也会报告。
+装好后，在 checkout 里新开一个 OpenCode 会话。打包的 skills 用它们自己的名字，比如 `wire-brain`，不带
+`dotbrain:` 前缀。你选的私有 skills 也用它们自己的名字。
 
-链接技能会在 checkout 里创建 `.opencode/`。OpenCode 随后会在里面自己运行 `npm install`，生成
+链接 skills 会在 checkout 里创建 `.opencode/`。OpenCode 随后会在里面自己运行 `npm install`，生成
 `package.json`、`node_modules/`，以及一个忽略这些文件的 `.gitignore`。Dotbrain 通过 `.git/info/exclude`
-忽略它的技能链接，所以 `git status` 保持干净。
+忽略它的 skills 链接，所以 `git status` 保持干净。
 
 ### OpenCode 会话里会发生什么 {#opencode-sessions}
 
 plugin 通过 OpenCode 的 hook 执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进 system prompt。详见
-[OpenCode 的运行时说明](session-context.md#runtime-notes)。
+[OpenCode 的 runtime 说明](session-context.md#runtime-notes)。
 
 ### 更新 {#opencode-update}
 
@@ -498,14 +502,14 @@ dotbrain bootstrap
 dotbrain refresh --all
 ```
 
-plugin 文件存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的技能保持最新。Dotbrain 只替换它自己标记过的文件。
+plugin 文件存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的 skills 保持最新。Dotbrain 只替换它自己标记过的文件。
 OpenCode 在启动时加载 plugin，所以要重启 OpenCode 才能用上更新。
 
 ### 卸载 {#opencode-remove}
 
 先退出 OpenCode，让退出时的同步跑完。
 
-对单个 checkout，`dotbrain unwire` 会删掉它的 OpenCode 技能链接。如果想保留连接、只去掉 OpenCode，就从
+对单个 checkout，`dotbrain unwire` 会删掉它的 OpenCode skills 链接。如果想保留连接、只去掉 OpenCode，就从
 `agents:` 里删掉 `opencode`，再手动删除 checkout 里 `.opencode/skills/` 下 dotbrain 创建的链接；
 `dotbrain refresh` 不会删它们。`.opencode/` 里的其他文件属于 OpenCode，如果里面没有你
 自己的东西，可以整个删掉。
@@ -516,7 +520,7 @@ OpenCode 在启动时加载 plugin，所以要重启 OpenCode 才能用上更新
 dotbrain detach --runtime opencode
 ```
 
-这会移除 dotbrain 的插件文件、技能副本及全局技能链接，保留你自己的文件。之后重启 OpenCode。
+这会移除 dotbrain 的插件文件、skills 副本及全局 skills 链接，保留你自己的文件。之后重启 OpenCode。
 不带参数的 bootstrap 不会再给 OpenCode 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime opencode`。
 
@@ -526,9 +530,9 @@ Dotbrain 也支持 [Pi](https://github.com/earendil-works/pi) coding agent 的 C
 
 ::: warning 限制
 - Pi 用 Pi 1.4.0 测过。其他 Pi 版本都没有测过。
-- Dotbrain 不为 Pi 提供子 Agent，所以 Pi 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
-- 只能手动调用的技能（比如 `run-retro`）对模型隐藏，只有你输入 `/skill:<name>` 时才会运行。但 Pi
-  不会阻止模型直接读取这类技能的文件。
+- Dotbrain 不为 Pi 提供 subagents，所以 Pi 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
+- 只能手动调用的 skills（比如 `run-retro`）对模型隐藏，只有你输入 `/skill:<name>` 时才会运行。但 Pi
+  不会阻止模型直接读取这类 skills 的文件。
 - 直接关掉控制台窗口很可能会跳过 Pi 的关闭事件，也就跳过了退出时的完整同步。每次运行后的推送照常进行，
   下次会话启动时的同步会补上剩下的部分。
 - 移除 Pi 的机器级交付，见[卸载](#pi-remove)。
@@ -543,17 +547,17 @@ Pi 没有 dotbrain 的 marketplace，扩展由 CLI 复制到 Pi 的 Agent 目录
 dotbrain bootstrap
 ```
 
-首次运行会询问是否设置 Pi 及本机找到的其他能运行的运行时。只设置 Pi，或之后再添加它，
+首次运行会询问是否设置 Pi 及本机找到的其他能运行的 runtime。只设置 Pi，或之后再添加它，
 请运行 `dotbrain bootstrap --runtime pi`。
 
-这会把扩展连同打包的技能复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
+这会把扩展连同打包的 skills 复制到 `~/.pi/agent/extensions/dotbrain/`；设置了 `PI_CODING_AGENT_DIR` 时，
 则复制到 `$PI_CODING_AGENT_DIR/extensions/dotbrain/`。在 Windows 上，`~` 指 `%USERPROFILE%`。你在
-`config.yaml` 里选的全局技能会链接到 `~/.pi/agent/skills/`。Dotbrain 不会修改 Pi 的设置和信任文件。
+`config.yaml` 里选的全局 skills 会链接到 `~/.pi/agent/skills/`。Dotbrain 不会修改 Pi 的设置和信任文件。
 
 扩展会运行 Pi 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。
 
 本机配置好 Pi 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
-`pi`。然后刷新技能链接：
+`pi`。然后刷新 skills 链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -567,13 +571,13 @@ dotbrain doctor
 ```
 
 Pi 只从你信任的 checkout 里加载 `.pi/skills/`。在 checkout 里启动 `pi`，它询问是否信任这个项目时选择接受；
-在此之前，`dotbrain doctor` 会警告项目技能只从受信任的 checkout 加载。打包的技能用自己的名字出现，比如
-`wire-brain`，不带 `dotbrain:` 前缀。如果你自己有同名技能，Pi 用你的那个。
+在此之前，`dotbrain doctor` 会警告项目 skills 只从受信任的 checkout 加载。打包的 skills 用自己的名字出现，比如
+`wire-brain`，不带 `dotbrain:` 前缀。如果你自己有同名 skill，Pi 用你的那个。
 
 ### Pi 会话里会发生什么 {#pi-sessions}
 
 扩展通过 Pi 的事件执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进 system prompt。详见
-[Pi 的运行时说明](session-context.md#runtime-notes)。
+[Pi 的 runtime 说明](session-context.md#runtime-notes)。
 
 ### 更新 {#pi-update}
 
@@ -584,14 +588,14 @@ dotbrain bootstrap
 dotbrain refresh --all
 ```
 
-扩展存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的技能保持最新。Dotbrain 只替换它自己标记过的扩展目录。
+扩展存在之后，不带参数的 `dotbrain bootstrap` 就会让它和打包的 skills 保持最新。Dotbrain 只替换它自己标记过的扩展目录。
 Pi 在启动时加载扩展，所以要重启 Pi 才能用上更新。
 
 ### 卸载 {#pi-remove}
 
 先用 `/quit` 退出 Pi，让退出时的同步跑完。
 
-对单个 checkout，`dotbrain unwire` 会删掉它的 Pi 技能链接。如果想保留连接、只去掉 Pi，就从 `agents:` 里删掉
+对单个 checkout，`dotbrain unwire` 会删掉它的 Pi skills 链接。如果想保留连接、只去掉 Pi，就从 `agents:` 里删掉
 `pi`，再手动删除 checkout 里 `.pi/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
 
 要移除 Pi 的机器级交付，运行：
@@ -600,7 +604,7 @@ Pi 在启动时加载扩展，所以要重启 Pi 才能用上更新。
 dotbrain detach --runtime pi
 ```
 
-这会移除 dotbrain 的扩展副本及全局技能链接，保留你自己的文件。之后重启 Pi。
+这会移除 dotbrain 的扩展副本及全局 skills 链接，保留你自己的文件。之后重启 Pi。
 不带参数的 bootstrap 不会再给 Pi 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime pi`。
 
@@ -610,9 +614,9 @@ Dotbrain 也支持 [Cursor](https://cursor.com) 的 CLI。
 
 ::: warning 限制
 - Cursor 用 Cursor CLI 2026.10.19 测过。其他 Cursor 版本和 Cursor 编辑器都没有测过。
-- Dotbrain 不为 Cursor 提供子 Agent，所以 Cursor 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
+- Dotbrain 不为 Cursor 提供 subagents，所以 Cursor 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
 - Cursor 也会读取 checkout 和主目录里的 `.claude/skills`、`.codex/skills`、`.agents/skills` 和 `.grok/skills`。
-  遇到两份同名但各自独立的技能时，它只用其中一份。`dotbrain doctor --verbose` 会列出 dotbrain 技能的每个重复。
+  遇到两份同名但各自独立的 skills 时，它只用其中一份。`dotbrain doctor --verbose` 会列出 dotbrain skills 的每个重复。
 - 恢复会话后，Cursor 保留会话开始时的约定，但不会运行启动同步。
 - 直接关掉控制台窗口很可能会跳过 Cursor 的会话结束 hook，也就跳过了退出时的完整同步。每轮之后的推送照常进行，
   下次会话启动时的同步会补上剩下的部分。
@@ -627,19 +631,19 @@ Cursor 没有 dotbrain 的 marketplace。先安装 CLI（见[第 2 步](#_2-get-
 dotbrain bootstrap
 ```
 
-首次运行会询问是否设置 Cursor 及本机找到的其他能运行的运行时。只设置 Cursor，或之后再添加它，
+首次运行会询问是否设置 Cursor 及本机找到的其他能运行的 runtime。只设置 Cursor，或之后再添加它，
 请运行 `dotbrain bootstrap --runtime cursor`。
 
 这会在 `~/.cursor/hooks.json` 里加入三个 dotbrain hook；文件不存在时会创建它，你自己的 hook 会保留。在 Windows 上，
 `~` 指 `%USERPROFILE%`。如果你的 dotbrain Claude Code plugin 已安装、已启用且是最新的，Cursor 从它那里获取 dotbrain
-打包的技能；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `config.yaml` 里选的全局技能会
+打包的 skills；否则使用 dotbrain 保存在 `~/dotbrain/.cache/cursor/` 里的副本。你在 `config.yaml` 里选的全局 skills 会
 链接到 `~/.cursor/skills/`，Cursor 已经能在它读取的其他目录（比如 `~/.claude/skills`）里找到的除外。
 
 hook 会运行 Cursor 启动时 `PATH` 里找到的 `dotbrain`。找不到的话，会话照常可用，只是没有约定，也不会同步。启用了
 dotbrain Claude Code plugin 时，Cursor 也会加载它的 hook；dotbrain 让这些 hook 在 Cursor 下什么都不做，所以每个事件只运行一次。
 
 本机配置好 Cursor 后，新项目会自动启用它。项目如果已有显式的 `agents:` 列表，就在列表里加上
-`cursor`。然后刷新技能链接：
+`cursor`。然后刷新 skills 链接：
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
@@ -652,14 +656,14 @@ dotbrain refresh                   # 把 Cursor 找不到的选中技能链接�
 dotbrain doctor
 ```
 
-如果项目也声明了 `claude`，Cursor 通常会通过 `.claude/skills/` 找到技能，`.cursor/skills/` 会是空的。打包的技能用自己的
-名字出现，比如 `wire-brain`。只能手动调用的技能（比如 `run-retro`）不会出现在 Cursor 的技能列表里，
-需要你输入 `/<name>` 按名称调用。Cursor 不会阻止模型读取这些技能的 `SKILL.md` 文件。
+如果项目也声明了 `claude`，Cursor 通常会通过 `.claude/skills/` 找到 skills，`.cursor/skills/` 会是空的。打包的 skills 用自己的
+名字出现，比如 `wire-brain`。只能手动调用的 skills（比如 `run-retro`）不会出现在 Cursor 的 skills 列表里，
+需要你输入 `/<name>` 按名称调用。Cursor 不会阻止模型读取这些 skills 的 `SKILL.md` 文件。
 
 ### Cursor 会话里会发生什么 {#cursor-sessions}
 
 hook 执行同样的[主目录同步](session-context.md#home-sync)，并把约定加进会话。详见
-[Cursor 的运行时说明](session-context.md#runtime-notes)。
+[Cursor 的 runtime 说明](session-context.md#runtime-notes)。
 
 ### 更新 {#cursor-update}
 
@@ -670,14 +674,14 @@ dotbrain bootstrap
 dotbrain refresh --all
 ```
 
-设置好 Cursor 之后，不带参数的 `dotbrain bootstrap` 就会让 hook 和打包技能的副本保持最新。Dotbrain 只替换它自己的 hook
+设置好 Cursor 之后，不带参数的 `dotbrain bootstrap` 就会让 hook 和打包 skills 的副本保持最新。Dotbrain 只替换它自己的 hook
 条目和它自己的副本。开一个新的 Cursor 会话就能用上更新。
 
 ### 卸载 {#cursor-remove}
 
 先退出 Cursor，让退出时的同步跑完。
 
-对单个 checkout，`dotbrain unwire` 会删掉它的 Cursor 技能链接。如果想保留连接、只去掉 Cursor，就从 `agents:` 里删掉
+对单个 checkout，`dotbrain unwire` 会删掉它的 Cursor skills 链接。如果想保留连接、只去掉 Cursor，就从 `agents:` 里删掉
 `cursor`，再手动删除 checkout 里 `.cursor/skills/` 下 dotbrain 创建的链接；`dotbrain refresh` 不会删它们。
 
 要移除 Cursor 的机器级交付，运行：
@@ -686,7 +690,7 @@ dotbrain refresh --all
 dotbrain detach --runtime cursor
 ```
 
-这会移除 dotbrain 的用户 hook、技能副本和全局技能链接，保留其他条目。项目 checkout 的连接不变。
+这会移除 dotbrain 的用户 hook、skills 副本和全局 skills 链接，保留其他条目。项目 checkout 的连接不变。
 不带参数的 bootstrap 不会再给 Cursor 交付；需要恢复时，
 运行 `dotbrain bootstrap --runtime cursor`。
 
@@ -697,10 +701,10 @@ dotbrain detach --runtime cursor
 真需要配置时：
 
 - [配置](configuration.md)介绍 `config.yaml` 和 `project.yaml`。
-- [技能](skills.md)介绍技能的选择。
+- [Skills](skills.md)介绍 skills 的选择。
 
 ## 下一步 {#next}
 
-- [工作流程](workflow.md)展示技能如何把工作从想法推进到结束设计。
+- [工作流程](workflow.md)展示 skills 如何把工作从想法推进到结束设计。
 - [架构](architecture.md)解释 Brainspace 模型。
 - [故障排查与常见问题](troubleshooting.md)覆盖常见的安装问题。

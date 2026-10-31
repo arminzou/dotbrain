@@ -5,11 +5,11 @@ pageClass: prompt-examples
 # 示例提示词
 
 用 dotbrain，主要就是让你的 Coding Agent 去做事。本页收集了常见工作可以直接发送、或稍作修改的提示词。
-每条都说明了什么时候用、会触发哪个技能，以及这一步在哪里有详细解释。
+每条都说明了什么时候用、会触发哪个 skill，以及这一步在哪里有详细解释。
 
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
-不一定要说出技能名：把要做的事描述清楚，Agent 通常就能选对技能。说出技能名则可以确保选中它。
+不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。说出 skill 名称则可以确保选中它。
 `review-architecture`、`run-retro`、`teach-me` 和 `brain-site` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
 `/dotbrain:run-retro`。
 
@@ -22,7 +22,7 @@ Use wire-brain to wire this repo with Dotbrain.
 ```
 
 **什么时候用：** 第一次在某个仓库或新的 worktree 里用 dotbrain。需要时会安装 CLI 和依赖。
-**技能：** `wire-brain`。见[快速开始](getting-started.md)。
+**Skill：** `wire-brain`。见[快速开始](getting-started.md)。
 
 ### 修复连接 {#repair-the-wiring}
 
@@ -31,7 +31,7 @@ dotbrain doctor reports problems in this repo. Use wire-brain to find out why an
 ```
 
 **什么时候用：** `.brain` 或 `.beads` 缺失、链接失效，或者 Agent 不了解项目。插件或 CLI 更新后也可以用。
-**技能：** `wire-brain`。见[项目连接](wiring.md)和[故障排查](troubleshooting.md)。
+**Skill：** `wire-brain`。见[项目连接](wiring.md)和[故障排查](troubleshooting.md)。
 
 ## 规划 {#plan}
 
@@ -42,7 +42,7 @@ Run find-unknowns on how GET /orders handles queries and responses before we add
 ```
 
 **什么时候用：** 动不熟悉的代码之前，或者一项工作刚开始时。只读；它会报告那些会改变你做法的假设和约束。
-**技能：** `find-unknowns`。见[工作流程](workflow.md#_1-orient)。
+**Skill：** `find-unknowns`。见[工作流程](workflow.md#_1-orient)。
 
 ### 敲定决策 {#settle-decisions}
 
@@ -53,7 +53,7 @@ Check it against our vocabulary and existing ADRs, and record what we settle.
 ```
 
 **什么时候用：** 你有一个计划，但还有没想清楚的问题或需要定义清楚的术语。定下来的术语写进 `CONTEXT.md`，
-难以撤回的选择写进 `adr/`。**技能：** `grill-decisions`。见[工作流程](workflow.md#_2-settle-decisions)。
+难以撤回的选择写进 `adr/`。**Skill：** `grill-decisions`。见[工作流程](workflow.md#_2-settle-decisions)。
 
 ### 写设计 {#write-a-design}
 
@@ -62,7 +62,7 @@ Write a design for orders API pagination, with success criteria and known unknow
 ```
 
 **什么时候用：** 工作跨多个会话、涉及多个模块，或者有真正的未知项。会在 `.brain/designs/` 里创建设计文档，
-并开一个跟踪用的 epic。**技能：** `to-design`。见[工作流程](workflow.md#_3-write-the-design)。
+并开一个跟踪用的 epic。**Skill：** `to-design`。见[工作流程](workflow.md#_3-write-the-design)。
 
 ### 把设计拆成任务 {#split-a-design-into-issues}
 
@@ -70,7 +70,7 @@ Write a design for orders API pagination, with success criteria and known unknow
 Split the orders-pagination design into issues with acceptance criteria and dependencies.
 ```
 
-**什么时候用：** 设计已经敲定并获批。每份设计只运行一次。**技能：** `to-issues`。
+**什么时候用：** 设计已经敲定并获批。每份设计只运行一次。**Skill：** `to-issues`。
 见[工作流程](workflow.md#_4-split-into-issues)。
 
 ## 执行 {#work}
@@ -91,7 +91,7 @@ What's ready to work on?
 File an issue: GET /orders returns duplicate orders on the next page. Link it to the orders-pagination epic.
 ```
 
-**什么时候用：** 想看看哪些任务可以开始，或者创建、认领、更新、关闭任务。**技能：** `manage-work-graph`。
+**什么时候用：** 想看看哪些任务可以开始，或者创建、认领、更新、关闭任务。**Skill：** `manage-work-graph`。
 见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### HITL：顺序执行 {#hitl-sequential-execution}
@@ -106,12 +106,12 @@ Work the next ready issue under the orders-pagination epic.
 ```
 
 **什么时候用：** 你想一次指挥一段范围明确的工作。主 Agent 可以自己写，也可以交给一个 `worker`，两种都算顺序执行。
-行为改动需要独立审阅。**技能：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
+行为改动需要独立审阅。**Skill：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### HITL：并行执行 {#hitl-parallel-execution}
 
 ::: info Worker 数量上限
-两种工作流中，如果你没有指定上限，lead 会根据运行时容量、资源隔离和既有约束，公布有限的同时写入人数上限。
+两种工作流中，如果你没有指定上限，lead 会根据 runtime 容量、资源隔离和既有约束，公布有限的同时写入人数上限。
 它在固定范围内填满就绪名额并及时补位，同时为协调、审阅和验证预留容量。
 :::
 
@@ -120,7 +120,7 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 ```
 
 **什么时候用：** 多个独立任务都已就绪，你想指挥这一批工作。如果无法安全并行，Agent 会说明原因，改为顺序执行。
-**技能：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
+**Skill：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### Handoff：顺序执行 {#handoff-sequential-execution}
 
@@ -128,9 +128,9 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 /dotbrain:iterate-design Work the orders-pagination design, one issue at a time. Propose the handoff contract and wait for my GO.
 ```
 
-**什么时候用：** 设计处于 active 状态，工作有机械化的检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
+**什么时候用：** 设计处于 active 状态，工作有自动检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
 （范围、分支、检查项、worker 数量、PR 交付方式、验收/UAT、审阅、provider/auth 和执行上限）。
-完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**技能：**
+完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**Skill：**
 `iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 ### Handoff：并行执行 {#handoff-parallel-execution}
@@ -141,16 +141,16 @@ Work the ready issues under the orders-pagination epic in parallel where they ar
 
 **什么时候用：** 希望 Agent 按 active 设计持续推进，并把独立任务并行处理。某个任务耗尽重试次数或需要你决定时，
 它和依赖它的任务会等待，其他独立任务继续。范围内只要还有任务被阻塞，handoff 就不能成功结束，也不能把 PR 标为 ready。
-**技能：** `iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
+**Skill：** `iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
 
 两种 handoff 模式下，批准约定并回复 `GO` 后，Agent 可以推送专用分支、在首次推送时创建 draft PR，
 并在验证和审阅通过后把 PR 标为 ready、请求你审阅。合并、部署、发布、依赖变更，以及范围或成功标准的调整，仍需你决定。
 
 ## 内置 Subagent {#packaged-subagents}
 
-各角色的职责和运行时行为，见[内置 Subagent](agent-team.md#the-packaged-subagents)。
+各角色的职责和 runtime 行为，见[内置 Subagent](agent-team.md#the-packaged-subagents)。
 
-技能规定工作流程，subagent 则接收主 Agent 分配的具体任务。可以让主 Agent 用下面的名字调用它们：
+skills 规定工作流程，subagent 则接收主 Agent 分配的具体任务。可以让主 Agent 用下面的名字调用它们：
 
 | 职责 | Claude Code 和 Codex |
 |---|---|
@@ -191,7 +191,7 @@ Have the packaged reviewer check this orders-pagination branch against main and 
 **什么时候用：** 希望由没有参与写这次改动的 Agent 做一次针对性的审阅。`reviewer` 检查 diff 及相关代码。
 工作流中的单任务审阅还需要任务 ID、reviewer actor、审阅轮次、候选版本和 diff 基线；`run-execution` 会准备这些信息。
 
-### 运行机械化验证 {#run-a-mechanical-verification-gate}
+### 运行自动验证 {#run-a-mechanical-verification-gate}
 
 ```text
 Have the packaged verifier run the agreed checks for orders pagination on this branch and give me the results and a Verification block for the PR.
@@ -212,7 +212,7 @@ Run a simplify review on this branch: what can we delete or replace?
 ```
 
 **什么时候用：** 分支提交合并之前，或者任何时候想要一次独立审阅。模式有 `code`（正确性）、`simplify`（简化）
-和 `readiness`（某个子系统是否足够可靠，能在上面继续构建）。**技能：** `review-gate`。
+和 `readiness`（某个子系统是否足够可靠，能在上面继续构建）。**Skill：** `review-gate`。
 见[工作流程](workflow.md#_6-review)。
 
 ### 结束设计 {#close-a-design}
@@ -222,12 +222,12 @@ Run a simplify review on this branch: what can we delete or replace?
 outlive it to ADRs and CONTEXT.md.
 ```
 
-**什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**技能：**
+**什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**Skill：**
 `close-design`。见[工作流程](workflow.md#_7-close-the-design)。
 
 ## 学习 {#learn}
 
-开始或继续学习前，先调用技能：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
+开始或继续学习前，先调用 skill：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
 把问题先存起来则不用调用。
 
 ### 开始学一个主题 {#start-learning-a-topic}
@@ -236,7 +236,7 @@ outlive it to ADRs and CONTEXT.md.
 Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
 ```
 
-**什么时候用：** 你想真正理解项目的某一部分，而不只是要一个答案。**技能：** `teach-me`。
+**什么时候用：** 你想真正理解项目的某一部分，而不只是要一个答案。**Skill：** `teach-me`。
 见[学习你的项目](learning.md)。
 
 ### 继续学习路径 {#continue-a-learning-path}
@@ -245,7 +245,7 @@ Teach me how this project handles failed deliveries. I want to be able to diagno
 Continue my learning path on retries. Read my progress and learning records, then resume the next step.
 ```
 
-**什么时候用：** 在新会话里接着学。**技能：** `teach-me`。见[学习你的项目](learning.md#walk-a-learning-path)。
+**什么时候用：** 在新会话里接着学。**Skill：** `teach-me`。见[学习你的项目](learning.md#walk-a-learning-path)。
 
 ### 先把问题存起来 {#park-a-question-for-later}
 
@@ -253,7 +253,7 @@ Continue my learning path on retries. Read my progress and learning records, the
 Park this for learning: why does retrying this operation require an idempotency key?
 ```
 
-**什么时候用：** 做事途中冒出一个问题，但现在不想切换到学习。**技能：** `manage-work-graph`。
+**什么时候用：** 做事途中冒出一个问题，但现在不想切换到学习。**Skill：** `manage-work-graph`。
 见[学习你的项目](learning.md#park-a-question-while-working)。
 
 ## 维护 Brain {#maintain-the-brain}
@@ -268,7 +268,7 @@ Set up a Brain site for this project and put the runbooks in the sidebar.
 dotbrain site build fails. Find the cause and fix it.
 ```
 
-**什么时候用：** 想在浏览器里读 Brain、调整侧边栏，或修复构建失败。**技能：** `brain-site`。
+**什么时候用：** 想在浏览器里读 Brain、调整侧边栏，或修复构建失败。**Skill：** `brain-site`。
 见 [Brain 站点配置](brain-site-configuration.md)。
 
 ### 检查上下文健康 {#check-context-health}
@@ -279,7 +279,7 @@ AGENTS.md and the Brain, and anything private leaking into the public repo.
 ```
 
 **什么时候用：** 指引越积越多，`AGENTS.md` 和 `CLAUDE.md` 不一致了，或者想检查公开/私有的边界。默认只报告，
-只有你要求时才修复。**技能：** `curate-project-context`。
+只有你要求时才修复。**Skill：** `curate-project-context`。
 
 ### 编写或修改给 Agent 看的文档 {#write-or-edit-agent-facing-docs}
 
@@ -287,19 +287,19 @@ AGENTS.md and the Brain, and anything private leaking into the public repo.
 Use write-agent-docs to tighten this project's AGENTS.md.
 ```
 
-**什么时候用：** 创建或修改 `AGENTS.md`、Brain 上下文、设计文档、技能，或 Agent 会依赖的公开文档。
-**技能：** `write-agent-docs`。
+**什么时候用：** 创建或修改 `AGENTS.md`、Brain 上下文、设计文档、skills，或 Agent 会依赖的公开文档。
+**Skill：** `write-agent-docs`。
 
 ### 分诊公开任务 {#triage-public-issues}
 
-直接说要分诊，或者调用技能：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
+直接说明要 triage 公开 issues，或者调用 skill：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.
 ```
 
 **什么时候用：** 项目接收公开任务，你想让它们被分类、复现，并纳入私有执行。需要在
-[`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**技能：** `triage-public`。
+[`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**Skill：** `triage-public`。
 
 ### 寻找架构改进点 {#look-for-architecture-improvements}
 
@@ -307,10 +307,10 @@ Triage the open GitHub issues and promote the accepted ones into our work graph.
 /dotbrain:review-architecture
 ```
 
-**什么时候用：** 想结合 Brain 的术语和 ADR，审查代码库里可以加深架构的地方。**技能：** `review-architecture`，
+**什么时候用：** 想结合 Brain 的术语和 ADR，审查代码库里可以加深架构的地方。**Skill：** `review-architecture`，
 只能显式调用。
 
 ## 相关内容 {#related}
 
-- [技能](skills.md)列出了所有技能及一句话说明。
-- [工作流程](workflow.md)展示了这些技能如何配合。
+- [Skills](skills.md)列出了所有 skills 及一句话说明。
+- [工作流程](workflow.md)展示了这些 skills 如何配合。
