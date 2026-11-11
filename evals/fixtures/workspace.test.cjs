@@ -129,7 +129,8 @@ test('per-test tracker items reach the bd stub, comments included', () => {
 });
 
 test('the stub logs actor and file or stdin bodies, and serves canned replies', () => {
-  const root = prepare('stub-logging', parent, {responses: {'gh pr create': 'https://example.invalid/pull/1'}});
+  const root = prepare('stub-logging', parent, {items: [{id: 'demo-1'}],
+    responses: {'gh pr create': 'https://example.invalid/pull/1'}});
   const stub = (args, options = {}) => execFileSync(process.execPath, [path.join(root, 'stub.cjs'), ...args],
     {encoding: 'utf8', ...options});
   fs.writeFileSync(path.join(root, 'body.md'), 'From a file');
@@ -138,6 +139,10 @@ test('the stub logs actor and file or stdin bodies, and serves canned replies', 
   const [pr, comment] = fs.readFileSync(path.join(root, 'calls.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   assert.deepEqual([pr.bodies, pr.actor], [['From a file'], '']);
   assert.deepEqual([comment.bodies, comment.actor], [['From stdin'], 'worker-a']);
+  assert.deepEqual(JSON.parse(stub(['bd', 'comments', 'demo-1'])), [{author: 'worker-a', text: 'From stdin'}]);
+  stub(['bd', 'comments', 'add', 'demo-1', 'Follow-up', '--actor=worker-b']);
+  assert.deepEqual(JSON.parse(stub(['bd', 'comments', 'demo-1']))[1], {author: 'worker-b', text: 'Follow-up'});
+  assert.doesNotThrow(() => stub(['bd', 'comments', 'add', 'unseeded', 'From an older fixture']));
   assert.throws(() => stub(['gh', 'repo', 'view']), 'unanswered gh calls still fail');
 });
 

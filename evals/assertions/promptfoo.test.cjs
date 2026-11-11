@@ -116,10 +116,11 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute twenty-two combinations and keep exclusions outside grading', async () => {
+test('original native provider filters execute twenty-two combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
-    .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
+    .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')))
+    .filter(test => test.vars.case !== 'durable-project-continuation');
   const keys = ['DOTBRAIN_EVAL_LIVE', 'EVAL_CLAUDE_MODEL', 'EVAL_CODEX_MODEL'];
   const previous = keys.map(key => process.env[key]);
   keys.forEach(key => { process.env[key] = key === 'DOTBRAIN_EVAL_LIVE' ? '1' : 'offline-fixture'; });
