@@ -71,8 +71,12 @@ by others:
      you read it.
    Mark each claim as confirmed in a source or inferred, and say which.
 3. **Brain gaps**: where outside facts contradict, extend, or are missing from the
-   Brain. For each, propose the update (a `CONTEXT.md` term or an ADR to amend)
-   and the reason. Write `none` if there are none.
+   Brain. For each, propose the destination (vocabulary in `CONTEXT.md`, decision
+   rationale via `grill-decisions`, initiative findings in the active design, or derived
+   reference material in `docs/`) and the reason. Distinguish a verified discovery
+   from an inference, unresolved hypothesis, or proposal; include applicability and
+   what remains to decide. The requester routes updates to the owning writer.
+   Write `none` if there are none.
 4. **Still unknown**: what you could not settle, and what would settle it.
 
 You may cite Brain paths and decision-record identifiers to the requester. Anything

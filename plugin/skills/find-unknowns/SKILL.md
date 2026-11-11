@@ -5,8 +5,7 @@ description: Scans an unfamiliar codebase or feature area against the project Br
 
 # Find Unknowns
 
-Orient before building. The cheapest place to catch an unknown is before implementation, so this
-skill scans the territory an initiative touches and reports the gap between the project's map (the
+This skill scans the territory an initiative touches and reports the gap between the project's map (the
 Brain: vocabulary, decisions, rules) and the codebase reality.
 
 The output is a triaged set of unknowns, not a plan and not code. This skill is read-only: it writes
@@ -100,6 +99,11 @@ This skill does not write the Brain. Route each finding to the skill that owns i
 Active designs own initiative uncertainty; Beads owns execution state. Route updates through
 those existing owners rather than creating a separate uncertainty ledger. Durable canon updates
 remain with the workflows above.
+
+Return verified discoveries and resolved unknowns as well as open questions, with their evidence
+and applicability. The owning writer records them under the convention's recording rule; this
+read-only pass gains no write authority. Derived explanations can go to `.brain/docs/` through
+that writer; a discovered behavior is not an accepted product or architecture decision.
 
 Completion: every finding has a named next action, and you have recommended the next skill.
 

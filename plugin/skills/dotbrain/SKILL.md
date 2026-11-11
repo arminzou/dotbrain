@@ -56,6 +56,11 @@ Do not edit per project; packaged template changes propagate to every Brain.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
   A missing notebook blocks nothing; do not scaffold it. Only `run-retro` writes `RETRO.md`.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
+- The owning writer records verified discoveries, resolved unknowns, and outcomes without routine
+  approval: execution in Beads, durable understanding in the appropriate Brain record. Keep
+  evidence and applicability with consequential facts; distinguish observations, inferences,
+  unresolved hypotheses, proposals, and accepted decisions. Observed behavior never silently
+  replaces an accepted decision or instruction. Read-only investigators hand findings to the writer.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
   `run-execution` carries out an item or finite batch. Follow `manage-work-graph` for
@@ -113,11 +118,12 @@ design docs speak one language:
 - **Unknown unknowns** — constraints, edge cases, and existing behavior you have not thought to
   consider. Surfaced by a blind-spot pass before implementation; caught mid-build as discoveries.
 
-Cheap moves early — orient, grill, prototype — turn expensive late unknowns into known knowns.
+Choose investigation depth and retrieval timing within applicable instructions; `find-unknowns`
+is available for deeper investigation.
 
-Choose reversible defaults within scope; take human preferences, authority, acceptance changes,
-and consequential tradeoffs to `grill-decisions`. Active designs own uncertainty; Beads owns
-execution state.
+Choose reversible defaults within scope; take new consequential product/architecture decisions,
+consequential tradeoffs, human preferences, authority, and acceptance changes to `grill-decisions`.
+Active designs own uncertainty; Beads owns execution state.
 
 ## Brain structure
 

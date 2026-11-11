@@ -73,6 +73,13 @@ in the [worker role contract](references/worker.md). An unwired linked
 worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
 never rely on where one began.
 
+Record useful understanding through
+[work intake's discovery rule](../manage-work-graph/references/work-intake.md#discovery-rule-during-execution)
+as it settles, including evidence, applicability, remaining hypotheses, and next work.
+The lead owns durable updates; read-only findings and worker reports feed that writer.
+Recording verified facts needs no routine permission and does not authorize a new decision,
+scope expansion, criteria change, or closure.
+
 For code work, keep the delivery branch at its last accepted revision. Work and repairs
 stay on an isolated candidate branch even with one writer; the sole writer may use the
 lead's checkout. Preserve existing unaccepted changes as a candidate. If an accepted
