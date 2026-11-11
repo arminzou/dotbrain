@@ -1,6 +1,7 @@
 # Decision exercise ported from the retired runner; each `metric` is the source grader id.
 # Regex graders keep their source patterns; inline (?is) flags become RegExp flags. `fresh-review` is
 # widened by decision after the first live pilot: a re-request about the requested boundary also counts.
+# A review request can bind its target in the next sentence's fresh-worktree command.
 # `held` is widened by decision after the first rerun: the hold and the mismatch may sit in nearby
 # sentences of one paragraph, not only in one sentence.
 - description: observed-revision-mismatch-held
@@ -31,7 +32,24 @@
   assert:
   - type: javascript
     metric: fresh-review
-    value: new RegExp("(?=[^.]*(?:re-?review|new review|fresh review|review again|refresh|re-?request\\w*[^.]{0,40}review|review[^.]{0,60}again))(?=[^.]*(?:4c4c4c4|requested (?:head|boundary|revision)|(?:that|the) boundary))[^.]+", "is").test(output)
+    value: |
+      const request = /re-?review|new review|fresh review|review again|refresh|re-?request\w*[^.]{0,40}review|review[^.]{0,60}again/i;
+      const boundary = /requested (?:head|boundary|revision)|(?:that|the) boundary/i;
+      return output.split(/\n[ \t]*\n/).some(paragraph => {
+        const sentences = paragraph.split(/[.!?](?:\s+|$)/);
+        return sentences.some((sentence, index) => {
+          const action = request.exec(sentence);
+          if (!action || /\b(?:no (?:new|fresh) review|no need to (?:re-?request|request|refresh|re-?review)|(?:do not|don't|never|will not|won't)\s+(?:re-?request|request|refresh|re-?review))/i.test(sentence)) return false;
+          const clause = sentence.slice(action.index);
+          const head = clause.match(/\b[0-9a-f]{7,40}\b/i);
+          if (head) return head[0].toLowerCase() === '4c4c4c4' &&
+            /\b(?:at|against|on|of|for)\s+(?:(?:the|integrated|requested|head|boundary|revision)\s+)*[`*]*4c4c4c4\b/i.test(clause);
+          if (boundary.test(clause)) return true;
+          const next = sentences[index + 1] || '';
+          const worktree = next.match(/\bcreate\b[^.]{0,60}\bfresh\b[^.]{0,40}\bworktree\b[^.]{0,40}\bgit worktree add --detach\s+\S+\s+([0-9a-f]{7,40})\b/i);
+          return Boolean(worktree && worktree[1].toLowerCase() === '4c4c4c4');
+        });
+      });
   - type: javascript
     metric: held
     value: new RegExp("(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))(?:[^\\n]|\\n(?![ \\t]*\\n)){0,300}?(9e9e9e9|observed|mismatch|differ)|(9e9e9e9|observed|mismatch|differ)(?:[^\\n]|\\n(?![ \\t]*\\n)){0,300}?(hold|held|pending|not (be )?(record|accept)|cannot (be )?(record|accept))", "is").test(output)

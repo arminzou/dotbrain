@@ -282,6 +282,10 @@ grader is retired because both runtimes isolated the workers in worktrees, and t
 correct answers that pilot gave (a re-request about the requested boundary;
 `BATCH_SIZE` and "since advanced"). After the first rerun, `held` also accepts a
 hold decision and the observed-revision mismatch in nearby sentences of one paragraph.
+The later stale-review calibration also binds a re-request to the next sentence's fresh
+worktree command at the requested head. A head mentioned elsewhere, a wrong review target,
+or an explicitly declined refresh does not earn credit. The retained native answer records
+the original false negative; calibration checks its corrected result without another model call.
 Correct live answers a grader once rejected are kept in `assertions/live-answers.json`,
 and calibration keeps them passing. Tool permissions, child tool availability and
 runtime sandboxing still require qualification.
