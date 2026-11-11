@@ -284,11 +284,12 @@ AGENTS.md and the Brain, and anything private leaking into the public repo.
 ### 编写或修改给 Agent 看的文档 {#write-or-edit-agent-facing-docs}
 
 ```text
-Use write-agent-docs to tighten this project's AGENTS.md.
+Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
 ```
 
 **什么时候用：** 创建或修改 `AGENTS.md`、Brain 上下文、设计文档、skills，或 Agent 会依赖的公开文档。
-**Skill：** `write-agent-docs`。
+**参考：** `curate-project-context/references/writing.md` 及其中链接的语法指南。
+需要修复上下文时，使用 `curate-project-context` 的 fix 模式。
 
 ### 分诊公开任务 {#triage-public-issues}
 

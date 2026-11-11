@@ -21,9 +21,9 @@ This skill expects `dotbrain site` from dotbrain 0.4.6 or later, which needs Nod
 - **Requested site setup, and the Brain has no `.brain/site/`:** set one up (below).
 - **Requested work on an existing site:** find the request in the command table.
 - **Writing a page that needs more than plain Markdown:** read
-  [publishing.md](references/publishing.md) for lessons and references,
-  [vitepress.md](references/vitepress.md) for page pitfalls and native features, and
-  [mermaid.md](references/mermaid.md) before drawing a diagram, on the site or in any other
+  [publishing.md](../curate-project-context/references/publishing.md) for lessons and references,
+  [vitepress.md](../curate-project-context/references/vitepress.md) for page pitfalls and native features, and
+  [mermaid.md](../curate-project-context/references/mermaid.md) before drawing a diagram, on the site or in any other
   project doc.
 
 ## Setting up a site
@@ -61,11 +61,11 @@ server output and do not accept JSON reporting.
 | `Found dead link` | A page links a file that does not exist; the message names the page and line. Fix the link to the renamed file, or remove it |
 | `needs Node 22.12 or later` | Tell the user; nothing else in dotbrain needs Node |
 | `installing the site engine failed` | Read npm's lines in the message: the first run of a dotbrain version needs network access for `npm ci` |
-| `vitepress build failed for <name>` | Read VitePress's error above it: usually a dead link, invalid frontmatter, or a page that does not compile ([vitepress.md](references/vitepress.md)) |
+| `vitepress build failed for <name>` | Read VitePress's error above it: usually a dead link, invalid frontmatter, or a page that does not compile ([vitepress.md](../curate-project-context/references/vitepress.md)) |
 | `has no build to preview` | Run `dotbrain site build` first |
 | `cannot serve on 127.0.0.1:4173` | Another preview holds the port: stop it first |
 | `no .brain found here` | Run from a wired repo or pass `--project <project>` |
-| A page builds but renders wrongly | [vitepress.md](references/vitepress.md), then [mermaid.md](references/mermaid.md) for diagrams |
+| A page builds but renders wrongly | [vitepress.md](../curate-project-context/references/vitepress.md), then [mermaid.md](../curate-project-context/references/mermaid.md) for diagrams |
 | Change the look | `.brain/site/theme/style.css`, loaded after the defaults |
 | Add a component | `.brain/site/theme/index.ts` exporting `{ enhanceApp({ app }) { ... } }` |
 | Replace the theme | `.brain/site/theme/index.ts` exporting a whole theme; extend `@dotbrain/theme` to keep Mermaid, `<DocsOverview />`, `<LearnOverview />`, and the status badge. The default styles still load; override them in `style.css` |

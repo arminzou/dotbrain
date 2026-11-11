@@ -1,6 +1,6 @@
 ---
 name: manage-work-graph
-description: Maintains the project's private work graph — files, shapes, links, claims, records outcomes for, and closes work items. Use for any interaction with the project issue tracker — filing work items, inspecting the ready frontier, claiming, updating status, applying closure. Hands implementation of an item or finite batch to run-execution. NOT for decomposing a design doc into an epic (to-issues), formalizing an initiative (to-design), closing one out (close-design), or triaging public issues (triage-public).
+description: Maintains the project's private work graph — files, shapes, links, claims, records outcomes for, and closes work items. Use for any interaction with the project issue tracker — filing work items, inspecting the ready frontier, claiming, updating status, applying closure. Hands implementation of an item or finite batch to run-execution. NOT for decomposing a design doc into an epic (to-issues), formalizing an initiative (to-design), closing one out (close-design), or triaging public issues (optional triage-public, when available).
 ---
 
 # Manage Work Graph
@@ -22,8 +22,9 @@ Boundaries:
 - **Private work graph** — work items in the engine's store; this skill owns it and it is the
   source of truth. Never mirror work state into markdown docs, ROADMAPs, TodoWrite/task lists, or
   a public issue tracker.
-- **Public issue tracker** — handled by `triage-public`; existing public collaboration may be
-  promoted inward with a provenance link, but private work is never published outward for tracking.
+- **Public issue tracker** — the optional `triage-public` handles requested intake when available;
+  existing public collaboration may be promoted inward with a provenance link, but private work
+  is never published outward for tracking.
   See [references/public-provenance.md](references/public-provenance.md) when work crosses that
   boundary.
 - **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`, `.brain/DOTBRAIN.md`; owned by other skills.
@@ -54,7 +55,8 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
 - An epic exists but has no child work items — it has not been decomposed yet; run `to-issues`.
 - The item is human-gated — stop for sign-off before claiming it (see [Ownership and closure](#ownership-and-closure)).
 - The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
-  `teach-me` resumes and updates it.
+  leave it deferred. The optional `teach-me` resumes and updates it when available and explicitly
+  invoked; its absence does not block private work.
 
 Branch selection and delivery follow [run-execution](../run-execution/SKILL.md).
 Session invariants follow the dotbrain convention.

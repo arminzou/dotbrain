@@ -1,7 +1,8 @@
 # Publishing lessons and references
 
-A Brain site renders `learning/lessons/` and `learning/reference/` under Learn. This guide adds the
-site's syntax and checks to the `teach-me` skill's lesson format, and it wins where the two differ.
+A Brain site renders `learning/lessons/` and `learning/reference/` under Learn. This guide defines
+the site's lesson syntax and checks. When the optional `teach-me` skill is available, this guide
+wins where its site-specific requirements differ from that skill's lesson format.
 
 ## Where files go
 
@@ -136,7 +137,8 @@ the Brain's own: add one for the topic if the home page has them.
 
 ## Check
 
-Site verification belongs to the `brain-site` workflow. A successful check means every page
+Site verification uses `dotbrain site build` and a rendered-page check; the optional `brain-site`
+workflow guides that work when available and explicitly invoked. A successful check means every page
 compiles, every lesson and reference names a mission topic, and every nav and internal link resolves.
 
 When the Brain has no `.brain/site/`, write the pages to this format anyway. Home sync records and shares

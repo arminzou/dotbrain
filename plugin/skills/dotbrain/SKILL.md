@@ -135,12 +135,20 @@ execution state.
   frontmatter vocabulary lives in `to-design`'s design template
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
-- `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,
-  never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
-  asks to park a concept for later learning, file it per `manage-work-graph`'s learning-beads
-  reference
+- `learning/` — the operator's optional learning workspace, never authoritative. When available
+  and explicitly invoked, `teach-me` maintains it; learning paths and parked concepts live in
+  `learn:` beads. When the user asks to park a concept for later learning, file it per
+  `manage-work-graph`'s learning-beads reference
 - `site/` — optional site settings (`site.yaml` nav), home (`index.md`), `configure.md`, and
-  theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
+  theme extensions. `dotbrain site` renders all Brain Markdown; when available and explicitly
+  invoked, `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
 `project.yaml` (`skills:`).
+
+Optional capabilities depend on the skills available in the current runtime: `teach-me` for
+learning, `brain-site` for site maintenance, `triage-public` for public issue intake, and
+`review-architecture` for architecture review. Use them only when available and the request
+authorizes that workflow, preserving each skill's invocation policy. If unavailable, report the
+gap when relevant; do not select, install, or start one merely to continue core work. Private
+work intake remains `manage-work-graph`'s; the site CLI works independently of a site skill.

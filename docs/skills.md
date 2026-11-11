@@ -68,7 +68,7 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 ## Core workflow
 
 Wire, decide, design, decompose, execute, review, close, and curate project context.
-`write-agent-docs` supports the workflow with writing guidance and remains model-invocable.
+`curate-project-context` owns the shared writing and syntax references used by the workflow.
 
 ### Setup
 
@@ -108,8 +108,9 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   evidence covers the commit being accepted and each finding has a recorded outcome. Human PR approval, merge and release remain separate
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
-- **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
-  user-owned skills, and guidance agents reach through pointers
+- Shared writing guidance lives in `curate-project-context/references/writing.md`, with linked
+  VitePress and Mermaid guides. The former `write-agent-docs` entrypoint is absorbed into these
+  references; use them directly when writing public docs, private Brain material, or skills.
 
 ## Optional skills invoked by name
 

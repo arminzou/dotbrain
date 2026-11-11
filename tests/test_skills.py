@@ -38,7 +38,6 @@ def test_discover_skills_finds_all(dotbrain_home: Path):
         "brain/to-issues",
         "brain/triage-public",
         "brain/wire-brain",
-        "brain/write-agent-docs",
         "misc/discovery-test",
     ]
 

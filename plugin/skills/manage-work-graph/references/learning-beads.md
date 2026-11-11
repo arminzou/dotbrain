@@ -1,7 +1,9 @@
 # Learning beads
 
 How to park a concept for later learning when the operator asks ("park this for learning", "I want
-a lesson on this later"). Parking only files the concept; teaching it later belongs to `teach-me`.
+a lesson on this later"). Parking only files the concept and works without a teaching skill.
+The optional `teach-me` owns teaching and learning-path progress when available and explicitly
+invoked. Its absence leaves the deferred records intact; do not select or start it while parking.
 
 ## The shape
 
@@ -12,8 +14,8 @@ not keep an item off the ready frontier.
 Its children are labelled `learning` and their titles start `learn:`. Each covers one topic, so
 the number of learning beads grows with topics, not with questions.
 
-- **Learning path bead**, `learn: <topic> path`: an ordered learning path that spans sessions. `teach-me`
-  creates and advances it.
+- **Learning path bead**, `learn: <topic> path`: an ordered learning path that spans sessions.
+  When available and explicitly invoked, `teach-me` creates and advances it.
 - **Learning backlog bead**, `learn: <topic> backlog`: concepts parked for a topic, waiting to become lessons.
 
 Reuse the project's learning epic. If absent, create it with
@@ -45,14 +47,15 @@ Notes and is appended with `--append-notes`, never rewritten.
 
    ```bash
    bd create "learn: <topic> backlog" --type task --priority 4 --labels learning --parent <epic-id> \
-     --description "Concepts parked for learning, reconciled by teach-me. Read the comments."
+     --description "Concepts parked for later learning. Read the comments."
    bd defer <id>
    bd comments add <id> "<concept note>"
    ```
 
-   An inferred topic that does not match the workspace's topics is expected. `teach-me` assigns it
-   a topic, or proposes a new one, the next time it runs.
+   An inferred topic that does not match the workspace's topics is expected. When available and
+   explicitly invoked later, `teach-me` assigns it a topic or proposes a new one.
 4. Confirm in one line, naming the bead, and return to the work underway. Do not load `teach-me`.
 
 Learning beads are never feature work: do not claim one from the ready frontier, attach one to an
-implementation epic, or close one while parking. `teach-me` owns their lifecycle after parking.
+implementation epic, or close one while parking. Subsequent teaching and lifecycle changes belong
+to `teach-me` when available and explicitly invoked, never to the parking action.

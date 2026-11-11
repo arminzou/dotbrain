@@ -302,11 +302,12 @@ public/private boundary. It reports by default and fixes only what you ask. **Sk
 ### Write or edit agent-facing docs
 
 ```text
-Use write-agent-docs to tighten this project's AGENTS.md.
+Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
 ```
 
 **When:** creating or editing `AGENTS.md`, Brain context, design docs, skills, or public docs agents
-rely on. **Skill:** `write-agent-docs`.
+rely on. **Guidance:** `curate-project-context/references/writing.md` and its linked syntax guides.
+For context repairs, use `curate-project-context` in fix mode.
 
 ### Triage public issues
 

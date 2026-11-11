@@ -1,6 +1,6 @@
-# VitePress for lesson pages
+# VitePress pages
 
-Read this when a lesson needs something the table in [publishing.md](./publishing.md) does not
+Read this when a page needs something the table in [publishing.md](./publishing.md) does not
 cover, or when a page builds but renders wrongly. It says how VitePress treats a page and which
 native feature to reach for; the official guide holds the syntax details.
 

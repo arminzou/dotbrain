@@ -7,12 +7,13 @@ nothing here reads skill prose.
 import json
 from pathlib import Path
 import re
+import shutil
 import tomllib
 
 import pytest
 import yaml
 
-from dotbrain import __version__
+from dotbrain import __version__, resource_loader
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_ROOT = REPO_ROOT / "plugin"
@@ -111,6 +112,27 @@ def test_relative_links_resolve(skill: Path):
         if target.startswith(("http", "#", "{", "$")):
             continue
         assert (skill.parent / target.split("#")[0]).exists(), f"{skill.parent.name} -> {target}"
+
+
+def test_shared_reference_closure_without_optional_skills(tmp_path: Path):
+    optional = {"teach-me", "brain-site", "triage-public", "review-architecture"}
+    with resource_loader.plugin_tree() as plugin:
+        copied = tmp_path / "plugin"
+        shutil.copytree(plugin / "skills", copied / "skills", ignore=shutil.ignore_patterns(*optional))
+    skills = copied / "skills"
+    assert not (skills / "write-agent-docs").exists()
+    owner = skills / "curate-project-context"
+    references = owner / "references"
+    assert {path.name for path in references.glob("*.md")} >= {
+        "writing.md", "dotbrain-skills.md", "vitepress.md", "mermaid.md", "publishing.md",
+    }
+    for path in [owner / "SKILL.md", *references.glob("*.md")]:
+        for target in re.findall(r"\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
+            if target.startswith(("http", "#", "{", "$")):
+                continue
+            resolved = (path.parent / target.split("#")[0]).resolve()
+            assert resolved.is_relative_to(copied), f"{path.name} -> {target} escapes the plugin"
+            assert resolved.is_file(), f"{path.name} -> {target}"
 
 
 @pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)

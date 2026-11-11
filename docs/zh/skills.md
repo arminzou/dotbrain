@@ -60,7 +60,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 ## 核心工作流程 {#core-workflow}
 
 从连接项目、明确决策、设计和拆分任务，到执行、审阅、收尾，再到整理项目上下文。
-`write-agent-docs` 为这些环节提供写作规范，Agent 仍可按需自动调用。
+`curate-project-context` 维护这些环节共用的写作和语法参考。
 
 ### 配置 {#setup}
 
@@ -91,8 +91,8 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 - **`review-gate`**：执行 review（代码、简化或交付准备情况），并将结论和问题处理结果记录在任务中；必要证据对应待验收的 commit、
   各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
 - **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
-- **`write-agent-docs`**：为公开项目文档、私有 Brain 内容、用户自己的 skills，以及 Agent 通过指针读到的指引
-  提供写作规范
+- 共用写作规范放在 `curate-project-context/references/writing.md`，并链接到 VitePress 和 Mermaid 指南。
+  原来的 `write-agent-docs` 入口已并入这些参考文档；编写公开文档、私有 Brain 内容或 skills 时直接读取即可。
 
 ## 按名称调用的可选 skills {#optional-skills-invoked-by-name}
 

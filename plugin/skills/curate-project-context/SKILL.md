@@ -28,8 +28,10 @@ Fix mode writes files, so these bound what it may change:
   `close-design`'s; Beads state is `manage-work-graph`'s.
 - **Credentials belong in the configured secret store**, never in public or private context files.
 
-`write-agent-docs` supplies the writing discipline for pointers, hierarchy, completion criteria, and
-pruning. Apply it when revising prose.
+When creating or revising agent-consumed prose, read [Writing for agents](references/writing.md)
+for pointers, hierarchy, completion criteria, and pruning. These shared references also cover
+[VitePress pages](references/vitepress.md) and [Mermaid diagrams](references/mermaid.md); read the
+relevant guide before using that syntax.
 
 ## Authority map
 
@@ -84,7 +86,7 @@ boundary violation is identified with its exact path and evidence.
 
 ### 3. Test authority and maintainability
 
-Apply the authority map and `write-agent-docs` principles. Look for:
+Apply the authority map and [writing principles](references/writing.md). Look for:
 
 - the same meaning maintained by more than one authority;
 - conflicting instructions or vocabulary across levels;

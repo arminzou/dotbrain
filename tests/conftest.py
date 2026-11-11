@@ -164,7 +164,6 @@ def _dotbrain_home_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
         "brain/review-architecture",
         "brain/grill-decisions",
         "brain/wire-brain",
-        "brain/write-agent-docs",
     ):
         name = Path(skill).name
         shutil.copytree(plugin_skills_root / name, root / "skills" / skill)

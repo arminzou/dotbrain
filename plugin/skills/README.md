@@ -21,8 +21,8 @@ active design records current intent, and Beads tracks private execution.
   closes accepted reviews, and PR approval and merge stay human-owned.
 - **Close out:** ask for [`close-design`](close-design/SKILL.md), by name or in words, to record what was verified,
   promote lasting knowledge, and freeze the design as shipped, abandoned, or superseded.
-- **Supporting writing guidance:** [`write-agent-docs`](write-agent-docs/SKILL.md) guides public docs,
-  private Brain material, and agent instructions. It remains model-invocable.
+- **Shared writing guidance:** context curation's [writing reference](curate-project-context/references/writing.md)
+  guides public docs, private Brain material, and agent instructions.
 
 The person owns success criteria and approves changes to them. The agent stops when a criterion
 needs to change rather than quietly redefining done.

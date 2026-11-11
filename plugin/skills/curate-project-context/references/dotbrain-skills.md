@@ -1,7 +1,7 @@
 # Writing within dotbrain
 
 Dotbrain gives agent-consumed writing three visibility surfaces. The writing principles in
-[`SKILL.md`](../SKILL.md) apply to all three; placement and authority differ.
+[Writing for agents](writing.md) apply to all three; placement and authority differ.
 
 | Surface | Typical documents | Constraint |
 |---|---|---|
@@ -27,7 +27,7 @@ Use dotbrain's specialized workflows when the task changes structure or lifecycl
 - `grill-decisions` resolves contested terminology and durable decisions; other active workflows
   may write already-settled vocabulary or promote their own residue using the established formats.
 
-Those workflows determine what belongs in a document and when it changes. The parent skill
+Those workflows determine what belongs in a document and when it changes. The writing reference
 determines how the resulting writing retrieves cleanly, directs action, and remains maintainable.
 
 ## Section contract for dotbrain skills

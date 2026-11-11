@@ -1,8 +1,3 @@
----
-name: write-agent-docs
-description: Supplies the writing discipline for any document an agent consumes — context pointers, information hierarchy, completion criteria, leading words, pruning. Use when creating or editing AGENTS.md or CLAUDE.md, public project docs agents rely on, Brain context, design or ADR docs, skills, or referenced guidance.
----
-
 # Writing for agents
 
 Use this reference for any document an agent consumes: public project documentation, an
@@ -119,8 +114,8 @@ use `&lt;` and `&gt;` when literal angle brackets belong in ordinary prose.
 ## Dotbrain documents
 
 When writing in a dotbrain-wired project, private Brain, or `$DOTBRAIN_HOME`, read
-[Writing within dotbrain](references/dotbrain-skills.md) for placement, public/private boundaries, and the
+[Writing within dotbrain](dotbrain-skills.md) for placement, public/private boundaries, and the
 workflows that own document structure and lifecycle.
 
-For VitePress-specific syntax, read [page guidance](../brain-site/references/vitepress.md).
-Before drawing a Mermaid diagram, read [diagram guidance](../brain-site/references/mermaid.md).
+For VitePress-specific syntax, read [page guidance](vitepress.md).
+Before drawing a Mermaid diagram, read [diagram guidance](mermaid.md).
