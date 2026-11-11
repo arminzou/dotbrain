@@ -89,8 +89,9 @@ nav:
 字面上的占位符请写成行内代码，表格里也一样：`--project <name>` 和 `--repo <path>`。原始 HTML 只用于有意的
 标记。"Element is missing end tag" 错误可能意味着一个裸占位符被解析成了没闭合的标签；请检查错误提到的文件和行。
 
-需要创建、修改或验证站点时，手动调用 `brain-site`。平常编辑 Brain 时可以直接查阅 VitePress 和 Mermaid
-语法参考，不会因此自动运行站点操作。
+需要创建、修改或验证站点时，使用上面的 CLI 命令。如果你另外提供并选中了兼容的 `brain-site` skill，
+也可以显式调用它。平常编辑 Brain 时，可以直接查阅 `curate-project-context/references/` 下共用的
+VitePress 和 Mermaid 语法参考，不会因此自动运行站点操作。
 
 ## 修改外观 {#changing-the-look}
 

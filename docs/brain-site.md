@@ -9,7 +9,8 @@ look up sensitive project context. The site serves locally on `127.0.0.1`; Dotbr
 
 ## Learn Project Topics with an Agent
 
-Work with an agent using `teach-me` to learn the parts of the project that interest you. Keep
+If you supply and select a compatible [teach-me skill](skills.md#learning), work with an agent
+to learn the parts of the project that interest you. Keep
 the Brain site open alongside the conversation: the agent explains, asks questions, and guides
 practice while the site gives you a visual place to read lessons, follow diagrams, and consult
 references.
@@ -58,8 +59,8 @@ describe an earlier point in time.
 ## Set Up the Reading Experience
 
 Follow [Brain Site configuration](brain-site-configuration.md) to create the site, serve it
-locally, arrange the sidebar, and adjust its appearance. You can also ask the agent's `brain-site`
-skill to help maintain it.
+locally, arrange the sidebar, and adjust its appearance. The CLI needs no optional skill.
+If you supply and select a compatible `brain-site`, invoke it explicitly to help maintain the site.
 
 Markdown stays the authored source. Keep editing it in your usual tools and read the rendered
 pages in the browser.

@@ -9,9 +9,10 @@ pageClass: prompt-examples
 
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
-不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。说出 skill 名称则可以确保选中它。
-`review-architecture`、`run-retro`、`teach-me` 和 `brain-site` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
-`/dotbrain:run-retro`。
+不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。要明确选中某个 skill，
+请使用 runtime 显示的名称。内置的 `run-retro` 不会自动启动，需要显式调用：Claude Code 用
+`/dotbrain:run-retro`，Codex 从 skill picker 选择。下面的学习、站点、公开任务入口和架构示例需要另外提供并
+选中对应 skill，见[目录](skills.md#separately-supplied-workflows)。
 
 ## 配置 {#set-up}
 
@@ -227,8 +228,8 @@ outlive it to ADRs and CONTEXT.md.
 
 ## 学习 {#learn}
 
-开始或继续学习前，先调用 skill：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
-把问题先存起来则不用调用。
+开始或继续学习前，先提供并选中兼容的 `teach-me` 来源，再使用 runtime 显示的名称显式调用。
+它不再内置。先把问题存起来用的是核心工作图，不需要教学 skill。
 
 ### 开始学一个主题 {#start-learning-a-topic}
 
@@ -260,6 +261,8 @@ Park this for learning: why does retrying this operation require an idempotency 
 
 ### 创建或修复 Brain 站点 {#set-up-or-fix-the-brain-site}
 
+`dotbrain site` CLI 不依赖可选 skill。如果你另外提供并选中了 `brain-site`，先显式调用，再使用下面的提示词。
+
 ```text
 Set up a Brain site for this project and put the runbooks in the sidebar.
 ```
@@ -268,7 +271,7 @@ Set up a Brain site for this project and put the runbooks in the sidebar.
 dotbrain site build fails. Find the cause and fix it.
 ```
 
-**什么时候用：** 想在浏览器里读 Brain、调整侧边栏，或修复构建失败。**Skill：** `brain-site`。
+**什么时候用：** 想在浏览器里读 Brain、调整侧边栏，或修复构建失败。**可选 skill：** `brain-site`。
 见 [Brain 站点配置](brain-site-configuration.md)。
 
 ### 检查上下文健康 {#check-context-health}
@@ -293,22 +296,24 @@ Use curate-project-context to tighten this project's AGENTS.md, applying its sha
 
 ### 分诊公开任务 {#triage-public-issues}
 
-直接说明要 triage 公开 issues，或者调用 skill：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
+如果你另外提供并选中了 `triage-public`，可以直接要求 triage，或使用 runtime 显示的名称调用，再说明处理范围：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.
 ```
 
 **什么时候用：** 项目接收公开任务，你想让它们被分类、复现，并纳入私有执行。需要在
-[`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**Skill：** `triage-public`。
+[`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**可选 skill：** `triage-public`。
 
 ### 寻找架构改进点 {#look-for-architecture-improvements}
 
+提供并选中 `review-architecture`，再使用 runtime 显示的名称显式调用。
+
 ```text
-/dotbrain:review-architecture
+Review this codebase for architectural deepening opportunities.
 ```
 
-**什么时候用：** 想结合 Brain 的术语和 ADR，审查代码库里可以加深架构的地方。**Skill：** `review-architecture`，
+**什么时候用：** 想结合 Brain 的术语和 ADR，审查代码库里可以加深架构的地方。**可选 skill：** `review-architecture`，
 只能显式调用。
 
 ## 相关内容 {#related}

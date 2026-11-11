@@ -1,10 +1,11 @@
 # 学习你的项目
 
-Dotbrain 能帮你跨多个会话学习自己在做的项目。`teach-me` skill 会根据项目的 Brain 和当前代码来讲解，
+本页介绍可选的 `teach-me` 流程，它不再随 Dotbrain 提供。先提供兼容来源，并
+[为项目选中它](skills.md#separately-supplied-workflows)，才能使用。没有这个 skill，已有学习资料也会保留。
+这套流程会根据项目的 Brain 和当前代码来讲解，
 检查你的理解，并保存足够的私有学习状态，让下一个会话能从你上次停下的地方接着来。
 
-先在装好 dotbrain 插件的[已连接项目](getting-started.md)里调用 skill：Claude Code 用 `/dotbrain:teach-me`，
-Codex 用 `$teach-me`，再告诉 Agent 你想学什么：
+在[已连接项目](getting-started.md)里选中你提供的 skill，使用 runtime 显示的名称显式调用，再告诉 Agent 你想学什么：
 
 > 教我理解这个项目怎么处理投递失败。我希望学完能自己排查。
 
@@ -108,4 +109,4 @@ Agent 会先提出标题、主题、章节、问题和来源，经你认可后�
 
 编写或发布公开文档和教学是两件事。起草前先商定读者和范围，提交或发布也要单独授权。
 
-这套流程由内置的 [teach-me skills](skills.md#learning)定义。
+这套流程需要另外提供 [teach-me skill](skills.md#learning)。

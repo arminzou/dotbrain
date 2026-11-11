@@ -102,6 +102,11 @@ dotbrain doctor
 
 ### 更新
 
+插件现在提供 13 个核心 skills。`teach-me`、`brain-site`、`triage-public` 和 `review-architecture`
+需要另外提供来源；`write-agent-docs` 已并入上下文整理的参考文档。现有安装如果用到了这些入口，
+更新前请先看 [skill 集合升级说明](docs/zh/getting-started.md#skill-set-upgrade)。
+站点 CLI 和已有用户内容仍然可用。
+
 使用 Claude Code 或 Codex 时，插件和 CLI 需要一起更新。在 Claude Code 中运行 `/plugin`，从菜单中更新 dotbrain，
 再运行 `/reload-plugins`。Codex 则运行：
 

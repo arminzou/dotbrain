@@ -8,7 +8,8 @@
 
 ## 和 Agent 一起学习项目主题 {#learn-project-topics-with-an-agent}
 
-用 `teach-me` 和 Agent 一起学习你感兴趣的那部分项目。对话时把 Brain 站点开在旁边：Agent 负责讲解、提问、
+如果你另外提供并选中了兼容的 [teach-me skill](skills.md#learning)，可以和 Agent 一起学习感兴趣的那部分项目。
+对话时把 Brain 站点开在旁边：Agent 负责讲解、提问、
 带你练习，站点给你一个直观的地方读课程、看图表、查参考。
 
 站点有一个专门的 **Learn** 区域。它的侧边栏按学习 mission 里的主题对课程和参考分组。默认首页会显示
@@ -46,6 +47,6 @@ Brain 站点则让这些内容在学习过程中更方便查看和使用。
 ## 配置阅读体验 {#set-up-the-reading-experience}
 
 按 [Brain 站点配置](brain-site-configuration.md)创建站点、在本地运行、安排侧边栏并调整外观。
-也可以让 Agent 的 `brain-site` skill 帮忙维护。
+CLI 不需要可选 skill。如果你另外提供并选中了兼容的 `brain-site`，可以显式调用它来帮忙维护。
 
 Markdown 仍然是源文件。继续用你习惯的工具编辑，在浏览器里看渲染后的页面。

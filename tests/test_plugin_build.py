@@ -36,9 +36,12 @@ def _frontmatter(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8").split("---")[1])
 
 
-def test_the_skill_set_is_not_empty():
-    """A glob that silently matches nothing would make every other test vacuous."""
-    assert len(SKILL_FILES) >= 10
+def test_packaged_skill_inventory():
+    assert set(SKILL_IDS) == {
+        "wire-brain", "dotbrain", "curate-project-context", "find-unknowns",
+        "grill-decisions", "to-design", "to-issues", "close-design",
+        "manage-work-graph", "run-execution", "iterate-design", "review-gate", "run-retro",
+    }
 
 
 @pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
@@ -77,6 +80,24 @@ def test_invocation_policy_agrees_in_both_runtimes(skill: Path):
     one still auto-fires in the other."""
     claude, codex = explicit_only(skill.parent)
     assert claude == codex, f"{skill.parent.name}: explicit-only in {'Claude Code' if claude else 'Codex'} only"
+
+
+def test_only_retrospectives_require_explicit_invocation():
+    assert {skill.parent.name for skill in SKILL_FILES if explicit_only(skill.parent) == (True, True)} == {
+        "run-retro",
+    }
+
+
+@pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
+def test_core_reference_links_stay_within_packaged_skills(skill: Path):
+    for path in skill.parent.rglob("*.md"):
+        prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
+        for target in re.findall(r"\]\(([^)]+)\)", prose):
+            if target.startswith(("http", "#", "{", "$")):
+                continue
+            resolved = (path.parent / target.split("#")[0]).resolve()
+            assert resolved.is_relative_to(SKILLS_DIR), f"{path} -> {target} escapes packaged skills"
+            assert resolved.is_file(), f"{path} -> {target}"
 
 
 @pytest.mark.parametrize(

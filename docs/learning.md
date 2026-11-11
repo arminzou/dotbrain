@@ -1,11 +1,13 @@
 # Learning Your Project
 
-Dotbrain helps you learn the project you work on across sessions. The `teach-me` skill teaches
+This guide describes the optional `teach-me` workflow; it is no longer bundled with Dotbrain.
+Supply a compatible source and [select it for the project](skills.md#separately-supplied-workflows)
+to use it. Existing learning material stays in place without the skill. The workflow teaches
 from your project's Brain and current code, checks your understanding, and keeps enough private
 learning state for the next session to pick up where you left off.
 
-Start in a [wired project](getting-started.md) with the dotbrain plugin installed. Invoke
-`/dotbrain:teach-me` in Claude Code or `$teach-me` in Codex, then give your learning goal:
+Start in a [wired project](getting-started.md) with your supplied skill selected. Invoke it
+explicitly using the name exposed by the runtime, then give your learning goal:
 
 > Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
 
@@ -125,4 +127,4 @@ project-specific context while the public guide helps anyone using the project.
 Creating or publishing public documentation is a separate action from teaching. Agree the
 audience and scope before drafting, and authorize committing or publishing separately.
 
-The workflow is defined by the bundled [teach-me skill](skills.md#learning).
+The workflow requires a separately supplied [teach-me skill](skills.md#learning).

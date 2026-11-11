@@ -35,7 +35,7 @@ before wiring, so dotbrain can create directory symlinks without Administrator p
 
 ## 1. Install the Plugin
 
-The Brain-coupled skills, the dotbrain convention, and the session-start hook are delivered as a
+The 13 core skills, the dotbrain convention, and the session-start hook are delivered as a
 plugin for Claude Code and Codex, installed once per runtime on each machine rather than per repo.
 
 ::: code-group
@@ -277,6 +277,41 @@ the project's vocabulary and standing decisions without being told.
 ## Staying Current
 
 When a new dotbrain release lands, update the plugin and the CLI together.
+
+### Skill set upgrade
+
+The plugin now ships the [13 core skills](skills.md#core-workflow). Fresh installs no longer
+receive `teach-me`, `brain-site`, `triage-public`, or `review-architecture`. Before updating an
+installation that uses them, preserve any compatible sources you maintain, including supporting
+files and invocation metadata. Without a separately supplied source, that entrypoint will be
+unavailable after the update; the core needs none of them.
+
+Use the existing skill selection mechanism for sources you supply: place each skill under your
+configured data root's `skills/`, choose its relative source path in project `skills:`, and run
+`dotbrain skills link`. For example, if you supplied `my-collection/teach-me`:
+
+```yaml
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+skills:
+  - my-collection/teach-me
+```
+
+You can select a folder instead; overlapping declarations are deduplicated. Folder membership
+does not enable skills globally, and an unselected project receives none of these sources.
+Keep each skill's invocation policy and use the name exposed by the runtime. In Codex, select
+from the skill picker; do not assume an unqualified `$<name>` identifies a plugin skill.
+
+`write-agent-docs` is also no longer an entrypoint: its writing guidance and linked VitePress
+and Mermaid guides live in `curate-project-context/references/`. Read those references directly
+when authoring agent-consumed documents.
+
+This upgrade keeps `dotbrain site`, optional packaged subagents, and `beads.mode: none`.
+Existing lessons, site settings, and work records stay in place. File linking and package checks
+prove delivery; discovery and invocation in a native runtime require separate checks.
+`run-retro` stays packaged and explicit-only: run it manually or through a host schedule you
+authorize; audit still runs only when you ask.
+
+### Update the plugin and CLI
 
 ::: code-group
 

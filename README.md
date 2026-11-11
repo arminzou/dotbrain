@@ -106,6 +106,12 @@ backups, a second machine, and troubleshooting.
 
 ### Update
 
+The plugin now ships 13 core skills. `teach-me`, `brain-site`, `triage-public`, and
+`review-architecture` require separately supplied sources; `write-agent-docs` is absorbed into
+context curation's references. Read the [skill set upgrade notes](docs/getting-started.md#skill-set-upgrade)
+before updating an installation that used these entrypoints. The site CLI and existing user
+content remain available.
+
 For Claude Code and Codex, update the plugin and the CLI together. In Claude Code, run `/plugin`, update dotbrain from the
 menu, then `/reload-plugins`. In Codex:
 

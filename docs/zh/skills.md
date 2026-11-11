@@ -1,7 +1,8 @@
 # Skills
 
-Dotbrain 内置了配合 Brain 使用的 workflow skills，相当于已连接项目的操作手册。它们涵盖连接、规划、执行、公开 issue 的分类处理和
-Brain 维护。其中有几个借鉴并改编自 [mattpocock/skills](https://github.com/mattpocock/skills)。
+Dotbrain 插件内置 13 个核心 skills，相当于已连接项目的操作手册，涵盖连接、理解项目、规划、执行、审阅和 Brain
+维护。核心流程不依赖额外提供的 skills。其中有几个借鉴并改编自
+[mattpocock/skills](https://github.com/mattpocock/skills)。
 
 [工作流程](workflow.md)展示了它们如何配合。
 
@@ -9,6 +10,8 @@ skills 的链接由你自己管理：
 
 - 全局 skills 在 `~/dotbrain/config.yaml` 里选择
 - 项目 skills 在 `brainspaces/<name>/.brain/project.yaml` 里选择
+
+这些设置用来添加你提供的 skill 来源，不会改变插件内置的 skill 列表。
 
 ## 选择和同步 skills {#select-and-reconcile-skills}
 
@@ -94,16 +97,25 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 - 共用写作规范放在 `curate-project-context/references/writing.md`，并链接到 VitePress 和 Mermaid 指南。
   原来的 `write-agent-docs` 入口已并入这些参考文档；编写公开文档、私有 Brain 内容或 skills 时直接读取即可。
 
-## 按名称调用的可选 skills {#optional-skills-invoked-by-name}
+## 操作约定和复盘 {#optional-skills-invoked-by-name}
 
-这些 skills 仍随插件提供。在 Claude Code 中用 `/dotbrain:<name>`，在 Codex 中用 `$<name>`。
-`dotbrain` 和 `triage-public` 也可以直接用文字要求启动；其他 skills 只能按名称调用。
+这两个 skills 也属于 13 个核心 skills。在 Claude Code 中用 `/dotbrain:<name>`。在 Codex 中，从 skill picker 里
+选择，并使用当前 runtime 显示的名称；插件分发的 skills 尚未确认都能用不带命名空间的 `$<name>` 调用。
+`dotbrain` 也可以直接用文字要求启动。`run-retro` 在 Claude Code 和 Codex 的元数据中仍是 explicit-only。
 
 - **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的 runtime 里，直接要求或按名称调用都可以。
 - **`run-retro`**：整理工作和审阅记录中的经验，或检查这些经验是否改善了后续行为。
   手动调用，也可由你配置定时任务运行。建议默认保留在私有 Brain 中；详见[复盘](#retrospectives)。
-- **`triage-public`**：对公开任务跟踪里的条目分类，把准备好的工作提升到私有执行中
-- **`review-architecture`**：审查代码库，寻找可以简化接口、将实现复杂度封装在模块内部的机会
+
+## 另外提供的工作流程 {#separately-supplied-workflows}
+
+`teach-me`、`brain-site`、`triage-public` 和 `review-architecture` 不再随插件提供。以下指南介绍兼容的可选流程，
+只有你另外提供对应来源时才可使用。Dotbrain 不会自动安装或选中它们，核心流程也不依赖它们。
+将 skill 及其支持文件放进配置的数据根目录下的 `skills/`，在项目的 `skills:` 中选择相对来源路径，
+再运行 `dotbrain skills link`。使用 runtime 显示的名称调用，并保留来源原有的调用策略。
+
+- **`triage-public`**：对公开任务分类，把准备好的工作提升到私有执行中；公开入口与核心的私有工作图分开。
+- **`review-architecture`**：按明确请求寻找可以加深架构的地方。
 
 ### Brain 站点 {#brain-site}
 
@@ -117,6 +129,9 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 - **`teach-me`**：跨多个会话，根据 Brain 教你了解自己的项目：在对话中讲解，按一条以 `learn:` bead 跟踪的
   学习路径推进，记录你展示出的理解，并把认可的课程保存到 `.brain/learning/`
 
+没有这些可选入口，站点 CLI 和已有学习资料仍然可用。如果现有安装用到了它们，更新前请先看
+[skill 集合升级说明](getting-started.md#skill-set-upgrade)。
+
 ## subagents {#subagents}
 
 除了 skills，dotbrain 还自带能读 Brain 的 subagents：`worker`、`reviewer`、`verifier` 和 `researcher`。见
@@ -128,7 +143,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 
 ## 安装 {#installing-them}
 
-Claude Code 和 Codex 的 skills 随 marketplace 插件一起提供，每台机器上的每个 runtime 只需安装一次，无需按仓库重复安装。安装命令见[快速开始](getting-started.md)。
+Claude Code 和 Codex 的 13 个核心 skills 随 marketplace 插件一起提供，每台机器上的每个 runtime 只需安装一次，无需按仓库重复安装。安装命令见[快速开始](getting-started.md)。
 插件装在用户级别，所以它的 skills 在每个会话里都可用，包括还没连接的仓库。
 
 Hermes 的 skills 来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，

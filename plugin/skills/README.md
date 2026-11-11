@@ -3,7 +3,8 @@
 Dotbrain's skills cover the work around shipping software: build and maintain project context,
 turn an idea into a design and tasks, implement, review, and close out the result. Each skill has a
 bounded job and hands off what it learned. The Brain holds shared vocabulary and decisions, the
-active design records current intent, and Beads tracks private execution.
+active design records current intent, and Beads tracks private execution. The plugin ships 13 core
+skills; it works without any separately supplied skill sources.
 
 ## Core workflow
 
@@ -27,15 +28,13 @@ active design records current intent, and Beads tracks private execution.
 The person owns success criteria and approves changes to them. The agent stops when a criterion
 needs to change rather than quietly redefining done.
 
-## Optional skills invoked by name
+## Convention and retrospectives
 
-These skills stay shipped. Use `/dotbrain:<name>` in Claude Code or `$<name>` in Codex.
-`dotbrain` and `triage-public` also start from a request in words; the others run only by name.
+These two skills also ship in the core. In Claude Code, use `/dotbrain:<name>`. In Codex, select
+the skill from the picker and use the name exposed by the installed runtime; an unqualified
+`$<name>` is not confirmed for plugin delivery. `dotbrain` also starts from a request in words.
+`run-retro` runs only when explicitly invoked or from an operator-authorized host schedule.
 
-- **Learn:** [`teach-me`](teach-me/SKILL.md) teaches the project from its Brain across sessions.
-- **Triage:** [`triage-public`](triage-public/SKILL.md) brings accepted public issues into private execution.
-- **Brain site:** [`brain-site`](brain-site/SKILL.md) sets up, builds, and previews the private site.
-- **Architecture:** [`review-architecture`](review-architecture/SKILL.md) looks for architectural deepening opportunities.
 - **Convention:** [`dotbrain`](dotbrain/SKILL.md) provides the operating convention. The session-start
   hook injects it automatically; where that hook does not run, ask for it or invoke it by name.
 - **Retrospective:** [`run-retro`](run-retro/SKILL.md) curates private findings from work and
@@ -49,6 +48,17 @@ These skills stay shipped. Use `/dotbrain:<name>` in Claude Code or `$<name>` in
   along with the strongest mechanical enforcement for the rule, which it never builds itself.
   Public delivery needs proposal-specific authorization or enabled project auto-delivery with
   a configured destination; run-retro owns its PR process. Approval and merge remain human-owned.
+
+## Separately supplied skills
+
+`teach-me`, `brain-site`, `triage-public`, and `review-architecture` are no longer packaged.
+If you supply compatible sources, select them through the existing project `skills:` setting and
+`dotbrain skills link`. Directory membership does not activate them globally. Keep their
+supporting references and invocation policies; core work never requires them.
+The `dotbrain site` CLI remains available without a site skill.
+
+The former `write-agent-docs` entrypoint is now the shared
+[writing reference](curate-project-context/references/writing.md), including its syntax guides.
 
 See the [full skill catalog](../../docs/skills.md) for the other skills and
 [getting started](../../docs/getting-started.md) for installation.
