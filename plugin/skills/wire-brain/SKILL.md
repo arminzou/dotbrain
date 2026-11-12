@@ -102,8 +102,8 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 
 The CLI seeds missing Brain scaffolding and links runtime assets. Agents maintain Brain knowledge
 through the relevant Brain skills: context health through `curate-project-context`, execution
-through `manage-work-graph` and design through `to-design`. Public intake can use the optional
-`triage-public` skill when available and requested; wiring never selects or starts it.
+through `manage-work-graph` and design through `to-design`. Requested public intake goes through
+the packaged `triage-public` skill; wiring never starts intake.
 
 ## Wiring contract
 

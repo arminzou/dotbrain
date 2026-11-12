@@ -12,8 +12,7 @@ Code invoke `/dotbrain:run-retro`. In Codex select this skill from the skill pic
 exposed name; `$run-retro` is not confirmed for plugin delivery. The host owns scheduling. This
 skill supplies no scheduler or CLI loop runner.
 
-Maintain private `RETRO.md` as plain Markdown. These are agent findings; human lessons stay in
-the learning workspace, maintained by optional `teach-me` when available and explicitly invoked.
+Maintain private `RETRO.md` as plain Markdown for agent findings.
 This skill is the notebook's only writer: leads record retro candidates on their
 own work records at completion, and this skill curates those into findings and recovers what they
 missed. Add no checkpoint hooks, handoff steps, or

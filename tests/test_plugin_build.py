@@ -41,6 +41,7 @@ def test_packaged_skill_inventory():
         "wire-brain", "dotbrain", "curate-project-context", "find-unknowns",
         "grill-decisions", "to-design", "to-issues", "close-design",
         "manage-work-graph", "run-execution", "iterate-design", "review-gate", "run-retro",
+        "triage-public",
     }
 
 
@@ -135,24 +136,25 @@ def test_relative_links_resolve(skill: Path):
         assert (skill.parent / target.split("#")[0]).exists(), f"{skill.parent.name} -> {target}"
 
 
-def test_shared_reference_closure_without_optional_skills(tmp_path: Path):
-    optional = {"teach-me", "brain-site", "triage-public", "review-architecture"}
+def test_packaged_reference_closure_without_private_library(tmp_path: Path):
     with resource_loader.plugin_tree() as plugin:
         copied = tmp_path / "plugin"
-        shutil.copytree(plugin / "skills", copied / "skills", ignore=shutil.ignore_patterns(*optional))
+        shutil.copytree(plugin / "skills", copied / "skills")
     skills = copied / "skills"
+    assert {path.parent.name for path in skills.glob("*/SKILL.md")} == set(SKILL_IDS)
     assert not (skills / "write-agent-docs").exists()
     owner = skills / "curate-project-context"
     references = owner / "references"
     assert {path.name for path in references.glob("*.md")} >= {
-        "writing.md", "dotbrain-skills.md", "vitepress.md", "mermaid.md", "publishing.md",
+        "writing.md", "dotbrain-skills.md", "vitepress.md", "mermaid.md",
     }
-    for path in [owner / "SKILL.md", *references.glob("*.md")]:
-        for target in re.findall(r"\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
+    for path in skills.glob("*/**/*.md"):
+        prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
+        for target in re.findall(r"\]\(([^)]+)\)", prose):
             if target.startswith(("http", "#", "{", "$")):
                 continue
             resolved = (path.parent / target.split("#")[0]).resolve()
-            assert resolved.is_relative_to(copied), f"{path.name} -> {target} escapes the plugin"
+            assert resolved.is_relative_to(skills), f"{path.name} -> {target} escapes packaged skills"
             assert resolved.is_file(), f"{path.name} -> {target}"
 
 

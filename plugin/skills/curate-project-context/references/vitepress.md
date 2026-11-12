@@ -1,7 +1,7 @@
 # VitePress pages
 
-Read this when a page needs something the table in [publishing.md](./publishing.md) does not
-cover, or when a page builds but renders wrongly. It says how VitePress treats a page and which
+Read this when writing a VitePress page or when a page builds but renders wrongly.
+It says how VitePress treats a page and which
 native feature to reach for; the official guide holds the syntax details.
 
 ## How a page is built
@@ -16,7 +16,7 @@ native feature to reach for; the official guide holds the syntax details.
   page's client code. It runs when the page is opened directly and silently does nothing when the
   reader arrives by a sidebar or next-page link, and the build does not warn. Put page logic in
   `<script setup>`.
-- Vue directives work in the HTML: `v-model`, `@click`, `v-if`. That is what makes a drill possible
+- Vue directives work in the HTML: `v-model`, `@click`, `v-if`. They allow interactive content
   without a custom component.
 - Pages are rendered at build time, so page logic must be SSR-compatible: no browser-only APIs
   such as `window` outside Vue's mount hooks.
@@ -40,24 +40,20 @@ VitePress's [Markdown extensions](https://vitepress.dev/guide/markdown) unless n
 | Checklists, footnotes | Task lists and footnotes |
 | An on-page contents list | `[[toc]]`; the right-hand outline already lists `##` and `###` headings |
 
-Two extensions do not fit lesson pages here:
+Check the project's configuration before using extensions:
 
-- **Importing code snippets** (`<<< @/path`) and **Markdown file inclusion** read files inside the
-  site's source folder, which is the Brain. Repository code is outside it; link code by permalink.
-- **Math equations** need an extra plugin the site does not install; write formulas in a code block
-  or plain text instead.
-
-Diagrams are not native either. The site's theme adds them: a `mermaid` code block becomes the
-`Mermaid` component, which draws it in the browser with Mermaid's `neo` look and the site's colours.
-[mermaid.md](./mermaid.md) has the conventions.
+- **Importing code snippets** (`<<< @/path`) and **Markdown file inclusion** need source paths
+  accessible to the documentation build. Use a permalink for code outside that source tree.
+- **Math equations** need math rendering configured; otherwise use a code block or plain text.
+- **Mermaid diagrams** need a rendering integration. Check the theme or plugins before adding
+  `mermaid` fences. [mermaid.md](./mermaid.md) has diagram guidance.
 
 ## When the native set runs out
 
-Write the smallest HTML that does the job, style it through a class in the Brain's
-`.brain/site/theme/style.css`, and note it in the Brain's `learning/AGENTS.md` so the next page
-reuses it. A behaviour several pages need belongs in a Vue component registered from
-`.brain/site/theme/index.ts`, which is a site change to agree with the user first.
+Write the smallest HTML that does the job and reuse the project's theme styles.
+A behaviour several pages need can use a shared Vue component registered in the project's
+VitePress theme.
 
-The dotbrain engine pins the VitePress version; the guide at vitepress.dev describes the latest
-release. When a documented feature does not render, check the pinned version before
-working around it.
+The guide at vitepress.dev may describe a different release from the project's installed
+VitePress version. Check the project's manifest and lockfile before working around a feature
+that does not render.

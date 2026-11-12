@@ -59,7 +59,7 @@ note.
 For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, never
 `bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
-Stop for missing authorized scope or required checks. Exclude `learn:` beads.
+Stop for missing authorized scope or required checks.
 Keep human-gated items in scope and their dependents waiting. A missing required
 capability blocks execution: worktree isolation for concurrent writers, a distinct Beads
 actor per worker, or an independent reviewer when review is required. Stop and report;

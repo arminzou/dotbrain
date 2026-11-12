@@ -3,12 +3,14 @@
 Dotbrain's skills cover the work around shipping software: build and maintain project context,
 turn an idea into a design and tasks, implement, review, and close out the result. Each skill has a
 bounded job and hands off what it learned. The Brain holds shared vocabulary and decisions, the
-active design records current intent, and Beads tracks private execution. The plugin ships 13 core
+active design records current intent, and Beads tracks private execution. The plugin ships 14 core
 skills; it works without any separately supplied skill sources.
 
 ## Core workflow
 
 - **Wire:** [`wire-brain`](wire-brain/SKILL.md) provisions or repairs a project's Brainspace wiring.
+- **Public intake:** [`triage-public`](triage-public/SKILL.md) triages existing public issues and
+  promotes accepted work inward with provenance. Public mutations need maintainer authorization.
 - **Build context:** [`find-unknowns`](find-unknowns/SKILL.md) surfaces blind spots;
   [`grill-decisions`](grill-decisions/SKILL.md) settles shared terms and durable choices;
   [`curate-project-context`](curate-project-context/SKILL.md) keeps that context coherent as it grows.
@@ -49,13 +51,11 @@ the skill from the picker and use the name exposed by the installed runtime; an 
   Public delivery needs proposal-specific authorization or enabled project auto-delivery with
   a configured destination; run-retro owns its PR process. Approval and merge remain human-owned.
 
-## Separately supplied skills
+## Custom skills
 
-`teach-me`, `brain-site`, `triage-public`, and `review-architecture` are no longer packaged.
-If you supply compatible sources, select them through the existing project `skills:` setting and
-`dotbrain skills link`. Directory membership does not activate them globally. Keep their
-supporting references and invocation policies; core work never requires them.
-The `dotbrain site` CLI remains available without a site skill.
+Select your own skills through the existing project `skills:` setting and `dotbrain skills link`.
+Directory membership does not activate them globally. The packaged core needs no private library
+or project skill selection.
 
 The former `write-agent-docs` entrypoint is now the shared
 [writing reference](curate-project-context/references/writing.md), including its syntax guides.
