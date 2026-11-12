@@ -81,14 +81,6 @@ dotbrain skill twice: once from dotbrain and once from a folder you keep, such a
 `~/.config/opencode/skills` link or `~/.claude/skills`. Remove the other copy, or move it out of
 OpenCode's skill folders, then restart OpenCode. See [OpenCode](getting-started.md#opencode).
 
-### `dotbrain site` fails
-
-Check `node --version`; the site needs Node.js 22.12 or later. Follow the build error to the named
-file and line: missing links, invalid frontmatter, and malformed HTML or Vue markup can fail a
-build. For "Element is missing end tag", look for bare placeholders such as `<name>` or `<path>`
-and wrap them in inline code, including in tables. See
-[Brain site configuration](brain-site-configuration.md#what-fails-the-build).
-
 ## Home Sync
 
 `dotbrain doctor` reports [home sync](session-context.md#home-sync) state from local Git data. It
@@ -109,7 +101,7 @@ Both machines changed the same part of a file before either synced. Sync kept bo
 
 Sync never merges these for you. Open both files, merge what you want to keep into the original,
 and delete the copy. The next sync records both changes, and the copy disappears on the other
-machine too. The Brain site skips conflict copies, so they never show up as extra pages.
+machine too.
 
 ### A file stays uncommitted
 

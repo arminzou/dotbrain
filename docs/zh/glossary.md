@@ -50,10 +50,6 @@ Brainspace 小。
 
 Beads 执行存储里的一个任务。epic 把 bead 归组，`blocks` 依赖决定哪些已经可以开始。
 
-### Brain site
-
-`dotbrain site` 根据 Brain 渲染出来的私有本地文档站点。见 [Brain 站点](brain-site.md)。
-
 ### `config.yaml`
 
 dotbrain 的全局配置文件，通常在 `~/dotbrain/config.yaml`。它存放整台机器的默认配置，比如共享的 beads 服务器设置。

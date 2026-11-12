@@ -74,7 +74,6 @@ treeView-beta
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
-    learning/ ## optional learning workspace
 ```
 
 | Element | Holds | Changes when |
@@ -87,7 +86,6 @@ treeView-beta
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
-| `learning/` | Optional learning workspace for the operator | You learn the project with a separately supplied and selected `teach-me` |
 
 ADRs record decisions that are hard to reverse, surprising without context, and the result of a
 real trade-off. An **active** design is the living authority for its initiative; once it is

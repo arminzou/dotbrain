@@ -144,10 +144,10 @@ Codex project skills use `<checkout>/.agents/skills/`, independently of its `.co
 configuration and subagents. Global skills and profiles retain their existing homes.
 See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-link migration and collisions.
 
-`public-tracker` declares public issue intake and contributor collaboration; it does not install
-an intake skill. A separately supplied `triage-public` can use it when selected. It never mirrors
-the private work graph or turns private work into public issues. See
-[separately supplied workflows](skills.md#separately-supplied-workflows).
+`public-tracker` declares public issue intake and contributor collaboration. The packaged
+`triage-public` skill reads it without a private source or `skills:` selection. Accepted public
+issues flow inward into private execution; private work never generates public tracking issues.
+See [public issue intake](skills.md#public-issue-intake).
 
 `run-retro` reads its settings directly; they add no CLI delivery command. With auto-delivery
 disabled or unset, it updates private findings, discovers the repository's guidance conventions,

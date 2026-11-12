@@ -76,13 +76,6 @@ Defender 或搜索索引器占用着刚克隆的文件。重试一次。如果�
 `OpenCode loads one of the two at random`。删掉另一份，或者把它移出 OpenCode 的 skills 目录，然后重启 OpenCode。
 详见[OpenCode](getting-started.md#opencode)。
 
-### `dotbrain site` 失败 {#dotbrain-site-fails}
-
-检查 `node --version`；站点需要 Node.js 22.12 或更高版本。顺着构建错误找到提到的文件和行：缺失的链接、
-无效的 frontmatter、格式错误的 HTML 或 Vue 标记都可能导致构建失败。遇到 "Element is missing end tag" 时，
-找一找没加反引号的占位符，比如 `<name>` 或 `<path>`，用行内代码包起来，表格里也一样。见
-[Brain 站点配置](brain-site-configuration.md#what-fails-the-build)。
-
 ## 主目录同步 {#home-sync}
 
 `dotbrain doctor` 根据本地 Git 数据报告[主目录同步](session-context.md#home-sync)的状态。它不会
@@ -100,7 +93,7 @@ doctor 报告 `home sync: open conflict copy <path>`。
   不是副本内容来自的机器。同一天同一个文件再次冲突时，会加上编号，如 `-2`。
 
 同步不会替你合并。打开两个文件，把要保留的内容合并进原文件，然后删掉副本。下一次同步会记录这两处
-改动，另一台机器上的副本也会随之消失。Brain 站点会跳过冲突副本，所以它们不会变成多余的页面。
+改动，另一台机器上的副本也会随之消失。
 
 ### 有文件一直没提交 {#a-file-stays-uncommitted}
 

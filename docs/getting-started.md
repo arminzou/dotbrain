@@ -35,7 +35,7 @@ before wiring, so dotbrain can create directory symlinks without Administrator p
 
 ## 1. Install the Plugin
 
-The 13 core skills, the dotbrain convention, and the session-start hook are delivered as a
+The 14 core skills, the dotbrain convention, and the session-start hook are delivered as a
 plugin for Claude Code and Codex, installed once per runtime on each machine rather than per repo.
 
 ::: code-group
@@ -280,34 +280,28 @@ When a new dotbrain release lands, update the plugin and the CLI together.
 
 ### Skill set upgrade
 
-The plugin now ships the [13 core skills](skills.md#core-workflow). Fresh installs no longer
-receive `teach-me`, `brain-site`, `triage-public`, or `review-architecture`. Before updating an
-installation that uses them, preserve any compatible sources you maintain, including supporting
-files and invocation metadata. Without a separately supplied source, that entrypoint will be
-unavailable after the update; the core needs none of them.
+The plugin ships [14 core skills](skills.md#core-workflow), including `triage-public`.
+Public intake needs no private copy or `skills:` selection. If you previously selected a private
+copy of `triage-public`, you can remove that redundant source from the relevant project or global
+`skills:` list, then run `dotbrain skills link` for the project or
+`dotbrain skills link --scope global` for global selections. If a selected bundle contains it,
+replace that bundle selection with the individual sources you still want. Reconciliation removes
+owned links that are no longer selected; keep the source files. No selection is changed by the
+upgrade itself. [Generic skill selection](skills.md#select-and-reconcile-skills) remains available.
 
-Use the existing skill selection mechanism for sources you supply: place each skill under your
-configured data root's `skills/`, choose its relative source path in project `skills:`, and run
-`dotbrain skills link`. For example, if you supplied `my-collection/teach-me`:
-
-```yaml
-# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
-skills:
-  - my-collection/teach-me
-```
-
-You can select a folder instead; overlapping declarations are deduplicated. Folder membership
-does not enable skills globally, and an unselected project receives none of these sources.
-Keep each skill's invocation policy and use the name exposed by the runtime. In Codex, select
-from the skill picker; do not assume an unqualified `$<name>` identifies a plugin skill.
+`brain-site`, `teach-me`, and `review-architecture` are retired. The `dotbrain site` command group,
+including `dotbrain site init`, `dotbrain site dev`, `dotbrain site build`, and
+`dotbrain site preview`, has been removed. Existing user files, private skill copies, lessons,
+site settings, caches, and work records stay untouched. Dotbrain no longer creates, refreshes,
+or renders private sites or manages a teaching workflow. Architectural reasoning remains part
+of ordinary design and engineering review.
 
 `write-agent-docs` is also no longer an entrypoint: its writing guidance and linked VitePress
 and Mermaid guides live in `curate-project-context/references/`. Read those references directly
 when authoring agent-consumed documents.
 
-This upgrade keeps `dotbrain site`, optional packaged subagents, and `beads.mode: none`.
-Existing lessons, site settings, and work records stay in place. File linking and package checks
-prove delivery; discovery and invocation in a native runtime require separate checks.
+This upgrade keeps optional packaged subagents and `beads.mode: none`. File linking and package
+checks prove delivery; discovery and invocation in a native runtime require separate checks.
 `run-retro` stays packaged and explicit-only: run it manually or through a host schedule you
 authorize; audit still runs only when you ask.
 

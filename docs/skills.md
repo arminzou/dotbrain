@@ -1,7 +1,8 @@
 # Skills
 
-The dotbrain plugin delivers 13 core skills: the operating manual for a wired project.
-They cover wiring, project understanding, planning, execution, review, and Brain maintenance.
+The dotbrain plugin delivers 14 core skills: the operating manual for a wired project.
+They cover wiring, project understanding, planning, public issue intake, execution, review,
+and Brain maintenance.
 The core works without separately supplied skills. Several are inspired by and adapted
 from [mattpocock/skills](https://github.com/mattpocock/skills).
 
@@ -104,6 +105,15 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   implement, verify, reflect, deliver through a draft pull request that becomes ready for your
   review, and stop on success or blocked
 
+### Public issue intake
+
+- **`triage-public`** — classify and reproduce public issues, clarify scope with reporters, and
+  promote accepted work inward into private execution with a reference to its public origin.
+  It ships with the plugin and needs no private source or `skills:` selection. Set
+  `public-tracker` in [project configuration](configuration.md#project-yaml) to use public intake;
+  public mutations still require applicable authorization. Private work never generates public
+  tracking issues.
+
 ### Review and curate
 
 - **`review-gate`** — review code, simplification opportunities, or readiness for delivery, and record the
@@ -117,7 +127,7 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
 
 ## Convention and retrospectives {#optional-skills-invoked-by-name}
 
-These two skills complete the 13-skill core. In Claude Code, use `/dotbrain:<name>`. In Codex,
+These two skills complete the 14-skill core. In Claude Code, use `/dotbrain:<name>`. In Codex,
 select the skill from the picker and use the name exposed by the installed runtime; an
 unqualified `$<name>` is not confirmed for plugin delivery. `dotbrain` also starts from a
 request in words. `run-retro` remains explicit-only in both Claude Code and Codex metadata.
@@ -127,36 +137,6 @@ request in words. `run-retro` remains explicit-only in both Claude Code and Code
 - **`run-retro`** — collect lessons from work and review records, or check whether those lessons
   improved later behavior. Invoke it manually or through a schedule you configure. Suggestions
   stay private by default; see [Retrospectives](#retrospectives).
-
-## Separately supplied workflows
-
-`teach-me`, `brain-site`, `triage-public`, and `review-architecture` no longer ship in the plugin.
-The following guides describe compatible optional workflows, available only if you supply their
-sources. Dotbrain does not install or select them automatically, and core work does not require
-them. Put a skill and its supporting files under your configured data root's `skills/`, select
-its relative source path in project `skills:`, then run `dotbrain skills link`.
-Use the name exposed by your runtime and preserve the source's invocation policy.
-
-- **`triage-public`** — classify public tracker items and promote ready work into private execution;
-  public intake is separate from the core private work graph.
-- **`review-architecture`** — explicitly request architectural deepening opportunities.
-
-### Brain Site
-
-- **`brain-site`** — explicitly invoke to set up, maintain, build, or preview a Brain's private
-  site with `dotbrain site`, including sidebar, theme, and rendering checks
-
-### Learning
-
-See [Learning your project](learning.md) for learning paths, parked concepts, and session continuity.
-
-- **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in
-  conversation, walk a learning path tracked as a `learn:` bead, record what was demonstrated, and
-  capture approved lessons into `.brain/learning/`
-
-The site CLI and existing learning material remain usable without these optional entrypoints.
-See [the upgrade notes](getting-started.md#skill-set-upgrade) before updating an installation
-that used them.
 
 ## Subagents
 
@@ -170,7 +150,7 @@ Custom subagents selected under `subagents:` in `config.yaml` use the same defau
 
 ## Installing Them
 
-For Claude Code and Codex, the 13 core skills arrive with the marketplace plugin, installed once per runtime on each machine rather than per repo. See
+For Claude Code and Codex, the 14 core skills arrive with the marketplace plugin, installed once per runtime on each machine rather than per repo. See
 [getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
 user scope, its skills are available in every session, including repos that are not wired yet.
 

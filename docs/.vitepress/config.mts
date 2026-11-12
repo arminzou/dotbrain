@@ -34,7 +34,7 @@ export default defineConfig({
       description: '为 Coding Agent 提供私有的项目上下文，不放进公开代码仓库。',
       themeConfig: {
         nav: [
-          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
           { text: '参考', link: '/zh/cli-reference', activeMatch: '^/zh/(cli-reference|configuration|skills|glossary)' },
           { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
         ],
@@ -52,8 +52,6 @@ export default defineConfig({
             items: [
               { text: '开发项目', link: '/zh/workflow' },
               { text: '和 Agent 团队一起工作', link: '/zh/agent-team' },
-              { text: '学习项目', link: '/zh/learning' },
-              { text: '浏览 Brain', link: '/zh/brain-site' },
             ],
           },
           {
@@ -74,7 +72,6 @@ export default defineConfig({
             items: [
               { text: 'CLI 参考', link: '/zh/cli-reference' },
               { text: '配置', link: '/zh/configuration' },
-              { text: 'Brain 站点配置', link: '/zh/brain-site-configuration' },
               { text: 'Skills', link: '/zh/skills' },
               { text: '术语表', link: '/zh/glossary' },
             ],
@@ -121,7 +118,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|learning|wiring|session-context|beads-backend|brain-site|troubleshooting)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -139,8 +136,6 @@ export default defineConfig({
         items: [
           { text: 'Develop a project', link: '/workflow' },
           { text: 'Work with an agent team', link: '/agent-team' },
-          { text: 'Learn your project', link: '/learning' },
-          { text: 'Browse the Brain', link: '/brain-site' },
         ],
       },
       {
@@ -161,7 +156,6 @@ export default defineConfig({
         items: [
           { text: 'CLI reference', link: '/cli-reference' },
           { text: 'Configuration', link: '/configuration' },
-          { text: 'Brain site configuration', link: '/brain-site-configuration' },
           { text: 'Skills', link: '/skills' },
           { text: 'Glossary', link: '/glossary' },
         ],

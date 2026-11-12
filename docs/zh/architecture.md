@@ -70,7 +70,6 @@ treeView-beta
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
-    learning/ ## optional learning workspace
 ```
 
 | 部分 | 内容 | 何时变化 |
@@ -83,7 +82,6 @@ treeView-beta
 | `DOTBRAIN.md` | 共享约定，由 dotbrain 维护 | `dotbrain refresh` 更新它时 |
 | `project.yaml` | runtime、任务跟踪、skills 和 subagents 的选择 | 你改变项目使用的东西时 |
 | `docs/` | 派生的操作手册和参考资料 | 随时；从不作为权威依据 |
-| `learning/` | 可选的个人学习工作区 | 你用另外提供并选中的 `teach-me` 学习项目时 |
 
 公开的仓库 `AGENTS.md` 会指引 Agent 在修改或审阅代码时读取根目录下、由 Git 跟踪的
 `RULES.md`；没有 Brain 也能照常使用。共享约定 `DOTBRAIN.md` 负责私有上下文的检索：

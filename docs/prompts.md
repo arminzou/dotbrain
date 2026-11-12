@@ -11,8 +11,8 @@ triggers, and where the step is explained.
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
 For an explicit choice, use the name exposed by your runtime. The packaged `run-retro` never
 starts on its own; invoke it explicitly, for example `/dotbrain:run-retro` in Claude Code, or
-select it from the Codex skill picker. The learning, site, public-intake, and architecture
-examples below require separately supplied and selected skills; see [the catalog](skills.md#separately-supplied-workflows).
+select it from the Codex skill picker. All skills named below ship with the plugin;
+see [the catalog](skills.md).
 
 ## Set Up
 
@@ -243,56 +243,7 @@ are `code` (correctness), `simplify`, and `readiness` (is a subsystem sound enou
 **When:** an initiative ships, is abandoned, or is superseded. Also for sweeping designs that
 never closed out. **Skill:** `close-design`. See [The workflow](workflow.md#_7-close-the-design).
 
-## Learn
-
-To start or continue learning, supply and select a compatible `teach-me` source, then invoke it
-explicitly using the name exposed by your runtime. It is no longer packaged. Parking a question
-uses the core work graph and needs no teaching skill.
-
-### Start learning a topic
-
-```text
-Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
-```
-
-**When:** you want to understand part of the project, not just get an answer. **Skill:**
-`teach-me`. See [Learning your project](learning.md).
-
-### Continue a learning path
-
-```text
-Continue my learning path on retries. Read my progress and learning records, then resume the next step.
-```
-
-**When:** picking up learning in a new session. **Skill:** `teach-me`. See
-[Learning your project](learning.md#walk-a-learning-path).
-
-### Park a question for later
-
-```text
-Park this for learning: why does retrying this operation require an idempotency key?
-```
-
-**When:** a question comes up mid-task and you do not want to switch into teaching now.
-**Skill:** `manage-work-graph`. See [Learning your project](learning.md#park-a-question-while-working).
-
 ## Maintain the Brain
-
-### Set up or fix the Brain site
-
-The `dotbrain site` CLI works without an optional skill. If you supplied and selected
-`brain-site`, invoke it explicitly before using these prompts.
-
-```text
-Set up a Brain site for this project and put the runbooks in the sidebar.
-```
-
-```text
-dotbrain site build fails. Find the cause and fix it.
-```
-
-**When:** you want to read the Brain in a browser, rearrange its sidebar, or repair a failed build.
-**Optional skill:** `brain-site`. See [Brain site configuration](brain-site-configuration.md).
 
 ### Check context health
 
@@ -316,8 +267,8 @@ For context repairs, use `curate-project-context` in fix mode.
 
 ### Triage public issues
 
-If you supplied and selected `triage-public`, ask for triage or invoke the name exposed by your
-runtime, then give the scope:
+Ask for triage or invoke the packaged `triage-public` using the name exposed by your runtime,
+then give the scope. No private source or `skills:` selection is required:
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.
@@ -325,18 +276,8 @@ Triage the open GitHub issues and promote the accepted ones into our work graph.
 
 **When:** the project takes public issues and you want them classified, reproduced, and brought
 into private execution. Requires `public-tracker` in [`project.yaml`](configuration.md#project-yaml).
-**Optional skill:** `triage-public`.
-
-### Look for architecture improvements
-
-Supply and select `review-architecture`, then explicitly invoke the name exposed by your runtime.
-
-```text
-Review this codebase for architectural deepening opportunities.
-```
-
-**When:** you want a review of the codebase for deepening opportunities, informed by the Brain's
-vocabulary and ADRs. **Optional skill:** `review-architecture`, explicit only.
+**Skill:** `triage-public`. Public mutations require applicable authorization; private work
+never generates public tracking issues.
 
 ## Related
 
