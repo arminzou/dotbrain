@@ -28,9 +28,6 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
     Designated conventions and scaffold README paths are dotbrain-owned and overwritten
     so package template changes propagate. All other files, including
     ``project.yaml``, are project-owned and are only written when missing.
-    ``site/`` is never seeded: having it opts a Brain into a Brain site, so only
-    ``dotbrain site init`` writes it. In a Brain that has a site, the dotbrain-owned
-    ``site/configure.md`` manual is refreshed like ``DOTBRAIN.md``.
     """
 
     brain = Path(brainspace) / ".brain"
@@ -39,10 +36,7 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
     files = []
     for rel, src in resource_loader.iter_resource_files("templates/brain"):
         relative = rel.as_posix()
-        site_manual = relative == "site/configure.md"
-        if rel.parts[0] == "site" and not (site_manual and (brain / "site").is_dir()):
-            continue
-        managed = relative in MANAGED_BRAIN_PATHS or site_manual
+        managed = relative in MANAGED_BRAIN_PATHS
         if not create_missing and not managed:
             continue
         dest = paths.confined_path(brain, relative)

@@ -18,7 +18,7 @@ from dotbrain.presentation import activity, project_progress
 from dotbrain import __version__
 from dotbrain import projects
 from dotbrain import doctor as doctor_mod
-from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, home_sync, hooks, migrate, paths, site as site_mod, workflows
+from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, home_sync, hooks, migrate, paths, workflows
 
 app = HelpTyper(
     cls=ResultGroup,
@@ -31,13 +31,11 @@ skills_app = HelpTyper(help="Link dotbrain skills into agent runtimes.", no_args
 subagents_app = HelpTyper(help="Link your custom vendor-native subagents into agent runtimes.", no_args_is_help=True)
 beads_app = HelpTyper(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = HelpTyper(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
-site_app = HelpTyper(help="Set up and run a Brain's private site.", no_args_is_help=True)
 projects_app = HelpTyper(help="Discover registered projects and inspect local settings.", no_args_is_help=True)
 app.add_typer(skills_app, name="skills")
 app.add_typer(subagents_app, name="subagents")
 app.add_typer(beads_app, name="beads")
 app.add_typer(hook_app, name="hook")
-app.add_typer(site_app, name="site")
 app.add_typer(projects_app, name="projects")
 
 
@@ -552,78 +550,3 @@ def subagents_list(home: HomeOption = None, runtime: RuntimeOption = "all", proj
 def subagents_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
     """Reconcile selected custom subagents in project or explicit global scope."""
     _asset_report("agents", "link", home, runtime, project, json_output, scope, repo, all_projects)
-
-
-_SITE_PROJECT = typer.Option(None, "--project", help="Select a named Brainspace.")
-
-
-def _site_target(project: Optional[str], home: Optional[Path]) -> tuple[Path, projects.ProjectTarget, Path]:
-    root = home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
-    target = projects.select_projects(root, project=project)[0]
-    brain = paths.confined_path(target.brainspace, ".brain")
-    if not brain.is_dir():
-        raise site_mod.SiteError(f"no Brain for '{target.project}' at {brain}")
-    return root, target, brain
-
-
-@site_app.command("init")
-def site_init(
-    project: Optional[str] = _SITE_PROJECT,
-    title: Optional[str] = typer.Option(None, "--title", help="Site title. Defaults to '<name> Brain'."),
-    home: HomeOption = None, json_output: JsonOption = False,
-) -> None:
-    """Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual."""
-    _site_operation("init", project, home, json_output, title)
-
-
-def _site_operation(command: str, project: Optional[str], home: Optional[Path],
-                    json_output: bool = False, title: Optional[str] = None) -> None:
-    report = CommandResult(f"site {command}")
-    exit_code = 0
-    try:
-        root, selected, brain = _site_target(project, home)
-        target = TargetResult(project=selected.project,
-                              checkout=str(selected.checkout) if selected.checkout else None)
-        report.targets.append(target)
-        if command == "init":
-            target.changes.extend(f"created {path}" for path in site_mod.init(brain, title))
-        else:
-            kwargs = {"run": site_mod.stderr_run} if command == "build" else {}
-            out = site_mod.run_site(command, dotbrain_home=root, brain=brain,
-                setup_progress=activity("Preparing site engine...", enabled=not json_output and command != "preview"), **kwargs)
-            if command == "build":
-                target.changes.append(f"built into {out}")
-                target.data = {"output": str(out)}
-    except ValueError as exc:
-        report.errors.append(str(exc))
-        exit_code = 2
-    except (site_mod.SiteError, OSError, RuntimeError, yaml.YAMLError) as exc:
-        report.errors.append(str(exc))
-        exit_code = 1
-    if exit_code:
-        report.status = "failure"
-        for target in report.targets:
-            target.status = "failure"
-    if command in ("init", "build") or exit_code:
-        render(report, json_output=json_output)
-    if exit_code:
-        raise typer.Exit(exit_code)
-
-
-@site_app.command("dev")
-def site_dev(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None) -> None:
-    """Serve the Brain site locally with live reload (127.0.0.1)."""
-    _site_operation("dev", project, home)
-
-
-@site_app.command("build")
-def site_build(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None,
-               json_output: JsonOption = False) -> None:
-    """Build the Brain site; fails on a nav link to a missing page."""
-    _site_operation("build", project, home, json_output)
-
-
-@site_app.command("preview")
-def site_preview(project: Optional[str] = _SITE_PROJECT, home: HomeOption = None) -> None:
-    """Serve the last build locally (127.0.0.1)."""
-    _site_operation("preview", project, home)

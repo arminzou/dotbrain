@@ -168,18 +168,49 @@ def test_design_lifecycle_absent_or_no_active_designs_needs_no_tracker(tmp_path)
     assert "no active designs" in doctor._check_design_lifecycle(tmp_path, "none", run)[0].message
 
 
+@pytest.mark.parametrize("source", [
+    "# No frontmatter\nlifecycle: active\n",
+    "---\nlifecycle: active\n",
+    "---\nlifecycle: [broken\n---\n",
+    "---\n- active\n---\n",
+    "---\nnull\n---\n",
+    "---\nlifecycle:\n---\n",
+])
+def test_design_lifecycle_ignores_malformed_or_nonmapping_frontmatter(tmp_path, source):
+    write(tmp_path / ".brain/designs/example.md", source)
+    def run(*args, **kwargs):
+        pytest.fail("no tracker input needed")
+    before = snapshot(tmp_path)
+    findings = doctor._check_design_lifecycle(tmp_path, "embedded", run)
+    assert len(findings) == 1 and "no active designs" in findings[0].message
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("source", [
+    "---\nlifecycle: active\n---\n",
+    "---\r\nlifecycle: \" active \"\r\n--- \t\r\n",
+])
+def test_design_lifecycle_accepts_frontmatter_whitespace(tmp_path, source):
+    write(tmp_path / ".brain/designs/example.md", source)
+    findings = doctor._check_design_lifecycle(tmp_path, "none", lambda *args, **kwargs: pytest.fail("tracker disabled"))
+    assert "tracker disabled" in findings[0].message
+
+
 def test_isolated_upgrade_and_refresh_clear_version_and_convention_drift(tmp_path, monkeypatch):
     root, home = tmp_path / "root", tmp_path / "user"
     brainspace = make_project(root)
     (root / ".git").mkdir()
     write(root / "config.yaml", "sync:\n  enabled: false\n")
     write(brainspace / ".brain/DOTBRAIN.md", "stale convention\n")
+    write(brainspace / ".brain/site/configure.md", "former managed site manual\r\n")
     plugin_registry(home, __version__)
     monkeypatch.setattr(doctor, "__version__", "0.0.0")
-    run = recording_run(tmp_path, [])
+    calls = []
+    run = recording_run(tmp_path, calls)
     before = snapshot(tmp_path)
     report = doctor.run_doctor(root, home=home, project="example", run=run)
     assert snapshot(tmp_path) == before
+    assert not any(argv[0] == "node" for argv, _ in calls)
     assert any(f.status == "warn" and "CLI 0.0.0" in f.message for f in report.machine)
     assert any(f.status == "warn" and "DOTBRAIN.md" in f.message for f in report.projects["example"])
     assert doctor.as_result(report).status == "success"
@@ -422,19 +453,10 @@ def test_malformed_plugin_registry_remains_warning(tmp_path):
     assert doctor._check_plugin(tmp_path, "codex")[0].status == "warn"
 
 
-def test_site_node_optional_and_bounded(tmp_path):
-    brainspace = tmp_path / "project"
-    calls = []
-    run = recording_run(tmp_path, calls, lambda argv, kwargs: subprocess.CompletedProcess(argv, 0, "v18.0.0", ""))
-    assert doctor._check_brain_site(brainspace, run=run) == [] and calls == []
-    (brainspace / ".brain/site").mkdir(parents=True)
-    findings = doctor._check_brain_site(brainspace, run=run)
-    assert len(calls) == 1 and findings[0].status == "warn"
-
-
 def test_cli_json_exits_and_outside_selection(tmp_path, monkeypatch):
     root = tmp_path / "home"
-    make_project(root)
+    brainspace = make_project(root)
+    (brainspace / ".brain/site").mkdir()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "user"))
     runner = CliRunner()
@@ -442,6 +464,7 @@ def test_cli_json_exits_and_outside_selection(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.output
     payload = json.loads(result.stdout)
     assert payload["status"] == "success"
+    assert "Brain site" not in result.stdout
     assert sum(target["scope"] == "machine" for target in payload["targets"]) == 1
     for flags in ([], ["--project", "missing"], ["--all", "--project", "example"], ["--scope", "global"]):
         result = runner.invoke(app, ["doctor", "--home", str(root), "--json", *flags])
