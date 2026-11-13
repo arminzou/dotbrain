@@ -33,7 +33,6 @@ when working within a directory.
 ## Documentation
 
 Before editing public documentation, read [docs/AGENTS.md](docs/AGENTS.md).
-Check the corresponding English and Chinese pages for affected guidance.
 
 ## Verification
 
@@ -41,9 +40,5 @@ Select relevant checks under `tests/`:
 
 - Install dependencies: `uv sync`
 - Run affected tests: `uv run pytest tests/<file>.py`
-- Run the suite before pushing or review: `uv run pytest` (the integrating
-  agent only, when several agents share a branch; see [RULES.md](RULES.md))
+- For full-suite requirements and shared-branch coordination, see [RULES.md](RULES.md#verification).
 - Install the CLI from this checkout: `uv tool install --editable --force .`
-
-Resource files being present does not prove the runtime loads them. For runtime
-loading claims, verify discovery or invocation in the affected runtime.

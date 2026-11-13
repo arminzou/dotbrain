@@ -214,8 +214,9 @@ Public auto-delivery is off by default: suggestions stay private for your decisi
 `retro.promotion.auto-deliver: true` and an existing repo-relative `destinations` array in
 private project configuration to authorize unattended commit/push/PR delivery. Otherwise
 authorize individual proposals. It reads PR/merge state read-only to reconcile acceptance;
-approval and merge remain human-owned. An adopted `RULES.md` uses `Rule` / `What to check`
-tables; other guides retain their conventions. Rule proposals have run-retro's own PR process
+approval and merge remain human-owned. Existing rules and guides retain their format.
+A root `RULES.md` without an established format uses `Rule` / `How to apply` tables
+grouped by work area. Rule proposals have run-retro's own PR process
 and body, independent of the `pr` skill used for ordinary changes.
 ### First use and scope
 

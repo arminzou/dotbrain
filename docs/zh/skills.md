@@ -171,7 +171,8 @@ Cursor 也会读取 `.claude/skills`、`.codex/skills` 和 `.agents/skills`，�
 默认关闭公开自动交付：建议只保存在私有笔记中，由你决定。只有获得单次提案授权，或在私有项目配置中将
 `retro.promotion.auto-deliver` 设为 `true` 并通过 `destinations` 数组列出允许修改的已有公开文件，它才会自动准备和交付改动。
 它以只读方式检查 PR 和合并状态；只有确认改动已合入目标分支，才会记录规则已被接受。PR 批准、合并和发布仍由你决定。
-已采用的 `RULES.md` 按主题使用 `Rule` / `What to check` 表格，其他指南保留原有格式。规则提案使用 `run-retro` 自己的 PR 流程和格式，
+已有规则和指南保留原有格式。根目录的 `RULES.md` 若尚无固定格式，则按工作领域分组，使用 `Rule` / `How to apply` 表格。
+规则提案使用 `run-retro` 自己的 PR 流程和格式，
 不调用负责普通改动交付的 `pr` skill。
 ### 首次运行与整理范围
 
