@@ -120,8 +120,7 @@ overwrites or prunes marked copies and preserves unmarked files and foreign link
 
 The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public
 repo context routes making or reviewing changes to tracked root `RULES.md`. Apply the convention's
-public/private boundary to public repo files. Private project rules live in
-`.brain/AGENTS.md`, with `CLAUDE.md` as its alias. Wiring preserves existing context pointers
+public/private boundary to public repo files. Wiring preserves existing context pointers
 and user instructions; it never authors repository rules.
 
 ## Wiring one repo
@@ -173,5 +172,4 @@ Before declaring wiring fixed:
 - `git -C <repo> status --short` shows no unexpected tracked changes.
 - If beads are enabled, `bd -C <repo> ready` works or reports a valid empty tracker.
 - Public instructions route changes/review to root `RULES.md` and remain useful without a Brain.
-- Private `AGENTS.md` and its `CLAUDE.md` alias remain available for project preferences.
 - Refresh preserves user-owned notebooks, rules, and instructions.

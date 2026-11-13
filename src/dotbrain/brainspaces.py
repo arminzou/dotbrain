@@ -50,13 +50,11 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
             continue
         content = src.read_text(encoding="utf-8")
         files.append((relative, dest, content))
-    if not (brain / "CLAUDE.md").is_symlink():
-        paths.confined_path(brain, "CLAUDE.md")
     changed = []
     brain.mkdir(parents=True, exist_ok=True)
 
-    if not resource_loader.resource("templates/brain/AGENTS.md").is_file():
-        raise FileNotFoundError("package resource templates/brain/AGENTS.md is missing")
+    if not resource_loader.resource("templates/brain/DOTBRAIN.md").is_file():
+        raise FileNotFoundError("package resource templates/brain/DOTBRAIN.md is missing")
 
     for relative, dest, content in files:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -69,10 +67,6 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
         )
         changed.append(relative)
 
-    claude = brain / "CLAUDE.md"
-    if not claude.exists() and not claude.is_symlink() and (brain / "AGENTS.md").is_file():
-        claude.symlink_to("AGENTS.md")
-        changed.append("CLAUDE.md")
     return changed
 
 

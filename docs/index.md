@@ -61,7 +61,6 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 <div class="tp-row dir in">adr/<span class="tp-note">architecture decisions</span></div>
 <div class="tp-row dir in">designs/<span class="tp-note">design docs</span></div>
 <div class="tp-row dir in">docs/<span class="tp-note">reference docs</span></div>
-<div class="tp-row file in">AGENTS.md<span class="tp-note">private rules</span></div>
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">domain vocabulary</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">shared Brain rules</span></div>
 <div class="tp-row file in">project.yaml<span class="tp-note">skills and tracker</span></div>
@@ -72,7 +71,7 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 <div class="tp-cap"><i class="tp-repo"></i>~/repos/my-app</div>
 <div class="tp-row link">.brain<span class="tp-chip">local only</span></div>
 <div class="tp-row link">.beads<span class="tp-chip">local only</span></div>
-<div class="tp-row file">AGENTS.md<span class="tp-note">one pointer line, committed</span></div>
+<div class="tp-row file">AGENTS.md<span class="tp-note">repository routing, committed</span></div>
 </div>
 <p class="tp-foot"><code>.brain</code> and <code>.beads</code> are listed in <code>.git/info/exclude</code>, so Git never sees them.</p>
 </div>

@@ -41,7 +41,6 @@ Classify each piece of project knowledge by its durable authority:
 |---|---|
 | Task-specific retrieval and essential constraints | Public `AGENTS.md` |
 | Established repository rules for making or reviewing changes | Tracked root `RULES.md`, routed from public `AGENTS.md` |
-| Small private project rules and personal preferences | `.brain/AGENTS.md` |
 | Shared Brain operations and private retrieval | `.brain/DOTBRAIN.md` |
 | Private retrospective findings and evidence | `.brain/RETRO.md`, maintained by `run-retro` |
 | Domain vocabulary | `.brain/CONTEXT.md` |
@@ -50,17 +49,16 @@ Classify each piece of project knowledge by its durable authority:
 | Execution status and work notes | Beads |
 | Supporting explanation | A public or private referenced document chosen by sensitivity |
 
-Public, private, and separately scoped `AGENTS.md` files retain their roles; each sibling
-`CLAUDE.md` is a relative symlink to `AGENTS.md`. Keep private rules small and distinct from
-repository requirements and shared operations. Public context remains useful without a Brain.
+Public and separately scoped repository `AGENTS.md` files retain their roles; each sibling
+`CLAUDE.md` is a relative symlink to `AGENTS.md`. Public context remains useful without a Brain.
 Public rationale stands on its own; private paths, record identifiers, and tracker state stay private.
 
 ## Check
 
 ### 1. Inventory the context surface
 
-Read the nearest project instructions, then enumerate relevant public and private `AGENTS.md` and
-`CLAUDE.md` files, including the private Brain's project rules.
+Read the nearest repository instructions, then enumerate public and separately scoped repository
+`AGENTS.md` and `CLAUDE.md` files.
 If the project is wired, inspect `.brain/DOTBRAIN.md`,
 `.brain/CONTEXT.md`, `.brain/project.yaml`, ADR and design indexes or frontmatter, and documents
 reached by context pointers. Load full ADRs, designs, or supporting docs only when a finding requires
@@ -75,7 +73,7 @@ visibility, authority, and mechanical state.
 ### 2. Test topology and boundaries
 
 Check that pointers resolve and required material is reachable under the condition that needs it.
-Check that public, private, and separately scoped `CLAUDE.md` symlinks resolve to the
+Check that public and separately scoped repository `CLAUDE.md` symlinks resolve to the
 canonical sibling `AGENTS.md`.
 Verify that public context still
 works without a Brain, routes making and reviewing changes to root `RULES.md`, and contains
@@ -118,7 +116,7 @@ meaning or another document's lifecycle.
 
 Apply only the findings authorized by the user. Preserve meaning and useful history while moving a
 fact to its authority, removing an exact duplicate, sharpening a pointer, pruning stale guidance,
-or repairing an `AGENTS.md`/`CLAUDE.md` relationship. Back up a meaningful regular `CLAUDE.md`
+or repairing a repository `AGENTS.md`/`CLAUDE.md` relationship. Back up a meaningful regular `CLAUDE.md`
 before replacing it with a symlink.
 
 After a move, update every pointer that should still reach the material. Keep public edits safe for

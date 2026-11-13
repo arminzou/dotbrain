@@ -21,8 +21,10 @@ npm run build                        # must pass before a push
   ``## `config.yaml` `` and ``## `project.yaml` `` through the real config loader. Keep those
   headings exact, keep the fences plain ```` ```yaml ````, and keep every key the test reads.
 - `zh/` holds the Simplified Chinese pages, one per English page with the same file name. They are
-  hand-maintained, best effort: write natural Chinese, keep commands, code, diagrams and terms
-  developers know in English (Agent, Coding Agent, PR, worktree, checkout) as is. When translating a
+  hand-maintained, best effort: preserve the English facts and structure, using short, natural
+  Chinese sentences rather than literal translations or stacked passives. Keep commands, code,
+  diagrams and terms developers know in English (Agent, Coding Agent, PR, gitignore, worktree,
+  checkout, thread) as is. When translating a
   heading that is a link target, keep the English slug with `{#english-slug}`. `zh/cli-reference.md`
   is a hand translation, not generated. Chinese nav and sidebar live under `locales.zh` in
   `.vitepress/config.mts`.

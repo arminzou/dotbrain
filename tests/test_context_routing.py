@@ -1,13 +1,12 @@
-"""Context authority, private rule preservation, and bounded retrieval contracts."""
+"""Context authority, legacy file preservation, and bounded retrieval contracts."""
 from pathlib import Path
 import json
 import subprocess
-import tomllib
 
 import pytest
 from typer.testing import CliRunner
 
-from dotbrain import adopter_repos, brainspaces, doctor, hooks, paths, resource_loader, subagents, workflows
+from dotbrain import adopter_repos, brainspaces, doctor, hooks, paths, resource_loader, workflows
 from dotbrain.cli import app
 
 
@@ -156,7 +155,25 @@ def test_unwire_warns_about_a_partial_pointer_it_leaves(tmp_path):
     assert [w for w in result.warnings if "AGENTS.md" in w and "@.brain/CLAUDE.md" in w]
 
 
-def test_doctor_does_not_warn_that_private_entries_are_legacy(tmp_path):
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
+@pytest.mark.parametrize("opening,closing", [
+    (b"```markdown", b"```"),
+    (b"~~~text", b"~~~~"),
+    (b"  ````markdown", b"  ````"),
+    (b"```", b""),
+])
+def test_legacy_pointer_cleanup_preserves_fenced_examples(tmp_path, newline, opening, closing):
+    pointer = paths.ADOPTER_POINTER.encode().replace(b"\n", newline)
+    example = opening + newline + pointer + newline + closing + newline
+    instructions = tmp_path / "AGENTS.md"
+    instructions.write_bytes(pointer + newline + example + (pointer + newline if closing else b""))
+
+    assert adopter_repos.remove_agent_context_pointer(tmp_path) == ["AGENTS.md"]
+    assert instructions.read_bytes() == example
+    assert adopter_repos.remove_agent_context_pointer(tmp_path) == []
+
+
+def test_doctor_accepts_a_brain_without_private_entries(tmp_path):
     home, brainspace, repo = _project(tmp_path)
     brainspaces.seed_brain(brainspace, home)
     adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
@@ -164,24 +181,27 @@ def test_doctor_does_not_warn_that_private_entries_are_legacy(tmp_path):
     findings = report.machine + report.projects["example"]
     assert not [f.message for f in findings if f.status == "error"]
     assert not [f.message for f in findings if f.status == "warning" and "AGENTS.md" in f.message]
+    assert not (brainspace / ".brain" / "AGENTS.md").exists()
+    assert not (brainspace / ".brain" / "CLAUDE.md").exists()
 
 
-def test_bundled_consumers_keep_private_rules_and_selective_retro_retrieval():
-    convention = resource_loader.resource("templates/brain/DOTBRAIN.md").read_text(encoding="utf-8")
-    assert "Read `.brain/AGENTS.md` before substantial work" in convention
-    assert "the lead or sole agent searches `.brain/RETRO.md`" in convention
-    assert "Workers and reviewers reuse supplied findings" in convention
-    assert "missing notebook blocks nothing" in convention
-    template = resource_loader.resource("templates/brain/AGENTS.md").read_text(encoding="utf-8")
-    assert "personal preferences" in template
-    assert "public root `RULES.md`" in template
-    for role in ("worker", "researcher"):
-        claude = subagents.packaged_body(role, "claude-code")
-        codex = tomllib.loads(subagents.packaged_body(role, "codex"))["developer_instructions"]
-        for consumer in (claude, codex):
-            assert "`RULES.md` (when present)" in consumer
-            assert "`AGENTS.md`" in consumer
-            assert "private rules/preferences" in consumer
-            assert "do not read the whole notebook" in consumer
-    promotion = Path("plugin/skills/run-retro/references/promotion.md").read_text(encoding="utf-8")
-    assert "Personal preferences stay in `.brain/AGENTS.md`" in promotion
+def test_packaged_scaffold_has_no_private_instruction_entries():
+    entries = {path.as_posix() for path, _ in resource_loader.iter_resource_files("templates/brain")}
+    assert "DOTBRAIN.md" in entries
+    assert not entries.intersection({"AGENTS.md", "CLAUDE.md"})
+
+
+@pytest.mark.parametrize("command", ["wire", "refresh"])
+def test_retired_entries_are_not_recreated(tmp_path, monkeypatch, command):
+    home, brainspace, repo = _project(tmp_path)
+    brainspaces.seed_brain(brainspace, home)
+    adopter_repos.wire_repo(repo, brainspace, home, skip_beads_link=True)
+    monkeypatch.chdir(repo)
+    args = ["wire", "--repo", str(repo), "--project", "example", "--skip-beads"] if command == "wire" else ["refresh"]
+    for _ in range(2):
+        result = CliRunner().invoke(app, [*args, "--home", str(home), "--json"])
+        assert result.exit_code == 0, result.output
+        for directory in (repo, brainspace / ".brain"):
+            for name in ("AGENTS.md", "CLAUDE.md"):
+                assert not (directory / name).exists()
+                assert not (directory / name).is_symlink()

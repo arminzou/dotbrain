@@ -25,8 +25,8 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspace.mkdir()
     brainspaces.seed_brain(brainspace, dotbrain_home)
     brain = brainspace / ".brain"
-    assert (brain / "AGENTS.md").is_file()
-    assert (brain / "CLAUDE.md").is_symlink()
+    assert not (brain / "AGENTS.md").exists()
+    assert not (brain / "CLAUDE.md").exists()
     assert (brain / "DOTBRAIN.md").is_file()
     assert b"\r\n" not in (brain / "DOTBRAIN.md").read_bytes()
     for sub in ("adr", "designs", "docs"):
@@ -58,7 +58,34 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: P
     brainspace.mkdir()
     shutil.rmtree(dotbrain_home / "templates")
     brainspaces.seed_brain(brainspace, dotbrain_home)
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
+
+
+@pytest.mark.parametrize("create_missing", [True, False])
+@pytest.mark.parametrize("legacy", ["agents-only", "claude-only", "dangling-alias"])
+def test_seed_brain_preserves_incomplete_legacy_entries(
+    dotbrain_home: Path, tmp_path: Path, create_missing: bool, legacy: str
+):
+    brainspace = tmp_path / "brainspace"
+    brain = brainspace / ".brain"
+    brain.mkdir(parents=True)
+    if legacy == "dangling-alias":
+        (brain / "CLAUDE.md").symlink_to("AGENTS.md")
+    else:
+        name = "AGENTS.md" if legacy == "agents-only" else "CLAUDE.md"
+        (brain / name).write_bytes(b"User instructions\r\n")
+
+    for _ in range(2):
+        changed = brainspaces.seed_brain(brainspace, dotbrain_home, create_missing=create_missing)
+        assert not set(changed).intersection({"AGENTS.md", "CLAUDE.md"})
+        if legacy == "dangling-alias":
+            assert (brain / "CLAUDE.md").readlink() == Path("AGENTS.md")
+            assert not (brain / "AGENTS.md").exists()
+        else:
+            assert (brain / name).read_bytes() == b"User instructions\r\n"
+            other = "CLAUDE.md" if name == "AGENTS.md" else "AGENTS.md"
+            assert not (brain / other).exists()
+            assert not (brain / other).is_symlink()
 
 
 def test_seed_brain_does_not_rewrite_unchanged_owned_files(

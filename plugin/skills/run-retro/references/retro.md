@@ -4,7 +4,7 @@ Maintain one plain Markdown `RETRO.md` in the private Brain. Each finding appear
 work-area headings and, per finding, a bold imperative practice, a `When:` trigger, needed limits,
 and dated source pointers to the work or review records that hold the evidence. Detailed
 chronology stays in those records. Successful practices are marked `Done right` alongside mistakes.
-Keep personal preferences in `.brain/AGENTS.md`.
+Keep personal preferences private; recurrence alone does not make them repository requirements.
 
 ## Example
 

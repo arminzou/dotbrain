@@ -62,7 +62,6 @@ Brain 里的每个部分各有一个用途：
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
-    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
@@ -74,7 +73,6 @@ treeView-beta
 
 | 部分 | 内容 | 何时变化 |
 | --- | --- | --- |
-| `AGENTS.md` | 私有偏好和项目规则；`CLAUDE.md` 是它的别名 | 工作规则变化时 |
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |
 | `adr/` | 架构决策记录（ADR），每个决策一条 | 做出一个难以撤回、有真实取舍的选择时 |
 | `designs/` | 设计文档，每项工作一个文件 | 一项工作被规划、实现或结束时 |
@@ -89,9 +87,10 @@ lead 或独立工作的 Agent 在每个任务或每批任务开始实现或审�
 worker 和 reviewer 复用这些发现，不必通读笔记；笔记缺失不会阻塞工作，也不会因此自动创建。
 会话开始时只注入共享约定，不会注入复盘笔记。
 
-新建 Brain 会生成私有的 `AGENTS.md`，保存少量个人偏好和项目私有规则，
-`CLAUDE.md` 是它的符号链接。Agent 在开始实质工作前读取它，会话启动时不注入。
-wire 和 refresh 保留已有内容和上下文指针。仓库要求放在公开的 `RULES.md`，个人偏好保持私有。
+新建 Brain 不再生成私有的 `AGENTS.md` 和 `CLAUDE.md`，也不再将它们作为指令入口。
+wire 和 refresh 会保留旧文件及已有的上下文引用，但不会要求它们存在，也不会重新生成。
+删除旧文件前，先将有用内容迁移到已有的归属位置：仓库要求放在公开的 `RULES.md`，
+私有词汇、决策、设计和参考资料仍留在 Brain。个人偏好不会自动变成公共要求。
 
 ADR 记录的是难以撤回、没有上下文会让人意外、并且经过真实取舍的决策。**active** 的设计是这项工作的
 权威依据；一旦变成 **shipped**、**abandoned** 或 **superseded**，它就冻结为一份记录，需要长期保留的内容

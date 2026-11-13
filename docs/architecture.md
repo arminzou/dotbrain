@@ -66,7 +66,6 @@ Each element of a Brain has one purpose:
 treeView-beta
   accTitle: The files and folders of a Brain
   .brain/
-    AGENTS.md ## private preferences and project rules
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
@@ -78,7 +77,6 @@ treeView-beta
 
 | Element | Holds | Changes when |
 | --- | --- | --- |
-| `AGENTS.md` | Private preferences and project rules; `CLAUDE.md` is its alias | Working rules change |
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
@@ -119,10 +117,12 @@ writes the notebook. Workers and reviewers reuse supplied
 findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
 only shared conventions, never the notebook.
 
-Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
-rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
-never injected. Wiring and refresh preserve user-owned context and existing pointers.
-Public `RULES.md` holds repository requirements; private preferences stay private.
+Fresh Brains have no private `AGENTS.md` or `CLAUDE.md` instruction layer.
+Wiring and refresh preserve legacy files and existing pointers without requiring
+or recreating them. Migrate useful content to its existing owner before removing
+legacy files: public `RULES.md` holds repository requirements, while private vocabulary,
+decisions, designs, and references stay in the Brain. Personal preferences do not
+automatically become public requirements.
 
 ## Execution Lives in the Tracker
 

@@ -163,10 +163,11 @@ for how context loading and sync differ between runtimes.
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
 without a Brain. The lead or sole agent searches private retrospective findings for the task
 and passes relevant findings through assignments; the notebook is never injected.
-Fresh Brains seed private `AGENTS.md` for a small set of personal preferences and project
-rules, with `CLAUDE.md` as its alias. The agent reads it before substantial work; it is
-never injected. Wiring and refresh preserve user-owned context and existing pointers.
-Public `RULES.md` holds repository requirements; private preferences stay private.
+Fresh Brains have no private `AGENTS.md` or `CLAUDE.md` instruction layer. Wiring and
+refresh preserve existing legacy files and context pointers without requiring or
+recreating them. Before removing legacy files, classify useful content by its owner:
+repository requirements belong in public `RULES.md`; private knowledge stays in the Brain.
+Personal preferences do not automatically become public requirements.
 See [Session context](https://arminzou.github.io/dotbrain/session-context) for the loading sequence.
 
 Use `dotbrain projects list` to discover registered projects. Inside a wired checkout,

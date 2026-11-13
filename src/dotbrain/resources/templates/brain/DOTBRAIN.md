@@ -23,7 +23,6 @@ Do not edit per project; packaged template changes propagate to every Brain.
 
 ## Rules
 
-- Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
 - Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
 - Before implementation or review, the lead or sole agent searches `.brain/RETRO.md` once per
   task or batch and passes applicable practices through assignments; at completion it records
@@ -55,8 +54,7 @@ Do not edit per project; packaged template changes propagate to every Brain.
   `.brain/docs/` for documented answers. These private references are not injected.
 - Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
-  for a public need, derive fresh standalone guidance (the standard `.brain/AGENTS.md` pointer is
-  allowed). Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
+  for a public need, derive fresh standalone guidance. Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
   numbers, Brain paths, decision-record identifiers, or private incident details. State a
   decision's rationale in plain terms; the linkage stays in the Brain.
 
@@ -86,7 +84,7 @@ decisions, rules) and the territory (the codebase and its real constraints). Tha
 project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
 design docs speak one language:
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, public `RULES.md`, and private `AGENTS.md`.
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and public `RULES.md`.
 - **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
 - **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
   Surfaced by grilling and prototypes, then written into canon.
@@ -102,7 +100,6 @@ Active designs own uncertainty; Beads owns execution state.
 
 ## Brain structure
 
-- `AGENTS.md` — small private rules/preferences; `CLAUDE.md` is its relative symlink
 - `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
 - `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
   established repository rules remain authoritative in public `RULES.md`

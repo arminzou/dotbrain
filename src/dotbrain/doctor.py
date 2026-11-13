@@ -56,7 +56,7 @@ def _check_dotbrain_config(root: Path) -> Finding:
 
 
 def _check_templates(root: Path) -> Finding:
-    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/AGENTS.md").is_file()
+    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/DOTBRAIN.md").is_file()
             else Finding("error", "package templates/brain missing", "reinstall dotbrain"))
 
 
@@ -450,12 +450,6 @@ def _check_repo_excludes(repo: Path, entries: tuple[str, ...] = paths.EXCLUDE_EN
     return [Finding("error", f"{exclude}: missing {entry}", "run dotbrain refresh") for entry in entries if entry not in present]
 
 
-def _check_agent_pointer(repo: Path) -> list[Finding]:
-    return [Finding("warn", f"{repo / name}: missing dotbrain pointer", "run dotbrain refresh")
-            for name in ("AGENTS.md", "CLAUDE.md") if (repo / name).is_file()
-            and ".brain/AGENTS.md" not in (repo / name).read_text(encoding="utf-8")]
-
-
 def _probe(argv: list[str], brainspace: Path, run: Runner, label: str) -> Finding:
     try:
         response = run(argv, cwd=brainspace, check=False, timeout=PROBE_TIMEOUT, env=beads._beads_env(brainspace))
@@ -590,8 +584,6 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"Git exclusions unavailable: {exc}", "check Git metadata"))
-        if paths.INJECT_ADOPTER_POINTER:
-            findings.extend(_check_agent_pointer(repo))
         for workspace in workspaces:
             rt = runtimes.for_workspace(workspace)
             directory = runtimes.user_dir(rt, home or Path.home())

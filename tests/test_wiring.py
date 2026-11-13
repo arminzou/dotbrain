@@ -279,7 +279,7 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
 
     brainspace = dotbrain_home / "brainspaces" / "adopter"
     assert result.brainspace == brainspace
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
     # repo links: .beads is skipped because --skip-beads never created brainspace/.beads
     for name in (".brain",):
         assert (repo / name).is_symlink()
@@ -293,16 +293,13 @@ def test_wire_project_wires_fixture_repo(dotbrain_home: Path, fake_home: Path, t
     assert "/.brain" in paths.exclude_entries(repo)
     assert "/.claude" not in paths.exclude_entries(repo)
     assert "/.codex" not in paths.exclude_entries(repo)
-    if paths.INJECT_ADOPTER_POINTER:
-        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
+    assert (repo / "AGENTS.md").read_text() == "# Adopter\n"
     assert not any(".beads is missing" in w for w in result.warnings)
 
     injected = hooks.brain_context(cwd=repo).decode("utf-8")
     assert "## dotbrain convention" in injected
-    # The project's own rules are read on instruction, never injected.
-    assert "Read `.brain/AGENTS.md` before substantial work" in injected
-    assert "Private agent context for this project" not in injected
-    assert (repo / ".brain" / "AGENTS.md").is_file()
+    assert not (repo / ".brain" / "AGENTS.md").exists()
+    assert not (repo / ".brain" / "CLAUDE.md").exists()
 
 
 @pytest.mark.usefixtures("claude_codex_on_path")
@@ -437,7 +434,7 @@ def test_wire_project_does_not_seed_skills_manifest(dotbrain_home: Path, fake_ho
 
 @pytest.mark.usefixtures("claude_codex_on_path")
 def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
-    """Scenario 5: git init with no commits, no AGENTS.md — wire creates AGENTS.md from scratch."""
+    """A greenfield repository keeps its instruction files user-owned."""
     repo = tmp_path / "greenfield"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -455,10 +452,8 @@ def test_wire_project_greenfield_empty_repo(dotbrain_home: Path, fake_home: Path
 
     brainspace = dotbrain_home / "brainspaces" / "greenfield"
     assert result.brainspace == brainspace
-    agents = repo / "AGENTS.md"
-    if paths.INJECT_ADOPTER_POINTER:
-        assert agents.is_file()
-        assert paths.ADOPTER_POINTER in agents.read_text()
+    assert not (repo / "AGENTS.md").exists()
+    assert not (repo / "CLAUDE.md").exists()
     for name in (".brain",):
         assert (repo / name).is_symlink()
     assert (repo / ".claude").is_dir()
@@ -493,10 +488,7 @@ def test_wire_project_repair_idempotency(dotbrain_home: Path, fake_home: Path, t
     brainspace = dotbrain_home / "brainspaces" / "repairme"
     assert (repo / ".brain").resolve() == (brainspace / ".brain").resolve()
 
-    # pointer must not be duplicated in AGENTS.md
-    if paths.INJECT_ADOPTER_POINTER:
-        text = (repo / "AGENTS.md").read_text()
-        assert text.count(paths.ADOPTER_POINTER) == 1
+    assert (repo / "AGENTS.md").read_text() == "# Project\n"
 
 
 def test_wire_project_records_embedded_deviation(dotbrain_home: Path, fake_home: Path, tmp_path: Path):
