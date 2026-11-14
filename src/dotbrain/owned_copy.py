@@ -74,15 +74,28 @@ def state(target: Path, names: Sequence[str]) -> str:
 
 
 def _preserve_retired(target: Path) -> Path | None:
-    """Keep changed old skill bundles outside discovery paths before replacing them."""
+    """Keep changed retired resources outside discovery before replacing their bundle."""
     known = json.loads(resource_loader.resource("retired-skills.json").read_text(encoding="utf-8"))
     skill_root = target / "skills"
     with resource_loader.plugin_tree() as source:
         retained = {entry.name for entry in (source / "skills").iterdir() if entry.is_dir()}
+        removed_files = [name for name in known if name.startswith("skills/") and not (source / name).exists()]
     retired = {Path(name).parts[1] for name in known
                if name.startswith("skills/") and len(Path(name).parts) > 2} - retained
-    if not (skill_root.is_symlink() or skills._is_junction(skill_root)
-            or any((skill_root / name).exists() or (skill_root / name).is_symlink() for name in retired)):
+    has_retired_bundle = (skill_root.is_symlink() or skills._is_junction(skill_root)
+                          or any((skill_root / name).exists() or (skill_root / name).is_symlink() for name in retired))
+
+    def removed_file_changed(name: str) -> bool:
+        entry = target
+        for part in Path(name).parts:
+            entry /= part
+            if entry.is_symlink() or skills._is_junction(entry):
+                return True
+            if not entry.exists():
+                return False
+        return not entry.is_file() or hashlib.sha256(entry.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != known[name]
+
+    if not has_retired_bundle and not any(removed_file_changed(name) for name in removed_files):
         return None
 
     def changed(directory: Path) -> bool:
@@ -101,7 +114,7 @@ def _preserve_retired(target: Path) -> Path | None:
                     return True
         return False
 
-    if changed(target):
+    if not has_retired_bundle or changed(target):
         # Outside each adapter's plugin/extension and skills discovery directories.
         parent = target.parent.parent / ".dotbrain-preserved"
         if parent.is_symlink() or skills._is_junction(parent):

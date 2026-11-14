@@ -107,8 +107,7 @@ with the action the agent should take instead.
 
 Write literal commands, paths, and angle-bracket placeholders as inline code, including in
 tables: `--project <name>`, `--repo <path>`. Use fenced code blocks for multiline examples.
-Bare placeholders such as `<name>` are parsed as HTML; VitePress also compiles that HTML as Vue
-and can fail with "Element is missing end tag". Keep raw HTML for intentional markup only;
+Bare placeholders such as `<name>` are parsed as HTML. Keep raw HTML for intentional markup only;
 use `&lt;` and `&gt;` when literal angle brackets belong in ordinary prose.
 
 ## Dotbrain documents
@@ -116,6 +115,3 @@ use `&lt;` and `&gt;` when literal angle brackets belong in ordinary prose.
 When writing in a dotbrain-wired project, private Brain, or `$DOTBRAIN_HOME`, read
 [Writing within dotbrain](dotbrain-skills.md) for placement, public/private boundaries, and the
 record semantics for vocabulary, decisions, findings, and design lifecycle.
-
-For VitePress-specific syntax, read [page guidance](vitepress.md).
-Before drawing a Mermaid diagram, read [diagram guidance](mermaid.md).

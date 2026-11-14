@@ -5,7 +5,6 @@ This directory is the public docs site: VitePress, deployed to GitHub Pages by
 
 Before creating or revising guidance agents consume, read the shared
 [writing reference](../plugin/skills/maintain-brain/references/writing.md).
-For VitePress-specific syntax, read the [page guide](../plugin/skills/maintain-brain/references/vitepress.md).
 
 ```bash
 cd docs && npm ci && npm run dev     # preview with live reload
@@ -34,18 +33,29 @@ npm run build                        # must pass before a push
 - Check every claim against the code before writing it. Say what dotbrain does, not what a
   neighbouring tool does (Beads, the agent runtime).
 - Add a new page to the sidebar in `.vitepress/config.mts` and to the index in `README.md`.
+- VitePress compiles Markdown into Vue templates. Keep literal commands and placeholders in code;
+  use `v-pre` for literal template expressions. Put page logic in `<script setup>`, keep it
+  SSR-compatible, and access browser APIs only after mounting.
+- Prefer VitePress's native containers, details, code groups, and highlighting before adding HTML
+  or theme classes. Check `package.json`, the lockfile, and theme integration before assuming
+  support for an extension. Use the [VitePress guide](https://vitepress.dev/guide/markdown) for syntax.
 
 ## Diagrams
 
-Follow the dotbrain Mermaid guide,
-[`plugin/skills/maintain-brain/references/mermaid.md`](../plugin/skills/maintain-brain/references/mermaid.md):
-diagram type, label style (bold name over a plain line, italic paths, verb arrow labels), fit, and
-pitfalls. It is the convention for every project dotbrain wires; this site follows it too.
-
-What is specific to this site:
+These conventions apply to this public documentation site:
 
 - Diagrams are drawn by `.vitepress/theme/Mermaid.vue`. Font, size, and colours live there and in
   `.vitepress/theme/style.css`; never style a single diagram.
 - The content column is 688px. Preview the page and confirm each diagram draws, fits without
-  scrolling, and has no clipped label.
+  scrolling, and has no clipped label in both light and dark themes. A passing build does not
+  prove browser rendering.
 - A list of steps with no branches is the HTML step strip, `<ol class="flow-steps">`.
+- Give every Mermaid diagram an `accTitle` and describe its key steps in the surrounding prose.
+  Use flowcharts for branches and shared flow, sequence diagrams for exchanges, state diagrams
+  for lifecycles, and supported tree views for directory layouts.
+- Use short IDs and quoted labels. Two-line labels have a bold name followed by a plain
+  description; one-line labels stay plain. Italicize paths in supported diagram types and use
+  plain verb phrases for arrow labels. Sequence labels stay plain and short, without `<br/>`.
+- Let theme defaults own styling. Avoid reserved IDs such as `end`, backticks nested inside
+  Markdown-string labels, and per-diagram colours. Check the installed renderer and the
+  [Mermaid syntax reference](https://mermaid.js.org/intro/syntax-reference.html) when needed.

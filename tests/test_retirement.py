@@ -1,5 +1,7 @@
 """Breaking transition ownership: known output retires; ambiguous data stays recoverable."""
 from pathlib import Path
+import hashlib
+import json
 import shutil
 
 import pytest
@@ -87,6 +89,48 @@ def test_bundle_transition_refuses_linked_backup_location_before_mutation(tmp_pa
         owned_copy.install(target, ("skills",))
     assert (target / "skills/run-execution/unknown").read_bytes() == b"keep"
     assert list(external.iterdir()) == []
+
+
+@pytest.mark.parametrize("reference", ["vitepress.md", "mermaid.md"])
+@pytest.mark.parametrize("kind", ["intact", "modified", "linked-file", "linked-parent"])
+def test_removed_reference_in_retained_skill_preserves_user_changes(tmp_path, monkeypatch, reference, kind):
+    target = tmp_path / "runtime/plugins/dotbrain"
+    target.mkdir(parents=True)
+    with resource_loader.plugin_tree() as source:
+        shutil.copytree(source / "skills", target / "skills")
+    (target / owned_copy.MARKER).write_text("dotbrain\n", encoding="utf-8")
+    relative = f"skills/maintain-brain/references/{reference}"
+    entry = target / relative
+    original = b"Known formerly packaged rendering reference\n"
+    known = json.loads(resource_loader.resource("retired-skills.json").read_text(encoding="utf-8"))
+    assert relative in known
+    known[relative] = hashlib.sha256(original).hexdigest()
+    identity = tmp_path / "known.json"
+    identity.write_text(json.dumps(known), encoding="utf-8")
+    resource = resource_loader.resource
+    monkeypatch.setattr(resource_loader, "resource", lambda name: identity if name == "retired-skills.json" else resource(name))
+    outside = tmp_path / "private"
+    outside.mkdir()
+    sentinel = outside / reference
+    sentinel.write_bytes(b"User content\xff")
+    if kind == "linked-parent":
+        shutil.rmtree(entry.parent)
+        entry.parent.symlink_to(outside, target_is_directory=True)
+    elif kind == "linked-file":
+        entry.symlink_to(sentinel)
+    else:
+        entry.write_bytes(original if kind == "intact" else b"User change\xff")
+    before = sentinel.read_bytes() if kind.startswith("linked") else entry.read_bytes()
+    saved = owned_copy.install(target, ("skills",))
+    assert owned_copy.state(target, ("skills",)) == "current"
+    assert not (target / relative).exists()
+    if kind == "intact":
+        assert saved is None
+    else:
+        assert saved is not None
+        assert (saved / relative).read_bytes() == before
+        assert (saved / (Path(relative).parent if kind == "linked-parent" else relative)).is_symlink() == kind.startswith("linked")
+    assert sentinel.read_bytes() == b"User content\xff"
 
 
 def test_agent_retirement_preserves_linked_receiver(tmp_path):

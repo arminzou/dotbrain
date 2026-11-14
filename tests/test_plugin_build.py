@@ -139,8 +139,10 @@ def test_packaged_reference_closure_without_private_library(tmp_path: Path):
     owner = skills / "maintain-brain"
     references = owner / "references"
     assert {path.name for path in references.glob("*.md")} >= {
-        "writing.md", "dotbrain-skills.md", "vitepress.md", "mermaid.md",
+        "writing.md", "dotbrain-skills.md",
     }
+    assert not (references / "vitepress.md").exists()
+    assert not (references / "mermaid.md").exists()
     for path in skills.glob("*/**/*.md"):
         prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
         for target in re.findall(r"\]\(([^)]+)\)", prose):
