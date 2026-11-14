@@ -422,6 +422,54 @@ class Calibration(unittest.TestCase):
                 receipt = journey.capture_aliases(root, "second")
             self.assertNotIn("AUTH-PAYLOAD-MUST-NOT-BE-CAPTURED", json.dumps(receipt))
 
+    def assert_snapshot_skips_directory_alias(self, junction=False):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            journey.write(root / "fixture.json", {"schema": 2})
+            brain = root / "data/brainspaces/catalog/.brain"
+            journey.write(brain / "docs/notes.md", "ordinary recorded knowledge")
+            journey.write(root / "workspace/check.py", journey.CHECK_SCRIPT)
+            home = root / "homes/first/.codex"
+            payload = "SYNTHETIC-AUTH-MUST-NOT-BE-SNAPSHOTTED"
+            journey.write(home / "auth.json", payload)
+            alias = brain / "redirected-home"
+            if junction:
+                command = "New-Item -ItemType Junction -Path '{}' -Target '{}' | Out-Null".format(
+                    str(alias).replace("'", "''"), str(home).replace("'", "''"))
+                subprocess.run(["pwsh", "-NoProfile", "-Command", command], check=True,
+                               capture_output=True, text=True, timeout=30)
+            else:
+                alias.symlink_to(home, target_is_directory=True)
+            try:
+                self.assertTrue(journey.is_alias(alias))
+                real_scandir, real_read_text = os.scandir, Path.read_text
+                def guarded_scandir(path):
+                    self.assertFalse(Path(path).resolve().is_relative_to(root / "homes"),
+                                     "snapshot descended into a runtime home")
+                    return real_scandir(path)
+                def guarded_read_text(path, *args, **kwargs):
+                    self.assertFalse(path.resolve().is_relative_to(root / "homes"),
+                                     "snapshot opened a runtime-home file")
+                    return real_read_text(path, *args, **kwargs)
+                result = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+                with patch("journey.bd", return_value=subprocess.CompletedProcess([], 0, stdout="[]")), \
+                        patch("journey.execute", return_value=result), \
+                        patch("journey.os.scandir", side_effect=guarded_scandir), \
+                        patch.object(Path, "read_text", guarded_read_text):
+                    snapshot = journey.snapshot(root, "alias-check")
+                self.assertEqual(snapshot["knowledge"], {"docs/notes.md": "ordinary recorded knowledge"})
+                self.assertNotIn(payload, (root / "private/alias-check.json").read_text())
+            finally:
+                alias.rmdir() if junction else alias.unlink()
+            self.assertEqual((home / "auth.json").read_text(), payload)
+
+    def test_snapshot_does_not_follow_directory_symlinks(self):
+        self.assert_snapshot_skips_directory_alias()
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows directory junction regression")
+    def test_snapshot_does_not_follow_directory_junctions(self):
+        self.assert_snapshot_skips_directory_alias(junction=True)
+
     def test_each_dependent_task_needs_its_own_worker_and_integrated_candidate(self):
         for runtime in ("codex", "claude"):
             for defect in ("wrong-worker", "unrelated-commit", "missing-ui", "unintegrated", "missing-ui-claim"):

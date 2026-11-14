@@ -57,6 +57,26 @@ def is_alias(path, info=None):
     return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == 0xA0000003
 
 
+def walk_entries(roots):
+    """Yield metadata and reject directory aliases before any descent."""
+    pending = list(roots)
+    visited = set()
+    while pending:
+        path = pending.pop()
+        key = os.path.normcase(os.path.abspath(path))
+        if key in visited:
+            continue
+        visited.add(key)
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
+        yield path, info
+        if stat.S_ISDIR(info.st_mode) and not is_alias(path, info):
+            with os.scandir(path) as entries:
+                pending.extend(Path(entry.path) for entry in entries)
+
+
 def capture_aliases(root, phase):
     """Freeze bounded namespace metadata without following links or opening their targets."""
     from verify import lexical_identity
@@ -72,25 +92,12 @@ def capture_aliases(root, phase):
             controller_ids[(info.st_dev, info.st_ino)] = lexical_identity(str(path), str(root))
     aliases = {}
     homes = lexical_identity(str(root / "homes"), str(root))
-    pending = list(roots)
-    visited = set()
-    while pending:
-        path = pending.pop()
+    for path, info in walk_entries(roots):
         key = lexical_identity(str(path), str(root))
         if key == homes or key.startswith(homes + "\\"):
             raise ValueError("Alias capture cannot traverse runtime homes")
-        if key in visited:
-            continue
-        visited.add(key)
-        try:
-            info = path.lstat()
-        except FileNotFoundError:
-            continue
         if is_alias(path, info):
             aliases[key] = lexical_identity(os.readlink(path), str(path.parent))
-        elif stat.S_ISDIR(info.st_mode):
-            with os.scandir(path) as entries:
-                pending.extend(Path(entry.path) for entry in entries)
         elif stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
             target = controller_ids.get((info.st_dev, info.st_ino))
             if target:
@@ -190,11 +197,10 @@ def snapshot(root, name):
     brain = brainspace(root) / ".brain"
     if is_alias(brain):
         raise ValueError("Owning Brain directory is redirected")
-    for file in brain.rglob("*"):
-        info = file.lstat()
+    for file, info in walk_entries([brain]):
         if is_alias(file, info) or info.st_nlink > 1:
             continue
-        if file.is_file():
+        if stat.S_ISREG(info.st_mode):
             confined(root, file.relative_to(root))
             value["knowledge"][str(file.relative_to(brain)).replace("\\", "/")] = file.read_text(encoding="utf-8")
     write(confined(root, f"private/{name}.json"), value)
