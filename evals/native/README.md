@@ -9,7 +9,6 @@ JSONL privately. It does not change the held Promptfoo providers or their record
 
 ```powershell
 python -m unittest discover -s evals/native -v
-node --test --test-concurrency=1 evals/assertions/evidence.test.cjs
 ```
 
 The default tests use synthetic native records and injected boundaries. Every
