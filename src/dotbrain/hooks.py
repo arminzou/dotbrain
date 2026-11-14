@@ -32,7 +32,7 @@ import sys
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
-from dotbrain import config, paths
+from dotbrain import config, paths, pstack
 
 CONVENTION_HEADING = "## dotbrain convention"
 
@@ -74,7 +74,9 @@ def brain_context(cwd: Path | None = None) -> bytes:
         return b""
 
     heading = (CONVENTION_HEADING + "\n\n").encode("utf-8")
-    return heading + convention.read_bytes() + b"\n\n"
+    payload = heading + convention.read_bytes() + b"\n\n"
+    selected = pstack.discovery(root)
+    return payload + selected if len(payload) + len(selected) <= PAYLOAD_LIMIT else payload
 
 
 def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None, output: str = "text") -> None:

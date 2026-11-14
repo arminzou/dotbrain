@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, pstack, resource_loader, run_cache, runtimes, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -502,6 +502,15 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                     for message in brainspaces.unknown_agent_warnings(target.brainspace, root))
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
     agents = config.load_project_subagents(root, target.project)
+    try:
+        integration = pstack.preflight(root, target.project, run=run, backend=True)
+        if target.checkout is not None and target.checkout.is_dir():
+            issues = pstack.delivery_issues(root, target.checkout, workspaces, integration.enabled)
+            findings.extend(Finding("error", issue) for issue in issues)
+            if integration.enabled and not issues:
+                findings.append(Finding("ok", "pstack source qualified, backend reachable, project delivery current"))
+    except DIAGNOSIS_ERRORS as exc:
+        findings.append(Finding("error", f"pstack: {exc}", "correct project.yaml or restore the selected dependency/backend"))
     if not (target.brainspace / ".brain").is_dir():
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
     findings.extend(_check_convention(target.brainspace))

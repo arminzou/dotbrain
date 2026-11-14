@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, run_cache, runtimes, skills, subagents
+from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, pstack, run_cache, runtimes, skills, subagents
 
 # The owned plugin delivery of each runtime that has no marketplace install.
 HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi, "cursor": cursor}
@@ -57,6 +57,10 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
     if kind == "skills" and legacy.exists():
         raise ValueError(f"{legacy}: legacy selection; move skills into .brain/project.yaml")
     if kind == "skills":
+        integration = pstack.preflight(home, target.project, run=run, backend=True)
+        selection = config.load_project_skills(home, target.project)
+        if integration.enabled and any(Path(name).name == pstack.NAME for name in skills.resolve_selection(home, selection)):
+            raise ValueError(f"selected private skill conflicts with the project integration name {pstack.NAME}")
         other_workspaces = tuple(ws for ws in workspaces if ws != ".cursor")
         result = skills.link_project(home, target.brainspace, other_workspaces,
                                      config.load_project_skills(home, target.project), workspace_dirs=workspace_dirs)
@@ -66,6 +70,10 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
                                            scopes=(target.checkout, Path.home()))
             for field in ("linked", "pruned", "warnings", "notices"):
                 getattr(result, field).extend(getattr(cursor_result, field))
+        mode = pstack.reconcile(home, target.checkout, target.project, workspaces,
+                                runtime=runtime, run=run, selection=integration)
+        for field in ("linked", "pruned", "warnings", "notices"):
+            getattr(result, field).extend(getattr(mode, field))
     else:
         names = config.load_project_subagents(home, target.project)
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names,

@@ -38,6 +38,46 @@ class ProjectBeads:
     database: str = ""
 
 
+@dataclass(frozen=True)
+class ProjectPstack:
+    enabled: bool = False
+    source: Path | None = None
+
+
+def parse_pstack(data: dict, location: str) -> ProjectPstack:
+    """Parse the explicit project integration selection without inspecting its source."""
+    if "pstack" not in data:
+        return ProjectPstack()
+    value = data["pstack"]
+    if not isinstance(value, dict):
+        raise ValueError(f"{location}: pstack must be a YAML mapping")
+    unknown = set(value) - {"enabled", "source"}
+    if unknown:
+        raise ValueError(f"{location}: unsupported pstack settings: {', '.join(map(str, unknown))}")
+    enabled = value.get("enabled", False)
+    if not isinstance(enabled, bool):
+        raise ValueError(f"{location}: pstack.enabled must be a YAML boolean")
+    raw = value.get("source")
+    if raw is None and not enabled:
+        return ProjectPstack()
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(f"{location}: pstack.source must name an explicit absolute or ~/ source checkout")
+    source = Path(raw).expanduser()
+    if not source.is_absolute():
+        raise ValueError(f"{location}: pstack.source must be absolute or start with ~/")
+    return ProjectPstack(enabled, source.resolve())
+
+
+def load_project_pstack(dotbrain_home: Path, name: str) -> ProjectPstack:
+    import yaml
+
+    path = _project_config_path(dotbrain_home, name)
+    if not path.is_file():
+        return ProjectPstack()
+    data = _mapping(yaml.safe_load(path.read_text(encoding="utf-8")), str(path))
+    return parse_pstack(data, str(path))
+
+
 _SIZE_UNITS = {"": 1, "B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
 
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Dotbrain Pstack"
+  short_description: "Project-selected pstack integration mode"
