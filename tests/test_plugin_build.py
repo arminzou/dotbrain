@@ -42,6 +42,7 @@ def test_packaged_skill_inventory():
         "grill-decisions", "to-design", "to-issues", "close-design",
         "manage-work-graph", "run-execution", "iterate-design", "review-gate", "run-retro",
         "triage-public",
+        "maintain-brain", "work-graph", "repo-rules",
     }
 
 
