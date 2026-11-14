@@ -111,7 +111,7 @@ def test_seeded_project_omits_agents_and_preserves_existing_lists(dotbrain_home:
     brainspaces.seed_brain(fresh, dotbrain_home)
     assert config.load_project_agents(dotbrain_home, "fresh") == ()
     assert "agents" not in yaml.safe_load((fresh / ".brain/project.yaml").read_text(encoding="utf-8"))
-    assert "# Per-project identity" in (fresh / ".brain" / "project.yaml").read_text(encoding="utf-8")
+    assert yaml.safe_load((fresh / ".brain/project.yaml").read_text(encoding="utf-8")) == {"version": 3}
 
     existing = dotbrain_home / "brainspaces" / "existing"
     (existing / ".brain").mkdir(parents=True)

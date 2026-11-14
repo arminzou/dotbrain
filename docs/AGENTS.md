@@ -4,8 +4,8 @@ This directory is the public docs site: VitePress, deployed to GitHub Pages by
 `.github/workflows/docs.yml` on every push to `main` that touches `docs/`.
 
 Before creating or revising guidance agents consume, read the shared
-[writing reference](../plugin/skills/curate-project-context/references/writing.md).
-For VitePress-specific syntax, read the [page guide](../plugin/skills/curate-project-context/references/vitepress.md).
+[writing reference](../plugin/skills/maintain-brain/references/writing.md).
+For VitePress-specific syntax, read the [page guide](../plugin/skills/maintain-brain/references/vitepress.md).
 
 ```bash
 cd docs && npm ci && npm run dev     # preview with live reload
@@ -38,7 +38,7 @@ npm run build                        # must pass before a push
 ## Diagrams
 
 Follow the dotbrain Mermaid guide,
-[`plugin/skills/curate-project-context/references/mermaid.md`](../plugin/skills/curate-project-context/references/mermaid.md):
+[`plugin/skills/maintain-brain/references/mermaid.md`](../plugin/skills/maintain-brain/references/mermaid.md):
 diagram type, label style (bold name over a plain line, italic paths, verb arrow labels), fit, and
 pitfalls. It is the convention for every project dotbrain wires; this site follows it too.
 

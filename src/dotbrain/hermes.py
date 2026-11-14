@@ -90,7 +90,9 @@ def deliver(hermes_home: Path, *, run: Runner = _default_run) -> LinkResult:
         result.warnings.append(f"{target} exists and was not created by dotbrain; skipping")
         return result
     if current != "current":
-        owned_copy.install(target, resource_loader.HERMES_PLUGIN_FILES)
+        preserved = owned_copy.install(target, resource_loader.HERMES_PLUGIN_FILES)
+        if preserved:
+            result.notices.append(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
         result.linked.append(f"hermes/plugins/{PLUGIN}")
     if activation(hermes_home) == "not enabled":
         if shutil.which("hermes") is None:

@@ -7,6 +7,7 @@ fine on GitHub.
 
 - [why-dotbrain.md](why-dotbrain.md) — candid comparisons, trade-offs, and when to skip it.
 - [getting-started.md](getting-started.md) — install, wire a repo, and verify the result.
+- [upgrading.md](upgrading.md) — breaking core transition and preservation of existing resources.
 - [prompts.md](prompts.md) — example prompts for each common job, and the skill each triggers.
 
 ## Use Cases

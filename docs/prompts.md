@@ -262,7 +262,7 @@ Use curate-project-context to tighten this project's AGENTS.md, applying its sha
 ```
 
 **When:** creating or editing `AGENTS.md`, Brain context, design docs, skills, or public docs agents
-rely on. **Guidance:** `curate-project-context/references/writing.md` and its linked syntax guides.
+rely on. **Guidance:** `maintain-brain/references/writing.md` and its linked syntax guides.
 For context repairs, use `curate-project-context` in fix mode.
 
 ### Triage public issues

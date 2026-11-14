@@ -19,10 +19,10 @@ Typical sections include motivation, goals, non-goals, current design, verificat
 criteria, known unknowns, implementation notes, deviations, human decisions needed, alternatives
 considered, and rollout.
 
-Authored by the `to-design` skill, then decomposed into a bead epic by `to-issues`. Beads own
+Maintain these records through `maintain-brain`. Beads own
 execution state, dependencies, claim status, and acceptance criteria. When a design reaches
 `shipped`, `abandoned`, or `superseded`, it freezes as a point-in-time record. Durable residue
 lands in `adr/` (decisions) and `CONTEXT.md` (vocabulary); a maintained "how it works now"
 description is a `docs/` runbook. On conflict with canon, canon wins.
 
-See `DOTBRAIN.md` for the read order and operating rules.
+See `DOTBRAIN.md` for record meanings and private/public boundaries.

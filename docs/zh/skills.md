@@ -1,17 +1,8 @@
 # Skills
 
-Dotbrain 插件内置 14 个核心 skills，相当于已连接项目的操作手册，涵盖连接、理解项目、规划、公开任务入口、
-执行、审阅和 Brain 维护。核心流程不依赖额外提供的 skills。其中有几个借鉴并改编自
-[mattpocock/skills](https://github.com/mattpocock/skills)。
-
-[工作流程](workflow.md)展示了它们如何配合。
-
-skills 的链接由你自己管理：
-
-- 全局 skills 在 `~/dotbrain/config.yaml` 里选择
-- 项目 skills 在 `brainspaces/<name>/.brain/project.yaml` 里选择
-
-这些设置用来添加你提供的 skill 来源，不会改变插件内置的 skill 列表。
+Dotbrain 插件内置五个独立于工程工作流的核心 skills。它们不依赖私有 skill 库。
+全局自选 skills 在 `~/dotbrain/config.yaml` 配置，项目自选 skills 在
+`brainspaces/<name>/.brain/project.yaml` 配置；这些选项不会改变插件的核心列表。
 
 ## 选择和同步 skills {#select-and-reconcile-skills}
 
@@ -60,122 +51,38 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 在选中的 skill bundle 里增删 skills，下次同步时就会生效，声明本身不变。被移除的、dotbrain 自己的链接会被清理，
 其他来源的条目会保留。`projects show`、skills 目录和 doctor 都使用同样的展开结果。
 
-## 核心工作流程 {#core-workflow}
+## 核心能力 {#core-workflow}
 
-从连接项目、明确决策、设计和拆分任务，到执行、审阅、收尾，再到整理项目上下文。
-`curate-project-context` 维护这些环节共用的写作和语法参考。
+| Skill | 能力 |
+| --- | --- |
+| `wire-brain` | 创建、连接、检查和修复 Brainspace 与 runtime 资源 |
+| `brain-convention` | 解释共享的工作区身份、资源归属、记录含义和隐私约定 |
+| `maintain-brain` | 记录和维护私有的术语、决策、设计、发现和参考资料 |
+| `work-graph` | 查看和维护原生 Beads 工作记录、依赖和归属 |
+| `repo-rules` | 按要求初始化和协调已采纳的仓库要求，评估执行机制 |
 
-### 配置 {#setup}
+五个 skills 均允许模型按其职责调用。工程规划、执行、审阅和交付由所选工作流负责。
+写作和语法参考位于 `maintain-brain/references/`。
 
-- **`wire-brain`**：创建或修复仓库与其私有 Brain 之间的 Brainspace 连接，包括恢复链接出来的 worktree 的
-  `.brain` 和 `.beads`。第一次使用时，如果缺少 `dotbrain` CLI 会自动安装。
+## 操作约定 {#optional-skills-invoked-by-name}
 
-### 规划 {#planning}
+会话启动 hook 提供共享约定。未运行 hook 时，可调用 `brain-convention`。
+Claude Code 使用 `/dotbrain:<name>`；Codex 使用已安装 runtime 展示的 skill 名称。
 
-- **`to-design`**：把一项多步骤的工作写成一份持续更新的 active 设计文档，存进 Brain，并创建一个 epic bead。
-  适合在拆分之前需要明确设计、或需要一个地方跟踪未知项的工作。
-- **`to-issues`**：把设计文档拆成可以独立处理的 bead 任务，带验收标准和依赖，并用
-  `--spec-id design:<slug>` 把每个 bead 关联回设计。
-- **`grill-decisions`**：对照项目的术语和决策对计划做压力测试，再把长期有效的结论写进 `CONTEXT.md` 和 `adr/`。
-- **`find-unknowns`**：在确定设计之前，找出陌生领域里的盲点和隐含假设。
-- **`close-design`**：把设计文档推进到终态；认定已交付前核实 PR 合并证据，记录结果，
-  将值得保留的决策和术语整理到 `adr/` 和 `CONTEXT.md`，关闭 epic。
+## 自定义 subagents {#subagents}
 
-### 执行 {#execution}
-
-- **`manage-work-graph`**：在私有工作图里创建、查看、认领、拆分、更新和关闭工作项
-- **`run-execution`**：完成一个工作项或一批固定的工作项：分派 worker，让每个改动都经过独立审阅，合并，检查，
-  在限度内修复，必要时上报或恢复
-- **`iterate-design`**：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
-  draft PR 交付，完成后转为 ready 等你审阅，在成功或阻塞时停下
-
-### 公开任务入口 {#public-issue-intake}
-
-- **`triage-public`**：对公开任务分类、尝试复现，向报告者澄清范围，再把接受的任务纳入私有执行流程，
-  保留指向公开来源的引用。它随插件提供，无需私有来源或 `skills:` 选择。要启用公开任务入口，在
-  [项目配置](configuration.md#project-yaml) 中设置 `public-tracker`；修改公开内容仍需要相应授权。
-  私有工作不会生成公开的跟踪任务。
-
-### 审阅与整理 {#review-and-curate}
-
-- **`review-gate`**：执行 review（代码、简化或交付准备情况），并将结论和问题处理结果记录在任务中；必要证据对应待验收的 commit、
-  各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
-- **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
-- 共用写作规范放在 `curate-project-context/references/writing.md`，并链接到 VitePress 和 Mermaid 指南。
-  原来的 `write-agent-docs` 入口已并入这些参考文档；编写公开文档、私有 Brain 内容或 skills 时直接读取即可。
-
-## 操作约定和复盘 {#optional-skills-invoked-by-name}
-
-这两个 skills 也属于 14 个核心 skills。在 Claude Code 中用 `/dotbrain:<name>`。在 Codex 中，从 skill picker 里
-选择，并使用当前 runtime 显示的名称；插件分发的 skills 尚未确认都能用不带命名空间的 `$<name>` 调用。
-`dotbrain` 也可以直接用文字要求启动。`run-retro` 在 Claude Code 和 Codex 的元数据中仍是 explicit-only。
-
-- **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的 runtime 里，直接要求或按名称调用都可以。
-- **`run-retro`**：整理工作和审阅记录中的经验，或检查这些经验是否改善了后续行为。
-  手动调用，也可由你配置定时任务运行。建议默认保留在私有 Brain 中；详见[复盘](#retrospectives)。
-
-## subagents {#subagents}
-
-除了 skills，dotbrain 还自带能读 Brain 的 subagents：`worker`、`reviewer`、`verifier` 和 `researcher`。见
-[会话上下文](session-context.md#subagents)。
-
-`config.yaml` 的 `subagents:` 选中的自定义 subagents 共用默认主目录和 `profiles:`，
-分发到 Claude Code 和 Codex 各主目录下的 `agents/`。详见
-[配置](configuration.md#global-subagents)。
+插件不再提供工作流 agents。你选定的自定义 Claude 和 Codex agents 仍通过
+`config.yaml` 和 `project.yaml` 的 `subagents:` 配置交付。Claude 定义使用链接，
+Codex 定义使用生成的 TOML 文件；源文件保存在私有 home 中。
+`dotbrain-` 前缀保留给旧版资源，防止覆盖需要检查的旧文件。
 
 ## 安装 {#installing-them}
 
-Claude Code 和 Codex 的 14 个核心 skills 随 marketplace 插件一起提供，每台机器上的每个 runtime 只需安装一次，无需按仓库重复安装。安装命令见[快速开始](getting-started.md)。
-插件装在用户级别，所以它的 skills 在每个会话里都可用，包括还没连接的仓库。
+Claude Code 和 Codex 通过 marketplace 插件加载核心 skills。Hermes、OpenCode、Pi
+和 Cursor 使用各自的插件或资源交付路径；安装命令见[快速开始](getting-started.md)。
 
-Hermes 的 skills 来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，
-项目选中的 skills 来自已信任 checkout 里的 `.hermes/skills/`。只能手动调用的 skills 会出现在 Hermes 的列表里，
-但模型加载不了，要你自己调用。详见[Hermes](getting-started.md#hermes)。
+## 旧版资源与复盘笔记 {#retrospectives}
 
-OpenCode 的 skills 来自 `dotbrain bootstrap --runtime opencode` 放进 OpenCode 配置目录的打包副本，
-项目选中的 skills 来自 checkout 里的 `.opencode/skills/`。skills 用自己的名字，不带 `dotbrain:` 前缀。只能手动调用的 skills
-在 OpenCode 里不受限制：它们照样出现在列表里，模型也可以调用。详见[OpenCode](getting-started.md#opencode)。
-
-Pi 的 skills 来自 `dotbrain bootstrap --runtime pi` 放进 Pi Agent 目录的扩展，项目选中的 skills 来自
-受信任 checkout 里的 `.pi/skills/`。只能手动调用的 skills 对模型隐藏，用 `/skill:<name>` 调用。详见
-[Pi](getting-started.md#pi)。
-
-Cursor 的打包 skills 来自你的 dotbrain Claude Code plugin；这个 plugin 缺失、被禁用或过时时，来自 dotbrain 保存的副本。
-Cursor 也会读取 `.claude/skills`、`.codex/skills` 和 `.agents/skills`，所以 dotbrain 只把 Cursor 找不到的 skills 链接到
-`.cursor/skills/`。只能手动调用的 skills 只能用 `/<name>` 运行。详见 [Cursor](getting-started.md#cursor)。
-
-内置 skills 直接在 [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills) 里编辑。
-
-## 复盘 {#retrospectives}
-
-`run-retro`：让 Agent 不再重复犯同样的错误，同时让你能看到反馈循环是否跑偏并及时纠正。它有两种模式。
-
-### Curate：整理经验
-
-**Curate**（手动调用，或由你在 Agent 宿主上设置的定时任务调用）读取自上次整理时记录的时间点以来有变化的工作和审阅记录
-（被拒绝的候选、`CHANGES` 结论、失败的检查、你的纠正、值得保留的成功做法），而不是逐个看 commit。
-它在私有 `RETRO.md` 中合并、淘汰发现，与 `RULES.md`、测试、skill 文本和结构性修复去重，把 lead 在任务完成时记录在工作记录上的复盘候选整理成发现，并补回漏记的发现。它是笔记唯一的写入者，因此在不同设计或不同机器上工作的 lead 不会争抢同一份笔记。
-对还没有任何保护的发现，它会建议最合适的强约束（结构、类型、检查或 hook、测试，最后才是规则文本）；
-它只提出建议，不会自己实现，实现与否由你另行批准。
-### Audit：检查效果
-
-**Audit** 只在你要求时运行，范围由你选定，且只读：它根据后续的任务分派和审阅结论，判断提供给 Agent 的发现是否改变了行为，并建议保留、调整或停止。
-
-### 报告与保存
-
-没有值得你关注的内容时，运行不产生任何报告；否则报告简短、决策优先，每项决策都附推荐选项。未答复的决策保持待定，不构成任何授权。
-手动运行时，如果 runtime 提供提问对话框，会先通过对话框请你处理待定决策。写入笔记时使用 compare-and-swap 保存，
-运行失败或互相重叠都不会丢失内容，下次运行会重新处理。
-### 公开提案与授权
-
-默认关闭公开自动交付：建议只保存在私有笔记中，由你决定。只有获得单次提案授权，或在私有项目配置中将
-`retro.promotion.auto-deliver` 设为 `true` 并通过 `destinations` 数组列出允许修改的已有公开文件，它才会自动准备和交付改动。
-它以只读方式检查 PR 和合并状态；只有确认改动已合入目标分支，才会记录规则已被接受。PR 批准、合并和发布仍由你决定。
-已有规则和指南保留原有格式。根目录的 `RULES.md` 若尚无固定格式，则按工作领域分组，使用 `Rule` / `How to apply` 表格。
-规则提案使用 `run-retro` 自己的 PR 流程和格式，
-不调用负责普通改动交付的 `pr` skill。
-### 首次运行与整理范围
-
-首次运行先读取根目录说明及其引用的标准，记录本次整理的时间点，不回溯历史。
-若为仓库范围且没有规则或标准文件，会在首次运行（或之后尚未得到答复的运行）中询问一次是否创建 `RULES.md`，只收录已有说明中写明的要求，并以 PR 交付；
-贡献者范围从不在仓库中创建文件。整理范围限于明确选定的贡献分支或 PR，或维护者选定的集成分支；未选定范围时会报告缺口，不会默认审阅整个仓库。
+旧工作流入口、角色组合和强制复盘流程已移除。现有 `RETRO.md`、私有来源、工作记录
+和历史保持可恢复。修改过或归属不明确的旧资源保留并报告。
+更新前请阅读[升级说明](../upgrading.md)，检查备份和当前工作状态。

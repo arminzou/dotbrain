@@ -222,15 +222,15 @@ def test_global_agents_use_shared_profiles(tmp_path, runtime, folder, suffix):
     assert any(f.status == "error" and str(profile / f"agents/custom{suffix}") in f.message for f in findings)
 
 
-def test_global_packaged_subagent_is_skipped(tmp_path):
+def test_global_old_role_name_requires_custom_source(tmp_path):
     root, user = tmp_path / "data", tmp_path / "user"
     configure(root, subagents=["reviewer"])
 
     result = assets.link_global(root, "agents", user_home=user)
 
-    assert not result.warnings and "reviewer" in result.notices[0]
+    assert result.warnings == ["subagent not found: reviewer"]
     assert not (user / ".codex/agents/dotbrain-reviewer.toml").exists()
-    assert any(f.status == "warn" and "packaged subagents: reviewer" in f.message
+    assert any(f.status == "error" and "reviewer" in f.message
                for f in doctor._check_machine(root, user))
 
 

@@ -1,0 +1,14 @@
+{
+  "claude-code": {
+    "dotbrain-worker.md": "d00def70a572a2bca22a6c4989c1b048f6296b189ef50858278c2094dffd7e59",
+    "dotbrain-researcher.md": "5fb78526b16b505e837b4fabac1cfff76c487d85199339b4a365cc548a60a221",
+    "dotbrain-reviewer.md": "9a0302cbb983d41eb9d6a8f20969299d77eaf053dfabd5b3da1a1c9392869fee",
+    "dotbrain-verifier.md": "4b098754e39f27123f96476dbed67cea560e7b6cde6aeada47d6d4849668c048"
+  },
+  "codex": {
+    "dotbrain-worker.toml": "a2912a1966e5d45dea7bc884065ad3ce36ffb8b76f4a895118b70f0fe74bc77e",
+    "dotbrain-researcher.toml": "138f8439e81f31c32acf3e91c59454d3fba452c51f2e5bdc02e820df4fe05ff6",
+    "dotbrain-reviewer.toml": "8bf1dce953b8867e6754330b10c470980dcf5145cc72bc001dbd10426ae775b0",
+    "dotbrain-verifier.toml": "eb4747f32ba47047e3b21eb66b1b0455d492c2dab366644fe25a2260483d027b"
+  }
+}

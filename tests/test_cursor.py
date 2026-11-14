@@ -31,7 +31,7 @@ def test_global_delivery_and_native_invocation_metadata(dotbrain_home, tmp_path)
             policy = yaml.safe_load((source / "skills" / name / "agents/openai.yaml").read_text(encoding="utf-8"))
             frontmatter = yaml.safe_load((delivered / "SKILL.md").read_text(encoding="utf-8").split("---")[1])
             assert frontmatter.get("disable-model-invocation", False) is not (policy.get("policy") or {}).get("allow_implicit_invocation", True)
-    assert (user / ".cursor/skills/run-execution/references/cursor.md").is_file()
+    assert (user / ".cursor/skills/maintain-brain/references/writing.md").is_file()
     assert not (user / ".cursor/agents").exists()
     assert cursor.hook_state(user) == "current"
     assert assets.link_global(dotbrain_home, "skills", "cursor", user_home=user).linked == []
@@ -63,7 +63,7 @@ def test_global_selected_update_prune_and_foreign_entries(dotbrain_home, tmp_pat
     assert (dest / "reference.md").read_text() == "Updated"
     foreign = skill(user / ".cursor/skills", "foreign")
     bundle = cursor.plugin_dir(dotbrain_home)
-    (bundle / "skills/run-execution/SKILL.md").write_text("damaged")
+    (bundle / "skills/maintain-brain/SKILL.md").write_text("damaged")
     assert cursor.state(dotbrain_home) == "stale"
     assert any("stale" in f.message for f in doctor._check_home_plugin(assets.runtimes.find("cursor"), dotbrain_home))
     config.write_text("skills: []\n", encoding="utf-8")
@@ -102,7 +102,7 @@ def test_foreign_bundle_is_preserved_and_diagnosed(dotbrain_home, tmp_path):
     result = assets.link_global(dotbrain_home, "skills", "cursor", user_home=tmp_path / "user")
     assert result.warnings
     assert [p.name for p in target.iterdir()] == ["mine"]
-    assert not (tmp_path / "user/.cursor/skills/run-execution").exists()
+    assert not (tmp_path / "user/.cursor/skills/maintain-brain").exists()
     findings = doctor._check_home_plugin(assets.runtimes.find("cursor"), dotbrain_home)
     assert any("not dotbrain's" in f.message for f in findings)
 
@@ -130,7 +130,7 @@ def test_enabled_claude_plugin_supplies_packaged_skills(dotbrain_home, tmp_path,
     receiver = (checkout if project_scope else user) / ".cursor/skills"
     if already_delivered:
         cursor.deliver(dotbrain_home, receiver, (), scopes=scopes)
-        assert (receiver / "run-execution").is_symlink()
+        assert (receiver / "maintain-brain").is_symlink()
     installation = user / ".claude/plugins/cache/dotbrain"
     with resource_loader.plugin_tree() as source:
         shutil.copytree(source / "skills", installation / "skills")
@@ -148,14 +148,14 @@ def test_enabled_claude_plugin_supplies_packaged_skills(dotbrain_home, tmp_path,
     for name in cursor.sources(dotbrain_home, ()):
         assert visible[name] == {(installation / "skills" / name).resolve()}
     assert not doctor._check_cursor_skills(dotbrain_home, (), scopes)
-    assert (installation / "skills/run-execution/references/cursor.md").is_file()
+    assert (installation / "skills/maintain-brain/references/writing.md").is_file()
 
     # A separate copy is a native duplicate even when it came from the same plugin source.
-    shutil.copytree(installation / "skills/run-execution", receiver / "run-execution")
+    shutil.copytree(installation / "skills/maintain-brain", receiver / "maintain-brain")
     findings = doctor._check_cursor_skills(dotbrain_home, (), scopes)
-    assert any("duplicate skill run-execution" in f.message for f in findings)
+    assert any("duplicate skill maintain-brain" in f.message for f in findings)
     assert not cursor.deliver(dotbrain_home, receiver, (), scopes=scopes).pruned
-    assert (receiver / "run-execution").is_dir()
+    assert (receiver / "maintain-brain").is_dir()
 
 
 @pytest.mark.parametrize("version,enabled", [
@@ -191,7 +191,7 @@ def test_stale_or_disabled_dotbrain_import_uses_owned_copy(dotbrain_home, tmp_pa
         findings = doctor._check_cursor_skills(dotbrain_home, (), (user,))
         if enabled:
             assert any(f.status == "warn" and "imported dotbrain plugin is stale" in f.message for f in findings)
-            assert any("duplicate skill run-execution" in f.message for f in findings)
+            assert any("duplicate skill maintain-brain" in f.message for f in findings)
         else:
             assert not findings
 
@@ -252,7 +252,7 @@ def test_disabled_or_unselected_claude_plugin_is_not_discovered(dotbrain_home, t
         "example@market": enabled}}), encoding="utf-8")
     assert "example" not in cursor.discovered(user)
     assert not cursor.deliver(dotbrain_home, user / ".cursor/skills", (), scopes=(user,)).warnings
-    assert (user / ".cursor/skills/run-execution").is_symlink()
+    assert (user / ".cursor/skills/maintain-brain").is_symlink()
 
 
 @pytest.mark.parametrize(("entries", "user_enabled", "project_enabled", "local_enabled", "expected"), [
@@ -368,9 +368,9 @@ def test_skill_identity_and_reconciliation_across_roots(dotbrain_home, tmp_path)
 
 
 def test_packaged_name_collision_fails_before_writes(dotbrain_home, tmp_path):
-    skill(dotbrain_home / "skills", "run-execution")
+    skill(dotbrain_home / "skills", "maintain-brain")
     with pytest.raises(ValueError, match="destination collision"):
-        cursor.deliver(dotbrain_home, tmp_path / "receiver", ("run-execution",), scopes=(tmp_path,))
+        cursor.deliver(dotbrain_home, tmp_path / "receiver", ("maintain-brain",), scopes=(tmp_path,))
     assert not cursor.owned(dotbrain_home)
     assert not (tmp_path / "receiver").exists()
 

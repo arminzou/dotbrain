@@ -1,122 +1,59 @@
 # DOTBRAIN.md
 
-Shared rules for every dotbrain Brain, owned by dotbrain and synced by `dotbrain refresh`.
-Do not edit per project; packaged template changes propagate to every Brain.
+Shared Brainspace contract, owned by dotbrain and synced by `dotbrain refresh`.
+Project knowledge belongs in the records below; this file is a packaged resource.
 
-## Wiring
+## Workspace and ownership
 
-- The private Brain lives at `~/dotbrain/brainspaces/<name>/.brain`. Repo-root `.brain` and
-  `.beads` are gitignored links into that Brainspace, shared by all worktrees; never copy it.
-  Home sync records and shares Brain changes at turn end; agents need not commit them. Commit
-  by hand in `~/dotbrain`, never the code repo, only for structural changes worth finding or
-  reverting alone, such as retiring a Brainspace or closing a design.
-- `.claude`, `.codex`, and `.agents/skills` are real checkout directories. Codex project skills
-  go in `.agents/skills`; configuration and agents stay in `.codex`. Skills and custom Claude agents
-  are symlinks; Codex agents and packaged `dotbrain-<role>` agents are real files marked
-  `# dotbrain-managed-agent: v1`; `project.yaml` `packaged-subagents` lists the packaged roles. Edit private sources; never
-  commit local wiring or delivered copies.
-- `.dotbrain-tmp/` in each checkout holds agent working files such as comment files; `wire`
-  keeps it Git-ignored. Delete your files when done, and never name one `report*`.
-- Wire, refresh, link, and unwire checkouts through the `dotbrain` CLI; `wire-brain` covers the
-  commands and selection flags. Worktrees share the main checkout's Brainspace. Let the CLI
-  compute relative links under `.claude` and `.agents/skills`; hand-counted paths can dangle.
+The code repository holds public source and repository requirements. The private
+dotbrain home holds Brainspaces, selected skill and custom-agent sources, and
+private file history. Each project Brainspace has a `.brain/` knowledge directory
+and, when enabled, a `.beads/` work store. A checkout's gitignored `.brain` and
+`.beads` links identify that shared project state. Linked Git worktrees share
+these records while receiving checkout-local runtime resources.
 
-## Rules
+Use `wire-brain` and the CLI for provisioning, attachment, repair, diagnostics,
+resource reconciliation, and detachment. `project.yaml` declares runtime,
+tracker, and selected custom resources. The CLI preserves user declarations and
+sources; generated resources have their own ownership and collision rules.
+Inspect reported collisions before changing them. Removing a checkout's wiring
+does not delete the Brainspace or its work history.
 
-- Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
-- Before implementation or review, the lead or sole agent searches `.brain/RETRO.md` once per
-  task or batch and passes applicable practices through assignments; at completion it records
-  transferable ones as retro candidates on its own work record, per `run-execution`.
-  Workers and reviewers reuse supplied findings; they need not read the whole notebook.
-  A missing notebook blocks nothing; do not scaffold it. Only `run-retro` writes `RETRO.md`.
-- Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
-- The owning writer records verified discoveries, resolved unknowns, and outcomes without routine
-  approval: execution in Beads, durable understanding in the appropriate Brain record. Keep
-  evidence and applicability with consequential facts; distinguish observations, inferences,
-  unresolved hypotheses, proposals, and accepted decisions. Observed behavior never silently
-  replaces an accepted decision or instruction. Read-only investigators hand findings to the writer.
-- The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
-  `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
-  `run-execution` carries out an item or finite batch. Follow `manage-work-graph` for
-  claims, actors, and who may change the graph or active design.
-- PR approval, merge, and release stay human-owned. Follow `run-execution` for branches
-  and HITL delivery, and `iterate-design` for authorized handoff delivery.
-- Check human-gated items before each new item. Flag genuine unresolved scope, authority,
-  acceptance, or design decisions; explicit operator gates and stricter instructions bind.
-  Unflagged items are autonomous: work and accepted closure need no routine sign-off.
-  A review alone does not create a human gate.
-- Use `CONTEXT.md` vocabulary when naming concepts in issues, plans, tests, and proposals.
-  Do not drift to synonyms.
-- If a proposed change conflicts with an ADR, call it out before proceeding.
-- If `CONTEXT.md` or `adr/` are missing or empty, proceed silently — note the gap, don't
-  scaffold them unasked.
-- Before explaining how the project works (build, runtime, deployment, integrations), search
-  `.brain/docs/` for documented answers. These private references are not injected.
-- Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
-- The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
-  for a public need, derive fresh standalone guidance. Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
-  numbers, Brain paths, decision-record identifiers, or private incident details. State a
-  decision's rationale in plain terms; the linkage stays in the Brain.
+## Records and provenance
 
-## Working in loops
+| Record | Meaning |
+| --- | --- |
+| `CONTEXT.md` | Settled project vocabulary and domain model |
+| `adr/` | Consequential accepted decisions and their rationale |
+| `designs/` | Initiative intent, constraints, criteria, uncertainty, and lifecycle |
+| `docs/` | Findings, references, maintained explanations, and supporting evidence |
+| Beads | Tasks, dependencies, ownership, criteria, work state, and execution evidence |
+| Repository `RULES.md` | Adopted public repository requirements |
 
-These invariants bind any iterative or autonomous execution, whatever skill or loop primitive
-drives it:
+`maintain-brain` provides context record operations. `work-graph` provides native
+Beads graph operations. `repo-rules` initializes and reconciles repository
+requirements when requested. These capabilities do not select an engineering
+workflow; the selected workflow owns execution procedures.
 
-- Verification, success, and acceptance criteria are human-owned; never weaken them to fit the build.
-  During a loop, never edit Success Criteria or bead acceptance criteria. If they are wrong,
-  ambiguous, or unmeetable, or a new scope/authority/criteria decision arises, stop affected work
-  with evidence and recommend a decision through `grill-decisions`. Get human approval; record
-  changes. Contain independent work.
-- Autonomous iteration always has a hard stop — a retry cap, budget, or turn limit. When the stop
-  is hit, report blocked with the attempt trail; do not keep iterating.
-  Only the human authorizes a higher limit; keep the attempt history.
-- Reuse complete approval without repeat `GO`; execution requests grant no missing authority.
-  Follow `iterate-design` for contract validation, delivery, loop outcomes, and stop scopes.
-- Review gates close only under `review-gate`'s rules.
-- Beads are the state; the active design doc is the spec. State says where you are, the spec says
-  where to go. Reread the spec every iteration, not just at loop start.
+Records distinguish observations, inferences, hypotheses, proposals, and accepted
+decisions. A recorded discovery does not adopt a consequential decision. Keep
+source and applicability beside a claim, and distinguish verified outcomes from
+pending checks. Design lifecycle describes the initiative's document state;
+Beads remains the authority for durable execution state. Terminal lifecycle
+updates require evidence for the claimed outcome.
 
-## Unknowns
+## Safe maintenance and privacy
 
-The Brain exists to shrink the gap between the map (what the agent has been told — vocabulary,
-decisions, rules) and the territory (the codebase and its real constraints). That gap is the
-project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
-design docs speak one language:
+Maintain the appropriate existing record. Reconcile the latest contents before
+saving concurrent edits, preserving consequential rationale and evidence. Keep
+existing notebooks, decisions, designs, work records, claims, dependencies, and
+history recoverable. Retiring a workflow does not accept results, close work,
+or reset consumed limits.
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and public `RULES.md`.
-- **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
-- **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
-  Surfaced by grilling and prototypes, then written into canon.
-- **Unknown unknowns** — constraints, edge cases, and existing behavior you have not thought to
-  consider. Surfaced by a blind-spot pass before implementation; caught mid-build as discoveries.
+Private Brain content and provenance stay private. Derive public guidance for its
+audience without exposing private identifiers, paths, or source excerpts. Public
+repository instructions remain useful without access to a Brainspace.
 
-Choose investigation depth and retrieval timing within applicable instructions; `find-unknowns`
-is available for deeper investigation.
-
-Choose reversible defaults within scope; take new consequential product/architecture decisions,
-consequential tradeoffs, human preferences, authority, and acceptance changes to `grill-decisions`.
-Active designs own uncertainty; Beads owns execution state.
-
-## Brain structure
-
-- `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
-- `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
-  established repository rules remain authoritative in public `RULES.md`
-- `CONTEXT.md` — domain vocabulary for this project
-- `project.yaml` — per-project skill selection and engine/tracker config
-- `adr/` — Architecture Decision Records, one file per decision
-- `designs/` — design docs, one initiative per file, each with a `lifecycle:` field (`draft`,
-  `active`, `shipped`, `abandoned`, `superseded`) kept current as its mutability changes. An
-  `active` design is the initiative's living authority for design, criteria, unknowns, and
-  deviations; beads own execution state. Lifecycle rules live in `designs/README.md`; the
-  frontmatter vocabulary lives in `to-design`'s design template
-- `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
-  canon wins
-
-Skills are cross-project; the Brain only configures them. Skill *selection* lives in
-`project.yaml` (`skills:`).
-
-Requested public issue intake belongs to packaged `triage-public`; private work intake belongs
-to `manage-work-graph`. Public mutations require maintainer authorization, and promotion flows
-inward with provenance. Core workflows need no private skill library or project `skills:` selection.
+Home sync versions private files; Beads has its own backend persistence and backup
+requirements. Neither mechanism replaces the other. Use the owning mechanism for
+backup and recovery, reconciling newer work before restoring older state.

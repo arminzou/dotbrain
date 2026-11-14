@@ -21,7 +21,7 @@ class Runtime:
     key: str  # runtime key in config.yaml profiles and global delivery reports
     label: str  # display name
     workspace: str  # agent workspace directory, in a checkout and under the user's home
-    # Packaged native subagent definitions as (resource directory, file suffix); None when dotbrain
+    # Custom native subagent sources as (source directory, file suffix); None when dotbrain
     # does not deliver native subagents to this runtime.
     subagents: tuple[str, str] | None = None
     hooks: bool = False  # the dotbrain plugin supplies session hooks

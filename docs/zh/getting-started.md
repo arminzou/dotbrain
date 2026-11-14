@@ -273,7 +273,7 @@ dotbrain 发布新版本时，插件和 CLI 要一起更新。
 Dotbrain 不再创建、刷新或渲染私有站点，也不再管理教学流程。架构分析仍属于日常设计和工程审阅。
 
 `write-agent-docs` 也不再是独立入口。它的写作规范以及 VitePress、Mermaid 指南都放在
-`curate-project-context/references/` 中；编写 Agent 会读取的文档时直接查阅这些参考。
+`maintain-brain/references/` 中；编写 Agent 会读取的文档时直接查阅这些参考。
 
 这次升级保留可选的打包 subagents 和 `beads.mode: none`。文件链接和打包检查只能证明分发成功，
 native runtime 是否发现并调用了 skill 需要另行验证。

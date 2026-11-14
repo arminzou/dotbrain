@@ -148,19 +148,8 @@ def _dotbrain_home_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
         (root / sub).mkdir(parents=True)
     plugin_skills_root = _REPO_ROOT / "plugin" / "skills"
     for skill in (
-        "brain/iterate-design",
-        "brain/run-execution",
-        "brain/manage-work-graph",
-        "brain/review-gate",
-        "brain/find-unknowns",
-        "brain/run-retro",
-        "brain/to-design",
-        "brain/close-design",
-        "brain/to-issues",
-        "brain/curate-project-context",
-        "brain/grill-decisions",
-        "brain/wire-brain",
-        "brain/triage-public",
+        "brain/brain-convention", "brain/maintain-brain", "brain/work-graph",
+        "brain/repo-rules", "brain/wire-brain",
     ):
         name = Path(skill).name
         shutil.copytree(plugin_skills_root / name, root / "skills" / skill)

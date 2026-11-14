@@ -297,7 +297,7 @@ or renders private sites or manages a teaching workflow. Architectural reasoning
 of ordinary design and engineering review.
 
 `write-agent-docs` is also no longer an entrypoint: its writing guidance and linked VitePress
-and Mermaid guides live in `curate-project-context/references/`. Read those references directly
+and Mermaid guides live in `maintain-brain/references/`. Read those references directly
 when authoring agent-consumed documents.
 
 This upgrade keeps optional packaged subagents and `beads.mode: none`. File linking and package

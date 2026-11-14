@@ -129,6 +129,7 @@ export default defineConfig({
           { text: 'Why Dotbrain?', link: '/why-dotbrain' },
           { text: 'Getting started', link: '/getting-started' },
           { text: 'Example prompts', link: '/prompts' },
+          { text: 'Upgrading', link: '/upgrading' },
         ],
       },
       {

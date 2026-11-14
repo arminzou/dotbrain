@@ -550,11 +550,24 @@ def unwire_repo(
 
     managed_links = _managed_workspace_links(repo, dotbrain_home) if dotbrain_home else []
     # Agent ownership is the delivery owner's contract, not a second marker implementation.
-    from dotbrain import skills
+    from dotbrain import skills, subagents
     from dotbrain.subagents import is_managed_copy
     codex_agents = repo / ".codex" / "agents"
     if not skills.project_directory_conflict(Path(repo), ".codex/agents") and codex_agents.is_dir():
-        managed_links += [entry for entry in codex_agents.iterdir() if is_managed_copy(entry)]
+        managed_links += [entry for entry in codex_agents.iterdir()
+                          if not entry.name.startswith(subagents.PACKAGED_PREFIX) and is_managed_copy(entry)]
+    managed_links = [entry for entry in managed_links if not entry.name.startswith(subagents.PACKAGED_PREFIX)]
+    retired_entries = []
+    for rt in runtimes.RUNTIMES.values():
+        if not rt.subagents:
+            continue
+        relative = f"{rt.workspace}/agents"
+        if skills.project_directory_conflict(repo, relative):
+            continue
+        retired = subagents.retire_packaged(repo / relative, rt.key, label=relative)
+        result.warnings += retired.notices
+        result.logs += [f"removed retired agent {entry}" for entry in retired.pruned]
+        retired_entries += retired.pruned
     managed_entries = [link.relative_to(repo).as_posix() for link in managed_links]
 
     for name in paths.BRAINSPACE_LINKS:
@@ -574,7 +587,7 @@ def unwire_repo(
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
         excludes = {*paths.EXCLUDE_ENTRIES, paths.AGENT_TMP_EXCLUDE,
                     *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
-        excludes.update(f"/{entry}" for entry in managed_entries)
+        excludes.update(f"/{entry}" for entry in (*managed_entries, *retired_entries))
         filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
                     or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]
         if len(filtered) < len(lines):

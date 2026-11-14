@@ -1,3 +1,0 @@
-interface:
-  display_name: "Review Gate"
-  short_description: "Run a durable engineering review gate"

@@ -132,7 +132,7 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
     assert (repo / ".brain").is_symlink()
     for workspace, suffix in ((".claude", ".md"), (".codex", ".toml")):
         delivered = list((repo / workspace / "agents").glob("dotbrain-*"))
-        assert sorted(p.name for p in delivered) == sorted(f"dotbrain-{role}{suffix}" for role in config.PACKAGED_ROLES)
+        assert delivered == []
         assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
 
     workflows.unwire_project(
@@ -309,8 +309,12 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
         "agents:\n"
         "  - claude\n"
         "  - codex\n"
-        "subagents: []\n"
+        "subagents: [custom]\n"
     )
+    for directory, suffix in (("claude", ".md"), ("codex", ".toml")):
+        source = dotbrain_home / "subagents" / directory / f"custom{suffix}"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text('name = "custom"\n' if suffix == ".toml" else "---\nname: custom\n---\n", encoding="utf-8")
     fake_home = tmp_path / "home"
     fake_home.mkdir()
 
@@ -323,12 +327,10 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents")
 
     assert result.refreshed == ["refresh-subagents"]
-    assert not (repo / ".claude" / "agents" / "reviewer.md").exists()
-    assert not (repo / ".claude" / "agents" / "verifier.md").exists()
-    assert (repo / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
-    assert (repo / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
-    assert (repo / ".claude/agents/dotbrain-reviewer.md").is_file()
-    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 2 * len(config.PACKAGED_ROLES)
+    assert (repo / ".claude/agents/custom.md").is_symlink()
+    assert subagents.is_managed_copy(repo / ".codex/agents/custom.toml")
+    assert not list((repo / ".codex/agents").glob("dotbrain-*"))
+    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 2
 
 
 def test_refresh_project_honors_declared_agent_workspaces(

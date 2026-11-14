@@ -1,19 +1,9 @@
 # Skills
 
-The dotbrain plugin delivers 14 core skills: the operating manual for a wired project.
-They cover wiring, project understanding, planning, public issue intake, execution, review,
-and Brain maintenance.
-The core works without separately supplied skills. Several are inspired by and adapted
-from [mattpocock/skills](https://github.com/mattpocock/skills).
-
-[The workflow](workflow.md) shows how they fit together.
-
-Skill linking is operator-managed:
-
-- global skills are selected in `~/dotbrain/config.yaml`
-- per-project skills are selected in `brainspaces/<name>/.brain/project.yaml`
-
-These selections add user-supplied sources; they do not change the plugin's packaged inventory.
+The plugin delivers five workflow-independent core skills and needs no private
+skill library. Select your own global skills in `~/dotbrain/config.yaml` and
+project skills in `brainspaces/<name>/.brain/project.yaml`. These selections add
+user resources without changing the packaged core inventory.
 
 ## Select and reconcile skills
 
@@ -69,160 +59,44 @@ Adding or removing skills from a selected bundle takes effect on the next reconc
 declaration stays unchanged. Removed owned links are pruned, while foreign entries are preserved.
 `projects show`, catalogs, and doctor use the same expanded selection.
 
-## Core workflow
+## Core capabilities {#core-workflow}
 
-Wire, decide, design, decompose, execute, review, close, and curate project context.
-`curate-project-context` owns the shared writing and syntax references used by the workflow.
+| Skill | Capability |
+| --- | --- |
+| `wire-brain` | Provision, attach, inspect, and repair Brainspaces and runtime resources |
+| `brain-convention` | Explain shared workspace identity, resource ownership, records, and privacy |
+| `maintain-brain` | Capture and maintain private vocabulary, decisions, designs, findings, and references |
+| `work-graph` | Inspect and maintain native Beads records, dependencies, and ownership |
+| `repo-rules` | Initialize and reconcile adopted repository requirements and assess enforcement |
 
-### Setup
+All five allow model invocation for their stated operations. Engineering planning,
+execution, review, and delivery belong to your selected workflow. Shared writing
+and syntax references live under `maintain-brain/references/`.
 
-- **`wire-brain`** — provision or repair Brainspace wiring between a repo and its private Brain,
-  including restoring a linked worktree's `.brain` and `.beads`. Installs the `dotbrain` CLI on
-  first use if it is missing.
+## Convention {#optional-skills-invoked-by-name}
 
-### Planning
+The session-start hook delivers the shared convention. Invoke `brain-convention`
+when the hook did not run. In Claude Code use `/dotbrain:<name>`; in Codex select
+the skill name exposed by the installed runtime.
 
-- **`to-design`** — formalize a multi-step initiative into a living active design doc, save it to
-  the Brain, and create an epic bead. Use when the work needs explicit design shape or a place to
-  track unknowns before decomposition.
-- **`to-issues`** — decompose a design doc into independently-workable bead tasks with acceptance
-  criteria and dependencies, linking each bead back with `--spec-id design:<slug>`.
-- **`grill-decisions`** — stress-test a plan against project vocabulary and decisions, then write
-  durable results into `CONTEXT.md` and `adr/`.
-- **`find-unknowns`** — surface blind spots and tacit assumptions in unfamiliar territory before
-  committing to a design.
-- **`close-design`** — drive a design doc to a terminal state: check actual PR merge
-  evidence for shipment, record the outcome, preserve useful decisions and vocabulary in
-  `adr/` and `CONTEXT.md`, close the epic.
+## Custom subagents {#subagents}
 
-### Execution
+The core ships no workflow agents. Operator-selected custom Claude Code and Codex
+agents retain global and project delivery through `subagents:` in `config.yaml`
+and `project.yaml`. Claude definitions use links; Codex definitions use generated
+TOML copies. Customize the source in your private home. The `dotbrain-` namespace
+stays reserved to protect preserved old resources from custom delivery.
 
-- **`manage-work-graph`** — file, inspect, claim, split, update, and close work items in the private
-  work graph
-- **`run-execution`** — carry out one work item or a fixed batch: dispatch workers, have each
-  change reviewed independently, integrate, check, repair within limits, and escalate or recover
-- **`iterate-design`** — run an active design doc through the agent's native loop mode: plan,
-  implement, verify, reflect, deliver through a draft pull request that becomes ready for your
-  review, and stop on success or blocked
+## Installing them {#installing-them}
 
-### Public issue intake
+Claude Code and Codex load the core from their marketplace plugin. Hermes,
+OpenCode, Pi, and Cursor retain their runtime-specific plugin and resource
+delivery paths. See [getting started](getting-started.md) for installation and
+[session context](session-context.md) for hook and discovery boundaries.
 
-- **`triage-public`** — classify and reproduce public issues, clarify scope with reporters, and
-  promote accepted work inward into private execution with a reference to its public origin.
-  It ships with the plugin and needs no private source or `skills:` selection. Set
-  `public-tracker` in [project configuration](configuration.md#project-yaml) to use public intake;
-  public mutations still require applicable authorization. Private work never generates public
-  tracking issues.
+## Old resources and notebooks {#retrospectives}
 
-### Review and curate
-
-- **`review-gate`** — review code, simplification opportunities, or readiness for delivery, and record the
-  outcome on the issue. The lead can close an accepted review before PR merge once the required
-  evidence covers the commit being accepted and each finding has a recorded outcome. Human PR approval, merge and release remain separate
-- **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
-  leaking context across the public project and private Brain
-- Shared writing guidance lives in `curate-project-context/references/writing.md`, with linked
-  VitePress and Mermaid guides. The former `write-agent-docs` entrypoint is absorbed into these
-  references; use them directly when writing public docs, private Brain material, or skills.
-
-## Convention and retrospectives {#optional-skills-invoked-by-name}
-
-These two skills complete the 14-skill core. In Claude Code, use `/dotbrain:<name>`. In Codex,
-select the skill from the picker and use the name exposed by the installed runtime; an
-unqualified `$<name>` is not confirmed for plugin delivery. `dotbrain` also starts from a
-request in words. `run-retro` remains explicit-only in both Claude Code and Codex metadata.
-
-- **`dotbrain`** — the operating convention itself. The session-start hook injects it
-  automatically; in runtimes where the hook does not run, ask for it or invoke it by name.
-- **`run-retro`** — collect lessons from work and review records, or check whether those lessons
-  improved later behavior. Invoke it manually or through a schedule you configure. Suggestions
-  stay private by default; see [Retrospectives](#retrospectives).
-
-## Subagents
-
-Alongside the skills, dotbrain ships Brain-aware subagents: `worker`, `reviewer`,
-`verifier`, and `researcher`. See
-[Session context](session-context.md#subagents).
-
-Custom subagents selected under `subagents:` in `config.yaml` use the same default homes and
-`profiles:`, delivered into `<home>/agents` for Claude Code and Codex. See
-[configuration](configuration.md#global-subagents).
-
-## Installing Them
-
-For Claude Code and Codex, the 14 core skills arrive with the marketplace plugin, installed once per runtime on each machine rather than per repo. See
-[getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
-user scope, its skills are available in every session, including repos that are not wired yet.
-
-Hermes gets the skills from a plugin copy that `dotbrain bootstrap --runtime hermes`
-places in the Hermes home, and a project's selected skills from `.hermes/skills/` in a trusted
-checkout. Hermes lists manual-only skills, but the model cannot load them; invoke them yourself.
-See [Hermes](getting-started.md#hermes).
-
-OpenCode gets the skills from the packaged copy that
-`dotbrain bootstrap --runtime opencode` places in the OpenCode config directory, and a project's
-selected skills from `.opencode/skills/` in the checkout. Skills keep their own names, without the
-`dotbrain:` prefix. Manual-only skills are not enforced: OpenCode lists them and the model can
-invoke them. See [OpenCode](getting-started.md#opencode).
-
-Pi gets the skills from the extension that
-`dotbrain bootstrap --runtime pi` places in the Pi agent directory, and a project's selected skills
-from `.pi/skills/` in a trusted checkout. Manual-only skills are hidden from the model; invoke them
-with `/skill:<name>`. See [Pi](getting-started.md#pi).
-
-Cursor gets the packaged skills from your dotbrain Claude Code plugin, or from a copy dotbrain
-keeps when that plugin is missing, disabled, or outdated. It also reads `.claude/skills`,
-`.codex/skills`, and `.agents/skills`, so dotbrain links into `.cursor/skills/` only the skills
-Cursor would not otherwise find. Manual-only skills run only as `/<name>`. See
-[Cursor](getting-started.md#cursor).
-
-Edit bundled skills directly in [`plugin/skills/`](https://github.com/arminzou/dotbrain/tree/main/plugin/skills).
-
-## Retrospectives
-
-`run-retro` — keeps agents from repeating mistakes, while you can see and steer the loop.
-It has two modes.
-
-### Curate: collect lessons
-
-**Curate** (manually, or from an agent-host schedule you set up) reads work
-and review records changed since its curation cutoff (rejected candidates, `CHANGES` verdicts,
-failed checks, your corrections, informative successes), not commits. It merges and retires
-findings in private `RETRO.md`, dedupes them against `RULES.md`, tests, skill text, and
-structural fixes, and turns the retro candidates leads record on their work records at
-completion into findings, recovering ones they missed. It is the notebook's only writer, so
-leads on different designs or machines never race on it. For a finding nothing
-protects yet, it suggests the strongest intervention that fits (structure, type, check or hook,
-test, then rule text). It never builds that check itself; building one is separate work you
-approve.
-
-### Audit: check the effect
-
-**Audit** runs only when you ask, over a scope you choose, and is read-only: it judges
-from later assignments and review verdicts whether supplied findings changed behavior, and
-recommends keep, revise, or stop.
-### Reports and saved records
-
-A run with nothing worth your attention is silent. Otherwise its short report puts decisions
-first, each with a recommended option; an unanswered decision stays pending and authorizes
-nothing. A manual run asks you about pending decisions through the runtime's question dialog
-where one exists. Notebook writes use a compare-and-swap save, so a failed or overlapping run
-loses nothing and the next run repeats its work.
-### Public proposals and authorization
-
-Public auto-delivery is off by default: suggestions stay private for your decision. Set
-`retro.promotion.auto-deliver: true` and an existing repo-relative `destinations` array in
-private project configuration to authorize unattended commit/push/PR delivery. Otherwise
-authorize individual proposals. It reads PR/merge state read-only to reconcile acceptance;
-approval and merge remain human-owned. Existing rules and guides retain their format.
-A root `RULES.md` without an established format uses `Rule` / `How to apply` tables
-grouped by work area. Rule proposals have run-retro's own PR process
-and body, independent of the `pr` skill used for ordinary changes.
-### First use and scope
-
-First use reads existing root guidance and referenced standards, records a curation cutoff,
-and stops without reviewing history. In repository scope with no rules or standards file, it
-offers once, on the first pass until answered, to create `RULES.md` from requirements existing
-guidance already states and delivers it as a PR; contributor scope never creates a file in the
-repo. Curation stays within explicitly selected contribution branches/PRs or a
-maintainer-selected integration branch; missing scope is reported instead of assumed.
+Displaced workflow entrypoints, role composition, and the mandatory retrospective
+process are removed. Existing `RETRO.md` notebooks, private sources, work records,
+and history remain recoverable. Modified or ambiguous old resources are preserved
+and reported. Read [upgrade guidance](upgrading.md) before updating a live setup.

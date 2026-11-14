@@ -106,11 +106,10 @@ backups, a second machine, and troubleshooting.
 
 ### Update
 
-The plugin ships 14 core skills, including `triage-public`, with no private selection required.
-`brain-site`, `teach-me`, and `review-architecture` are retired, including the `dotbrain site`
-command group. Existing user files and caches stay untouched. Read the
-[skill set upgrade notes](docs/getting-started.md#skill-set-upgrade) for the removed commands
-and optional cleanup of redundant private skill selections.
+The plugin ships five core skills: `wire-brain`, `brain-convention`, `maintain-brain`,
+`work-graph`, and `repo-rules`. Engineering workflow procedures and packaged agents
+are retired. Read the [breaking upgrade guidance](docs/upgrading.md) before updating;
+existing private context, work records, notebooks, and user sources stay recoverable.
 
 For Claude Code and Codex, update the plugin and the CLI together. In Claude Code, run `/plugin`, update dotbrain from the
 menu, then `/reload-plugins`. In Codex:

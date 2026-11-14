@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import stat
 import time
 import uuid
@@ -150,12 +149,10 @@ def _resolve_selection(dotbrain_home: Path, entries: tuple[str, ...]) -> tuple[s
     return tuple(sorted(effective.values()))
 
 
-def _remove_legacy_skill_cache(dotbrain_home: Path) -> None:
+def _legacy_skill_cache_notice(dotbrain_home: Path) -> list[str]:
     cache = paths.confined_path(dotbrain_home, ".cache/skills")
-    if cache.is_dir() and not cache.is_symlink():
-        shutil.rmtree(cache)
-    elif cache.exists() or cache.is_symlink():
-        cache.unlink()
+    return ([f"{cache}: legacy skill cache preserved for manual inspection; obsolete delivery links are pruned"]
+            if cache.exists() or cache.is_symlink() else [])
 
 
 def link_into(
@@ -187,7 +184,7 @@ def link_into(
     result = LinkResult()
     wanted: set[str] = set()
     if cleanup_cache:
-        _remove_legacy_skill_cache(dotbrain_home)
+        result.notices += _legacy_skill_cache_notice(dotbrain_home)
     cache_root = (dotbrain_home / ".cache" / "skills").resolve()
     private_root = (dotbrain_home / "skills").resolve()
 
@@ -265,6 +262,7 @@ def link_project(
     except ValueError as exc:
         result.warnings.append(str(exc))
         return result
+    result.notices += _legacy_skill_cache_notice(dotbrain_home)
     for workspace in workspaces:
         workspace_dir = workspace_dirs.get(workspace) if workspace_dirs else None
         base = (workspace_dir or brainspace / workspace).parent
