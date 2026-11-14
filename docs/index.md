@@ -32,14 +32,6 @@ skillSpotlight:
   loads: Every agent in this repo loads these skills
   legend: [shared, backend, frontend, infra]
 
-workLoop:
-  core: project memory
-  stages: [Load the context, Settle the design, Work the issues, Review and learn]
-  epic: Checkout v1
-  frontier: ready frontier
-  blocks: blocks
-  legend: [ready, in progress, blocked, done]
-  issues: [Add orders table, Payments setup, Orders API, Payment webhooks, Checkout page]
 ---
 
 <main class="home" aria-label="Dotbrain overview">
@@ -64,7 +56,6 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">domain vocabulary</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">shared Brain rules</span></div>
 <div class="tp-row file in">project.yaml<span class="tp-note">skills and tracker</span></div>
-<div class="tp-row file in">docs/<span class="tp-note">findings and references</span></div>
 <div class="tp-row dir">.beads/<span class="tp-note">issue tracker</span></div>
 </div>
 <div class="tp">
@@ -99,8 +90,6 @@ Write skills once in `~/dotbrain/` and give each project the set it needs. Dotbr
 ## Plan as a graph. Work in a loop.
 
 Five core skills maintain wiring, project understanding, repository requirements and Beads records. Your chosen workflow owns execution. Select the optional project pstack mode when you want its engineering procedures. [See the workflow](./workflow).
-
-<WorkLoop />
 
 </section>
 

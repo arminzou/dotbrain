@@ -124,7 +124,10 @@ pstack:
 | `skills` | `[]` | Skills linked into this project's workspaces |
 | `subagents` | `[]` | Project-only custom subagents |
 
-Refresh warns about existing workspaces outside the resolved `agents` set and leaves everything in them untouched.
+Refresh warns about existing workspaces outside the resolved `agents` set.
+Their unrelated, foreign and user-owned content is preserved. Reconciliation can
+still prune attributable, intact optional pstack mode links when that runtime is
+no longer selected; modified or ambiguous mode resources are preserved and reported.
 
 Codex project skills use `<checkout>/.agents/skills/`, independently of its `.codex/`
 configuration and subagents. Global skills and profiles retain their existing homes.

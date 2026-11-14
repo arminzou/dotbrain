@@ -119,7 +119,9 @@ pstack:
 | `skills` | `[]` | 链接到这个项目工作区的 skills |
 | `subagents` | `[]` | 只给这个项目用的自定义 subagents |
 
-刷新时，已存在但不在 `agents` 解析结果中的工作区会触发警告，里面的文件和链接都保持不变。
+refresh 会报告已存在但不在 `agents` 解析结果中的工作区，保留其中无关、其他工具或用户拥有的内容。
+该 runtime 不再选中时，同步仍可清理能确认归属且完整的可选 pstack mode 链接；
+修改过或归属不明的 mode 资源会保留并报告。
 
 Codex 项目 skills 使用 `<checkout>/.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。全局 skills 和
 profile 主目录的位置不变。旧链接迁移和冲突处理见[skills 同步](skills.md#select-and-reconcile-skills)。

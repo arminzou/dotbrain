@@ -6,7 +6,6 @@ import '@fontsource-variable/geist-mono'
 import HomeHero from './HomeHero.vue'
 import Mermaid from './Mermaid.vue'
 import SkillSpotlight from './SkillSpotlight.vue'
-import WorkLoop from './WorkLoop.vue'
 import './style.css'
 
 export default {
@@ -15,6 +14,5 @@ export default {
   enhanceApp({ app }) {
     app.component('Mermaid', Mermaid)
     app.component('SkillSpotlight', SkillSpotlight)
-    app.component('WorkLoop', WorkLoop)
   },
 } satisfies Theme

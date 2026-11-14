@@ -32,14 +32,6 @@ skillSpotlight:
   loads: 这个仓库里的每个 Agent 都加载这些 skills
   legend: [共用, 后端, 前端, 基础设施]
 
-workLoop:
-  core: 项目记忆
-  stages: [加载上下文, 敲定设计, 处理任务, 审阅与沉淀]
-  epic: 结账 v1
-  frontier: 可开工
-  blocks: 阻塞
-  legend: [可开工, 进行中, 被阻塞, 已完成]
-  issues: [新建订单表, 配置支付, 订单 API, 支付 Webhook, 结账页面]
 ---
 
 <main class="home" aria-label="Dotbrain 概览">
@@ -64,7 +56,6 @@ workLoop:
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">领域术语</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">共享的 Brain 规则</span></div>
 <div class="tp-row file in">project.yaml<span class="tp-note">skills 与任务跟踪配置</span></div>
-<div class="tp-row file in">docs/<span class="tp-note">发现与参考资料</span></div>
 <div class="tp-row dir">.beads/<span class="tp-note">任务跟踪</span></div>
 </div>
 <div class="tp">
@@ -99,8 +90,6 @@ skills 只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要�
 ## 用图规划，循环推进 {#plan-as-a-graph-work-in-a-loop}
 
 五个核心 skills 维护连接、项目理解、仓库要求和 Beads 记录。执行由所选工作流负责；需要 pstack 工程程序时，可明确启用项目 mode。[查看工作流](./workflow)。
-
-<WorkLoop />
 
 </section>
 
