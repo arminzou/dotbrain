@@ -69,7 +69,6 @@ treeView-beta
     CONTEXT.md ## domain vocabulary
     adr/ ## decision records
     designs/ ## one design doc per initiative
-    RETRO.md ## optional private retrospective findings
     DOTBRAIN.md ## shared convention, owned by dotbrain
     project.yaml ## runtime, tracker, skill selection
     docs/ ## derived runbooks and reference
@@ -80,7 +79,6 @@ treeView-beta
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
 | `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
-| `RETRO.md` | Optional private retrospective findings, with pointers to their evidence | Leads record retro candidates on their work records when work completes; only `run-retro` writes the notebook |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
@@ -90,32 +88,19 @@ real trade-off. An **active** design is the living authority for its initiative;
 **shipped**, **abandoned**, or **superseded** it freezes as a record, and what should outlive it
 moves to `adr/` and `CONTEXT.md`. [The workflow](workflow.md) walks through that lifecycle.
 
-Design authoring settles scope, acceptance/UAT and execution authority with the human.
-Decomposition investigates prerequisites and foreseeable decisions before unattended work; a
-settled graph may be entirely autonomous and needs no second routine task-set approval.
-Iteration validates and reuses the complete approved contract without repeat approval, retaining
-narrower instructions and remaining limits on resume. Missing or changed scope, authority or
-criteria decisions stop affected work with evidence and a recommendation; credentials being
-available never grants permission. Agents check provider permissions at execution entry without
-exposing secrets.
+The chosen engineering workflow owns planning, task selection, delegation,
+verification, recovery and delivery procedures. Core record operations preserve
+evidence, authority and lifecycle meaning without prescribing an execution chain.
+Beads holds durable execution state; temporary procedural checklists may support
+steps inside a task. A closed task or open PR alone does not establish shipment.
 
-Agent delivery completes with agreed work, required reviews and acceptance/UAT complete at the
-integrated revision, and a ready PR requesting human review. PR approval, target-branch merge and
-release stay human. The design and epic remain active until `close-design`, run when you ask for it,
-checks actual merge evidence for shipment; a closed-unmerged PR never proves shipment.
-REFLECT keeps design discoveries in the design and execution facts in Beads. It adds no
-retrospective checkpoint, second reflection report or merge polling.
-
-Brain writes are commits in the dotbrain home, so every change can be reviewed and reverted.
-
-Public repository `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`.
-These instructions remain usable without a Brain. Shared `DOTBRAIN.md` owns private retrieval:
-the lead or sole agent searches relevant retrospective findings once per task or batch, before
-implementation or review, and passes them through existing assignments; when work completes, it
-records any transferable practice as a retro candidate on its own work record, and only `run-retro`
-writes the notebook. Workers and reviewers reuse supplied
-findings; a missing notebook blocks nothing and triggers no scaffolding. Session start injects
-only shared conventions, never the notebook.
+Private files have their own Git history through home sync; Beads has its own
+backend storage and backup requirements. Public `AGENTS.md` routes contributors
+to adopted requirements in `RULES.md`, maintained through `repo-rules`.
+Initialization is explicit and proposals remain distinguishable from adoption.
+Existing notebooks remain private historical content; no retrospective retrieval,
+curation or writing ceremony is required. Startup delivers the shared workspace
+contract and, when selected, a bounded mode discovery pointer.
 
 Fresh Brains have no private `AGENTS.md` or `CLAUDE.md` instruction layer.
 Wiring and refresh preserve legacy files and existing pointers without requiring
@@ -126,8 +111,7 @@ automatically become public requirements.
 
 ## Execution Lives in the Tracker
 
-Plans and tasks do not live in markdown checklists that go stale. They live in an **execution
-store**, by default [Beads](https://github.com/gastownhall/beads), a dependency-aware issue tracker.
+Durable task state lives in an **execution store**, by default [Beads](https://github.com/gastownhall/beads), a dependency-aware issue tracker.
 Multi-step work is an epic with `blocks` dependencies, so "what is ready" is a query:
 
 ```mermaid
@@ -148,8 +132,9 @@ shared server. See [Beads backend](beads-backend.md).
 
 ## Skills
 
-Skills are reusable agent capabilities owned by the tool, not by a project. The plugin ships the
-Brain-coupled skills; dotbrain links only the operator's own global and per-project selections.
+Skills are reusable agent capabilities owned by the tool, not by a project. The plugin ships five
+workflow-independent core skills; Dotbrain also delivers operator-selected resources
+and the explicitly enabled project pstack mode. See [workflow selection](workflow.md).
 
 Linking is idempotent: dotbrain creates and prunes only the links it owns. It never deletes a real
 file or a link it did not create, which lets bundled skills coexist with private ones on the same

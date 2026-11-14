@@ -1,309 +1,54 @@
-# Working with an Agent Team
+# Work with an agent team
 
-Your coding agent can do a change itself or assign focused work to other agents. An **agent team**
-is the lead and the workers it dispatches for one bounded execution: one issue or a fixed batch
-with agreed checks. You stay in the main conversation while the lead prepares assignments,
-collects results, and brings decisions back to you.
+Your engineering workflow and agent runtime own delegation. Dotbrain provides the
+shared Brain, native Beads access, and delivery of your selected custom agents.
+The five-skill core ships no worker, reviewer, verifier, or researcher definitions.
 
-This guide uses pagination for `GET /orders` as an example. The design and issues are already
-settled; see [The workflow](workflow.md) for the steps that get you there.
+## Shared context and work state
 
-## Who Does What
+Wired Git worktrees share the project's Brain and Beads store while keeping their
+runtime resource delivery local to each checkout. `maintain-brain` supplies record
+operations; `work-graph` supplies native graph and ownership operations. A task's
+dependency eligibility is separate from authorization, writer capacity, and acceptance.
 
-| Role | Responsibility |
-|---|---|
-| You | Approve acceptance and success criteria, resolve human gates, authorize delivery, and decide whether to merge. |
-| Lead | Your main agent session. Selects the scoped issues, assigns work, arranges review, integrates results, checks them, and maintains the execution record. |
-| Assignee | The agent holding an issue's claim in Beads. Ownership stays with it through implementation and review fixes. |
-| Worker | An agent carrying out an assignment. It may change code or do read-only research, review, or verification. |
+The chosen workflow decides what delegates receive, who writes each resource,
+which checks establish acceptance, and how interrupted work resumes. Preserve
+actual candidates, claims, evidence and remaining limits at handoff. Concurrent
+writers must reconcile current content before saving shared records.
 
-The lead can also be the assignee and do the change itself: a team of one. Delegating one change
-to one worker still means only one agent changes code at a time.
+## Custom agents {#the-packaged-subagents}
 
-While delegated workers run, the lead alone maintains the work graph and active design. Workers
-return discoveries to it instead of changing the plan themselves. A result coming back is a
-candidate; the lead still needs review and verification evidence before accepting it.
+Use `subagents:` in global `config.yaml` or project `project.yaml` to select your
+own Claude Code or Codex definitions. Sources live under
+`~/dotbrain/subagents/claude/` and `~/dotbrain/subagents/codex/`.
+The `dotbrain-` prefix remains reserved to protect preserved old resources.
 
-The lead finishes its current integration or record update before processing available worker
-results. Cancellation and safety stops remain immediate. It records results before assigning
-follow-up work and processes available results before refilling slots, starting another integration,
-or reporting status. It does not wait for every worker. It matches each result to the assignment,
-agent session, and revision. Duplicate reports trigger no repeated action. Late reports from
-superseded work retain useful evidence but cannot replace newer state or restart cancelled work.
-The existing issue records hold this history without a separate queue service.
+```bash
+dotbrain subagents list
+dotbrain subagents link
+dotbrain subagents link --scope global
+```
 
-## Two Independent Choices
+Claude definitions are linked. Codex definitions are generated TOML copies with
+the `# dotbrain-managed-agent: v1` marker. Edit sources rather than generated
+resources. Modified or foreign resources and collisions need explicit inspection;
+see [configuration](configuration.md#global-subagents) and
+[session context](session-context.md#subagents).
 
-Choose the **workflow** according to how you want to stay involved, and the **execution mode**
-according to which tasks can safely run together.
+Filesystem delivery does not prove that a runtime loaded or spawned an agent.
+Hermes, OpenCode, Pi and Cursor receive core skills and session integrations,
+but Dotbrain does not deliver native custom subagents to them.
 
-| Workflow | Sequential execution | Parallel execution |
-|---|---|---|
-| **HITL** (Human-in-the-Loop) | The agent completes a bounded execution and returns to you. One agent changes code at a time. | The lead assigns independent issues to workers and returns the batch results to you. |
-| **Handoff** | The agent continues through the approved design, one issue at a time. | The agent continues through the design, running independent issues together where safe. |
+## Optional pstack mode
 
-Read-only research, review, and verification do not change the execution mode. A worker fixing
-one issue while a reviewer reads another is still sequential execution.
+The selected `dotbrain-pstack` mode uses local native general agents and wired
+isolated worktrees for writing delegates. Its coordinator owns task claims,
+records worker identities and candidate revisions, arranges verification, and
+closes accepted work. Workers return evidence within their assignments.
+Recovery requires reconciling work and writer authority; silence alone does not
+establish that a writer stopped. These procedures belong to the mode rather than
+the core or a packaged agent role.
 
-::: info Defaults
-HITL with sequential execution is the default; you do not need to name either in your prompt.
-Unless you specify a cap, the lead announces a finite active-writing cap based on runtime capacity,
-resource isolation, and limits. It reserves capacity for lead, review, and verification operations.
-The authorized issue count is separate from this cap.
-:::
-
-### Stay involved after each execution
-
-`run-execution` handles that bounded work. The lead proposes a dedicated branch at the first
-execution, checks the result, and returns to you with one table row per issue: status, accepted
-revision, review verdict, and next step or blocker. The same branch can hold later executions.
-It asks before pushing or opening a PR; merging stays with you.
-
-The lead shows the issues, behavioral ownership, known file overlap, and integration branch before dispatch, and you can
-change the split. It keeps the batch inside the agreed scope.
-
-### Hand off an active design
-
-`iterate-design` starts only when you hand a design off, by name or in words. The design must be active and have
-mechanical checks and a hard stop. Before implementation, the lead proposes scope, branch and
-base, checks and review, worker cap, human gates, and PR delivery. It also confirms the provider,
-authentication, a distinct agent identity, and the required branch ruleset.
-
-Your `GO` authorizes the agreed implementation and delivery: push the dedicated branch, open a
-draft PR at the first push, push each accepted integration group, then mark the PR ready and
-request your review after successful verification and review. It does not authorize merge,
-deployment, publication, dependency changes, or changes to scope or success criteria.
-
-## When Work Can Run in Parallel
-
-For orders pagination, a query implementation and an update to a client SDK might be separate
-issues. They can run together only if the API contract is already settled, neither depends on the
-other's unfinished code, and mutable resources are isolated or scheduled exclusively. Separable
-changes may touch the same files in separate worktrees. If both need to
-change the response schema, settle that prerequisite first.
-
-Before dispatching, the lead checks that:
-
-- At least two scoped issues are ready together, with no open blockers.
-- Each worker has explicit behavioral ownership and known file overlap; shared interfaces are settled.
-- Mutable build outputs, databases, and ports are isolated or scheduled exclusively.
-- Each worker can have its own worktree and a distinct Beads actor for claims and evidence.
-
-Separate worktrees isolate edits; they do not isolate database access or filesystem permissions.
-When safe parallel work is unavailable, the lead explains why and proceeds one issue at a time
-if parallelism was optional. A missing required capability stops the work.
-
-The fixed scope may include waiting dependents. They become eligible only after prerequisite
-acceptance and closure, resolved human gates, and a ready-frontier check; capacity never adds
-unrelated issues. The lead fills and refills available slots from ready issues inside the fixed scope, reducing
-concurrency when integration, checks, or shared resources become the bottleneck. A candidate return
-frees writing capacity; it does not accept the issue or release its claim.
-
-Both workflows use a dedicated delivery branch kept at its last accepted revision. Integration
-is serialized on isolated group candidate branches from that revision. Passing candidates may be
-provisionally integrated before review; their issues remain open and release no dependents.
-Changes never go directly into `main`. Where a project has no PR host, the branch diff
-provides the review surface. Direct local landing needs your explicit instruction.
-
-## The Packaged Subagents
-
-dotbrain ships four focused roles. A **skill** describes a procedure; a **subagent** carries
-out an assignment. In the pagination example, they contribute at different stages:
-
-| Role | Contribution to the team |
-|---|---|
-| `researcher` | Before implementation, compares pagination approaches against project context and outside evidence. Returns findings for the lead to use in decisions. |
-| `worker` | Implements the assigned query or SDK change and commits the candidate. Returns it to the lead for review and integration; never pushes, merges, or closes issues. |
-| `reviewer` | Independently checks the candidate for pagination bugs, authorization gaps, compatibility, and missing tests. Required fixes go back to the original worker. |
-| `verifier` | Runs the agreed gate against the integrated branch. Returns revision-bound results; failures go back to the lead, not into an automatic fix by the verifier. |
-
-For exploration, the workflows use the coding agent's built-in explorer where available; it is
-not another packaged dotbrain role. Delegation is optional when the main agent can do the job
-more directly.
-
-The lead gives each writing worker a labelled assignment in a fixed order: item and actor,
-checkout, change, ownership, acceptance, checks, limits, constraints, overrides, and sources.
-Every label is required and `none` is a valid value; a worker missing a label returns without
-editing. The lead stores the full assignment in the issue's dispatch record, so a fix round or a
-replacement worker can rebuild it from the issue alone. A worker will stop on the default branch
-unless your explicit local-landing instruction was recorded. A review assignment identifies the
-reviewer and its Beads actor, review number and round, exact base/head, included issues, and their
-acceptance criteria.
-
-### How the coding agent runs them
-
-Claude Code and Codex receive the roles a project lists under `packaged-subagents`, as
-`dotbrain-<role>` definitions in each wired checkout. On Claude Code, `run-execution` dispatches
-packaged roles by name, with `dotbrain-worker` in the background and worktree isolation for
-concurrent changes. When a role is not listed, the lead gives a generic subagent the same role
-contract.
-Packaged jobs start with their own assignment rather than a fork of the lead's conversation.
-
-On Codex, for isolated implementation,
-the current workflow creates and wires worktrees, then launches separate Codex CLI sessions with
-assignments pointing to the packaged worker definition. A CLI session cannot directly select a
-custom agent. Native Codex subagents can take focused assignments, but assigning
-one a directory does not establish worktree isolation.
-
-The coding agent runtime owns launching, waiting, and resuming agents. Dotbrain supplies context,
-roles, wiring, and workflow rules; Beads holds claims and execution state. Workers and reviewers
-launch with full access; their role definitions, not runtime settings, keep them within their roles.
-Hermes, OpenCode, Cursor, and Pi run only as the lead: the lead does the writing itself and keeps
-the same records. See [Session context](session-context.md#subagents)
-for delivery and customization.
-
-For role names and ready-to-send requests, see [Example prompts](prompts.md#packaged-subagents).
-
-### Keep assignments focused
-
-The lead supplies the constraints and exact source sections each job needs, rather than copying
-the whole conversation. Where Codex exposes a history control, bounded jobs start without inherited
-conversation history; if the runtime cannot bound history, the lead reports that limitation.
-Assignments retain project rules, acceptance criteria, ownership, permissions, required skills,
-and task-specific overrides. They omit duplicated role defaults and the lead's Beads actor,
-while keeping the worker's own actor.
-Agents inherit the configured model unless you explicitly request a different model;
-packaged roles retain their effort settings without pinning a model. Separate Codex CLI writing
-sessions explicitly set medium effort on launch and resume, since reading a worker definition
-does not apply its TOML settings. A user-requested model is applied again on resume.
-
-For CLI workers, the lead checks process exit, session and turn outcomes, error events,
-nested-process termination, and artifacts, then reads the final response. It reads transcript
-prose and tool output when those signals reveal a failure that needs diagnosis.
-
-Every worker, reviewer, and verifier report opens with a status line and the revision it
-observed, such as `**Status:** DONE · **Observed:** <revision>`. Status values differ by role:
-a worker reports `DONE`, `PARTIAL`, or `BLOCKED`; a reviewer `APPROVE`, `CHANGES`, or
-`NO VERDICT`; a verifier `PASS`, `FAIL`, or `NOT RUN`. The lead holds a review or verification
-whose observed revision differs from the head it requested, and a worker result whose observed
-revision differs from its reported candidate or the actual branch head.
-
-Workers store their full report on their issue as a `Candidate` comment before returning: the
-candidate revision and branch, one line per check, and discoveries, blockers, or design impact
-when present. Failed checks retain failing test names and error text; the lead checks claim state
-directly in Beads. A reviewer works in a detached worktree at the reviewed head that the lead
-creates and later removes, and inspects it with `git diff` and `git show` only. Its full report
-names base/head, included issues, acceptance coverage, per-issue verdicts, stable finding IDs,
-affected issues, severity, location, problem, and material limits. The reviewer appends it as a
-`Review` comment to every issue it reviewed and returns only the status line and an index of
-verdicts and findings. The lead confirms every reviewed issue has the comment,
-copying a missing one from another issue, and records the report itself only when the reviewer
-could not. A cross-issue finding has one responsible worker, named in a lead note on every
-affected issue. Ownership notes are the lead's additions; disagreements go back to the reviewer
-or you. Direct reviews return findings; approval without findings
-returns `APPROVE`, with a brief evidence or scope caveat only when material.
-Simplification reviews retain their findings-only format.
-
-When no gate command ran, the verifier returns `not run`, why, and what is needed, with available
-revision and environment information. It omits an empty record table and PR-ready block.
-Partial or failed runs preserve observed results and verbatim failure evidence. Completed gates
-keep the full record and public Verification block, with passing logs summarized.
-
-## From Assignment to Accepted Result
-
-1. **Prepare.** The lead fixes the issue set, branch, checks, and ownership. Each delegated worker
-   claims its issue under its own Beads actor and keeps that claim through review fixes.
-2. **Implement.** The worker makes its change, runs the checkpoint checks, commits the candidate,
-   and returns its revision, results, discoveries, and blockers.
-3. **Provisionally integrate.** The lead serializes integration of passing candidates into an
-   isolated group candidate branch from the accepted delivery head. Issues stay open with their
-   claims, and dependents wait; the delivery branch stays at its accepted head.
-4. **Review and check.** An independent reviewer covers a coherent group at the exact integrated
-   revision, including unchanged consumers and interactions. Combined checks cover every member's
-   acceptance criteria. Review promptly when accepting a prerequisite can unlock dependent work;
-   groups follow completed features and interfaces, not whole launch waves or epics.
-5. **Accept and record.** Once acceptance and human gates are satisfied, the lead fast-forwards
-   the delivery branch to the exact reviewed and checked candidate head, records evidence,
-   and applies the closure rules. If the delivery head advanced, first rebase or rebuild the
-   candidate from that accepted head and refresh review and combined checks. For a delegated issue
-   it closes under the assignee's actor,
-   naming the lead in the reason; the worker does not close the issue or hand back its claim.
-
-### Review-fix loop
-
-The lead sends the integrated group to an independent reviewer. An unmet acceptance criterion or
-a change-caused blocker/high regression produces `CHANGES`, even in an unchanged consumer.
-A change-caused failure in automatic behavior defaults to high severity if it goes unreported
-or leaves state that blocks later runs, unless the design explicitly accepts that failure mode.
-Unrelated existing defects are discovered work; other medium/low findings remain non-blocking. Safety
-claims need evidence, a concrete trace, or a small targeted check; missing evidence is a gap.
-If the reviewer returns `CHANGES`, the lead resumes the original responsible worker with the
-stored assignment, the durable finding references, and what changed since the last round, and
-records that fix round. The worker fixes the change in the same checkout, reruns its checks, and
-commits the fix. A fresh replacement is used only when the worker cannot be resumed. The lead then asks the same reviewer to review it again.
-The same reviewer checks the fixes and affected interactions. Passing worker checks alone do not
-resolve findings. Three consecutive `CHANGES` verdicts hold the affected group for your decision.
-Group records retain revision ranges, member coverage, review provenance, checks, and finding
-references. Changed patches or integration context affecting coverage need refreshed evidence.
-Closure and dependent release wait for required review, combined checks, acceptance, and human
-gates; dependents start from a base containing accepted prerequisites.
-
-The worker's own tests are checkpoint evidence, not independent acceptance. The lead normally
-runs integrated item checks itself; a handoff reserves the `verifier` for the final in-loop gate.
-Only one verifier runs at a time.
-
-Code, tests, build/CI configuration, and agent instructions require independent review;
-prose-only changes are exempt. In HITL, the lead can ask you to exempt a small change and states
-its recommendation. A multi-item branch requires independent whole-branch code review before
-delivery. The final integration review can supply it only with explicit coverage of the entire
-branch diff, all scoped items, interactions, and the active design at the exact final revision.
-Approval of only the latest group is insufficient. The reviewer must have authored none of the
-reviewed changes, but need not be fresh. Otherwise arrange a whole-branch review. Mechanical
-checks, the final human PR review, and your merge gate remain.
-A single-item branch reuses its item review only if it covers the whole final diff; otherwise it
-also needs a whole-branch review.
-In either workflow, a final review returns `CHANGES` for an unmet in-scope design goal or
-success criterion in a case the design does not exclude, whatever its severity. Reused
-reports must assess this too. Item and integration review thresholds stay the same.
-In a handoff, the lead files the goal-shortfall fix under the epic with its reason and
-adds it to the loop's fixed set within the existing finite budget. If that budget runs
-out with the fix open, the handoff ends `BLOCKED`. A fix needing a new decision still asks you.
-A handoff also gets a non-blocking simplification pass when an independent reviewer is available;
-the lead records finding dispositions within approved scope and returns new consequential decisions to you.
-
-## When Something Stops
-
-An issue stops after three consecutive failed checks on one checkpoint, three consecutive
-`CHANGES` item-review verdicts, or a human gate. The lead preserves the attempt trail and explains
-the decision needed. Only you authorize more attempts or changed criteria.
-
-In either workflow, a failed integration group and its dependents wait while genuinely independent
-scoped issues continue. The lead preserves the held revision, findings, claims, and attempt counts,
-and proves isolation from the failed group. Independent work starts from accepted bases and uses
-isolated integration candidates; failed contributions and unrelated accepted changes are preserved.
-Held group branches stay separate from the delivery branch, so another accepted group can be
-promoted without the held changes. Recovery never resets or rewrites the delivery branch.
-If isolation cannot be established, report the blocker and stop affected work. Splitting a failed
-group requires explicit new review boundaries and fresh evidence; earlier item verdicts alone do
-not accept the changed group. The handoff
-ends blocked when no unblocked work remains; its PR stays draft while any scoped issue is blocked.
-
-A whole handoff stops immediately for a missing required capability, compromised shared state,
-an action outside the approved contract, unresolved scope or safety questions, or criteria that
-cannot be met. It also stops after two cycles without progress, or when you cancel it.
-
-Cancellation preserves unfinished files, branches, worktrees, and evidence. A replacement takes
-over a claim only after the previous worker is confirmed stopped; a returned result or expired
-lease does not prove that. Recovery keeps the original scope, checks, and attempt history.
-A new lead session finds work by issue, then branch or worktree, then revision. It never resumes
-a subagent launched inside an ended lead session, and resumes a CLI session only after confirming
-that session is not running.
-
-## Investigate Before Asking
-
-For an unknown, inspect observable facts first and research recorded history when rationale
-matters; current code alone does not establish historical intent. Report evidence, inference,
-unresolved gaps, the cheapest next action, and whether it blocks the decision, or defer it with a
-reason. Small experiments stay within existing scope and limits. Reversible implementation
-defaults can be chosen within scope; preferences, authority, acceptance changes, consequential
-tradeoffs, and evidence-unsettled decisions come to you with evidence and a recommendation.
-`find-unknowns` stays read-only. Active designs own initiative uncertainty, Beads owns execution
-state, and established workflows own durable canon. Designs and issue decomposition use concrete
-seams, independently verifiable outcomes, verification boundaries, and interface/resource dependencies.
-
-## Related
-
-- [Example prompts](prompts.md#work) provides requests for each workflow and mode.
-- [The workflow](workflow.md) follows a feature from planning to a closed design.
-- [Session context](session-context.md#subagents) explains how packaged roles reach the runtime.
-- [Skills](skills.md) lists the procedures that coordinate the work.
+Read [setup and qualification scope](workflow.md#pstack) before selecting the mode.
+Native qualification evidence is required for delegation, ownership and recovery
+claims at a named revision. Mode selection never expands user or repository authority.

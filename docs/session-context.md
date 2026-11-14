@@ -6,17 +6,8 @@ the dotbrain home in sync.
 
 ## What Happens at Session Start
 
-```mermaid
-sequenceDiagram
-  accTitle: What an agent loads when a session starts
-  participant A as Agent
-  participant D as dotbrain hook
-  participant B as .brain/
-  A->>D: Session starts
-  D-->>A: dotbrain convention (wired repos only)
-  A->>B: Lead searches task-relevant retrospective findings
-  B-->>A: Relevant findings for existing assignments
-```
+At startup, the runtime hook supplies the shared convention in a wired checkout.
+The selected workflow retrieves the relevant project records when needed.
 
 The plugin's `SessionStart` hook runs `dotbrain hook session-start`. It fires on startup, resume,
 `/clear`, and compaction, so the convention survives a context reset. Before it injects the
@@ -24,9 +15,11 @@ convention, it runs [home sync](#home-sync).
 
 ## What Is Injected
 
-Only `.brain/DOTBRAIN.md`, the shared convention that dotbrain owns and keeps current through
+The shared convention `.brain/DOTBRAIN.md`, which Dotbrain owns and keeps current through
 `dotbrain refresh`. It covers wiring rules, where execution lives, the public/private boundary, and
-how the Brain is laid out.
+how the Brain is laid out. Opted-in pstack projects also receive a bounded pointer
+to delivered mode locations and the generated dependency record. The workflow
+body and private knowledge are not injected.
 
 The project's own files are not injected:
 
@@ -34,7 +27,6 @@ The project's own files are not injected:
 | --- | --- |
 | `.brain/DOTBRAIN.md` | Injected by the hook |
 | Public `AGENTS.md` and root `RULES.md` | Repository entry point routes making/reviewing changes to tracked rules, usable without a Brain |
-| `.brain/RETRO.md` | Lead or sole agent searches relevant findings once per task or batch, before implementation or review, and passes them through assignments; when work completes, it records any transferable practice as a retro candidate on its work record; only `run-retro` writes the notebook |
 | `.brain/CONTEXT.md`, `adr/`, `designs/` | Read by the agent when the work needs them |
 | `.brain/docs/` | Searched by the agent before it answers how the project works |
 | Beads workflow primer | Not injected by dotbrain; the agent runs `bd prime` when it needs it |
@@ -46,7 +38,7 @@ To have the Beads primer injected too, add Beads' own hook with `bd setup claude
 Dotbrain tests its session-start payload against a 10,000-byte budget. This budget comes from
 measured Claude Code behavior: 9,961 bytes reached the model, while 10,010 bytes were written to
 a file instead. It is not a verified limit for every runtime. `DOTBRAIN.md` has a bounded size;
-repository rules and retrospective notebooks grow with the project. Injecting only the convention keeps the payload
+repository rules and private knowledge grow with the project. Injecting only the convention keeps the payload
 within that budget.
 :::
 
@@ -155,42 +147,25 @@ broken setup is silent: if a session in a wired repo does not know the conventio
   started with; Cursor runs no `sessionStart` for it, so no startup sync either. Each `stop` starts
   the `turn-end` push in the background, and `sessionEnd` runs `session-end`. Closing the console
   window probably skips that step; the next session start syncs what was left.
-- In a runtime with no hook support, invoke the `dotbrain` skill to load the convention by hand,
+- In a runtime with no hook support, invoke the `brain-convention` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
 ## Subagents
 
-See [Working with an agent team](agent-team.md#the-packaged-subagents) for when to use each role,
-example prompts, and how the lead coordinates their results.
+Dotbrain delivers selected custom Claude Code and Codex definitions; it ships no
+workflow agents. Use `subagents:` in global `config.yaml` or project `project.yaml`.
+The `dotbrain-` prefix is reserved to protect preserved old resources. Hermes,
+OpenCode, Pi and Cursor receive no native custom subagents from Dotbrain.
 
-dotbrain ships packaged subagents. A project lists the roles it wants under
-[`packaged-subagents`](configuration.md#project-yaml) in `project.yaml`; `dotbrain wire` seeds all
-four. `wire` and `refresh` deliver each listed role into the wired checkout's Claude Code and Codex
-workspaces as `dotbrain-<role>`, for example `dotbrain-worker`. There is no global delivery, and
-the plugin carries no agents. To opt out, remove a role from the list (or empty it) and run
-`dotbrain refresh`. Workflows run with or without them: without a packaged role, the lead gives a
-generic subagent the same role contract. Hermes, OpenCode, Pi, and Cursor get no dotbrain subagents.
-Each loads the authority relevant to its assignment; workers and reviewers reuse supplied findings
-without reading the whole retrospective notebook. A missing notebook blocks nothing and is not scaffolded:
+Claude definitions are symlinks; Codex definitions are generated TOML copies with
+the `# dotbrain-managed-agent: v1` marker. Edit the private source, not a generated
+copy. `dotbrain subagents link` reconciles the current checkout; use
+`--scope global` for global homes. Foreign resources and collisions are preserved
+and reported. Doctor inspects delivery; a successful native invocation is separate
+evidence that a runtime consumed a definition.
 
-| Subagent | Does |
-| --- | --- |
-| `worker` | The writing worker: carries out an assigned change in your checkout or its own worktree, and commits it |
-| `reviewer` | Reviews a change for correctness, regressions, security, and missing tests |
-| `verifier` | Runs the verification gate and returns commit-stamped evidence, never an opinion |
-| `researcher` | Answers a question from the Brain, the codebase, and the web, and flags where outside sources and the Brain disagree. On Codex it reads local files with shell commands under the lead session's permissions; its instructions forbid writes and network commands, but a lead with broader permissions passes them to it |
-
-The packaged subagents can't be overridden: custom subagent names
-can't start with `dotbrain-`. To customize one, write your own agent under a different name. Add
-your own subagents under `subagents:` in [`project.yaml`](configuration.md#project-yaml), or under
-`subagents:` in [`config.yaml`](configuration.md#global-subagents); `dotbrain bootstrap` prepares the global ones in your runtime homes.
-
-Your own Claude definitions are delivered as symlinks. Codex definitions are real TOML copies
-generated with `# dotbrain-managed-agent: v1`; dotbrain can overwrite or prune them. `dotbrain subagents link` reconciles your custom subagents in the current wired checkout;
-use `--scope global` for global homes. Doctor checks file type and delivered content, while a
-successful role spawn confirms the runtime actually consumed a definition.
-
-The packaged Codex reviewer disables cross-session memory. It still receives project instructions
-and reads the relevant Brain records and assigned skills. Give it the exact change, acceptance
-criteria, and authority sections it needs. Its high reasoning effort is unchanged. This setting
-does not change memory in your lead session or other roles.
+The selected workflow supplies assignments, context retrieval/capture timing,
+verification and recovery. The optional [pstack mode](workflow.md#pstack) is
+delivered separately into opted-in Claude Code and Codex projects, not as a
+packaged subagent. Startup may name its delivered location and ignored
+`.dotbrain-pstack.json` dependency record. Restart sessions after selection changes.

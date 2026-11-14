@@ -95,15 +95,10 @@ extra skill looks like this:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
-execution-engine: beads
-
 # Omit agents to follow this machine; an explicit list is exact.
 agents:            # claude, codex, hermes, opencode, pi, cursor
   - claude
   - codex
-
-public-tracker: gh            # none | gh | linear
-public-tracker-id: owner/repo
 
 beads:                        # deviations from global defaults only
   mode: server                # embedded | server | none
@@ -113,30 +108,21 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-packaged-subagents:           # exact list; remove a role and refresh to opt out
-  - researcher
-  - reviewer
-  - verifier
-  - worker
+subagents:                    # project-only custom subagents
+  - some-project-only-subagent
 
-# subagents:                  # project-only custom subagents
-#   - some-project-only-subagent
+pstack:
+  enabled: false              # explicit opt-in; source required when true
 ```
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `execution-engine` | `beads` | The private execution backend |
 | `agents` | Runtimes set up on this machine | Claude and Codex when their CLI is on PATH; [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), and [`cursor`](getting-started.md#cursor) when their dotbrain-owned delivery exists. An explicit list is exact; `[]` disables all. New projects leave this key commented out; existing lists are preserved. |
-| `public-tracker` | `none` | Public issue intake: `none`, `gh`, or `linear` |
-| `public-tracker-id` | — | The tracker's identifier, such as `owner/repo` for GitHub |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
 | `beads.remote` | — | Dolt remote for an embedded tracker |
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
-| `packaged-subagents` | `[]` | Packaged roles (`worker`, `researcher`, `reviewer`, `verifier`) delivered into this project's wired checkouts as `dotbrain-<role>`. `dotbrain wire` seeds all four. The list is exact; absent or empty means none. |
 | `subagents` | `[]` | Project-only custom subagents |
-| `retro.promotion.auto-deliver` | `false` | Skill-read setting: allow unattended commit/push/PR delivery of rule proposals |
-| `retro.promotion.destinations` | `[]` | Allowed existing public guides as repo-relative paths; a nonempty array is required for auto-delivery |
 
 Refresh warns about existing workspaces outside the resolved `agents` set and leaves everything in them untouched.
 
@@ -144,31 +130,39 @@ Codex project skills use `<checkout>/.agents/skills/`, independently of its `.co
 configuration and subagents. Global skills and profiles retain their existing homes.
 See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-link migration and collisions.
 
-`public-tracker` declares public issue intake and contributor collaboration. The packaged
-`triage-public` skill reads it without a private source or `skills:` selection. Accepted public
-issues flow inward into private execution; private work never generates public tracking issues.
-See [public issue intake](skills.md#public-issue-intake).
+### Optional pstack {#pstack}
 
-`run-retro` reads its settings directly; they add no CLI delivery command. With auto-delivery
-disabled or unset, it updates private findings, discovers the repository's guidance conventions,
-and suggests a destination and rule for your decision. You can authorize an individual PR or
-enable standing delivery to an agreed destination, for example:
+The core works without pstack. The project-only `pstack` mapping accepts:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `pstack.enabled` | `false` | YAML boolean selecting the optional project engineering mode. Requires an initialized, reachable Beads backend. |
+| `pstack.source` | — | Explicit external source checkout, absolute or starting with `~/`; required when enabled. |
 
 ```yaml
-# project.yaml — opt in only after agreeing on this repository's destination
-retro:
-  promotion:
-    auto-deliver: true
-    destinations:
-      - CONTRIBUTING.md
-      - docs/code-standards.md
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+pstack:
+  enabled: true
+  source: ~/pstack
 ```
 
-Each destination must exist inside the repository. The skill selects the best fit per finding,
-amending existing guidance without copying a rule into every file. If scope is ambiguous or no
-allowed file fits, it suggests the choice to you. A new rules file needs explicit agreement;
-the skill never assumes a repository should adopt `RULES.md`. Approval and merge remain human-owned.
-Disabling auto-delivery leaves private capture and read-only reconciliation available.
+Unknown pstack keys, non-boolean `enabled`, and relative or missing enabled source
+paths fail with actionable errors. Source validation requires the clean complete
+pstack checkout pinned in [workflow setup](workflow.md#dependency). `wire`,
+`refresh`, and project `skills link` reconcile the selected mode; `doctor` checks
+its dependency, backend and delivery. No command installs or updates pstack.
+
+Delivery is limited to configured Claude Code and Codex project workspaces. The
+ignored `.dotbrain-pstack.json` and separate owned integration cache are generated
+resources, not configuration to edit. Disabling the mode and refreshing removes
+intact owned delivery; modified and foreign resources are preserved and reported.
+Restart sessions after changes. See [qualification scope](workflow.md#qualification)
+for the boundary between structural checks and native behavior evidence.
+
+`packaged-subagents`, `retro`, `execution-engine`, `public-tracker`, and
+`public-tracker-id` are obsolete and ignored. Refresh reports them without
+rewriting user declarations. Remove them explicitly after reviewing
+[upgrade guidance](upgrading.md), preserving unrelated settings.
 
 ::: info
 `dotbrain refresh` preserves project declarations byte-for-byte. Intentional Beads configuration
@@ -201,10 +195,8 @@ selected bundle takes effect on the next reconciliation without rewriting this d
 source under `~/dotbrain/subagents/claude/<name>.md` or `~/dotbrain/subagents/codex/<name>.toml`.
 Removing an entry prunes its managed resource on the next `dotbrain subagents link --scope global`.
 
-Packaged subagents (`worker`, `researcher`, `reviewer`, `verifier`) have no global scope; list
-them in a project's `packaged-subagents`. A packaged name here is skipped, and doctor reports it.
-To stop delivering a packaged role to a project, remove it from that list and run `dotbrain refresh`.
-Workflows still run without packaged subagents; they give generic subagents the same role contract.
+The core ships no workflow agents. Every selected name refers to your own source.
+The `dotbrain-` prefix remains reserved for safe handling of old resources.
 
 Claude Code and Codex receive agents in `<home>/agents`, using their default homes and the same
 `profiles`. Missing profiles are skipped; destinations inside wired checkouts are reported and
@@ -223,39 +215,15 @@ with project selectors or `--all`.
 
 ## Upgrading from earlier versions {#upgrading}
 
-Global settings used to live in three files. The first `dotbrain bootstrap` on this version merges
-them into `config.yaml` version 4:
+Read [the breaking upgrade guide](upgrading.md) before changing a live installation.
+The current core has no legacy engineering workflow mode.
 
-| Before | After |
-| --- | --- |
-| `config.yaml` version 3 | `config.yaml` version 4; `beads` and `sync` are unchanged |
-| `skills/skills.yaml` `profiles` | `config.yaml` `profiles` |
-| `skills/skills.yaml` `global_extra` (or `extra`) | `config.yaml` `skills` |
-| `agents/agents.yaml` `global` | `config.yaml` `subagents`, custom subagents only |
-| A packaged name in `agents/agents.yaml` `global` | Dropped and reported; select packaged subagents per project |
-| `targets` naming a runtime's default destination, such as `~/.claude/skills` or `~/.hermes/skills` | Dropped |
-| Claude Code or Codex `targets` naming a custom folder, such as `~/.codex-work/skills` | Its parent becomes a profile home, such as `codex: [~/.codex-work]` |
-| Hermes, OpenCode, Pi or Cursor `targets` naming a custom folder | Dropped and reported, with the replacement: set `HERMES_HOME`, `XDG_CONFIG_HOME` or `PI_CODING_AGENT_DIR` to relocate that runtime; Cursor always uses `~/.cursor/skills` |
-| `~/dotbrain/agents/` | `~/dotbrain/subagents/`, custom subagent sources only |
-| The `agents list` / `agents link` commands | `dotbrain subagents list` / `dotbrain subagents link`, custom subagents only |
-| Packaged subagents always delivered to every project | Listed per project in `project.yaml` `packaged-subagents`; refresh adds the list with all four roles to an older, unversioned `project.yaml` once |
-| Claude Code plugin agents, named with the plugin prefix | `dotbrain-<role>` in wired checkouts only |
-
-Claude Code no longer has packaged subagents in repositories that are not wired with dotbrain:
-the plugin no longer carries agents.
-
-Bootstrap saves the original files under `~/dotbrain/.cache/config-backups/`, writes the merged
-`config.yaml`, repoints links, and removes the old settings files last, reporting each change.
-If a step fails or the process stops, settings remain in the old files or the committed config.
-A pending migration record keeps global delivery paused until the next bootstrap finishes cleanup.
-Claude Code links in every runtime home that pointed into `agents/` are repointed to
-`subagents/`, even when bootstrap runs for one runtime only. A
-profile receives both skills and subagents, so a converted target can start receiving subagents
-too. A second run changes nothing. The reported backup folder preserves the original files for
-manual recovery.
-
-Bootstrap stops and changes no file when it cannot merge safely: unparseable YAML, anchors, merge
-keys or tags, duplicate or unknown keys, a value that conflicts with one already in `config.yaml`, a
-Claude Code or Codex target that does not end in `/skills` or `/agents`, or files in both `agents/`
-and `subagents/`. Fix the reported file and run bootstrap again. Until then, global delivery waits and
-doctor reports the leftover files. After the migration, dotbrain never reads the old files.
+Older global settings may still need the existing bootstrap migration to
+`config.yaml` version 4. It merges supported profiles, skills and custom subagent
+selections, saves originals under `~/dotbrain/.cache/config-backups/`, and reports
+retired entries. Runtime default targets are dropped; custom Claude Code/Codex
+homes become profiles. Sources under old `agents/` move to `subagents/` only when
+safe. Unknown or conflicting declarations and competing source folders stop
+migration rather than guessing. Global delivery waits until cleanup completes.
+Use the reported backups for manual recovery and inspect notices before retrying.
+This migration neither selects pstack nor restores retired packaged roles.

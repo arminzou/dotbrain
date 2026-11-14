@@ -64,7 +64,7 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 <div class="tp-row file in">CONTEXT.md<span class="tp-note">domain vocabulary</span></div>
 <div class="tp-row file in">DOTBRAIN.md<span class="tp-note">shared Brain rules</span></div>
 <div class="tp-row file in">project.yaml<span class="tp-note">skills and tracker</span></div>
-<div class="tp-row file in">RETRO.md<span class="tp-note">lessons learned</span></div>
+<div class="tp-row file in">docs/<span class="tp-note">findings and references</span></div>
 <div class="tp-row dir">.beads/<span class="tp-note">issue tracker</span></div>
 </div>
 <div class="tp">
@@ -84,7 +84,7 @@ Each project's Brain and issue tracker live under `~/dotbrain/`. Gitignored link
 
 ## Every agent in the repo gets the same skills
 
-Write skills once in `~/dotbrain/` and give each project the set it needs. Whichever agent you open in that repo loads the same set, and Claude Code and Codex get the project's subagents too. Fix a skill once and every repo that uses it gets the fix. [Choose a project's skills](./configuration#project-yaml).
+Write skills once in `~/dotbrain/` and give each project the set it needs. Dotbrain delivers the selected resources to configured runtimes; Claude Code and Codex can also receive your custom subagents. Reconcile after source changes, and start fresh sessions when needed. [Choose a project's skills](./configuration#project-yaml).
 
 </div>
 <div>
@@ -98,7 +98,7 @@ Write skills once in `~/dotbrain/` and give each project the set it needs. Which
 
 ## Plan as a graph. Work in a loop.
 
-A settled design becomes issues in Beads, linked by what blocks what. Agents pick up whatever is ready, close it, and unblock the next. What they learn goes back into the Brain, so the next session starts further ahead. [See the workflow](./workflow).
+Five core skills maintain wiring, project understanding, repository requirements and Beads records. Your chosen workflow owns execution. Select the optional project pstack mode when you want its engineering procedures. [See the workflow](./workflow).
 
 <WorkLoop />
 

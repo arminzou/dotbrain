@@ -1,266 +1,65 @@
----
-pageClass: prompt-examples
----
-
 # 示例提示词
 
-用 dotbrain，主要就是让你的 Coding Agent 去做事。本页收集了常见工作可以直接发送、或稍作修改的提示词。
-每条都说明了什么时候用、会触发哪个 skill，以及这一步在哪里有详细解释。
+按需要请求具体操作。五个核心 skills 维护工作区资源、项目理解、仓库要求和工作记录；工程实现交给所选工作流。
+使用 runtime 展示的 skill 名称。Claude Code 插件使用 `/dotbrain:<name>`，Codex 可从 picker 选择。
 
-提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
-
-不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。要明确选中某个 skill，
-请使用 runtime 显示的名称。内置的 `run-retro` 不会自动启动，需要显式调用：Claude Code 用
-`/dotbrain:run-retro`，Codex 从 skill picker 选择。下面提到的 skills 都随插件提供，见[目录](skills.md)。
-
-## 配置 {#set-up}
-
-### 连接仓库 {#wire-a-repo}
+## 连接或修复仓库 {#wire-or-repair-a-repository}
 
 ```text
-Use wire-brain to wire this repo with Dotbrain.
+Use wire-brain to wire this repository with Dotbrain and check its health.
 ```
 
-**什么时候用：** 第一次在某个仓库或新的 worktree 里用 dotbrain。需要时会安装 CLI 和依赖。
-**Skill：** `wire-brain`。见[快速开始](getting-started.md)。
+`wire-brain` 通过 CLI 完成设置和修复。连接本身不启用 pstack；详见[快速开始](getting-started.md)。
 
-### 修复连接 {#repair-the-wiring}
+## 记录项目理解 {#capture-project-understanding}
 
 ```text
-dotbrain doctor reports problems in this repo. Use wire-brain to find out why and repair the wiring.
+Use maintain-brain to record the verified API constraint and its evidence.
+Keep the retry explanation as an unresolved hypothesis.
 ```
 
-**什么时候用：** `.brain` 或 `.beads` 缺失、链接失效，或者 Agent 不了解项目。插件或 CLI 更新后也可以用。
-**Skill：** `wire-brain`。见[项目连接](wiring.md)和[故障排查](troubleshooting.md)。
+同一能力还维护术语、已采纳的决策、设计、参考资料和生命周期记录。
+记录发现不等于采纳新决策；终态声明需要相应证据和授权。
 
-## 规划 {#plan}
-
-### 摸清陌生代码 {#get-oriented-in-unfamiliar-code}
+## 查看或维护工作记录 {#inspect-or-maintain-work-records}
 
 ```text
-Run find-unknowns on how GET /orders handles queries and responses before we add pagination.
+Use work-graph to inspect this initiative's dependencies and current ownership.
+Report ready work without starting implementation or changing claims.
 ```
 
-**什么时候用：** 动不熟悉的代码之前，或者一项工作刚开始时。只读；它会报告那些会改变你做法的假设和约束。
-**Skill：** `find-unknowns`。见[工作流程](workflow.md#_1-orient)。
+需要写入时，明确任务操作和适用 actor。原生 Beads readiness 表示依赖资格，工作流再应用范围、容量和验收要求。
+详见 [Beads 后端](beads-backend.md)。
 
-### 敲定决策 {#settle-decisions}
+## 初始化仓库要求 {#initialize-repository-requirements}
 
 ```text
-Grill me on this plan: add pagination to GET /orders so clients can fetch orders in smaller batches.
-Help me settle the pagination approach, default page size, and compatibility with existing clients.
-Check it against our vocabulary and existing ADRs, and record what we settle.
+Use repo-rules to initialize RULES.md and its AGENTS.md routing.
+Adapt the baseline to this repository, preserve existing requirements,
+and report conflicts without adopting a resolution.
 ```
 
-**什么时候用：** 你有一个计划，但还有没想清楚的问题或需要定义清楚的术语。定下来的术语写进 `CONTEXT.md`，
-难以撤回的选择写进 `adr/`。**Skill：** `grill-decisions`。见[工作流程](workflow.md#_2-settle-decisions)。
+初始化需要明确请求。单独调用只评估，不采纳提案，也不创建规则文件。
+公开 `AGENTS.md` 应指向要求，不重复规则正文。
 
-### 写设计 {#write-a-design}
+## 评估执行机制 {#assess-enforcement}
 
 ```text
-Write a design for orders API pagination, with success criteria and known unknowns.
+Use repo-rules to assess enforcement of the adopted dependency boundary.
+Report the existing checks and smallest enforcement gap without editing files.
 ```
 
-**什么时候用：** 工作跨多个会话、涉及多个模块，或者有真正的未知项。会在 `.brain/designs/` 里创建设计文档，
-并开一个跟踪用的 epic。**Skill：** `to-design`。见[工作流程](workflow.md#_3-write-the-design)。
+如请求实现 enforcement，会将已采纳的规则、授权、边界与已有检查、建议机制和验证需求交给工程工作流。
+评估本身不修改代码、lint 或 CI。
 
-### 把设计拆成任务 {#split-a-design-into-issues}
+## 使用所选工程工作流 {#use-a-selected-engineering-workflow}
+
+[明确设置 pstack](workflow.md#opt-in) 后，开启新会话，选择 runtime 展示的 `dotbrain-pstack` skill：
 
 ```text
-Split the orders-pagination design into issues with acceptance criteria and dependencies.
+Use this project's dotbrain-pstack mode to implement the approved API change.
+Preserve the existing acceptance criteria and record actual checks and pending work.
 ```
 
-**什么时候用：** 设计已经敲定并获批。每份设计只运行一次。**Skill：** `to-issues`。
-见[工作流程](workflow.md#_4-split-into-issues)。
-
-## 执行 {#work}
-
-工作流选择、任务归属和协作方式，见[和 Agent 团队一起工作](agent-team.md)。
-
-**工作流**和**执行模式**是两个独立的选择。**HITL**（Human-in-the-Loop）每完成一次有明确范围的执行，就回到你这里；
-**handoff** 则在你批准的约定内持续推进。**顺序执行**同一时间只有一个 Agent 写代码；**并行执行**则有多个写代码的
-worker 同时工作。只读的研究、审阅或验证不算并行执行。见[工作流程](workflow.md#_5-work-the-issues)。
-
-### 跟踪任务 {#track-work}
-
-```text
-What's ready to work on?
-```
-
-```text
-File an issue: GET /orders returns duplicate orders on the next page. Link it to the orders-pagination epic.
-```
-
-**什么时候用：** 想看看哪些任务可以开始，或者创建、认领、更新、关闭任务。**Skill：** `manage-work-graph`。
-见[工作流程](workflow.md#_5-work-the-issues)。
-
-### HITL：顺序执行 {#hitl-sequential-execution}
-
-::: info 默认工作流和执行模式
-默认使用 HITL 工作流和顺序执行。直接让 Agent 处理下一个任务即可，不用指定这两个选项；
-完成这次范围明确的执行后，Agent 会回到你这里。
-:::
-
-```text
-Work the next ready issue under the orders-pagination epic.
-```
-
-**什么时候用：** 你想一次指挥一段范围明确的工作。主 Agent 可以自己写，也可以交给一个 `worker`，两种都算顺序执行。
-行为改动需要独立审阅。**Skill：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
-
-### HITL：并行执行 {#hitl-parallel-execution}
-
-::: info Worker 数量上限
-两种工作流中，如果你没有指定上限，lead 会根据 runtime 容量、资源隔离和既有约束，公布有限的同时写入人数上限。
-它在固定范围内填满就绪名额并及时补位，同时为协调、审阅和验证预留容量。
-:::
-
-```text
-Work the ready issues under the orders-pagination epic in parallel where they are independent. Show me the branch and how you'll split the work before starting.
-```
-
-**什么时候用：** 多个独立任务都已就绪，你想指挥这一批工作。如果无法安全并行，Agent 会说明原因，改为顺序执行。
-**Skill：** `run-execution`。见[工作流程](workflow.md#_5-work-the-issues)。
-
-### Handoff：顺序执行 {#handoff-sequential-execution}
-
-```text
-/dotbrain:iterate-design Work the orders-pagination design, one issue at a time. Propose the handoff contract and wait for my GO.
-```
-
-**什么时候用：** 设计处于 active 状态，工作有自动检查，你希望 Agent 不用你盯着也能继续。它会先提出一份约定
-（范围、分支、检查项、worker 数量、PR 交付方式、验收/UAT、审阅、provider/auth 和执行上限）。
-完整授权仍适用时直接复用，不必重复回复 `GO`。PR 批准、合并和发布始终由你决定。**Skill：**
-`iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
-
-### Handoff：并行执行 {#handoff-parallel-execution}
-
-```text
-/dotbrain:iterate-design Work the orders-pagination design, taking independent issues in parallel. Propose the handoff contract and wait for my GO.
-```
-
-**什么时候用：** 希望 Agent 按 active 设计持续推进，并把独立任务并行处理。某个任务耗尽重试次数或需要你决定时，
-它和依赖它的任务会等待，其他独立任务继续。范围内只要还有任务被阻塞，handoff 就不能成功结束，也不能把 PR 标为 ready。
-**Skill：** `iterate-design`。见[工作流程](workflow.md#_5-work-the-issues)。
-
-两种 handoff 模式下，批准约定并回复 `GO` 后，Agent 可以推送专用分支、在首次推送时创建 draft PR，
-并在验证和审阅通过后把 PR 标为 ready、请求你审阅。合并、部署、发布、依赖变更，以及范围或成功标准的调整，仍需你决定。
-
-## 内置 Subagent {#packaged-subagents}
-
-各角色的职责和 runtime 行为，见[内置 Subagent](agent-team.md#the-packaged-subagents)。
-
-skills 规定工作流程，subagent 则接收主 Agent 分配的具体任务。可以让主 Agent 用下面的名字调用它们：
-
-| 职责 | Claude Code 和 Codex |
-|---|---|
-| 写代码 | `dotbrain-worker` |
-| 研究 | `dotbrain-researcher` |
-| 审阅 | `dotbrain-reviewer` |
-| 验证 | `dotbrain-verifier` |
-
-只有在已连接的 checkout 里、且 `project.yaml` 的 [`packaged-subagents`](configuration.md#project-yaml)
-列出了该角色时，才有这些名字。没有时，工作流会把同样的角色约定交给通用 subagent。
-下面的提示词按角色描述任务；需要明确名称时，使用上表对应的名字。这些是交给 subagent 的任务，不是 slash command。
-见[会话上下文](session-context.md#subagents)。
-
-### 把一个改动交给 worker {#delegate-one-change-to-a-worker}
-
-```text
-Have the packaged worker fix duplicate orders across pages in GET /orders on our current branch. Give it the issue, its own Beads actor, and the agreed checks. Have it commit the fix and report back.
-```
-
-**什么时候用：** 有一个具体改动想交给 subagent。`worker` 会修改并提交候选结果，不会推送、合并或关闭任务。
-如果要执行一批已跟踪的任务，优先用 `run-execution`，由它准备任务分配、协调审阅和集成。
-
-### 研究 API 决策 {#research-an-api-decision}
-
-```text
-Ask the packaged researcher whether cursor or offset pagination fits GET /orders better. Check our Brain, the code, and official docs, and explain the trade-offs with sources.
-```
-
-**什么时候用：** 需要结合项目上下文、代码和外部资料，得到有来源依据的答案。`researcher` 报告发现并提出更新建议，
-不会直接实施。
-
-### 获取独立审阅 {#get-an-independent-review}
-
-```text
-Have the packaged reviewer check this orders-pagination branch against main and our acceptance criteria. Look for pagination bugs, authorization gaps, compatibility problems, and missing tests.
-```
-
-**什么时候用：** 希望由没有参与写这次改动的 Agent 做一次针对性的审阅。`reviewer` 检查 diff 及相关代码。
-工作流中的单任务审阅还需要任务 ID、reviewer actor、审阅轮次、候选版本和 diff 基线；`run-execution` 会准备这些信息。
-
-### 运行自动验证 {#run-a-mechanical-verification-gate}
-
-```text
-Have the packaged verifier run the agreed checks for orders pagination on this branch and give me the results and a Verification block for the PR.
-```
-
-**什么时候用：** 需要证据证明约定的检查通过。`verifier` 运行检查、报告实际观察到的结果，不修复失败，也不给代码审阅结论。
-
-## 审阅与结束 {#review-and-close}
-
-### 审阅改动 {#review-a-change}
-
-```text
-Run a code review gate on this branch against main.
-```
-
-```text
-Run a simplify review on this branch: what can we delete or replace?
-```
-
-**什么时候用：** 分支提交合并之前，或者任何时候想要一次独立审阅。模式有 `code`（正确性）、`simplify`（简化）
-和 `readiness`（某个子系统是否足够可靠，能在上面继续构建）。**Skill：** `review-gate`。
-见[工作流程](workflow.md#_6-review)。
-
-### 结束设计 {#close-a-design}
-
-```text
-/dotbrain:close-design The orders-pagination work is merged. Close the design: record the evidence and promote what should
-outlive it to ADRs and CONTEXT.md.
-```
-
-**什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**Skill：**
-`close-design`。见[工作流程](workflow.md#_7-close-the-design)。
-
-## 维护 Brain {#maintain-the-brain}
-
-### 检查上下文健康 {#check-context-health}
-
-```text
-Check this project's context health: find stale, duplicated, or misplaced guidance across
-AGENTS.md and the Brain, and anything private leaking into the public repo.
-```
-
-**什么时候用：** 指引越积越多，`AGENTS.md` 和 `CLAUDE.md` 不一致了，或者想检查公开/私有的边界。默认只报告，
-只有你要求时才修复。**Skill：** `curate-project-context`。
-
-### 编写或修改给 Agent 看的文档 {#write-or-edit-agent-facing-docs}
-
-```text
-Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
-```
-
-**什么时候用：** 创建或修改 `AGENTS.md`、Brain 上下文、设计文档、skills，或 Agent 会依赖的公开文档。
-**参考：** `maintain-brain/references/writing.md` 及其中链接的语法指南。
-需要修复上下文时，使用 `curate-project-context` 的 fix 模式。
-
-### 分诊公开任务 {#triage-public-issues}
-
-可以直接要求 triage，或使用 runtime 显示的名称调用内置的 `triage-public`，再说明处理范围。
-无需私有来源或 `skills:` 选择：
-
-```text
-Triage the open GitHub issues and promote the accepted ones into our work graph.
-```
-
-**什么时候用：** 项目接收公开任务，你想让它们被分类、复现，并纳入私有执行。需要在
-[`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**Skill：** `triage-public`。
-修改公开内容需要相应授权；私有工作不会生成公开的跟踪任务。
-
-## 相关内容 {#related}
-
-- [Skills](skills.md)列出了所有 skills 及一句话说明。
-- [工作流程](workflow.md)展示了这些 skills 如何配合。
+mode 负责执行与恢复程序。只用核心能力的项目也可选其他工作流，复用同样的上下文和工作图操作。
+调用 skill 本身不授予发布、发消息、合并或 release 权限。

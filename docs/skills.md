@@ -100,3 +100,8 @@ Displaced workflow entrypoints, role composition, and the mandatory retrospectiv
 process are removed. Existing `RETRO.md` notebooks, private sources, work records,
 and history remain recoverable. Modified or ambiguous old resources are preserved
 and reported. Read [upgrade guidance](upgrading.md) before updating a live setup.
+
+## Optional engineering mode
+
+The CLI delivers `dotbrain-pstack` only to explicitly opted-in projects; it is
+not a sixth marketplace core skill. See [setup and qualification](workflow.md#pstack).

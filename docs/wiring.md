@@ -13,13 +13,18 @@ private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start 
 | `.claude/skills/` | Real directory containing symlinks | Selected private skills under `~/dotbrain/skills/` |
 | `.agents/skills/` | Real directory containing symlinks | Codex's selected private skills under `~/dotbrain/skills/` |
 | `.claude/agents/` | Real directory containing symlinks | Selected private Claude agents under `~/dotbrain/subagents/` |
-| `.codex/agents/` | Real directory containing generated TOML files | Packaged roles and selected private Codex agents |
+| `.codex/agents/` | Real directory containing generated TOML files | Selected private Codex agents |
 
 `.claude` and `.codex` stay real directories so anything the project already keeps there (settings,
 commands) is untouched. Skills and Claude agents are symlinks. Codex agents are generated real
 TOML files, marked `# dotbrain-managed-agent: v1`. Dotbrain can overwrite and prune its marked
 copies; customize their source in the private home. Unmarked files and foreign links are preserved.
 Each delivered resource is ignored individually.
+
+Explicitly opted-in projects also receive the [pstack mode](workflow.md#opt-in)
+in their configured Claude Code and Codex skill directories. Its links target a
+separate owned integration cache; ignored `.dotbrain-pstack.json` records the
+dependency selection. Core-only wiring creates no pstack selection.
 
 Codex project skills go in `.agents/skills/`; its configuration and agents stay under `.codex/`.
 `wire`, `refresh`, and `skills link` migrate owned legacy `.codex/skills/` links after successful

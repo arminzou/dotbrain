@@ -6,9 +6,11 @@ workflow agents have been removed. Keep the preceding release if those workflows
 are still required. Existing private context, notebooks, Beads records, and user
 skill and custom-agent sources remain yours.
 
-Before changing a live installation, establish a safe boundary for active writers
-and back up private files and the Beads backend through their respective
-persistence mechanisms. Save configuration and delivered resources needed for
+Before changing a live installation, finish or safely hand off active writers.
+Record actual candidates, claims, pending work, evidence and remaining limits;
+upgrading does not accept work, close tasks, or renew allowances. Back up private
+Brain/home files through their private Git history and backup, and back up Beads
+through its Dolt remote or server backup. Home sync does not back up the tracker. Save configuration and delivered resources needed for
 rollback. Update matching CLI and plugin versions, then inspect `dotbrain doctor`
 and `dotbrain refresh` results in a fresh session.
 
@@ -35,3 +37,20 @@ while obsolete managed delivery links are pruned.
 Rollback restores the previous release and captured configuration and resources.
 Reconcile work recorded after upgrading before restoring older private or backend
 state. Rolling back software must not overwrite newer work records.
+
+
+## Workflow selection
+
+The five core skills work without pstack. The optional `dotbrain-pstack` mode
+requires a separately prepared clean external source checkout and explicit
+project `pstack.enabled` / `pstack.source` settings. It is delivered by the CLI,
+not as a sixth marketplace skill. Follow [setup and qualification scope](workflow.md#pstack).
+The initial native qualification targets are local Windows Claude Code and Codex;
+source identity and generated resources are structural evidence, not a native pass.
+Observed results belong to the exact release or PR verification record.
+
+Mode links and `.dotbrain-pstack.json` are generated and ignored. Change project
+selection, refresh each checkout, inspect preserved-resource notices, and start
+fresh sessions. Modified caches, discovery records or foreign resources are
+preserved rather than silently replaced or deleted. Keep the external dependency
+pinned unless separately reviewing and qualifying its upgrade.

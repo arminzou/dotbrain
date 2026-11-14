@@ -12,12 +12,16 @@
 | `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有 skills |
 | `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有 skills |
 | `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/subagents/` 下选中的私有 Claude Agent |
-| `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 内置角色和选中的私有 Codex Agent |
+| `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 选中的私有 Codex Agent |
 
 `.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。skills 和 Claude
 Agent 是符号链接。Codex Agent 是生成的真实 TOML 文件，带有 `# dotbrain-managed-agent: v1` 标记。
 dotbrain 可以覆盖和清理带标记的副本；要自定义，请改私有主目录里的源文件。没有标记的文件和其他来源的
 链接都会保留。每个分发的资源都单独被忽略。
+
+明确启用的项目还会在配置的 Claude Code 和 Codex skill 目录中收到 [pstack mode](workflow.md#opt-in)。
+链接指向独立的自有集成缓存，被 gitignore 的 `.dotbrain-pstack.json` 记录依赖选择。
+只使用核心能力的连接不会创建 pstack 选择。
 
 Codex 项目 skills 放在 `.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。`wire`、`refresh` 和
 `skills link` 会在新链接分发成功后移除自有的 `.codex/skills/` 旧链接，保留并报告其他来源的条目和冲突。

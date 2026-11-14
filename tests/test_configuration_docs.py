@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import yaml
+import pytest
 
 from dotbrain import config, skills
 
@@ -13,8 +14,9 @@ def _extract_yaml_block(doc: str, heading: str) -> str:
     return match.group(1)
 
 
-def test_configuration_doc_examples_match_runtime_config(tmp_path: Path):
-    doc = Path("docs/configuration.md").read_text(encoding="utf-8")
+@pytest.mark.parametrize("page", ["docs/configuration.md", "docs/zh/configuration.md"])
+def test_configuration_doc_examples_match_runtime_config(tmp_path: Path, page: str):
+    doc = Path(page).read_text(encoding="utf-8")
     dotbrain_home = tmp_path / "dotbrain"
     project_root = dotbrain_home / "brainspaces" / "demo" / ".brain"
     project_root.mkdir(parents=True)
@@ -22,8 +24,8 @@ def test_configuration_doc_examples_match_runtime_config(tmp_path: Path):
     config_yaml = _extract_yaml_block(doc, "config.yaml")
     project_yaml = _extract_yaml_block(doc, "project.yaml")
 
-    (dotbrain_home / "config.yaml").write_text(config_yaml + "\n")
-    (project_root / "project.yaml").write_text(project_yaml + "\n")
+    (dotbrain_home / "config.yaml").write_text(config_yaml + "\n", encoding="utf-8")
+    (project_root / "project.yaml").write_text(project_yaml + "\n", encoding="utf-8")
 
     global_doc = yaml.safe_load(config_yaml)
     project_doc = yaml.safe_load(project_yaml)
@@ -42,6 +44,8 @@ def test_configuration_doc_examples_match_runtime_config(tmp_path: Path):
 
     assert config.load_project_agents(dotbrain_home, "demo") == tuple(project_doc["agents"])
     assert config.load_project_skills(dotbrain_home, "demo") == tuple(project_doc["skills"])
+    assert config.load_project_subagents(dotbrain_home, "demo") == tuple(project_doc["subagents"])
+    assert config.load_project_pstack(dotbrain_home, "demo").enabled is project_doc["pstack"]["enabled"]
 
     assert loaded_global.profiles == global_doc["profiles"]
     assert loaded_global.skills == tuple(global_doc["skills"])

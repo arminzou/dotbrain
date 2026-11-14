@@ -90,15 +90,10 @@ sync:
 
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
-execution-engine: beads
-
 # 省略 agents 则跟随本机配置；显式列表只启用所列项。
 agents:            # claude, codex, hermes, opencode, pi, cursor
   - claude
   - codex
-
-public-tracker: gh            # none | gh | linear
-public-tracker-id: owner/repo
 
 beads:                        # deviations from global defaults only
   mode: server                # embedded | server | none
@@ -108,57 +103,55 @@ beads:                        # deviations from global defaults only
 skills:                       # extra skills for this project's workspaces
   - some-collection/some-skill
 
-packaged-subagents:           # exact list; remove a role and refresh to opt out
-  - researcher
-  - reviewer
-  - verifier
-  - worker
+subagents:                    # project-only custom subagents
+  - some-project-only-subagent
 
-# subagents:                  # project-only custom subagents
-#   - some-project-only-subagent
+pstack:
+  enabled: false              # explicit opt-in; source required when true
 ```
 
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
-| `execution-engine` | `beads` | 私有的执行后端 |
 | `agents` | 本机已配置的 runtime | Claude、Codex 按 CLI 是否在 PATH 上判断；[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi)、[`cursor`](getting-started.md#cursor) 按 dotbrain 自己分发的副本是否存在判断。显式列表只启用所列项；`[]` 全部禁用。新项目默认注释掉此键，已有列表保持不变。 |
-| `public-tracker` | `none` | 公开的任务入口：`none`、`gh` 或 `linear` |
-| `public-tracker-id` | — | 任务跟踪的标识，比如 GitHub 的 `owner/repo` |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |
 | `beads.remote` | — | embedded 跟踪器的 Dolt remote |
 | `beads.database` | 项目名 | 服务器上的数据库名 |
 | `skills` | `[]` | 链接到这个项目工作区的 skills |
-| `packaged-subagents` | `[]` | 分发到这个项目已连接 checkout 的打包角色（`worker`、`researcher`、`reviewer`、`verifier`），名字是 `dotbrain-<role>`。`dotbrain wire` 会写入全部四个。列表是精确的；不写或为空表示不分发。 |
 | `subagents` | `[]` | 只给这个项目用的自定义 subagents |
-| `retro.promotion.auto-deliver` | `false` | 由 skill 读取：允许自动提交、推送规则提案并创建 PR |
-| `retro.promotion.destinations` | `[]` | 允许修改的已有公开指南，相对仓库的路径数组；启用自动交付时不能为空 |
 
 刷新时，已存在但不在 `agents` 解析结果中的工作区会触发警告，里面的文件和链接都保持不变。
 
 Codex 项目 skills 使用 `<checkout>/.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。全局 skills 和
 profile 主目录的位置不变。旧链接迁移和冲突处理见[skills 同步](skills.md#select-and-reconcile-skills)。
 
-`public-tracker` 声明公开任务入口和与贡献者的协作。内置的 `triage-public` skill 会读取它，
-无需私有来源或 `skills:` 选择。接受的公开任务会进入私有执行流程；私有工作不会生成公开的跟踪任务。
-见[公开任务入口](skills.md#public-issue-intake)。
+### 可选的 pstack {#pstack}
 
-`run-retro` 直接读取这些设置，不增加 CLI 交付命令。自动交付未设置或关闭时，它更新私有发现，
-查找仓库已有的规则、标准或贡献指南，并建议文件位置和规则，由你决定是否创建 PR。
-你可以单独授权某个提案，也可以在确认仓库接受该位置后启用自动交付：
+核心不依赖 pstack。项目级 `pstack` mapping 接受以下设置：
+
+| 键 | 默认值 | 含义 |
+| --- | --- | --- |
+| `pstack.enabled` | `false` | YAML boolean，选择可选的项目工程 mode，需要已初始化且可连接的 Beads 后端。 |
+| `pstack.source` | — | 显式的外部来源 checkout，必须是绝对路径或以 `~/` 开头；启用时必填。 |
 
 ```yaml
-# project.yaml — 先确认这个仓库接受该位置，再启用
-retro:
-  promotion:
-    auto-deliver: true
-    destinations:
-      - CONTRIBUTING.md
-      - docs/code-standards.md
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+pstack:
+  enabled: true
+  source: ~/pstack
 ```
 
-各目标文件必须已存在于仓库内。skill 按发现的主题和适用范围选择最合适的文件，不把同一规则复制到所有文件。
-没有合适位置或归属不清时，它会建议位置，由你决定。新建规则文件需要明确同意；skill 不会默认要求仓库采用 `RULES.md`。
-PR 批准与合并仍由你决定。关闭自动交付后，私有记录和只读的合并状态核对照常进行。
+pstack 未知键、非 boolean 的 `enabled`、相对路径，以及启用时缺少来源都会报可操作的错误。
+来源必须是[工作流设置](workflow.md#dependency)指定的干净完整 checkout。
+`wire`、`refresh` 和项目 `skills link` 同步 mode；`doctor` 检查依赖、后端和交付。
+这些命令都不安装或更新 pstack。
+
+mode 只交付到配置的 Claude Code 和 Codex 项目工作区。被 gitignore 的 `.dotbrain-pstack.json`
+和独立自有集成缓存是生成资源，不是应直接修改的配置。关闭 mode 后 refresh 只移除完整自有资源，
+修改过或其他工具的资源会保留并报告。改变选择后请重启会话。
+结构检查与 native 行为证据的区别见[验证范围](workflow.md#qualification)。
+
+`packaged-subagents`、`retro`、`execution-engine`、`public-tracker` 和 `public-tracker-id`
+已废弃并忽略。refresh 会报告，但不改写用户声明。请阅读[升级说明](upgrading.md)后明确删除这些键，保留无关设置。
 
 ::: info
 `dotbrain refresh` 会逐字节保留项目声明。有意更新 Beads 配置时，会保留不相关的键、未知的嵌套值和显式的
@@ -187,10 +180,8 @@ Claude Code 和 Codex 的 skills 会链接到默认主目录（`~/.claude` 和 `
 `~/dotbrain/subagents/claude/<name>.md` 或 `~/dotbrain/subagents/codex/<name>.toml` 下的源文件。
 删除一个条目后，下次运行 `dotbrain subagents link --scope global` 时会清理它对应的资源。
 
-打包的 subagents（`worker`、`researcher`、`reviewer`、`verifier`）没有全局范围，请写在项目的
-`packaged-subagents` 里。写在这里的打包名称会被跳过，doctor 也会报告。
-不想给某个项目分发某个角色，就把它从列表里删掉，再运行 `dotbrain refresh`。
-没有packaged subagents 时工作流照样能跑：它们会把同样的角色约定交给通用 subagents。
+核心不提供工作流 agents，选择的名称都指向你自己的来源。
+`dotbrain-` 前缀保留，用来安全处理旧版资源。
 
 Claude Code 和 Codex 会把 Agent 分发到默认主目录和同一组 `profiles` 下的 `agents/`。不存在的 profile
 会跳过；位于已连接 checkout 内的目标会报错并跳过。
@@ -206,32 +197,10 @@ Hermes、OpenCode、Pi 和 Cursor 不接收 subagents。项目链接默认作用
 
 ## 从旧版本升级 {#upgrading}
 
-以前的全局设置分散在三个文件里。升级后第一次运行 `dotbrain bootstrap`，会把它们合并进 `config.yaml` version 4：
+修改实际安装前请阅读[breaking upgrade 指南](upgrading.md)。核心不保留旧工程工作流实现模式。
 
-| 之前 | 之后 |
-| --- | --- |
-| `config.yaml` version 3 | `config.yaml` version 4；`beads` 和 `sync` 不变 |
-| `skills/skills.yaml` 的 `profiles` | `config.yaml` 的 `profiles` |
-| `skills/skills.yaml` 的 `global_extra`（或 `extra`） | `config.yaml` 的 `skills` |
-| `agents/agents.yaml` 的 `global` | `config.yaml` 的 `subagents`，只保留自定义 subagents |
-| `agents/agents.yaml` 的 `global` 里的打包名称 | 删除并报告；packaged subagents 请按项目选择 |
-| 指向 runtime 默认位置的 `targets`，例如 `~/.claude/skills` 或 `~/.hermes/skills` | 删除 |
-| Claude Code 或 Codex 指向自定义目录的 `targets`，例如 `~/.codex-work/skills` | 父目录变成 profile 主目录，例如 `codex: [~/.codex-work]` |
-| Hermes、OpenCode、Pi 或 Cursor 指向自定义目录的 `targets` | 删除并报告替代做法：设置 `HERMES_HOME`、`XDG_CONFIG_HOME` 或 `PI_CODING_AGENT_DIR` 来移动该 runtime；Cursor 固定使用 `~/.cursor/skills` |
-| `~/dotbrain/agents/` | `~/dotbrain/subagents/`，只放自定义 subagents 的源文件 |
-| `agents list` / `agents link` 命令 | `dotbrain subagents list` / `dotbrain subagents link`，只管自定义 subagents |
-| packaged subagents 总是分发给每个项目 | 在 `project.yaml` 的 `packaged-subagents` 里按项目列出；refresh 会给旧的、没有版本号的 `project.yaml` 补上这个列表（含全部四个角色），只补一次 |
-| Claude Code 插件里带插件前缀的 Agent | `dotbrain-<role>`，只在已连接的 checkout 里 |
-
-插件不再带 Agent，所以在没有用 dotbrain 连接的仓库里，Claude Code 不再有packaged subagents。
-
-Bootstrap 先把原文件备份到 `~/dotbrain/.cache/config-backups/`，再写入合并后的 `config.yaml`、更新链接，
-最后删除旧设置文件，并逐项报告。如果某一步失败或进程中断，设置仍保存在旧文件或已写入的 config 中。
-迁移记录会让全局分发继续暂停，直到下次 bootstrap 完成清理。
-各 runtime 主目录里指向 `agents/` 的 Claude Code 链接会改指向 `subagents/`，即使这次只为一个 runtime 运行 bootstrap。profile 会同时接收 skills 和 subagents，所以由 target
-转换来的主目录也可能开始接收 subagents。再次运行不会有任何改动。报告里的备份目录保留了原文件，供手动恢复。
-
-无法安全合并时，bootstrap 会停下来，不改任何文件。这些情况包括：YAML 无法解析；使用了锚点、合并键或标签；
-有重复或未知的键；某个值和 `config.yaml` 里已有的值冲突；Claude Code 或 Codex 的 target 不以 `/skills` 或 `/agents` 结尾；
-`agents/` 和 `subagents/` 里都有文件。修好报告里的文件后再运行一次 bootstrap。在那之前，全局分发会暂停，
-doctor 会报告遗留的文件。迁移完成后，dotbrain 不会再读取旧文件。
+较旧的全局设置仍可使用现有 bootstrap 迁移到 `config.yaml` version 4。
+它合并支持的 profiles、skills 和自定义 subagents 选择，将原件备份到 `~/dotbrain/.cache/config-backups/`，
+并报告退役条目。默认 runtime targets 会删除，自定义 Claude Code/Codex 主目录会转为 profiles。
+旧 `agents/` 来源只在安全时移到 `subagents/`。未知、冲突声明或两个来源目录并存时会停止，不猜测。
+清理完成前全局交付暂停；请检查报告，并用备份手动恢复。这不启用 pstack，也不恢复旧打包角色。

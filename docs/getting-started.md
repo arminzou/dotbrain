@@ -35,7 +35,7 @@ before wiring, so dotbrain can create directory symlinks without Administrator p
 
 ## 1. Install the Plugin
 
-The 14 core skills, the dotbrain convention, and the session-start hook are delivered as a
+The five core skills, the shared convention, and the session-start hook are delivered as a
 plugin for Claude Code and Codex, installed once per runtime on each machine rather than per repo.
 
 ::: code-group
@@ -280,30 +280,16 @@ When a new dotbrain release lands, update the plugin and the CLI together.
 
 ### Skill set upgrade
 
-The plugin ships [14 core skills](skills.md#core-workflow), including `triage-public`.
-Public intake needs no private copy or `skills:` selection. If you previously selected a private
-copy of `triage-public`, you can remove that redundant source from the relevant project or global
-`skills:` list, then run `dotbrain skills link` for the project or
-`dotbrain skills link --scope global` for global selections. If a selected bundle contains it,
-replace that bundle selection with the individual sources you still want. Reconciliation removes
-owned links that are no longer selected; keep the source files. No selection is changed by the
-upgrade itself. [Generic skill selection](skills.md#select-and-reconcile-skills) remains available.
+The plugin ships [five core skills](skills.md#core-workflow): `wire-brain`,
+`brain-convention`, `maintain-brain`, `work-graph`, and `repo-rules`.
+Engineering workflows, packaged agent roles, and the mandatory retrospective
+process are retired. Existing private notes, notebooks, work records and user
+sources remain recoverable. Read [Upgrading](upgrading.md) before a live transition.
 
-`brain-site`, `teach-me`, and `review-architecture` are retired. The `dotbrain site` command group,
-including `dotbrain site init`, `dotbrain site dev`, `dotbrain site build`, and
-`dotbrain site preview`, has been removed. Existing user files, private skill copies, lessons,
-site settings, caches, and work records stay untouched. Dotbrain no longer creates, refreshes,
-or renders private sites or manages a teaching workflow. Architectural reasoning remains part
-of ordinary design and engineering review.
-
-`write-agent-docs` is also no longer an entrypoint: its writing guidance and linked VitePress
-and Mermaid guides live in `maintain-brain/references/`. Read those references directly
-when authoring agent-consumed documents.
-
-This upgrade keeps optional packaged subagents and `beads.mode: none`. File linking and package
-checks prove delivery; discovery and invocation in a native runtime require separate checks.
-`run-retro` stays packaged and explicit-only: run it manually or through a host schedule you
-authorize; audit still runs only when you ask.
+The core needs no pstack dependency. To choose the optional project mode, follow
+[pstack setup](workflow.md#pstack); installing or wiring Dotbrain alone does not
+enable it. Repository-rule initialization also needs an explicit request.
+Shared writing, VitePress and Mermaid guidance lives under `maintain-brain/references/`.
 
 ### Update the plugin and CLI
 
@@ -373,8 +359,8 @@ update existing scripts using this table.
 | Unwire archival, deletion, or preview flags | `unwire` removes checkout wiring; manage retained directories through filesystem actions |
 
 Hidden command aliases are removed. Bare project commands now target the current wired checkout;
-outside it, select `--project`. Existing configuration keys keep
-their spelling. Skills and Claude agents remain symlinks; agent reconciliation migrates owned
+outside it, select `--project`. Review obsolete workflow settings in
+[Upgrading](upgrading.md). Skills and Claude agents remain symlinks; agent reconciliation migrates owned
 Codex agent symlinks into marked real files and preserves foreign entries.
 
 JSON finding severity `advisory` is now `warning`, matching the existing warning results.
@@ -402,12 +388,10 @@ Dotbrain also delivers to the [Hermes Agent](https://github.com/NousResearch/her
 
 ::: warning Limits
 - Hermes support is tested with the Hermes CLI. The Hermes messaging gateway is not tested.
-- Dotbrain ships no subagents for Hermes, so Hermes has no native dotbrain workers. In
-  `run-execution` it works only as the lead.
 - Hermes loads project skills only from a checkout you trust. Trust each checkout, including each
   linked worktree.
-- Manual-only skills, such as `dotbrain:run-retro`, show up in Hermes's skill list, but the model
-  cannot load them. Run them yourself with `/dotbrain:<skill>`.
+- User-selected manual-only skills appear in Hermes's list, but the model cannot load them;
+  invoke them explicitly with `/dotbrain:<skill>`.
 - To remove machine-wide delivery from Hermes, see [Remove](#hermes-remove).
 :::
 
@@ -492,15 +476,12 @@ Dotbrain also delivers to the [OpenCode](https://opencode.ai) CLI.
 ::: warning Limits
 - OpenCode support is tested with OpenCode 1.18.35, through `opencode run` and the TUI. Other
   OpenCode releases, and the OpenCode desktop app and server, are not tested.
-- Dotbrain ships no subagents for OpenCode, so OpenCode has no native dotbrain workers. In
-  `run-execution` it works only as the lead.
 - Remove any links to dotbrain's skills or copies of them that you made yourself, such as a
   `~/.config/opencode/skills` link to the dotbrain plugin, or copies under `~/.claude/skills` or
   `~/.agents/skills`. OpenCode reads those folders too, and when it finds two skills with the same
   name, it loads one of them at random. `dotbrain doctor --verbose` lists each duplicate.
-- Manual-only skills, such as `run-retro`, are not enforced in OpenCode. OpenCode lists them,
-  and the model can invoke them on its own.
 - To remove machine-wide delivery from OpenCode, see [Remove](#opencode-remove).
+- OpenCode does not enforce manual-only invocation for user-selected skills; listed skills can be invoked by the model.
 :::
 
 ### Set up {#opencode-setup}
@@ -592,10 +573,8 @@ Dotbrain also delivers to the [Pi](https://github.com/earendil-works/pi) coding 
 
 ::: warning Limits
 - Pi support is tested with Pi 1.4.0. Other Pi releases are not tested.
-- Dotbrain ships no subagents for Pi, so Pi has no native dotbrain workers. In `run-execution` it
-  works only as the lead.
-- Manual-only skills, such as `run-retro`, are hidden from the model and run only when you type
-  `/skill:<name>`. Pi does not stop the model from reading such a skill's file directly.
+- User-selected manual-only skills are hidden from the model and invoked with `/skill:<name>`;
+  Pi does not prevent the model from reading their files directly.
 - Closing the console window probably skips Pi's shutdown event, and with it the full sync at exit.
   The push after each run still happens, and the next session start syncs what was left.
 - To remove machine-wide delivery from Pi, see [Remove](#pi-remove).
@@ -684,8 +663,6 @@ Dotbrain also delivers to the [Cursor](https://cursor.com) CLI.
 ::: warning Limits
 - Cursor support is tested with Cursor CLI 2026.10.19. Other Cursor releases and the Cursor editor
   are not tested.
-- Dotbrain ships no subagents for Cursor, so Cursor has no native dotbrain workers. In
-  `run-execution` it works only as the lead.
 - Cursor also reads `.claude/skills`, `.codex/skills`, `.agents/skills`, and `.grok/skills`, in the
   checkout and your home folder. When it finds two separate copies of a skill with the same name,
   it uses one of them. `dotbrain doctor --verbose` lists each duplicate of a dotbrain skill.
@@ -735,7 +712,7 @@ dotbrain doctor
 
 When the project also declares `claude`, Cursor usually finds its skills through `.claude/skills/`,
 and `.cursor/skills/` stays empty. Packaged skills appear under their own names, such as
-`wire-brain`. Manual-only skills, such as `run-retro`, are left out of Cursor's skill list and are
+`wire-brain`. User-selected manual-only skills are left out of Cursor's skill list and are
 meant to be run by name with `/<name>`. Cursor does not block the model from reading their `SKILL.md` files.
 
 ### What happens in a Cursor session {#cursor-sessions}
@@ -785,6 +762,6 @@ When you do need configuration:
 
 ## Next
 
-- [The workflow](workflow.md) shows how the skills carry work from idea to closed design.
+- [The workflow](workflow.md) explains core capabilities and optional pstack selection.
 - [Architecture](architecture.md) explains the Brainspace model.
 - [Troubleshooting & FAQ](troubleshooting.md) covers common setup problems.

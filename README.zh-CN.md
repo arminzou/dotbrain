@@ -24,7 +24,7 @@ Dotbrain 将管理 Dotfiles 的方式用在项目上：把工作笔记、计划�
 集中保存在私有目录中，再连接到你使用的各个 checkout。
 
 这些上下文以本地文件保存，有独立的 Git 历史。Dotbrain CLI 负责将这个工作区连接到代码仓库，
-内置的 workflow skills 则指导 Agent 使用这些上下文，并与你一起持续维护。
+五个核心 skills 维护上下文与工作记录；规划、实现、验证和交付由你选择的工程工作流负责。
 
 [https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9](https://github.com/user-attachments/assets/021fc13a-db20-4549-8aab-b5240d289bde)
 
@@ -102,10 +102,9 @@ dotbrain doctor
 
 ### 更新
 
-插件提供 14 个核心 skills，包括 `triage-public`，无需选择私有来源。
-`brain-site`、`teach-me` 和 `review-architecture` 已退役，`dotbrain site` 命令组也已移除。
-已有用户文件和缓存保持原样。移除的命令和如何按需清理重复的私有 skill 选择，
-见 [skill 集合升级说明](docs/zh/getting-started.md#skill-set-upgrade)。
+插件提供五个核心 skills：`wire-brain`、`brain-convention`、`maintain-brain`、`work-graph` 和 `repo-rules`。
+旧工程工作流和打包 agents 已退役，私有上下文、工作记录、笔记和用户来源保持可恢复。
+更新前请阅读[breaking upgrade 指南](docs/zh/upgrading.md)。
 
 使用 Claude Code 或 Codex 时，插件和 CLI 需要一起更新。在 Claude Code 中运行 `/plugin`，从菜单中更新 dotbrain，
 再运行 `/reload-plugins`。Codex 则运行：
@@ -144,19 +143,19 @@ checkout 通过符号链接访问它们。这些链接被 Git 忽略，实际文
 图中以 Claude Code 和 Codex 为例，所有受支持的 runtime 都使用同样的 Brainspace 结构。
 
 连接项目时，Dotbrain 会将选用的 skills 配置到各 runtime 的项目 skills 目录中。
-Native subagents 支持 Claude Code 和 Codex：Claude 资源在 `.claude/` 下，Codex skills 在
+选中的自定义 native subagents 支持 Claude Code 和 Codex：Claude 资源在 `.claude/` 下，Codex skills 在
 `.agents/skills/` 下，Codex subagents 在 `.codex/agents/` 下。Codex 配置仍留在 `.codex/` 下。
 Skills 和 Claude subagents 使用符号链接，Codex subagents 则使用自动生成、被 Git 忽略的
 TOML 文件。连接 Git worktree 时，会复用主 checkout 已有的 Brainspace，
 两边共用同一份项目知识和任务记录。
 Hermes、OpenCode、Pi 和 Cursor CLI 支持 skills 和会话集成，但 Dotbrain 不会为它们配置 native subagents。
 
-会话开始时，各 runtime 的集成只加载共享约定 `DOTBRAIN.md`。不同 runtime 的上下文加载和同步方式，
+会话开始时，各 runtime 的集成提供共享约定 `DOTBRAIN.md`；选择 pstack 的项目另附有大小限制的发现指针。不同 runtime 的上下文加载和同步方式，
 见[运行时说明](https://arminzou.github.io/dotbrain/zh/session-context#runtime-notes)。
 公开的 `AGENTS.md` 会要求 Agent
 在修改或审阅代码前，读取仓库根目录下由 Git 跟踪的 `RULES.md`；这些规则在没有 Brain 的环境中也适用。
-Lead 或独立完成任务的 Agent 会按任务检索私有复盘记录，并将相关发现随任务说明交给 worker 和 reviewer，
-无需在会话启动时加载整份复盘笔记。
+`repo-rules` 只在明确请求时初始化要求，保留本地修订；评估出的改进在获采纳前仍是提案。
+上下文检索与记录时机由所选工作流决定，现有私有笔记保留，不要求强制复盘。
 
 新建 Brain 不再生成私有的 `AGENTS.md` 和 `CLAUDE.md`，也不再将它们作为指令入口。
 `wire` 和 `refresh` 会保留旧文件和已有的上下文引用，但不会要求它们存在，也不会重新生成。
@@ -176,37 +175,18 @@ Brain 使用 Git 管理版本，请将它备份到**私有**远程仓库。Beads
 [项目连接](https://arminzou.github.io/dotbrain/zh/wiring)和
 [Beads 后端](https://arminzou.github.io/dotbrain/zh/beads-backend)。
 
-## 工作闭环
+## 选择工作流
 
-每完成一项工作，都应该为下一次会话留下有用的上下文。Dotbrain 内置的 skills 帮助你从想法推进到实现，
-再将过程中获得的知识写回项目上下文。
+Brain 保存项目理解，Beads 保存持久任务、归属和执行证据，公开 `RULES.md` 保存已采纳的仓库要求。
+核心提供这些记录的操作，不规定工程执行链。
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/workflow-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/workflow-light.png">
-  <img src="docs/public/assets/workflow-light.png" alt="工作流涵盖探索未知、确定决策、设计、任务拆分、执行、审阅和设计收尾。新发现更新到当前设计，长期有效的决策写回 Brain，为下一轮工作提供上下文。" width="880">
-</picture>
+可选的 `dotbrain-pstack` mode 通过项目的 `pstack.enabled` 和显式外部 `pstack.source` checkout 选择，
+使用固定 pstack 能力开展工程工作，并接入 Brain 与 Beads。安装 Dotbrain 本身不启用或安装 pstack。
+首批 native 验证目标是 Windows 本地 Claude Code 和 Codex；结构交付与观测到的 Agent 行为需要分别证明。
+精确依赖、配置、证据边界、退出和升级方式见[工作流设置与验证范围](docs/zh/workflow.md)。
 
-闭环体现在两处：
-
-- **工作过程中：** 新发现会更新到当前设计和受影响的任务中。例如，实现时遇到未预料的
-  API 限制，就需要重新考虑相关设计。你做出决定后，先更新设计和任务记录，再继续实现。
-- **你合并 PR 并要求设计收尾后：** 收尾时会记录验证证据，并将值得保留的决策和术语整理到 Brain 中，
-  供后续工作直接使用。
-
-Brain 保存长期知识，设计说明当前要做什么，Beads 跟踪执行状态。每次交接都有文档或任务记录可查，
-换一个会话或 Agent，也能继续推进。
-
-成功标准、PR 批准、合并和发布由你决定。执行前，先确定可预见的设计选择，明确执行范围和权限。
-完整且仍适用的授权可以继续使用，无需反复确认。Agent 完成检查、验收/UAT 和必要的审阅后，
-会将 PR 标为 ready，并请求你审阅。
-
-如果出现新的范围、权限或验收标准问题，Agent 会暂停受影响的工作，提供证据和建议，由你决定。
-恢复执行时，既定的尝试次数或预算上限仍然有效。设计会保持 active 状态，直到你要求收尾；
-PR 关闭但未合并不算交付。跨会话或仍有待解决问题的工作适合走完整流程，小改动则可以只用其中必要的步骤。
-
-操作示例见[工作流程](https://arminzou.github.io/dotbrain/zh/workflow)，
-完整的 skill 列表见 [Skills](https://arminzou.github.io/dotbrain/zh/skills)。
+其他工作流也能使用相同的五个核心能力。规划、分派、验证、恢复和交付由所选工作流负责，受用户和仓库授权约束。
+选择 mode 不授予发布、合并或 release 权限。
 
 ## 开发
 

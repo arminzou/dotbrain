@@ -12,8 +12,8 @@ fine on GitHub.
 
 ## Use Cases
 
-- [workflow.md](workflow.md) — develop a project from first idea to closed design, one skill per step.
-- [agent-team.md](agent-team.md) — HITL and handoff, sequential and parallel work, and packaged subagents.
+- [workflow.md](workflow.md) — choose an engineering workflow and configure the optional pstack mode.
+- [agent-team.md](agent-team.md) — shared work state, custom agents and selected workflow delegation.
 
 ## How It Works
 
@@ -26,7 +26,7 @@ fine on GitHub.
 
 - [cli-reference.md](cli-reference.md) — generated; regenerate with `uv run python -m dotbrain._cli_reference`.
 - [configuration.md](configuration.md) — every config file and key.
-- [skills.md](skills.md) — the bundled Brain-coupled skills.
+- [skills.md](skills.md) — the five workflow-independent core skills.
 - [glossary.md](glossary.md) — the dotbrain vocabulary.
 - [troubleshooting.md](troubleshooting.md) — common problems and FAQ.
 

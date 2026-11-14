@@ -1,285 +1,74 @@
----
-pageClass: prompt-examples
----
+# Example prompts
 
-# Example Prompts
+Ask for the operation you need. The five core skills maintain workspace resources,
+project understanding, requirements and work records. Engineering implementation
+goes to your chosen workflow. Use the skill names your runtime exposes; Claude
+Code plugin commands use `/dotbrain:<name>`, while Codex exposes them in its picker.
 
-You use dotbrain mostly by asking your coding agent to do things. This page collects prompts you
-can send as they are, or adapt, for the common jobs. Each one says when to use it, which skill it
-triggers, and where the step is explained.
-
-You do not have to name a skill: describing the job is usually enough for the agent to pick it.
-For an explicit choice, use the name exposed by your runtime. The packaged `run-retro` never
-starts on its own; invoke it explicitly, for example `/dotbrain:run-retro` in Claude Code, or
-select it from the Codex skill picker. All skills named below ship with the plugin;
-see [the catalog](skills.md).
-
-## Set Up
-
-### Wire a repo
+## Wire or repair a repository
 
 ```text
-Use wire-brain to wire this repo with Dotbrain.
+Use wire-brain to wire this repository with Dotbrain and check its health.
 ```
 
-**When:** the first time you use dotbrain in a repo, or in a new worktree. Installs the CLI and
-its prerequisites if needed. **Skill:** `wire-brain`. See [Getting started](getting-started.md).
+`wire-brain` handles setup and repair through the CLI. Wiring alone selects no
+pstack mode. See [Getting started](getting-started.md).
 
-### Repair the wiring
+## Capture project understanding
 
 ```text
-dotbrain doctor reports problems in this repo. Use wire-brain to find out why and repair the wiring.
+Use maintain-brain to record the verified API constraint and its evidence.
+Keep the retry explanation as an unresolved hypothesis.
 ```
 
-**When:** `.brain` or `.beads` is missing, links dangle, or the agent does not know the project.
-Also after a plugin or CLI update. **Skill:** `wire-brain`. See [Wiring](wiring.md) and
-[Troubleshooting](troubleshooting.md).
+Use the same capability to maintain vocabulary, accepted decisions, designs,
+references, and lifecycle records. Capturing a finding adopts no new decision;
+terminal lifecycle claims require evidence and authority.
 
-## Plan
-
-### Get oriented in unfamiliar code
+## Inspect or maintain work records
 
 ```text
-Run find-unknowns on how GET /orders handles queries and responses before we add pagination.
+Use work-graph to inspect this initiative's dependencies and current ownership.
+Report ready work without starting implementation or changing claims.
 ```
 
-**When:** before touching code you do not know, or at the start of an initiative. Read-only; it
-reports assumptions and constraints that would change your approach. **Skill:** `find-unknowns`.
-See [The workflow](workflow.md#_1-orient).
+For authorized writes, specify the task operation and applicable actor. Native
+Beads readiness is dependency eligibility; the chosen workflow applies scope,
+capacity and acceptance. See [Beads backend](beads-backend.md).
 
-### Settle decisions
+## Initialize repository requirements
 
 ```text
-Grill me on this plan: add pagination to GET /orders so clients can fetch orders in smaller batches.
-Help me settle the pagination approach, default page size, and compatibility with existing clients.
-Check it against our vocabulary and existing ADRs, and record what we settle.
+Use repo-rules to initialize RULES.md and its AGENTS.md routing.
+Adapt the baseline to this repository, preserve existing requirements,
+and report conflicts without adopting a resolution.
 ```
 
-**When:** you have a plan with open questions or terms that need sharpening. Settled terms go into
-`CONTEXT.md`, hard-to-reverse choices into `adr/`. **Skill:** `grill-decisions`. See
-[The workflow](workflow.md#_2-settle-decisions).
+Initialization is requested explicitly. A bare invocation assesses; it does not
+adopt proposed requirements or create a rules file. Public `AGENTS.md` routes to
+the requirements rather than duplicating them.
 
-### Write a design
+## Assess enforcement
 
 ```text
-Write a design for orders API pagination, with success criteria and known unknowns.
+Use repo-rules to assess enforcement of the adopted dependency boundary.
+Report the existing checks and smallest enforcement gap without editing files.
 ```
 
-**When:** the work spans several sessions, crosses modules, or carries real unknowns. Creates a
-design doc in `.brain/designs/` and a tracking epic. **Skill:** `to-design`. See
-[The workflow](workflow.md#_3-write-the-design).
+Requested enforcement implementation is handed to the selected engineering
+workflow with the adopted rule, authority, affected boundary and checks, proposed
+mechanism, and verification needs. Assessment itself changes no code, lint or CI.
 
-### Split a design into issues
+## Use a selected engineering workflow
+
+After [explicit pstack setup](workflow.md#opt-in), start a fresh session and select
+the displayed `dotbrain-pstack` skill:
 
 ```text
-Split the orders-pagination design into issues with acceptance criteria and dependencies.
+Use this project's dotbrain-pstack mode to implement the approved API change.
+Preserve the existing acceptance criteria and record actual checks and pending work.
 ```
 
-**When:** the design is settled and approved. Runs once per design. **Skill:** `to-issues`. See
-[The workflow](workflow.md#_4-split-into-issues).
-
-## Work
-
-See [Working with an agent team](agent-team.md) for workflow choices, ownership, and coordination.
-
-Choose a **workflow** and an **execution mode** separately. **HITL** (Human-in-the-Loop)
-returns to you after each bounded execution; **handoff** continues within a contract you approve.
-**Sequential** means one agent changes code at a time; **parallel** means multiple workers change
-code at once. Read-only research, review, or verification does not make execution parallel.
-See [The workflow](workflow.md#_5-work-the-issues).
-
-### Track work
-
-```text
-What's ready to work on?
-```
-
-```text
-File an issue: GET /orders returns duplicate orders on the next page. Link it to the orders-pagination epic.
-```
-
-**When:** you want to see the ready frontier, or file, claim, update, or close an issue.
-**Skill:** `manage-work-graph`. See [The workflow](workflow.md#_5-work-the-issues).
-
-### HITL: sequential execution
-
-::: info Default workflow and execution mode
-HITL with sequential execution is the default. You can ask for the next issue without naming
-either setting; the agent returns to you after that bounded execution.
-:::
-
-```text
-Work the next ready issue under the orders-pagination epic.
-```
-
-**When:** you want to direct one bounded execution at a time. The lead may write the change or
-delegate to one `worker`; either is sequential. Behavior changes get independent review.
-**Skill:** `run-execution`. See [The workflow](workflow.md#_5-work-the-issues).
-
-### HITL: parallel execution
-
-::: info Worker cap
-In either workflow, the lead announces a finite active-writing cap from runtime capacity,
-resource isolation, and limits unless you specify one. It fills and refills ready slots within
-the fixed scope, reserving capacity for coordination, review, and verification.
-:::
-
-```text
-Work the ready issues under the orders-pagination epic in parallel where they are independent. Show me the branch and how you'll split the work before starting.
-```
-
-**When:** independent issues are ready together and you want to direct the batch. If safe parallel
-execution is unavailable, the agent reports that and falls back to sequential execution.
-**Skill:** `run-execution`. See [The workflow](workflow.md#_5-work-the-issues).
-
-### Handoff: sequential execution
-
-```text
-/dotbrain:iterate-design Work the orders-pagination design, one issue at a time. Propose the handoff contract and wait for my GO.
-```
-
-**When:** the design is active, the work has a mechanical check, and you want the agent to carry
-on without you. It proposes a contract (scope, branch, checks, worker count, pull request
-delivery, acceptance/UAT, reviews, provider/auth and finite limits) if approval is missing.
-It validates and reuses a complete applicable approved contract without repeat `GO`.
-PR approval, merge and release stay with you. **Skill:**
-`iterate-design`. See [The workflow](workflow.md#_5-work-the-issues).
-
-### Handoff: parallel execution
-
-```text
-/dotbrain:iterate-design Work the orders-pagination design, taking independent issues in parallel. Propose the handoff contract and wait for my GO.
-```
-
-**When:** you want the agent to continue through an active design and parallelize independent work.
-An item that exhausts its retries or needs your decision waits with its dependents; independent
-items continue. A handoff with any blocked scoped item cannot finish successfully or mark its PR ready.
-**Skill:** `iterate-design`. See [The workflow](workflow.md#_5-work-the-issues).
-
-For either handoff mode, the approved `GO` authorizes pushing the dedicated branch, a draft PR
-at the first push, and a ready PR with your review requested after successful verification and
-review. Merge, deployment, publication, dependency changes, and changes to scope or success
-criteria still need your decision.
-
-## Packaged Subagents
-
-See [The packaged subagents](agent-team.md#the-packaged-subagents) for their responsibilities and runtime behavior.
-
-Skills describe the workflow; subagents take focused assignments from your main agent. Ask your
-main agent to delegate using these names:
-
-| Role | Claude Code and Codex |
-|---|---|
-| Writing | `dotbrain-worker` |
-| Research | `dotbrain-researcher` |
-| Review | `dotbrain-reviewer` |
-| Verification | `dotbrain-verifier` |
-
-These names exist only in wired checkouts whose `project.yaml` lists the role under
-[`packaged-subagents`](configuration.md#project-yaml). Without them, workflows give a generic
-subagent the same role contract. The prompts below name the role; use the name above if needed. These are subagent
-assignments, not slash commands. See [Session context](session-context.md#subagents).
-
-### Delegate one change to a worker
-
-```text
-Have the worker fix duplicate orders across pages in GET /orders on our current branch. Give it the issue, its own Beads actor, and the agreed checks. Have it commit the fix and report back.
-```
-
-**When:** you have one concrete change to delegate. The `worker` writes and commits a candidate;
-it never pushes, merges, or closes work items. For a tracked batch, prefer `run-execution`, which
-prepares the assignments and coordinates review and integration.
-
-### Research an API decision
-
-```text
-Ask the researcher whether cursor or offset pagination fits GET /orders better. Check our Brain, the code, and official docs, and explain the trade-offs with sources.
-```
-
-**When:** you need a sourced answer that connects project context, code, and outside evidence.
-The `researcher` reports findings and proposed updates; it does not implement them.
-
-### Get an independent review
-
-```text
-Have the reviewer check this orders-pagination branch against main and our acceptance criteria. Look for pagination bugs, authorization gaps, compatibility problems, and missing tests.
-```
-
-**When:** you want a focused review from an agent that wrote none of the change. The `reviewer`
-judges the diff and surrounding code. Workflow item reviews also need the item ID, reviewer actor,
-review number, candidate revision, and diff base; `run-execution` supplies that assignment.
-
-### Run a mechanical verification gate
-
-```text
-Have the verifier run the agreed checks for orders pagination on this branch and give me the results and a Verification block for the PR.
-```
-
-**When:** you need evidence that the agreed checks pass. The `verifier` runs the gate and reports
-what it observed; it does not fix failures or give a code-review opinion.
-
-## Review and Close
-
-### Review a change
-
-```text
-Run a code review gate on this branch against main.
-```
-
-```text
-Run a simplify review on this branch: what can we delete or replace?
-```
-
-**When:** before offering a branch for merge, or whenever you want an independent review. Modes
-are `code` (correctness), `simplify`, and `readiness` (is a subsystem sound enough to build on).
-**Skill:** `review-gate`. See [The workflow](workflow.md#_6-review).
-
-### Close a design
-
-```text
-/dotbrain:close-design The orders-pagination work is merged. Close the design: record the evidence and promote what should outlive it to ADRs and CONTEXT.md.
-```
-
-**When:** an initiative ships, is abandoned, or is superseded. Also for sweeping designs that
-never closed out. **Skill:** `close-design`. See [The workflow](workflow.md#_7-close-the-design).
-
-## Maintain the Brain
-
-### Check context health
-
-```text
-Check this project's context health: find stale, duplicated, or misplaced guidance across AGENTS.md and the Brain, and anything private leaking into the public repo.
-```
-
-**When:** guidance has piled up, `AGENTS.md` and `CLAUDE.md` have drifted, or you want to check the
-public/private boundary. It reports by default and fixes only what you ask. **Skill:**
-`curate-project-context`.
-
-### Write or edit agent-facing docs
-
-```text
-Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
-```
-
-**When:** creating or editing `AGENTS.md`, Brain context, design docs, skills, or public docs agents
-rely on. **Guidance:** `maintain-brain/references/writing.md` and its linked syntax guides.
-For context repairs, use `curate-project-context` in fix mode.
-
-### Triage public issues
-
-Ask for triage or invoke the packaged `triage-public` using the name exposed by your runtime,
-then give the scope. No private source or `skills:` selection is required:
-
-```text
-Triage the open GitHub issues and promote the accepted ones into our work graph.
-```
-
-**When:** the project takes public issues and you want them classified, reproduced, and brought
-into private execution. Requires `public-tracker` in [`project.yaml`](configuration.md#project-yaml).
-**Skill:** `triage-public`. Public mutations require applicable authorization; private work
-never generates public tracking issues.
-
-## Related
-
-- [Skills](skills.md) lists every skill with a one-line summary.
-- [The workflow](workflow.md) shows how the skills fit together.
+The mode owns execution and recovery procedures. Core-only projects can use
+another workflow with the same context and graph operations. No skill invocation
+alone authorizes publication, messaging, merge or release.

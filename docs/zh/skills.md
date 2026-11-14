@@ -85,4 +85,9 @@ Claude Code 和 Codex 通过 marketplace 插件加载核心 skills。Hermes、Op
 
 旧工作流入口、角色组合和强制复盘流程已移除。现有 `RETRO.md`、私有来源、工作记录
 和历史保持可恢复。修改过或归属不明确的旧资源保留并报告。
-更新前请阅读[升级说明](../upgrading.md)，检查备份和当前工作状态。
+更新前请阅读[升级说明](upgrading.md)，检查备份和当前工作状态。
+
+## 可选工程 mode {#optional-engineering-mode}
+
+CLI 只向明确启用的项目交付 `dotbrain-pstack`，它不是 marketplace 的第六个核心 skill。
+详见[设置与验证范围](workflow.md#pstack)。

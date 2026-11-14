@@ -25,7 +25,8 @@ instructions, and selected agent resources in a private home, then wire them int
 where you work.
 
 Your context stays in local files with its own Git history. The CLI connects your workspace to
-the code repo; bundled workflow skills guide how your agent uses and maintains it with you.
+the code repo. Five core skills maintain context and work records; your selected engineering
+workflow owns planning, implementation, verification and delivery.
 
 [https://github.com/user-attachments/assets/540e8945-b8bc-4fc1-ac05-c125bf768fa9](https://github.com/user-attachments/assets/021fc13a-db20-4549-8aab-b5240d289bde)
 
@@ -149,19 +150,23 @@ the checkout while their files and history stay outside the code repo.
 The diagram uses Claude Code and Codex as examples; all supported runtimes share the same Brainspace model.
 
 Wiring also makes selected skills available in each configured runtime's project skill directory.
-Dotbrain delivers native subagents for Claude Code and Codex: Claude resources under `.claude/`,
+Dotbrain delivers selected custom subagents for Claude Code and Codex: Claude resources under `.claude/`,
 Codex skills under `.agents/skills/`, and Codex agents under `.codex/agents/`. Codex configuration stays in `.codex/`.
 Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
 Hermes, OpenCode, Pi, and Cursor CLI receive skills and session integrations, but no Dotbrain native subagents.
 
-At session start, the runtime integration supplies only `DOTBRAIN.md`, the shared convention.
+At session start, the runtime integration supplies `DOTBRAIN.md`, the shared convention,
+and a bounded discovery pointer when the project selects pstack.
 See [Runtime notes](https://arminzou.github.io/dotbrain/session-context#runtime-notes)
 for how context loading and sync differ between runtimes.
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
-without a Brain. The lead or sole agent searches private retrospective findings for the task
-and passes relevant findings through assignments; the notebook is never injected.
+without a Brain. `repo-rules` initializes requirements only when requested and
+preserves local amendments; assessed improvements remain proposals until adopted.
+Context retrieval and capture timing belong to the selected workflow. Existing
+private notebooks remain available without a mandatory retrospective process.
+
 Fresh Brains have no private `AGENTS.md` or `CLAUDE.md` instruction layer. Wiring and
 refresh preserve existing legacy files and context pointers without requiring or
 recreating them. Before removing legacy files, classify useful content by its owner:
@@ -181,39 +186,23 @@ See [Architecture](https://arminzou.github.io/dotbrain/architecture),
 [Wiring](https://arminzou.github.io/dotbrain/wiring), and
 [Beads backend](https://arminzou.github.io/dotbrain/beads-backend) for details.
 
-## The loop
+## Choose your workflow
 
-Every piece of work should leave the next session better informed. Dotbrain's bundled skills
-carry work from idea to implementation, then return what you learned to the project's context.
+The Brain holds project understanding; Beads holds durable tasks, ownership and
+execution evidence; public `RULES.md` holds adopted repository requirements.
+The core supplies operations for these records without an engineering execution chain.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/workflow-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/public/assets/workflow-light.png">
-  <img src="docs/public/assets/workflow-light.png" alt="Workflow skills guide work through decisions, design, issues, execution, review, and closure. Discoveries update the active design; lasting decisions return to the Brain for the next initiative." width="880">
-</picture>
+The optional `dotbrain-pstack` mode is selected per project through `pstack.enabled`
+and an explicit external `pstack.source` checkout. It uses pinned pstack capabilities
+for engineering work and integrates the Brain and Beads. Installing Dotbrain alone
+does not enable or install pstack. Its initial native qualification targets are local
+Windows Claude Code and Codex; structural delivery is distinct from observed agent behavior.
+See [workflow setup and qualification](docs/workflow.md) for the exact dependency,
+configuration, evidence boundary, opt-out and upgrade process.
 
-The loop closes in two places:
-
-- **During the work:** discoveries feed back into the active design and affected issues. An
-  unexpected API constraint becomes a design question; once you settle it, the design and issues
-  capture the decision before implementation continues.
-- **After human merge and closeout:** closing the design records the evidence and preserves useful decisions and
-  vocabulary in the Brain. The next initiative starts with that knowledge already available.
-
-The Brain holds durable knowledge, the design holds current intent, and Beads holds execution
-state. Each handoff lives in a document or tracker entry that another session or agent can
-consult to continue the work.
-
-You own success criteria, PR approval, merge, and release. Settle foreseeable decisions and the
-execution contract upfront; agents reuse complete applicable approval without another routine
-sign-off and work through checks, acceptance/UAT, and required reviews to a ready PR requesting
-your review. New scope, authority, or criteria decisions stop affected work with evidence and a
-recommendation. Limits survive resume. The design stays active until you ask for closeout;
-a PR closed without merge does not establish shipment. Use the full loop when work spans
-sessions or carries open questions; small changes can use just the steps they need.
-
-See [The workflow](https://arminzou.github.io/dotbrain/workflow) for a walkthrough and
-[Skills](https://arminzou.github.io/dotbrain/skills) for the full catalog.
+Other workflows can use the same five core capabilities. The selected workflow
+owns planning, delegation, verification, recovery and delivery under user and
+repository authority. Mode selection grants no publication, merge or release permission.
 
 ## Develop
 
