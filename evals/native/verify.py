@@ -324,10 +324,13 @@ def task_candidates(state, ids):
     return candidates
 
 
+HOOK_TRUST_NOTICE = "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
+
+
 def native_trace(runtime, events):
     """Return native identity, completed tools, worker starts/finishes and terminal status."""
     trace = {"session": None, "tools": [], "workers": set(), "finished": set(), "complete": False,
-             "assignments": {}, "returns": {}, "incomplete": set()}
+             "assignments": {}, "returns": {}, "incomplete": set(), "control": []}
     pending = {}
     child_activity = set()
     for event in events:
@@ -342,7 +345,9 @@ def native_trace(runtime, events):
             elif kind == "item.completed":
                 item = event.get("item", {})
                 trace["incomplete"].discard(item.get("id"))
-                if item.get("type") == "command_execution":
+                if item.get("type") == "error" and item.get("message") == HOOK_TRUST_NOTICE:
+                    trace["control"].append(item)
+                elif item.get("type") == "command_execution":
                     trace["tools"].append({"name": "shell", "input": item.get("command", ""),
                                            "command": item.get("command", ""), "cwd": item.get("cwd"),
                                            "output": item.get("aggregated_output", ""),

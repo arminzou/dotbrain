@@ -826,6 +826,57 @@ class Calibration(unittest.TestCase):
                 self.assertNotIn("--full-auto", observed)
                 self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", observed)
 
+    def test_exact_hook_trust_notice_is_retained_without_tool_credit(self):
+        from verify import HOOK_TRUST_NOTICE
+        for message in (HOOK_TRUST_NOTICE, HOOK_TRUST_NOTICE + " extra", HOOK_TRUST_NOTICE.upper(), "unknown native error"):
+            record = correct_record("codex")
+            notice = {"type": "error", "message": message}
+            record["second"]["events"][1:1] = [{"type": "item.completed", "item": notice}] * 2
+            trace = native_trace("codex", record["second"]["events"])
+            exact = message == HOOK_TRUST_NOTICE
+            self.assertEqual(trace["control"], [notice, notice] if exact else [])
+            self.assertEqual(evaluate(record)["cold_continuation"], exact)
+            self.assertEqual(len(trace["tools"]), 3 if exact else 5)
+
+    def test_private_root_rejects_existing_paths_and_preserves_posix_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "fixture"
+            with patch("journey.sys.platform", "linux"):
+                journey.create_private_root(root, run=lambda *args, **kwargs: self.fail("POSIX needs no ACL command"))
+            if os.name != "nt":
+                self.assertEqual(root.stat().st_mode & 0o777, 0o700)
+            journey.write(root / "existing.txt", "preserve")
+            with self.assertRaisesRegex(ValueError, "new fixture root"):
+                journey.create_private_root(root, run=lambda *args, **kwargs: self.fail("Existing root ACL must not change"))
+            self.assertEqual((root / "existing.txt").read_text(), "preserve")
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows owner ACL")
+    def test_windows_private_root_grants_only_verified_owner_before_descendants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "fixture"
+            journey.create_private_root(root)
+            self.assertEqual(list(root.iterdir()), [])
+            (root / "workspace").mkdir()
+            script = "$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+            script += "$rows=@((Get-Acl -LiteralPath $args[0]).Access | ForEach-Object { "
+            script += "@{sid=$_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value; "
+            script += "rights=$_.FileSystemRights.ToString(); inherited=$_.IsInherited} }); "
+            script += "ConvertTo-Json -Compress @{owner=$sid; rules=$rows}"
+            result = subprocess.run(["pwsh", "-NoProfile", "-Command", "& { " + script + " }", str(root / "workspace")],
+                                    capture_output=True, text=True, check=True, timeout=30)
+            acl = json.loads(result.stdout)
+            self.assertTrue(any(rule["sid"] == acl["owner"] and rule["inherited"] and rule["rights"] == "FullControl"
+                                for rule in acl["rules"]))
+            self.assertTrue(all(rule["sid"] in {acl["owner"], "S-1-5-18", "S-1-5-32-544", "S-1-3-4"}
+                                for rule in acl["rules"]))
+            def wrong_owner(argv, **kwargs):
+                argv = list(argv)
+                argv[-2] = "function Get-Acl { [pscustomobject]@{Owner='NT AUTHORITY\\SYSTEM'} }; " + argv[-2]
+                return subprocess.run(argv, **kwargs)
+            with self.assertRaises(subprocess.CalledProcessError) as error:
+                journey.create_private_root(Path(tmp) / "wrong-owner", run=wrong_owner)
+            self.assertIn("Fixture root owner mismatch", error.exception.stderr)
+
     def test_uncertain_writer_scope_never_reaches_stop(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

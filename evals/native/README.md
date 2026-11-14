@@ -62,6 +62,12 @@ an obsolete private skill selection. Candidate/pstack revisions and Beads versio
 are recorded. It uses neither `items.json` nor a fake tracker. The `bd` proxy delegates
 to the specified binary and retains actual argv, actors, output and exit status.
 
+New fixture roots use POSIX mode `0700`. On Windows, before creating descendants,
+setup verifies that the current user owns the root and grants only that owner's
+SID inheritable full control. This preserves private access while allowing the
+native restricted token to read the workspace. Existing roots and unrelated ACLs
+are never repaired by `prepare`.
+
 `wire` is the supported delivery prerequisite. It invokes the supplied candidate
 CLI's `wire --home ROOT/data --repo ROOT/workspace --project catalog --json`, with
 candidate `src` on `PYTHONPATH`, bytecode writes disabled, and all home/backend/Git
@@ -114,6 +120,9 @@ The fixed Codex additional directory grants the isolated Brainspace/worktrees
 write access while keeping its sandbox enabled. For vetted fixture hooks, the
 controller can explicitly add `--trust-fixture-hooks`; its native argv records
 the resulting hook-trust option. This never enables a full sandbox bypass.
+The exact native hook-trust startup notice is retained as control metadata;
+it supplies no tool or completion credit. Other error items remain unsupported
+activity and prevent cold qualification.
 
 The first task records a verified discovery and unresolved hypothesis, exercises
 competing claims and delegated candidates, retains a failing check, then waits

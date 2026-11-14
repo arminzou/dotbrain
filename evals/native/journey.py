@@ -258,10 +258,23 @@ def snapshot(root, name):
     return value
 
 
-def prepare(root, candidate, pstack, binary):
+def create_private_root(root, *, run=subprocess.run):
     if root.exists():
         raise ValueError("Use a new fixture root; previous attempts are never overwritten")
     root.mkdir(parents=True, mode=0o700)
+    if sys.platform == "win32":
+        script = "$ErrorActionPreference='Stop'; $p=$args[0]; "
+        script += "$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+        script += "$owner=(Get-Acl -LiteralPath $p).Owner; "
+        script += "$ownerSid=([Security.Principal.NTAccount]::new($owner)).Translate([Security.Principal.SecurityIdentifier]).Value; "
+        script += "if($ownerSid -ne $sid){throw 'Fixture root owner mismatch'}; "
+        script += "& icacls $p /grant ('*'+$sid+':(OI)(CI)(F)'); if($LASTEXITCODE -ne 0){throw 'Fixture owner ACE failed'}"
+        run(["pwsh", "-NoProfile", "-Command", "& { " + script + " }", str(root)],
+            capture_output=True, text=True, encoding="utf-8", check=True, timeout=30)
+
+
+def prepare(root, candidate, pstack, binary):
+    create_private_root(root)
     for name in ("workspace", "private", "bin", "data/brainspaces/catalog/.brain/docs"):
         confined(root, name).mkdir(parents=True)
     manifest = {"schema": 2, "root": str(root), "candidate": str(candidate), "pstack": str(pstack),
