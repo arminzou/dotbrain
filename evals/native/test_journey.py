@@ -777,12 +777,15 @@ class ProcessControls(unittest.TestCase):
                         script = base64.b64decode(argv[-1]).decode("utf-16le")
                         if scenario == "exited":
                             # Exit after the CIM snapshot, immediately before process-object lookup.
+                            # A Windows venv launcher may own a child that exits with it; inject only once.
                             script = script.replace("try { $writer=Get-Process",
+                                f"if($target.pid -eq {process.pid}) {{ "
                                 "Stop-Process -Id $target.pid -Force -ErrorAction Stop; "
-                                "Wait-Process -Id $target.pid -ErrorAction SilentlyContinue; try { $writer=Get-Process")
+                                "Wait-Process -Id $target.pid -ErrorAction SilentlyContinue }; try { $writer=Get-Process")
                         elif scenario == "exited-object":
                             script = script.replace("Stop-Process -InputObject $writer",
-                                "$writer.Kill(); $writer.WaitForExit(); Stop-Process -InputObject $writer")
+                                f"if($target.pid -eq {process.pid}) {{ $writer.Kill(); $writer.WaitForExit() }}; "
+                                "Stop-Process -InputObject $writer")
                         else:
                             script = "function Get-Process { throw [System.UnauthorizedAccessException]::new('fixture-permission-denied') }; " + script
                         argv = [*argv[:-1], base64.b64encode(script.encode("utf-16le")).decode("ascii")]
