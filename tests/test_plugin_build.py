@@ -37,12 +37,7 @@ def _frontmatter(path: Path) -> dict:
 
 
 def test_packaged_skill_inventory():
-    assert set(SKILL_IDS) == {
-        "wire-brain", "dotbrain", "curate-project-context", "find-unknowns",
-        "grill-decisions", "to-design", "to-issues", "close-design",
-        "manage-work-graph", "run-execution", "iterate-design", "review-gate", "run-retro",
-        "triage-public",
-    }
+    assert set(SKILL_IDS) == {"wire-brain", "brain-convention", "maintain-brain", "work-graph", "repo-rules"}
 
 
 @pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
@@ -83,10 +78,8 @@ def test_invocation_policy_agrees_in_both_runtimes(skill: Path):
     assert claude == codex, f"{skill.parent.name}: explicit-only in {'Claude Code' if claude else 'Codex'} only"
 
 
-def test_only_retrospectives_require_explicit_invocation():
-    assert {skill.parent.name for skill in SKILL_FILES if explicit_only(skill.parent) == (True, True)} == {
-        "run-retro",
-    }
+def test_core_skills_allow_model_invocation():
+    assert {skill.parent.name for skill in SKILL_FILES if explicit_only(skill.parent) == (True, True)} == set()
 
 
 @pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
@@ -143,11 +136,13 @@ def test_packaged_reference_closure_without_private_library(tmp_path: Path):
     skills = copied / "skills"
     assert {path.parent.name for path in skills.glob("*/SKILL.md")} == set(SKILL_IDS)
     assert not (skills / "write-agent-docs").exists()
-    owner = skills / "curate-project-context"
+    owner = skills / "maintain-brain"
     references = owner / "references"
     assert {path.name for path in references.glob("*.md")} >= {
-        "writing.md", "dotbrain-skills.md", "vitepress.md", "mermaid.md",
+        "writing.md", "dotbrain-skills.md",
     }
+    assert not (references / "vitepress.md").exists()
+    assert not (references / "mermaid.md").exists()
     for path in skills.glob("*/**/*.md"):
         prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
         for target in re.findall(r"\]\(([^)]+)\)", prose):
@@ -178,11 +173,11 @@ def test_every_bundled_skill_has_codex_interface_metadata():
 
 
 def test_convention_skill_carries_frontmatter_and_body():
-    text = (SKILLS_DIR / "dotbrain" / "SKILL.md").read_text(encoding="utf-8")
+    text = (SKILLS_DIR / "brain-convention" / "SKILL.md").read_text(encoding="utf-8")
     template = (REPO_ROOT / "src/dotbrain/resources/templates/brain/DOTBRAIN.md").read_text(
         encoding="utf-8"
     )
-    assert text.startswith("---\nname: dotbrain\n")
+    assert text.startswith("---\nname: brain-convention\n")
     assert text.endswith(template), "convention body does not match the Brain template"
 
 

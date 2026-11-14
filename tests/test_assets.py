@@ -160,5 +160,5 @@ def test_skill_cache_parent_escape_preserves_external_data_and_destination(tmp_p
     assert protected.read_text() == "user content"
     assert not destination.exists()
     with pytest.raises(ValueError, match="escapes"):
-        skills._remove_legacy_skill_cache(home)
+        skills._legacy_skill_cache_notice(home)
     assert protected.is_file()

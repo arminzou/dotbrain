@@ -7,9 +7,8 @@ resolver picked the stub the script emitted nothing. Because the hook is fail-op
 that surfaced as a session with no Brain context and no error at all.
 
 Only ``DOTBRAIN.md`` is injected. dotbrain owns that file, so its size is bounded and
-guarded by a test. Repository rules and the retrospective are retrieved
-for the task, never injected. The shared convention assigns private retrieval to the
-lead or sole agent, which passes relevant findings through existing assignments.
+guarded by a test. Project knowledge stays in its owning records rather than
+in the startup payload.
 
 Output is assembled as bytes and written to ``stdout.buffer`` so the payload is exactly
 what ``cat`` produced: no newline translation on Windows, no re-encoding of Brain files.
@@ -33,7 +32,7 @@ import sys
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
-from dotbrain import config, paths
+from dotbrain import config, paths, pstack
 
 CONVENTION_HEADING = "## dotbrain convention"
 
@@ -75,7 +74,9 @@ def brain_context(cwd: Path | None = None) -> bytes:
         return b""
 
     heading = (CONVENTION_HEADING + "\n\n").encode("utf-8")
-    return heading + convention.read_bytes() + b"\n\n"
+    payload = heading + convention.read_bytes() + b"\n\n"
+    selected = pstack.discovery(root)
+    return payload + selected if len(payload) + len(selected) <= PAYLOAD_LIMIT else payload
 
 
 def emit_brain_context(stream: BinaryIO | None = None, cwd: Path | None = None, output: str = "text") -> None:

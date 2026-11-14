@@ -34,7 +34,7 @@ Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
 
 ## 1. 安装插件 {#_1-install-the-plugin}
 
-在 Claude Code 和 Codex 中，14 个核心 skills、dotbrain 约定和会话启动 hook 都由插件提供。
+在 Claude Code 和 Codex 中，五个核心 skills、共享约定和会话启动 hook 都由插件提供。
 每台机器上的每个 runtime 只需安装一次，不用为每个仓库重复安装。
 
 ::: code-group
@@ -260,24 +260,13 @@ dotbrain 发布新版本时，插件和 CLI 要一起更新。
 
 ### Skill 集合升级 {#skill-set-upgrade}
 
-插件提供 [14 个核心 skills](skills.md#core-workflow)，包括 `triage-public`。
-公开任务入口无需私有副本或 `skills:` 选择。如果以前选中了私有的 `triage-public`，
-可以从对应的项目或全局 `skills:` 列表中移除这个重复来源，再为项目运行 `dotbrain skills link`，
-或为全局选择运行 `dotbrain skills link --scope global`。如果选中的整个 bundle 包含它，
-可改为逐个选择仍需保留的来源。同步时只会清理不再选中的自有链接；来源文件保留。
-升级本身不会改动任何选择。[通用 skill 选择](skills.md#select-and-reconcile-skills)仍然可用。
+插件提供[五个核心 skills](skills.md#core-workflow)：`wire-brain`、`brain-convention`、
+`maintain-brain`、`work-graph` 和 `repo-rules`。工程工作流、打包 Agent 角色和强制复盘流程已退役。
+现有私有笔记、复盘记录、工作记录与用户来源保持可恢复；实际迁移前请阅读[升级说明](upgrading.md)。
 
-`brain-site`、`teach-me` 和 `review-architecture` 已退役。`dotbrain site` 命令组已移除，
-包括 `dotbrain site init`、`dotbrain site dev`、`dotbrain site build` 和 `dotbrain site preview`。
-已有用户文件、私有 skill 副本、课程、站点设置、缓存和工作记录都保持原样。
-Dotbrain 不再创建、刷新或渲染私有站点，也不再管理教学流程。架构分析仍属于日常设计和工程审阅。
-
-`write-agent-docs` 也不再是独立入口。它的写作规范以及 VitePress、Mermaid 指南都放在
-`curate-project-context/references/` 中；编写 Agent 会读取的文档时直接查阅这些参考。
-
-这次升级保留可选的打包 subagents 和 `beads.mode: none`。文件链接和打包检查只能证明分发成功，
-native runtime 是否发现并调用了 skill 需要另行验证。
-`run-retro` 仍随插件提供，保持 explicit-only：手动调用，或由你授权的宿主定时任务调用；audit 仍只在你要求时运行。
+核心不需要 pstack。可选的项目 mode 需按 [pstack 设置](workflow.md#pstack)明确启用，
+安装或连接 Dotbrain 本身不会启用它。初始化仓库规则也需要明确请求。
+共享写作、VitePress 和 Mermaid 指南位于 `maintain-brain/references/`。
 
 ### 更新插件和 CLI {#update-the-plugin-and-cli}
 
@@ -345,7 +334,7 @@ CLI 现在使用统一的选择参数。旧的调用方式会直接报错，不�
 | unwire 的归档、删除或预览参数 | `unwire` 只负责断开；保留下来的目录用文件系统操作自己处理 |
 
 隐藏的命令别名已经移除。不带参数的项目命令现在作用于当前已连接的 checkout；在它之外，请用
-`--project` 选择项目。已有的配置键拼写不变。skills 和 Claude subagents
+`--project` 选择项目。旧工作流配置请按[升级说明](upgrading.md)处理。skills 和 Claude subagents
 仍然是符号链接；Agent 同步时，会把 dotbrain 自己的 Codex Agent 符号链接迁移为带标记的真实文件，
 并保留其他来源的条目。
 
@@ -374,11 +363,8 @@ Dotbrain 也支持 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 
 
 ::: warning 限制
 - Hermes 用 Hermes CLI 测过。Hermes 的消息 gateway 没有测过。
-- Dotbrain 不为 Hermes 提供 subagents，所以 Hermes 没有原生的 dotbrain worker。在 `run-execution`
-  里它只能当 lead。
 - Hermes 只从你信任过的 checkout 加载项目 skills。每个 checkout 都要单独信任，每个链接的 worktree 也一样。
-- 只能手动调用的 skills（比如 `dotbrain:run-retro`）会出现在 Hermes 的 skills 列表里，但模型加载不了。
-  要用时自己输入 `/dotbrain:<skill>`。
+- 用户选择的 manual-only skills 出现在 Hermes 列表中，但模型不能加载；请用 `/dotbrain:<skill>` 明确调用。
 - 移除 Hermes 的机器级交付，见[卸载](#hermes-remove)。
 :::
 
@@ -461,13 +447,11 @@ Dotbrain 也支持 [OpenCode](https://opencode.ai) 的 CLI。
 ::: warning 限制
 - OpenCode 用 OpenCode 1.18.35 测过，通过 `opencode run` 和 TUI。其他 OpenCode 版本，以及 OpenCode
   的桌面应用和 server 都没有测过。
-- Dotbrain 不为 OpenCode 提供 subagents，所以 OpenCode 没有原生的 dotbrain worker。在 `run-execution`
-  里它只能当 lead。
 - 如果你自己给 dotbrain 的 skills 建过链接或副本，先删掉。比如指向 dotbrain plugin 的
   `~/.config/opencode/skills` 链接，或者 `~/.claude/skills`、`~/.agents/skills` 下的副本。OpenCode
   也会读这些目录，遇到两个同名 skill 时会随机加载其中一个。`dotbrain doctor --verbose` 会列出每个重复的 skill。
-- OpenCode 不限制只能手动调用的 skills（比如 `run-retro`）：它们照样出现在 skills 列表里，模型也可以自己调用。
 - 移除 OpenCode 的机器级交付，见[卸载](#opencode-remove)。
+- OpenCode 不限制用户选择的 manual-only skills，模型仍可调用列表中的这些 skills。
 :::
 
 ### 安装 {#opencode-setup}
@@ -553,9 +537,7 @@ Dotbrain 也支持 [Pi](https://github.com/earendil-works/pi) coding agent 的 C
 
 ::: warning 限制
 - Pi 用 Pi 1.4.0 测过。其他 Pi 版本都没有测过。
-- Dotbrain 不为 Pi 提供 subagents，所以 Pi 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
-- 只能手动调用的 skills（比如 `run-retro`）对模型隐藏，只有你输入 `/skill:<name>` 时才会运行。但 Pi
-  不会阻止模型直接读取这类 skills 的文件。
+- 用户选择的 manual-only skills 对模型隐藏，通过 `/skill:<name>` 调用；Pi 不阻止模型直接读取其文件。
 - 直接关掉控制台窗口很可能会跳过 Pi 的关闭事件，也就跳过了退出时的完整同步。每次运行后的推送照常进行，
   下次会话启动时的同步会补上剩下的部分。
 - 移除 Pi 的机器级交付，见[卸载](#pi-remove)。
@@ -637,7 +619,6 @@ Dotbrain 也支持 [Cursor](https://cursor.com) 的 CLI。
 
 ::: warning 限制
 - Cursor 用 Cursor CLI 2026.10.19 测过。其他 Cursor 版本和 Cursor 编辑器都没有测过。
-- Dotbrain 不为 Cursor 提供 subagents，所以 Cursor 没有原生的 dotbrain worker。在 `run-execution` 里它只能当 lead。
 - Cursor 也会读取 checkout 和主目录里的 `.claude/skills`、`.codex/skills`、`.agents/skills` 和 `.grok/skills`。
   遇到两份同名但各自独立的 skills 时，它只用其中一份。`dotbrain doctor --verbose` 会列出 dotbrain skills 的每个重复。
 - 恢复会话后，Cursor 保留会话开始时的约定，但不会运行启动同步。
@@ -680,7 +661,7 @@ dotbrain doctor
 ```
 
 如果项目也声明了 `claude`，Cursor 通常会通过 `.claude/skills/` 找到 skills，`.cursor/skills/` 会是空的。打包的 skills 用自己的
-名字出现，比如 `wire-brain`。只能手动调用的 skills（比如 `run-retro`）不会出现在 Cursor 的 skills 列表里，
+名字出现，比如 `wire-brain`。用户选择的只能手动调用的 skills 不会出现在 Cursor 的 skills 列表里，
 需要你输入 `/<name>` 按名称调用。Cursor 不会阻止模型读取这些 skills 的 `SKILL.md` 文件。
 
 ### Cursor 会话里会发生什么 {#cursor-sessions}
@@ -728,6 +709,6 @@ dotbrain detach --runtime cursor
 
 ## 下一步 {#next}
 
-- [工作流程](workflow.md)展示 skills 如何把工作从想法推进到结束设计。
+- [工作流程](workflow.md)解释核心能力与可选的 pstack 选择。
 - [架构](architecture.md)解释 Brainspace 模型。
 - [故障排查与常见问题](troubleshooting.md)覆盖常见的安装问题。

@@ -189,7 +189,7 @@ def test_refresh_all_skips_beads_link_silently_for_mode_none(
     assert (repo / ".codex").is_dir()
 
 
-def test_seeded_project_declaration_lists_every_packaged_role(tmp_path: Path):
+def test_seeded_project_declaration_has_no_packaged_roles(tmp_path: Path):
     from dotbrain import brainspaces, config
     brainspaces.seed_brain(tmp_path / "brainspaces" / "fresh", tmp_path)
-    assert config.load_project_packaged(tmp_path, "fresh") == (2, config.PACKAGED_ROLES)
+    assert not config.obsolete_project_settings(tmp_path, "fresh")

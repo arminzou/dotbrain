@@ -40,6 +40,8 @@ def legacy_root(tmp_path):
         (user / home).mkdir(parents=True)
     (user / ".claude/agents").mkdir()
     (user / ".claude/agents/custom.md").symlink_to(root / "agents/claude/custom.md")
+    write(root / "agents/claude/reviewer.md", "---\nname: reviewer\n---\n")
+    write(root / "agents/codex/reviewer.toml", 'name = "reviewer"\n')
     # A packaged role an older version delivered globally, plus a user's own dotbrain-* file.
     write(user / ".codex/agents/dotbrain-reviewer.toml",
           subagents.managed_text('name = "dotbrain-reviewer"\n', ".toml"))
@@ -61,13 +63,13 @@ def test_bootstrap_merges_retired_files_once(tmp_path):
     logs = "\n".join(first.targets[0].changes)
     assert "dropped targets.claude-code" in logs and "dropped targets.codex" in logs
     assert "converted targets.codex to profiles.codex: [~/.codex-work]" in logs
-    assert "dropped packaged subagents reviewer" in logs
+    assert "dropped packaged subagents" not in logs
     text = (root / "config.yaml").read_text()
     assert text.startswith("# my settings\nversion: 4\n") and "enabled: false # keep" in text
     cfg = config.load_config(root)
     assert cfg.version == 4 and cfg.sync.enabled is False
     assert cfg.profiles == {"claude-code": ["~/.claude-work"], "codex": ["~/.codex-work"]}
-    assert cfg.skills == ("collection/example",) and cfg.subagents == ("custom",)
+    assert cfg.skills == ("collection/example",) and cfg.subagents == ("custom", "reviewer")
     assert not (root / "skills/skills.yaml").exists() and not (root / "agents").exists()
     assert (root / "subagents/claude/custom.md").is_file()
     [backup] = (root / ".cache/config-backups").iterdir()
@@ -81,10 +83,10 @@ def test_bootstrap_merges_retired_files_once(tmp_path):
     claude_agent = user / ".claude/agents/custom.md"
     assert claude_agent.resolve() == (root / "subagents/claude/custom.md").resolve()
     assert (user / ".codex/agents/custom.toml").is_file()
-    assert not (user / ".codex/agents/dotbrain-reviewer.toml").exists()
-    assert "pruned stale codex/dotbrain-reviewer.toml" in logs
+    assert (user / ".codex/agents/dotbrain-reviewer.toml").is_file()
+    assert (user / ".codex/agents/reviewer.toml").is_file()
     assert (user / ".codex/agents/dotbrain-mine.toml").is_file()
-    assert any("dotbrain-mine.toml is not managed by dotbrain" in m for m in [f["message"] for f in first.targets[0].findings])
+    assert any("dotbrain-mine.toml: retired agent is modified or ownership is ambiguous" in m for m in [f["message"] for f in first.targets[0].findings])
 
     before, files = snapshot(root), delivered(user)
     second = bootstrap.prepare(root, home=user, run=no_git)
@@ -234,14 +236,14 @@ def test_locked_retirement_preserves_settings_and_retries(tmp_path, monkeypatch)
     with pytest.raises(ValueError, match="settings are preserved"):
         profile_migration.apply(root, profile_migration.plan(root, user))
     assert config.load_config(root).skills == ("collection/example",)
-    assert config.load_config(root).subagents == ("custom",)
+    assert config.load_config(root).subagents == ("custom", "reviewer")
     assert (root / "subagents/agents.yaml").is_file()
     assert assets.link_global(root, "skills", user_home=user).warnings
     assert any("subagents/agents.yaml" in f.message for f in doctor._check_machine(root, user))
     monkeypatch.setattr(Path, "unlink", real_unlink)
 
     profile_migration.apply(root, profile_migration.plan(root, user))
-    assert config.load_config(root).subagents == ("custom",)
+    assert config.load_config(root).subagents == ("custom", "reviewer")
     assert profile_migration.plan(root, user) is None
 
 
@@ -300,7 +302,7 @@ raise AssertionError(result)
     assert result.status == "success", result
     cfg = config.load_config(root)
     assert cfg.version == 4
-    assert cfg.skills == ("collection/example",) and cfg.subagents == ("custom",)
+    assert cfg.skills == ("collection/example",) and cfg.subagents == ("custom", "reviewer")
     assert cfg.profiles == {"claude-code": ["~/.claude-work"], "codex": ["~/.codex-work"]}
     assert (user / ".claude/agents/custom.md").read_text() == "custom"
     assert (user / ".codex/skills/example").is_symlink()

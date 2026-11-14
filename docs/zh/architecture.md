@@ -58,34 +58,23 @@ Codex Agent 文件，不会占用项目自己的文件。Agent 看到的是一�
 
 Brain 里的每个部分各有一个用途：
 
-```mermaid
-treeView-beta
-  accTitle: The files and folders of a Brain
-  .brain/
-    CONTEXT.md ## domain vocabulary
-    adr/ ## decision records
-    designs/ ## one design doc per initiative
-    RETRO.md ## optional private retrospective findings
-    DOTBRAIN.md ## shared convention, owned by dotbrain
-    project.yaml ## runtime, tracker, skill selection
-    docs/ ## derived runbooks and reference
-```
-
 | 部分 | 内容 | 何时变化 |
 | --- | --- | --- |
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |
 | `adr/` | 架构决策记录（ADR），每个决策一条 | 做出一个难以撤回、有真实取舍的选择时 |
 | `designs/` | 设计文档，每项工作一个文件 | 一项工作被规划、实现或结束时 |
-| `RETRO.md` | 可选的私有复盘发现，附指向证据的链接 | lead 在工作完成时把可迁移的做法作为复盘候选记录在自己的工作记录上，只有 `run-retro` 写入笔记 |
 | `DOTBRAIN.md` | 共享约定，由 dotbrain 维护 | `dotbrain refresh` 更新它时 |
 | `project.yaml` | runtime、任务跟踪、skills 和 subagents 的选择 | 你改变项目使用的东西时 |
 | `docs/` | 派生的操作手册和参考资料 | 随时；从不作为权威依据 |
 
-公开的仓库 `AGENTS.md` 会指引 Agent 在修改或审阅代码时读取根目录下、由 Git 跟踪的
-`RULES.md`；没有 Brain 也能照常使用。共享约定 `DOTBRAIN.md` 负责私有上下文的检索：
-lead 或独立工作的 Agent 在每个任务或每批任务开始实现或审阅前搜索一次复盘笔记，把相关发现随任务分派传递；工作完成时，再把可迁移的做法作为复盘候选记录在自己的工作记录上，只有 `run-retro` 写入笔记。
-worker 和 reviewer 复用这些发现，不必通读笔记；笔记缺失不会阻塞工作，也不会因此自动创建。
-会话开始时只注入共享约定，不会注入复盘笔记。
+所选工程工作流负责规划、选择任务、分派、验证、恢复与交付。核心记录操作保留证据、授权与生命周期含义，
+不规定工程执行链。Beads 保存持久执行状态；任务内可使用临时程序清单。
+关闭任务或打开 PR 本身不代表已交付。
+
+私有文件通过 home sync 保留独立 Git 历史；Beads 使用自己的后端存储与备份。
+公开 `AGENTS.md` 指向 `RULES.md` 中已采纳的仓库要求，由 `repo-rules` 维护。
+初始化需要明确请求，提案不等于采纳。现有复盘笔记仍是私有历史资料，不要求检索、整理或写入复盘。
+启动时提供共享工作区约定；选择 mode 时另附有大小限制的发现指针。
 
 新建 Brain 不再生成私有的 `AGENTS.md` 和 `CLAUDE.md`，也不再将它们作为指令入口。
 wire 和 refresh 会保留旧文件及已有的上下文引用，但不会要求它们存在，也不会重新生成。
@@ -96,21 +85,11 @@ ADR 记录的是难以撤回、没有上下文会让人意外、并且经过真�
 权威依据；一旦变成 **shipped**、**abandoned** 或 **superseded**，它就冻结为一份记录，需要长期保留的内容
 转移到 `adr/` 和 `CONTEXT.md`。[工作流程](workflow.md)介绍了这个生命周期。
 
-写设计时，先与你敲定范围、验收/UAT 和执行权限。拆分任务前调查前置条件和可预见的决策；
-设计已定，就不必再为任务拆分单独确认，实现任务也可以全部自主完成。执行时核实并复用完整授权，
-恢复时保留更窄的指令和剩余次数、预算。遇到新的范围、权限或验收标准问题，先停下相关工作，
-带上证据和建议交给你决定。执行入口检查 provider 权限，不暴露凭据；有凭据不等于有授权。
-
-Agent 完成约定的工作、必要审阅和验收/UAT，证据覆盖准确的集成版本，再把 PR 标为 ready 并请求你审阅。
-PR 批准、合并到目标分支和发布仍由你决定。设计和 epic 保持 active，直到你要求运行 `close-design`；
-认定已交付前要核实真实合并证据，关闭但未合并的 PR 不算交付。REFLECT 仍把设计发现写回设计、执行事实
-写入 Beads，不增加复盘检查点、第二份反思报告或合并轮询。
-
-对 Brain 的写入都是 dotbrain 主目录里的提交，所以每次改动都可以审阅和撤回。
+工程程序由所选工作流负责。Brain 文件通过 home sync 纳入私有 home 的 Git 历史，Beads 使用单独后端。
 
 ## 执行状态放在任务跟踪里 {#execution-lives-in-the-tracker}
 
-计划和任务不放在会过时的 Markdown 清单里，而是放在**执行存储**中，默认是
+持久任务状态保存在**执行存储**中，默认是
 [Beads](https://github.com/gastownhall/beads)，一个能感知依赖关系的任务跟踪工具。多步骤的工作是一个带
 `blocks` 依赖的 epic，所以“哪些可以开始做”只是一次查询：
 
@@ -131,8 +110,8 @@ flowchart LR
 
 ## Skills {#skills}
 
-skills 是可复用的 Agent 能力，归工具所有，而不是归某个项目所有。插件自带与 Brain 配合的 skills；dotbrain
-只链接你自己选的全局 skills 和项目 skills。
+skills 是可复用的 Agent 能力，归工具所有，而不是归某个项目所有。插件提供五个独立于工程工作流的核心 skills，
+还可交付用户选择的资源，以及明确启用的项目 pstack mode。见[工作流选择](workflow.md)。
 
 链接是幂等的：dotbrain 只创建和清理它自己的链接。它从不删除真实文件，也不删除不是它创建的链接，
 所以内置 skills 可以和私有 skills 在同一台机器上并存。详见[Skills](skills.md)。

@@ -131,7 +131,7 @@ dotbrain beads drop-db orphaned_tracker --server-host db.example.internal --yes
 
 ## 使用任务跟踪 {#working-with-the-tracker}
 
-Agent 通过 `manage-work-graph` skill 操作 Beads，你也可以在任何已连接的仓库里直接用 `bd`：
+Agent 通过 `work-graph` skill 操作 Beads，你也可以在任何已连接的仓库里直接用 `bd`：
 
 ```bash
 bd ready              # issues with no open blockers

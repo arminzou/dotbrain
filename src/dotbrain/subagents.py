@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-import shutil
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -11,7 +12,7 @@ from typing import Mapping, Sequence
 from dotbrain import resource_loader, runtimes, skills, paths
 
 def runtime_spec() -> dict[str, tuple[str, str]]:
-    """Packaged definition directory and suffix for each runtime that receives native subagents."""
+    """Custom source directory and suffix for each runtime that receives native subagents."""
     return {rt.key: rt.subagents for rt in runtimes.RUNTIMES.values() if rt.subagents}
 
 
@@ -20,34 +21,8 @@ def workspace_runtimes() -> dict[str, str]:
     return {rt.workspace: rt.key for rt in runtimes.RUNTIMES.values() if rt.subagents}
 
 
-# Packaged subagents are delivered per wired checkout as dotbrain-<role>; that prefix is reserved
-# for them, so custom delivery never creates, changes or prunes a dotbrain-* entry.
+# Reserve the old generated namespace so custom delivery cannot overwrite preserved retired agents.
 PACKAGED_PREFIX = "dotbrain-"
-
-
-# Each role's protocol lives once, as a contract in the skill that dispatches it; the packaged
-# resource carries only the runtime settings.
-ROLE_SKILLS = {"worker": "run-execution", "researcher": "run-execution",
-               "reviewer": "review-gate", "verifier": "review-gate"}
-
-
-def role_contract(role: str) -> str:
-    """The role contract from its owning skill, read from the packaged plugin tree."""
-    with resource_loader.plugin_tree() as plugin:
-        return (plugin / "skills" / ROLE_SKILLS[role] / "references" / f"{role}.md").read_text(encoding="utf-8")
-
-
-def packaged_body(role: str, runtime: str) -> str:
-    """Packaged definition text as delivered: runtime settings plus the role contract."""
-    directory, suffix = runtime_spec()[runtime]
-    text = resource_loader.resource(f"agents/{directory}/{PACKAGED_PREFIX}{role}{suffix}").read_text(encoding="utf-8")
-    contract = role_contract(role)
-    if runtime != "codex":
-        return f"{text}\n{contract}"
-    # Top-level keys precede the first table, so the instructions go before it.
-    escaped = contract.replace("\\", "\\\\").replace('"""', '""\\"')
-    keys, sep, tables = text.partition("\n[")
-    return f'{keys.rstrip()}\n\ndeveloper_instructions = """\n{escaped}"""\n' + (f"\n[{tables}" if sep else "")
 
 
 @dataclass
@@ -80,7 +55,7 @@ def validate_selection(dotbrain_home: Path, names: Sequence[str], runtimes: Sequ
     for name in names:
         paths.validate_project_name(name)
         if name.startswith(PACKAGED_PREFIX):
-            errors.append(f"subagent '{name}': the {PACKAGED_PREFIX} prefix is reserved for packaged subagents; rename it")
+            errors.append(f"subagent '{name}': the {PACKAGED_PREFIX} prefix is reserved for retired packaged subagents; rename it")
             continue
         available: set[str] = set()
         for runtime, (directory, suffix) in runtime_spec().items():
@@ -142,7 +117,7 @@ def link_files_into(
 
     for src in files:
         if src.name.startswith(PACKAGED_PREFIX):
-            raise ValueError(f"{src.name}: the {PACKAGED_PREFIX} prefix is reserved for packaged subagents")
+            raise ValueError(f"{src.name}: the {PACKAGED_PREFIX} prefix is reserved for retired packaged subagents")
         dest = target_dir / src.name
         wanted.add(dest.name)
         if not materialize and dest.is_symlink() and dest.resolve() == src.resolve():
@@ -195,37 +170,22 @@ def load_global_subagents(dotbrain_home: Path) -> tuple[str, ...]:
     return load_global_config(dotbrain_home).global_names
 
 
-def reconcile_packaged(target_dir: Path, roles: Sequence[str], runtime: str, *, label: str) -> skills.LinkResult:
-    """Make the marked dotbrain-* files in one workspace equal the listed roles.
-
-    Real files, never symlinks: symlinked agent definitions are unavailable on Windows.
-    An unmarked dotbrain-* file is foreign: it is reported and left in place.
-    """
-    target_dir = Path(target_dir)
-    suffix = runtime_spec()[runtime][1]
+def retire_packaged(target_dir: Path, runtime: str, *, label: str) -> skills.LinkResult:
+    """Retire exact old generated agents, preserving changed and ambiguous resources."""
     result = skills.LinkResult()
-    wanted = {f"{PACKAGED_PREFIX}{role}{suffix}": role for role in roles}
-    if wanted:
-        target_dir.mkdir(parents=True, exist_ok=True)
-    elif not target_dir.is_dir():
+    if target_dir.is_symlink() or skills._is_junction(target_dir):
+        result.notices.append(f"{target_dir}: ambiguous retired agent directory preserved for manual inspection")
         return result
-    for name, role in wanted.items():
-        dest = target_dir / name
-        desired = managed_text(packaged_body(role, runtime), suffix)
-        if (dest.exists() or dest.is_symlink()) and not is_managed_copy(dest):
-            continue  # foreign; reported below
-        if dest.is_file() and dest.read_text(encoding="utf-8") == desired:
-            continue
-        dest.write_text(desired, encoding="utf-8", newline="\n")
-        result.linked.append(f"{label}/{name}")
-    for entry in sorted(target_dir.iterdir()):
-        if not entry.name.startswith(PACKAGED_PREFIX):
-            continue
-        if not is_managed_copy(entry):
-            result.notices.append(f"{entry} is not managed by dotbrain; left in place")
-        elif entry.name not in wanted:
+    if not target_dir.is_dir():
+        return result
+    known = json.loads(resource_loader.resource("retired-agents.json").read_text(encoding="utf-8"))[runtime]
+    for entry in sorted(target_dir.glob(f"{PACKAGED_PREFIX}*")):
+        if (not entry.is_symlink() and entry.is_file()
+                and hashlib.sha256(entry.read_bytes().replace(b"\r\n", b"\n")).hexdigest() == known.get(entry.name)):
             entry.unlink()
             result.pruned.append(f"{label}/{entry.name}")
+        else:
+            result.notices.append(f"{entry}: retired agent is modified or ownership is ambiguous; preserved for manual inspection")
     return result
 
 
@@ -236,9 +196,8 @@ def link_project_subagents(
     names: Sequence[str],
     *,
     workspace_dirs: Mapping[str, Path] | None = None,
-    packaged: Sequence[str] | None = None,
 ) -> skills.LinkResult:
-    """Deliver custom subagents; with ``packaged``, also reconcile the packaged roles."""
+    """Deliver custom subagents and retire attributable old packaged agents."""
     root = Path(dotbrain_home)
     capable = workspace_runtimes()
     errors = validate_selection(root, names, [capable[workspace] for workspace in workspaces if workspace in capable])
@@ -261,10 +220,9 @@ def link_project_subagents(
             preserve_collisions=True,
             runtime=runtime,
         )
-        if packaged is not None:
-            own = reconcile_packaged(agents_dir, packaged, runtime, label=f"{workspace}/agents")
-            for field_name in ("linked", "pruned", "notices"):
-                getattr(ws_result, field_name).extend(getattr(own, field_name))
+        own = retire_packaged(agents_dir, runtime, label=f"{workspace}/agents")
+        for field_name in ("pruned", "notices"):
+            getattr(ws_result, field_name).extend(getattr(own, field_name))
         result.linked += ws_result.linked
         result.pruned += ws_result.pruned
         result.stashed += ws_result.stashed

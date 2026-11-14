@@ -6,12 +6,13 @@ A marker identifies dotbrain's copy. Dotbrain replaces only a directory it marke
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import tempfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
-from dotbrain import paths, resource_loader, run_cache
+from dotbrain import paths, resource_loader, run_cache, skills
 
 MARKER = ".dotbrain-managed"
 
@@ -41,7 +42,9 @@ def _stamps(root: Path, names: Sequence[str]) -> list[tuple[str, int, int]]:
 
 
 def owned(target: Path) -> bool:
-    return not target.is_symlink() and (target / MARKER).is_file()
+    marker = target / MARKER
+    return (not target.is_symlink() and not skills._is_junction(target)
+            and not marker.is_symlink() and marker.is_file())
 
 
 def remove(target: Path) -> bool:
@@ -49,6 +52,9 @@ def remove(target: Path) -> bool:
     if not owned(target):
         return False
     paths.refuse_checkout(target)
+    preserved = _preserve_retired(target)
+    if preserved:
+        raise ValueError(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
     shutil.rmtree(target)
     run_cache.clear()
     return True
@@ -67,7 +73,62 @@ def state(target: Path, names: Sequence[str]) -> str:
     return "current" if current else "stale"
 
 
-def install(target: Path, names: Sequence[str]) -> None:
+def _preserve_retired(target: Path) -> Path | None:
+    """Keep changed retired resources outside discovery before replacing their bundle."""
+    known = json.loads(resource_loader.resource("retired-skills.json").read_text(encoding="utf-8"))
+    skill_root = target / "skills"
+    with resource_loader.plugin_tree() as source:
+        retained = {entry.name for entry in (source / "skills").iterdir() if entry.is_dir()}
+        removed_files = [name for name in known if name.startswith("skills/") and not (source / name).exists()]
+    retired = {Path(name).parts[1] for name in known
+               if name.startswith("skills/") and len(Path(name).parts) > 2} - retained
+    has_retired_bundle = (skill_root.is_symlink() or skills._is_junction(skill_root)
+                          or any((skill_root / name).exists() or (skill_root / name).is_symlink() for name in retired))
+
+    def removed_file_changed(name: str) -> bool:
+        entry = target
+        for part in Path(name).parts:
+            entry /= part
+            if entry.is_symlink() or skills._is_junction(entry):
+                return True
+            if not entry.exists():
+                return False
+        return not entry.is_file() or hashlib.sha256(entry.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != known[name]
+
+    if not has_retired_bundle and not any(removed_file_changed(name) for name in removed_files):
+        return None
+
+    def changed(directory: Path) -> bool:
+        for entry in directory.iterdir():
+            if entry.is_symlink() or skills._is_junction(entry):
+                return True
+            if entry.name == "__pycache__" and entry.is_dir():
+                continue
+            if entry.is_dir():
+                prefix = entry.relative_to(target).as_posix() + "/"
+                if not any(name.startswith(prefix) for name in known) or changed(entry):
+                    return True
+            elif entry.relative_to(target).as_posix() not in (MARKER, ".global-delivery"):
+                expected = known.get(entry.relative_to(target).as_posix())
+                if not entry.is_file() or hashlib.sha256(entry.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != expected:
+                    return True
+        return False
+
+    if not has_retired_bundle or changed(target):
+        # Outside each adapter's plugin/extension and skills discovery directories.
+        parent = target.parent.parent / ".dotbrain-preserved"
+        if parent.is_symlink() or skills._is_junction(parent):
+            raise ValueError(f"{parent}: preservation directory must be a real directory")
+        paths.refuse_checkout(parent)
+        parent.mkdir(exist_ok=True)
+        backup = Path(tempfile.mkdtemp(dir=parent, prefix=f"{target.name}-"))
+        backup.rmdir()
+        target.rename(backup)
+        return backup
+    return None
+
+
+def install(target: Path, names: Sequence[str]) -> Path | None:
     """Replace ``target`` with a fresh copy; the caller has checked it is missing or owned."""
     paths.refuse_checkout(target)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -81,10 +142,17 @@ def install(target: Path, names: Sequence[str]) -> None:
                 else:
                     shutil.copy2(source / name, staging / name)
             (staging / MARKER).write_text("dotbrain\n", encoding="utf-8", newline="\n")
+        preserved = _preserve_retired(target) if target.exists() else None
         if target.exists():
             shutil.rmtree(target)
-        staging.rename(target)
+        try:
+            staging.rename(target)
+        except OSError:
+            if preserved and not target.exists():
+                preserved.rename(target)
+            raise
         run_cache.clear()
+        return preserved
     finally:
         if staging.exists():
             shutil.rmtree(staging)

@@ -107,7 +107,7 @@ def test_fresh_wire_refresh_link_doctor_unwire_converge(delivery, tmp_path):
     entry = repo / ".agents/skills/discovery-test"
     assert entry.resolve() == (home / "skills/misc/discovery-test").resolve()
     assert not (repo / ".codex/skills").exists()
-    assert subagents.is_managed_copy(repo / ".codex/agents/dotbrain-worker.toml")
+    assert not (repo / ".codex/agents/dotbrain-worker.toml").exists()
     for operation in (lambda: workflows.wire_project(dotbrain_home=home, repo=repo),
                       lambda: workflows.refresh_projects(home, cwd=repo)):
         result = operation()

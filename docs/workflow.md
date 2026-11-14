@@ -1,199 +1,104 @@
-# The Workflow
+# Choose your engineering workflow
 
-Dotbrain gives agents a place to keep what they learn. This page follows one piece of work from a
-first idea to a closed design, and names the skill that handles each step.
+Dotbrain preserves project understanding and durable work state. Its five core
+skills provide wiring, context maintenance, repository requirements, and native
+Beads operations. Your selected engineering workflow decides how to investigate,
+plan, delegate, verify, recover, and deliver work under user and repository authority.
+Core-only projects work without pstack.
 
-None of the steps are mandatory. A one-line fix needs only the Brain context that loads at session
-start. The full loop pays off when work spans several sessions, touches unfamiliar code, or carries
-open questions.
+Use `maintain-brain` to capture vocabulary, accepted decisions, designs, verified
+findings, and unresolved hypotheses with their evidence. Use `work-graph` for
+tasks, dependencies, claims, and execution evidence. Ask `repo-rules` explicitly
+to initialize repository requirements; its assessment alone adopts no policy.
+Enforcement implementation belongs to your engineering workflow.
 
-## The Loop at a Glance
+## Optional pstack integration {#pstack}
 
-```mermaid
-flowchart TD
-  accTitle: The workflow loop from Brain context to closed design
-  ctx(["Brain context"]) --> orient["`**Orient**
-  find-unknowns`"]
-  orient --> grill["`**Settle decisions**
-  grill-decisions`"]
-  grill --> design["`**Write the design**
-  to-design`"]
-  design --> issues["`**Split into issues**
-  to-issues`"]
-  issues --> work["`**Work the issues**
-  run-execution or iterate-design`"]
-  work --> review["`**Review**
-  review-gate`"]
-  review --> close["`**Close the design**
-  close-design`"]
-  work -. discoveries .-> design
-  close -- "ADRs & vocabulary" --> ctx
-```
+Dotbrain maintains a project-local `dotbrain-pstack` mode that adapts external
+[pstack](https://github.com/backnotprop/pstack) capabilities to the Brain and Beads.
+It is a separate CLI-delivered resource, outside the five-skill marketplace core.
+Wiring a project does not opt it in, install pstack, or select a general workflow
+for core-only projects.
 
-<ol class="flow-steps">
-<li><a href="#_1-orient"><strong>Orient</strong><code>find-unknowns</code></a></li>
-<li><a href="#_2-settle-decisions"><strong>Settle decisions</strong><code>grill-decisions</code></a></li>
-<li><a href="#_3-write-the-design"><strong>Write the design</strong><code>to-design</code></a></li>
-<li><a href="#_4-split-into-issues"><strong>Split into issues</strong><code>to-issues</code></a></li>
-<li><a href="#_5-work-the-issues"><strong>Work the issues</strong><code>manage-work-graph</code><code>run-execution</code><code>iterate-design</code></a></li>
-<li><a href="#_6-review"><strong>Review</strong><code>review-gate</code></a></li>
-<li><a href="#_7-close-the-design"><strong>Close the design</strong><code>close-design</code></a></li>
-</ol>
+### Prepare the dependency {#dependency}
 
-
-
-Two loops close the circle: discoveries during the work flow back into the design, and closing a
-design feeds its decisions back into the Brain.
-
-Each step hands off through a file or a tracker entry, not through chat history. A new session can
-pick up at any step because the state it needs is in the Brain or in Beads.
-
-## 1. Orient
-
-Ask the agent to run `find-unknowns` before touching unfamiliar code. It reads the area against the
-Brain and reports what would change your approach: missing vocabulary, assumptions the code does not
-support, constraints nobody wrote down.
-
-```text
-Run find-unknowns on the payment retry path before we change it.
-```
-
-## 2. Settle Decisions
-
-`grill-decisions` interviews you about a plan, one branch at a time, against the project's existing
-vocabulary and decisions. When something settles, it is written down as it settles:
-
-- a new or sharpened term goes into `CONTEXT.md`
-- a hard-to-reverse choice with a real trade-off becomes an ADR in `adr/`
-
-## 3. Write the Design
-
-`to-design` turns the settled shape into a design doc in `.brain/designs/` and opens a tracking epic
-in Beads. While the design is active it is the living authority for the initiative: the approach,
-success criteria, known unknowns, and any deviation found during the build.
-
-A design moves through a fixed set of states:
-
-```mermaid
-stateDiagram-v2
-  accTitle: Design doc lifecycle
-  direction TB
-  [*] --> draft
-  draft --> active : approved
-  active --> shipped : evidence recorded
-  active --> abandoned
-  active --> superseded : replaced by a newer design
-  shipped --> [*]
-  abandoned --> [*]
-  superseded --> [*]
-```
-
-Only `draft` and `active` designs change. A terminal design is a point-in-time record.
-
-## 4. Split Into Issues
-
-`to-issues` decomposes the design into vertical-slice issues under its epic, each with acceptance
-criteria and `blocks` dependencies. "What can I work on next" is then a query instead of a document:
+Keep a separate, clean checkout of the pinned source:
 
 ```bash
-bd ready
+git clone https://github.com/backnotprop/pstack.git ~/pstack
+git -C ~/pstack checkout 9cd6939b766cb920f1c44970d7c7ee1ec28bd0d6
 ```
 
-It investigates prerequisites and surfaces foreseeable human decisions with evidence and
-recommendations before unattended work. A settled design needs no second task-set sign-off;
-an entirely autonomous implementation graph is valid. Unresolved decisions block affected work.
+This integration expects manifest version `0.15.36` at that exact revision.
+Dotbrain checks the source root, revision, clean Git state, manifest, and complete
+tracked resource files. Keep this checkout unchanged, including untracked files.
+`wire`, `refresh`, and `doctor` never fetch, install, or update the dependency.
+Another revision or installation form needs separate qualification.
 
-## 5. Work the Issues
+### Opt in for a project {#opt-in}
 
-`manage-work-graph` keeps the work graph: it files, links, and claims issues and closes them when
-their criteria hold. `run-execution` does the work for one issue or a fixed batch: it dispatches
-workers, has each change reviewed, integrates the results, runs the checks, and stops at a retry
-limit or a human decision. When the build reveals something the design did not expect, the
-discovery is written back into the design and the affected issues, so the next session sees it.
+Edit the existing project declaration, preserving unrelated settings:
 
-Each run makes two independent choices: who drives, and how many agents write at once.
+```yaml
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+pstack:
+  enabled: true
+  source: ~/pstack
+```
 
-For assignments, ownership, and how the packaged subagents work together, see
-[Working with an agent team](agent-team.md).
+`enabled` is a YAML boolean, defaulting to `false`. `source` must be an absolute
+path or start with `~/`; relative paths are rejected. Opt-in requires an initialized,
+reachable Beads backend (`beads.mode: embedded` or `server`). See
+[configuration](configuration.md#pstack) and [Beads setup](beads-backend.md).
 
-| | Sequential | Parallel |
-|---|---|---|
-| **Human-in-the-Loop**: you direct each step | One agent writes at a time, usually your own session. | Workers take independent issues at once, each in its own worktree. |
-| **Handoff**: the agent continues within a contract you approve | `iterate-design` works the issues one at a time. | `iterate-design` runs independent issues side by side. |
+From each wired checkout, reconcile delivery and inspect the result:
 
-The agent runs issues in parallel only when they are ready together, touch different files, and
-share no build outputs, databases, or ports. When you are directing the work, it tells you the
-split before starting, and you can change it.
+```bash
+dotbrain refresh
+dotbrain doctor
+```
 
-Either way, the work happens on a dedicated branch and reaches `main` through a pull request you
-review. The agent reuses complete applicable delivery approval, asks only for missing or changed
-authority before pushing or opening that pull request, and lands work directly on
-`main` only when you tell it to.
+Use `dotbrain refresh --all` for registered projects. Configured Claude Code and
+Codex workspaces receive `.claude/skills/dotbrain-pstack/` and
+`.agents/skills/dotbrain-pstack/`. These links point to a separate owned integration
+cache in the private home. The ignored `.dotbrain-pstack.json` records dependency
+selection and delivered locations; edit the declaration, not this generated record.
+Startup adds a bounded discovery pointer rather than the workflow's instructions.
+Restart sessions after changing the selection, then use the runtime's displayed
+`dotbrain-pstack` skill for engineering work.
 
-**Or hand it off.** For an unattended run against an active design, `iterate-design` drives the
-agent's loop mode with a mechanical verifier and a hard stop. You approve a contract first: the
-scope, the branch, the checks, how many workers may run at once, and how the pull request is
-delivered, provider/auth and PR authority, acceptance/UAT, reviews, and finite limits. A complete
-approved contract is validated and reused without repeat `GO`; an execution request alone grants
-no missing authority. Remaining limits and narrower instructions survive resume. Then:
+The mode coordinates task selection, coordinator-owned claims, local worktree
+delegation, independent verification, context capture, and recovery. It calls the
+adapted external capabilities rather than also running pstack's top-level
+`poteto-mode`. Scope, acceptance criteria, permissions and delivery authority
+still come from the user and repository. Opt-in grants no publication, messaging,
+merge, deployment, or release permission.
 
-- At its first push it opens a draft pull request, and it pushes again after each accepted integration group.
-- When an issue fails its checks three times in a row, or needs your decision, only that issue and
-  the issues waiting on it stop. Independent issues continue.
-- When the run stops blocked, it mentions you on the pull request, so you are notified.
-- When everything is done and reviewed, it marks the pull request ready and requests your review.
-  PR approval, target-branch merge, and release stay with you.
+### Qualification scope {#qualification}
 
-## 6. Review
+The initial native qualification targets are local Windows Claude Code `2.1.325`,
+Codex `0.169.0`, and Beads `1.3.1`, with the pinned pstack source above.
+Qualification must retain the exact integrated Dotbrain revision, runtime and
+dependency versions, settings, and independently inspectable traces. Consult the
+release or PR verification evidence for observed results at that revision.
 
-Reviews happen at two levels:
+Source checks and delivered files establish identity and filesystem state.
+Native runs are needed to establish discovery and use, Beads ownership and
+closure, cross-session retrieval, and interruption/recovery behavior. A healthy
+doctor report alone proves none of those agent outcomes. Other operating systems,
+runtimes, dependency revisions, and cloud workers are outside this initial mode
+qualification scope. The six core runtime integrations retain their separate
+[installation and limitations](getting-started.md).
 
-- **Each issue.** Every change to code, tests, build or CI config, or agent instructions gets an
-  independent review before its issue closes, from a reviewer agent that wrote none of it. The
-  review may cover a coherent group of provisionally integrated candidates. The reviewer returns
-  full findings to the lead, which records them before routing repairs to the original workers.
-  Review includes change-caused regressions in unchanged consumers and interactions. Combined
-  checks and required review cover the exact integrated revision before closure or dependent release.
-  The reviewer approves or asks for changes, the same agent fixes its own work, and three requests for
-  changes in a row stop the issue for your decision. Changes to prose alone are exempt. When you
-  are directing the work, the agent may ask whether a small change needs a review, and says what
-  it recommends.
-- **The branch.** Before a branch carrying several issues is offered for merge, an independent
-  reviewer checks the whole diff: how the issues fit together and whether they match the design.
-  The final integration review can supply this only with explicit whole-branch coverage at the
-  exact final revision; approval of the latest group alone is insufficient. Otherwise arrange a
-  whole-branch review. Later changes affecting coverage need refreshed evidence. In either workflow,
-  an unmet in-scope design goal or success criterion blocks final approval regardless of severity;
-  reused reports must assess this too. In a handoff, the lead files the fix under the epic with its
-  reason and admits it to the current loop within the existing finite budget. Exhausting that
-  budget with the fix open ends `BLOCKED`; a fix needing a new decision still asks you. A handoff
-  also runs a simplification pass. Its suggestions never block the pull request; the lead records
-  dispositions within approved scope and returns new consequential decisions to you.
+### Opt out or upgrade {#opt-out}
 
-`review-gate` runs these reviews in focused modes (correctness, simplification, or readiness) and
-records each outcome in the tracker. Within approved authority, the lead closes accepted work and
-reviews before PR merge: required independent verdicts and acceptance/UAT evidence cover the exact
-integrated revision, blocking findings are resolved, and other findings have recorded dispositions.
-Simplify stays non-blocking and closes once every finding is applied, filed, or declined with a reason.
-Reviews gain no automatic human gate. Genuine human decisions still block affected work; review
-closure grants no PR approval, merge, or release authority.
+Set `pstack.enabled: false` and refresh each affected checkout. Dotbrain removes
+only attributable, intact mode links and its discovery record; modified or foreign
+resources are preserved and reported. Inspect those resources explicitly before
+starting another session. External pstack sources and foreign installations stay
+with their owner. Start a fresh session after opt-out.
 
-## 7. Close the Design
-
-You ask for `close-design`, by name or in words, to move the design to a terminal state. For shipped work it
-checks the actual PR, target branch, merge commit and merge date; closed-unmerged never establishes
-shipment. A ready PR leaves the design and epic active. Work/review closure never invokes closeout
-automatically, and no merge polling is added. It records the evidence that the success
-criteria were met, promotes what should outlive the initiative into `adr/` and `CONTEXT.md`, and
-closes the epic. The next initiative starts with those decisions already in the Brain.
-
-::: tip Who owns what
-Agents write to the Brain freely, and every change is a commit in your dotbrain home, so it can be
-reviewed and reverted. Success criteria are the exception: an agent can propose a change to them,
-but only you approve it.
-:::
-
-## Related
-
-- [Skills](skills.md) lists every skill with a one-line summary.
-- [Architecture](architecture.md) explains why the Brain and the tracker are separate.
+Keep the qualified dependency pinned during ordinary updates. A pstack upgrade
+requires reviewing referenced capabilities and adaptations and repeating affected
+qualification; changing a version string is insufficient. For the core breaking
+transition, active-work safety, backups, and rollback, read [Upgrading](upgrading.md).

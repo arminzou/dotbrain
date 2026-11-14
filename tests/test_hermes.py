@@ -41,7 +41,7 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
     # The policy source is the SKILL.md frontmatter, parsed here as YAML to check the plugin's parser.
     manual = {p.parent.name for p in sources
               if yaml.safe_load(p.read_text(encoding="utf-8").split("---")[1]).get("disable-model-invocation")}
-    assert manual
+    assert manual == set()
     for name, (path, description, fields) in ctx.skills.items():
         assert path == PLUGIN_ROOT / "skills" / name / "SKILL.md"
         # The stdlib parser agrees with YAML on every string field, folded descriptions included.
@@ -50,7 +50,7 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
         assert {k: v for k, v in fields.items() if isinstance(parsed.get(k), str)} == \
             {k: v for k, v in parsed.items() if isinstance(v, str)}, name
     # Supporting files sit next to the registered SKILL.md.
-    assert (ctx.skills["run-execution"][0].parent / "references" / "hermes.md").is_file()
+    assert (ctx.skills["maintain-brain"][0].parent / "references" / "writing.md").is_file()
 
     [veto] = ctx.hooks["pre_tool_call"]
     for name in sorted(ctx.skills):
@@ -58,18 +58,6 @@ def test_plugin_registers_every_skill_and_vetoes_only_manual_ones():
         assert (blocked is not None) == (name in manual), name
         if blocked:
             assert blocked["action"] == "block" and blocked["message"]
-    some = sorted(manual)[0]
-    for supporting in ("references/x.md", "./references/x.md", "references\\x.md", " scripts/SKILL.md.bak "):
-        assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": supporting}) is None, supporting
-    # Hermes serves file_path from the skill directory, so each of these is the whole skill or outside it.
-    for whole in ("", " ", ".", "SKILL.md", "skill.md", "./SKILL.md", " .\\SKILL.md ", "references/../SKILL.md",
-                  "../other/SKILL.md", "..", "/etc/x", "C:/x/SKILL.md", None):
-        assert veto(tool_name="skill_view", args={"name": f"dotbrain:{some}", "file_path": whole}) is not None, whole
-    # Without Hermes's lookup, any name ending in a manual-only skill's name fails closed.
-    for alias in (f"other:{some}", f"./{some}", f"{some}/", f"dotbrain:./{some}/", f"cat/{some}"):
-        assert veto(tool_name="skill_view", args={"name": alias}) is not None, alias
-    assert veto(tool_name="skill_view", args={"name": f"dotbrain:../{some}"}) is None  # Hermes refuses it
-    assert veto(tool_name="read_file", args={"name": f"dotbrain:{some}"}) is None
 
 
 def test_veto_blocks_every_path_the_host_resolves_to_skill_md(tmp_path: Path):
@@ -258,7 +246,7 @@ def test_global_delivery_copies_the_plugin_and_links_skills(dotbrain_home, tmp_p
     assert (hermes_home / "skills/discovery-test").is_symlink()
     copy = hermes.plugin_dir(hermes_home)
     assert (copy / "plugin.yaml").is_file() and (copy / "__init__.py").is_file()
-    assert (copy / "skills/run-execution/references/hermes.md").is_file()
+    assert (copy / "skills/maintain-brain/references/writing.md").is_file()
     assert hermes.state(hermes_home) == "current"
     assert calls == [(["hermes", "plugins", "enable", "dotbrain"], str(hermes_home))]
 
@@ -277,7 +265,7 @@ def test_global_delivery_copies_the_plugin_and_links_skills(dotbrain_home, tmp_p
     # A damaged copy is stale even though its marker is intact, and delivery repairs it.
     for damage in (lambda: (copy / "plugin.yaml").unlink(),
                    lambda: (copy / "__init__.py").write_text("changed"),
-                   lambda: shutil.rmtree(copy / "skills/run-execution/references")):
+                   lambda: shutil.rmtree(copy / "skills/maintain-brain/references")):
         damage()
         assert hermes.state(hermes_home) == "stale"
         assert assets.link_global(dotbrain_home, "skills", "hermes", user_home=user, run=run).linked

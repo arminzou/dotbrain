@@ -1,175 +1,80 @@
-# 工作流程
+# 选择工程工作流
 
-Dotbrain 给 Agent 一个存放所学内容的地方。本页跟着一项工作，从最初的想法走到结束设计，并说明每一步
-由哪个 skill 负责。
+Dotbrain 保存项目理解和可恢复的工作状态。五个核心 skills 提供连接、上下文维护、仓库要求和原生
+Beads 操作；调查、规划、分派、验证、恢复与交付由你选择的工程工作流负责，并遵守用户和仓库的授权。
+只使用核心能力的项目不需要 pstack。
 
-这些步骤都不是必须的。一行代码的修复，只需要会话开始时加载的 Brain 上下文就够了。当工作跨多个会话、
-涉及不熟悉的代码，或者还有悬而未决的问题时，完整的闭环才划算。
+`maintain-brain` 用来记录术语、已采纳的决策、设计、已验证的发现，以及仍未解决的假设和证据。
+`work-graph` 维护任务、依赖、认领和执行证据。初始化仓库要求需要明确请求 `repo-rules`；单纯评估不会采纳新规则。
+规则的代码、测试或 CI 执行机制由工程工作流实现。
 
-## 闭环一览 {#the-loop-at-a-glance}
+## 可选的 pstack 集成 {#pstack}
 
-```mermaid
-flowchart TD
-  accTitle: The workflow loop from Brain context to closed design
-  ctx(["Brain context"]) --> orient["`**Orient**
-  find-unknowns`"]
-  orient --> grill["`**Settle decisions**
-  grill-decisions`"]
-  grill --> design["`**Write the design**
-  to-design`"]
-  design --> issues["`**Split into issues**
-  to-issues`"]
-  issues --> work["`**Work the issues**
-  run-execution or iterate-design`"]
-  work --> review["`**Review**
-  review-gate`"]
-  review --> close["`**Close the design**
-  close-design`"]
-  work -. discoveries .-> design
-  close -- "ADRs & vocabulary" --> ctx
-```
+Dotbrain 提供项目级的 `dotbrain-pstack` mode，将外部
+[pstack](https://github.com/backnotprop/pstack) 能力接入 Brain 和 Beads。
+它由 CLI 单独交付，不在 marketplace 的五个核心 skills 中。连接项目不会自动启用或安装 pstack，
+也不会为只使用核心能力的项目选择工程工作流。
 
-<ol class="flow-steps">
-<li><a href="#_1-orient"><strong>摸清情况</strong><code>find-unknowns</code></a></li>
-<li><a href="#_2-settle-decisions"><strong>敲定决策</strong><code>grill-decisions</code></a></li>
-<li><a href="#_3-write-the-design"><strong>写设计</strong><code>to-design</code></a></li>
-<li><a href="#_4-split-into-issues"><strong>拆成任务</strong><code>to-issues</code></a></li>
-<li><a href="#_5-work-the-issues"><strong>处理任务</strong><code>manage-work-graph</code><code>run-execution</code><code>iterate-design</code></a></li>
-<li><a href="#_6-review"><strong>审阅</strong><code>review-gate</code></a></li>
-<li><a href="#_7-close-the-design"><strong>结束设计</strong><code>close-design</code></a></li>
-</ol>
+### 准备依赖 {#dependency}
 
-
-
-工作中的新发现会更新到当前设计；设计收尾时，长期有效的决策会写回 Brain。
-
-每一步都通过文件或任务记录交接，而不是靠聊天记录。新会话可以从任意一步接着做，因为它需要的状态都在
-Brain 或 Beads 里。
-
-## 1. 摸清情况 {#_1-orient}
-
-动不熟悉的代码之前，先让 Agent 运行 `find-unknowns`。它会对照 Brain 阅读这块代码，报告那些会改变你做法的东西：
-缺失的术语、代码并不支持的假设、没人写下来的约束。
-
-```text
-Run find-unknowns on the payment retry path before we change it.
-```
-
-## 2. 敲定决策 {#_2-settle-decisions}
-
-`grill-decisions` 会对照项目已有的术语和决策，就一个计划逐个分支地追问你。每定下一件事，就当场记下来：
-
-- 新的或更精确的术语写进 `CONTEXT.md`
-- 难以撤回、有真实取舍的选择成为 `adr/` 里的一条 ADR
-
-## 3. 写设计 {#_3-write-the-design}
-
-`to-design` 把敲定的方案写成 `.brain/designs/` 里的一份设计文档，并在 Beads 里开一个跟踪用的 epic。
-设计处于 active 状态时，它就是这项工作的权威依据：方案、成功标准、已知的未知项，以及实现过程中
-发现的偏差。
-
-设计会经过一组固定的状态：
-
-```mermaid
-stateDiagram-v2
-  accTitle: Design doc lifecycle
-  direction TB
-  [*] --> draft
-  draft --> active : approved
-  active --> shipped : evidence recorded
-  active --> abandoned
-  active --> superseded : replaced by a newer design
-  shipped --> [*]
-  abandoned --> [*]
-  superseded --> [*]
-```
-
-只有 `draft` 和 `active` 状态的设计会变化。进入终态的设计是某个时间点的记录。
-
-## 4. 拆成任务 {#_4-split-into-issues}
-
-`to-issues` 把设计拆成 epic 下的一组垂直切片任务，每个任务都带验收标准和 `blocks` 依赖。
-这样“接下来能做什么”就成了一次查询，而不用翻文档：
+单独克隆并保留指定版本的干净 checkout：
 
 ```bash
-bd ready
+git clone https://github.com/backnotprop/pstack.git ~/pstack
+git -C ~/pstack checkout 9cd6939b766cb920f1c44970d7c7ee1ec28bd0d6
 ```
 
-无人值守执行前，先调查前置条件，把可预见的人工决策连同证据和建议提出来。
-设计已定，就不必再为任务拆分单独确认；实现任务可以全部由 Agent 自主完成。
-尚未解决的决策会阻塞受影响的工作。
+集成要求这个完整 revision，manifest 版本为 `0.15.36`。Dotbrain 检查来源根目录、revision、
+干净的 Git 状态、manifest 和所有 tracked 资源文件。请保持 checkout 不变，也不要添加 untracked 文件。
+`wire`、`refresh` 和 `doctor` 不会 fetch、安装或更新依赖。其他版本或安装形式需要单独验证。
 
-## 5. 处理任务 {#_5-work-the-issues}
+### 为项目启用 {#opt-in}
 
-`manage-work-graph` 维护工作图：创建、关联和认领任务，在满足标准时关闭它们。`run-execution` 负责完成一个任务
-或一批固定的任务：分派 worker，让每个改动都经过审阅，合并结果，运行检查，在达到重试上限或需要人来决定时停下。
-如果实现过程中发现了设计没预料到的情况，这个发现会写回设计和相关任务，下一个会话就能看到。
+编辑现有的项目声明，保留无关设置：
 
-每次运行都有两个相互独立的选择：谁来主导，以及同时有几个 Agent 在写代码。
+```yaml
+# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
+pstack:
+  enabled: true
+  source: ~/pstack
+```
 
-任务分配、归属和内置 subagent 的协作方式，见[和 Agent 团队一起工作](agent-team.md)。
+`enabled` 必须是 YAML boolean，默认为 `false`。`source` 必须是绝对路径或以 `~/` 开头，
+不能使用相对路径。启用时需要已初始化、可连接的 Beads 后端，`beads.mode` 为 `embedded` 或 `server`。
+详见[配置](configuration.md#pstack)和 [Beads 设置](beads-backend.md)。
 
-| | 顺序 | 并行 |
-|---|---|---|
-| **HITL**：由你逐步指挥 Agent | 同一时间只有一个 Agent 在写，通常就是你自己的会话。 | 多个 worker 同时处理互不相关的任务，各自在自己的 worktree 里。 |
-| **交接**：Agent 在你批准的约定范围内继续 | `iterate-design` 一次处理一个任务。 | `iterate-design` 并行处理互不相关的任务。 |
+在每个已连接的 checkout 中同步并检查：
 
-只有当几个任务同时就绪、改的是不同文件、并且不共用构建产物、数据库或端口时，Agent 才会并行处理它们。
-如果由你指挥，它会在开始前告诉你打算怎么拆分，你可以调整。
+```bash
+dotbrain refresh
+dotbrain doctor
+```
 
-无论哪种方式，工作都在一个专用分支上进行，通过你审阅的 PR 进入 `main`。推送或开 PR 前，Agent 会复用完整且仍适用的授权，
-只为缺失或变化的权限询问你；
-只有你明确要求时，才会直接把工作合进 `main`。
+`dotbrain refresh --all` 处理已注册的项目。选中的 Claude Code 和 Codex 工作区分别收到
+`.claude/skills/dotbrain-pstack/` 和 `.agents/skills/dotbrain-pstack/`，链接到私有 home 中独立的自有集成缓存。
+被 gitignore 的 `.dotbrain-pstack.json` 记录依赖选择和交付位置；应编辑项目声明，不要修改这个生成文件。
+启动上下文只增加有大小限制的发现指针，不注入工作流正文。改变选择后重启会话，再使用 runtime 展示的
+`dotbrain-pstack` skill 开展工程工作。
 
-**也可以交给它自己跑。** 针对一个 active 的设计做无人值守执行时，`iterate-design` 会以 Agent 的循环模式运行，
-由 verifier 执行检查，并设定明确的停止条件。你先批准一份约定：范围、分支、检查项、最多同时运行几个 worker，
-以及 PR 怎么交付，还包括 provider/auth、验收/UAT、审阅要求和执行上限。
-完整授权仍适用时直接复用，不必重复回复 `GO`；一句执行请求不会补齐缺失的权限。
-恢复执行也保留剩余次数、预算和更窄的指令。然后：
+mode 负责选择任务、由 coordinator 持有认领、本地 worktree 分派、独立验证、上下文记录与恢复。
+它使用经过适配的外部能力，不同时运行 pstack 顶层的 `poteto-mode`。
+范围、验收标准、权限与交付授权仍由用户和仓库决定；启用 mode 不授予发布、发消息、合并、部署或 release 权限。
 
-- 第一次推送时，它会开一个 draft PR，之后每组改动完成审阅、组合检查和验收后再推送。
-- 如果一个任务连续三次没通过检查，或者需要你来决定，只有这个任务和依赖它的任务会停下，互不相关的任务继续。
-- 运行因阻塞而停下时，它会在 PR 上提到你，让你收到通知。
-- 全部完成并审阅后，它会把 PR 标记为 ready，并请你审阅。PR 批准、合并到目标分支和发布始终由你决定。
+### 验证范围 {#qualification}
 
-## 6. 审阅 {#_6-review}
+首批 native 验证目标是 Windows 本地的 Claude Code `2.1.325`、Codex `0.169.0`、Beads `1.3.1`，
+以及上述固定的 pstack 来源。验证必须记录集成后的 Dotbrain 精确 revision、runtime 与依赖版本、设置及可独立检查的 traces。
+某个 revision 的实际结果以对应 release 或 PR 的验证证据为准。
 
-审阅发生在两个层面：
+来源检查和交付文件只能证明身份与文件系统状态。发现和调用、Beads 归属与关闭、跨会话读取，以及中断恢复
+都需要 native runs 证明；doctor 健康不代表这些 Agent 行为已通过。其他操作系统、runtime、依赖版本与 cloud workers
+不在首批 mode 验证范围内。六种核心 runtime 集成仍有各自的[安装方式与限制](getting-started.md)。
 
-- **每个任务。** 代码、测试、构建或 CI 配置、Agent 指令的每一处改动，在任务关闭前都要经过一次独立审阅，
-  审阅者是一个没参与编写的 reviewer Agent。一次审阅可以覆盖一组已暂时集成的相关改动。
-  Reviewer 把完整发现交给 lead，lead 先记录，再把修复交回原 worker。审阅包括改动在未修改的调用方和交互中引起的回归。
-  组合检查和必需审阅覆盖准确的集成版本后，才能关闭任务并释放依赖。
-  审阅者批准或要求修改，由原来的 Agent 修复自己的工作；
-  连续三次要求修改，任务就会停下等你决定。只改文字说明的改动不需要审阅。如果由你指挥，Agent 可能会问你
-  某个小改动是否需要审阅，并给出它的建议。
-- **整个分支。** 一个包含多个任务的分支在提交合并之前，由独立 reviewer 检查整个 diff：
-  这些任务是否衔接得上，是否符合设计。最后一次集成审阅只有明确覆盖准确的最终版本和整个分支，才能兼作最终审阅；
-  只批准最后一组改动不够，否则另做全分支审阅。后续变化影响覆盖时要更新证据。
-  两种工作流中，范围内的设计目标或成功标准未达成，最终审阅就不能批准，不受严重程度标签影响；复用报告也要检查这一点。
-  Handoff 中，lead 在 epic 下建修复任务并记录原因，加入当前循环，共用原有的有限预算。
-  预算耗尽时修复仍未完成，就以 `BLOCKED` 结束；需要新决策的修复仍先问你。
-  交接模式下还会做一轮简化审阅。建议不阻塞 PR；lead 在已批准的范围内记录处理结果，新的重大决策交给你。
+### 退出或升级 {#opt-out}
 
-`review-gate` 以专注的模式（正确性、简化或就绪性）运行这些审阅，并把每次结果记录在任务跟踪里。
-在已批准的范围内，lead 可以在 PR 合并前关闭已验收的工作和审阅：必要的独立审阅结论及验收/UAT 证据
-覆盖准确的集成版本，阻塞问题已解决，其他发现都有处理记录。简化建议不阻塞 PR；每条建议应用、建项跟进，
-或说明理由后不采纳，才关闭简化审阅。审阅不会自动变成人工关卡。真正需要你决定的问题仍会阻塞相关工作；
-关闭审阅不代表获得 PR 批准、合并或发布权限。
+将 `pstack.enabled` 设为 `false`，在各 checkout 运行 refresh。Dotbrain 只删除能确认归属且完整的 mode 链接
+和发现记录；修改过或属于其他工具的资源会保留并报告。开始新会话前，先明确检查这些资源。
+外部 pstack 来源与其他安装仍由其原有工具管理；退出后请重启会话。
 
-## 7. 结束设计 {#_7-close-the-design}
-
-你要求运行 `close-design`（按名称调用或直接用文字说明都可以），把设计推进到终态。认定已交付前，它会核实实际 PR、目标分支、合并提交和日期；
-关闭但未合并的 PR 不算交付。PR 标为 ready 后，设计和 epic 仍保持 active。关闭工作或审阅不会自动触发
-closeout，也不增加合并轮询。它记录成功标准已经达成的证据，将后续工作仍会用到的决策和术语整理到
-`adr/` 和 `CONTEXT.md`，然后关闭 epic。下一项工作开始时，这些决策已经在 Brain 里了。
-
-::: tip 谁负责什么
-Agent 可以自由写入 Brain，每次改动都是 dotbrain 主目录里的一次提交，可以审阅，也可以撤回。
-成功标准是例外：Agent 可以提议修改，但只有你能批准。
-:::
-
-## 相关内容 {#related}
-
-- [Skills](skills.md)列出了所有 skills 及一句话说明。
-- [架构](architecture.md)解释了为什么 Brain 和任务跟踪要分开。
+日常更新请保持依赖固定。升级 pstack 需要检查引用能力与适配契约，并重新执行受影响的验证，不能只改版本号。
+核心的 breaking transition、正在进行的工作、备份与回滚见[升级说明](upgrading.md)。

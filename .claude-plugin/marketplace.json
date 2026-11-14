@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "dotbrain",
-  "description": "Private project context and engineering workflows for coding agents.",
+  "description": "Private project context, shared across coding agents and worktrees.",
   "owner": { "name": "Armin Zou", "url": "https://github.com/arminzou" },
   "plugins": [
     {

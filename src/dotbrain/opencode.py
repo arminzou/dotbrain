@@ -191,7 +191,9 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
         return result
     with resource_loader.opencode_plugin() as source:
         if owned_copy.state(packaged_dir(config_dir), SKILL_FILES) != "current":
-            owned_copy.install(packaged_dir(config_dir), SKILL_FILES)
+            preserved = owned_copy.install(packaged_dir(config_dir), SKILL_FILES)
+            if preserved:
+                result.notices.append(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
             result.linked.append("opencode/dotbrain/packaged")
         if _file_state(config_dir, source) != "current":
             _write_atomic(plugin_file(config_dir), source.read_bytes())

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, pstack, resource_loader, run_cache, runtimes, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -99,23 +99,6 @@ def _check_assets(root: Path, receiver: Path, selected: tuple[str, ...], kind: s
     return findings
 
 
-def _check_packaged(receiver: Path, roles: tuple[str, ...], suffix: str) -> list[Finding]:
-    """Packaged dotbrain-* entries in one workspace against the project's listed roles."""
-    findings = []
-    for role in roles:
-        dest = receiver / f"{subagents.PACKAGED_PREFIX}{role}{suffix}"
-        if not (dest.exists() or dest.is_symlink()):
-            findings.append(Finding("warn", f"{dest}: listed packaged subagent '{role}' is not delivered", "run dotbrain refresh"))
-    entries = sorted(receiver.glob(f"{subagents.PACKAGED_PREFIX}*")) if receiver.is_dir() else []
-    for entry in entries:
-        if not subagents.is_managed_copy(entry):
-            findings.append(Finding("warn", f"{entry}: dotbrain-* file is not managed by dotbrain",
-                                    "rename or remove it; the dotbrain- prefix is reserved for packaged subagents"))
-        elif entry.name.removeprefix(subagents.PACKAGED_PREFIX).removesuffix(suffix) not in roles:
-            findings.append(Finding("warn", f"{entry}: delivered packaged subagent is not listed in project.yaml", "run dotbrain refresh"))
-    return findings
-
-
 def _check_plugin(home: Path, runtime: str, *, runtime_home: Path | None = None) -> list[Finding]:
     runtime_home = runtime_home or home / runtimes.find(runtime).workspace
     label = f"{runtime} ({runtime_home})"
@@ -156,11 +139,6 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
         try:
             cfg = skills.load_global_config(root)
             selected = skills.resolve_selection(root, cfg.global_extra) if kind == "skills" else subagents.load_global_config(root).global_names
-            packaged = [name for name in selected if kind == "agents" and name in config.PACKAGED_ROLES]
-            if packaged:
-                findings.append(Finding("warn", f"config.yaml subagents names packaged subagents: {', '.join(packaged)}",
-                                        "remove them; packaged subagents are selected per project in project.yaml"))
-                selected = tuple(name for name in selected if name not in packaged)
             errors = []
             targets = assets.global_targets(runtimes.RUNTIMES.values(), kind, home, explicit=False,
                                             profiles=cfg.profiles, errors=errors, dotbrain_home=root)
@@ -180,6 +158,9 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                     findings.extend(_check_cursor_skills(root, cfg.global_extra, (home,)))
                 else:
                     findings.extend(_check_assets(root, receiver, selected, kind, runtime))
+                    if kind == "agents":
+                        findings.extend(Finding("warn", f"{entry}: retired packaged agent remains", "run dotbrain subagents link --scope global; modified or ambiguous files are preserved")
+                                        for entry in receiver.glob(f"{subagents.PACKAGED_PREFIX}*"))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"global {kind}: {exc}", "correct the global selection and run dotbrain bootstrap"))
     for profile in dict.fromkeys(claude_profiles or [home / ".claude"]):
@@ -269,7 +250,7 @@ def _check_design_lifecycle(brainspace: Path, mode: str, run: Runner) -> list[Fi
             statuses.setdefault(epic.get("spec_id"), set()).add(epic.get("status"))
         # A design with an open follow-up epic is still active.
         findings = [Finding("warn", f"design {path.name} is active while every spec-linked epic is closed",
-                            "run close-design or correct the design lifecycle")
+                            "use maintain-brain to reconcile lifecycle with outcome evidence under the applicable authority; closed tasks alone do not establish shipment")
                     for path in active if statuses.get(f"design:{path.stem}") == {"closed"}]
         return findings or [Finding("ok", "active designs have no closed spec-linked epics")]
     except DIAGNOSIS_ERRORS as exc:
@@ -521,6 +502,15 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                     for message in brainspaces.unknown_agent_warnings(target.brainspace, root))
     selected = skills.resolve_selection(root, config.load_project_skills(root, target.project))
     agents = config.load_project_subagents(root, target.project)
+    try:
+        integration = pstack.preflight(root, target.project, run=run, backend=True)
+        if target.checkout is not None and target.checkout.is_dir():
+            issues = pstack.delivery_issues(root, target.checkout, workspaces, integration.enabled)
+            findings.extend(Finding("error", issue) for issue in issues)
+            if integration.enabled and not issues:
+                findings.append(Finding("ok", "pstack source qualified, backend reachable, project delivery current"))
+    except DIAGNOSIS_ERRORS as exc:
+        findings.append(Finding("error", f"pstack: {exc}", "correct project.yaml or restore the selected dependency/backend"))
     if not (target.brainspace / ".brain").is_dir():
         findings.append(Finding("error", "Brain directory missing", "run dotbrain refresh"))
     findings.extend(_check_convention(target.brainspace))
@@ -537,17 +527,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.append(Finding("error", f"registered checkout missing: {repo}", "correct .repo.local or .repo"))
     else:
         findings.extend(_check_brainspace_links(repo, target.brainspace))
-        try:
-            version, roles = config.load_project_packaged(root, target.project)
-        except DIAGNOSIS_ERRORS as exc:
-            version, roles = config.PROJECT_VERSION, None
-            findings.append(Finding("error", str(exc), "correct packaged-subagents in project.yaml"))
-        if version == 1:
-            findings.append(Finding("warn", "project.yaml is unversioned and awaits the packaged-subagents upgrade",
-                                    "run dotbrain refresh"))
-        elif roles == ():
-            findings.append(Finding("info", "no packaged subagents listed; packaged subagents add per-role effort "
-                                    "and can be listed in project.yaml packaged-subagents"))
+        findings.extend(Finding("warn", message, "review the breaking-upgrade guidance")
+                        for message in config.obsolete_project_settings(root, target.project))
         findings.extend(Finding("error", f"custom subagent '{name}' uses the reserved {subagents.PACKAGED_PREFIX} prefix",
                                 "rename the custom subagent") for name in agents if name.startswith(subagents.PACKAGED_PREFIX))
         entries = ["/.brain", paths.AGENT_TMP_EXCLUDE] + (["/.beads"] if beads.mode != "none" else [])
@@ -577,8 +558,8 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             if rt.subagents is None:
                 continue
             findings.extend(_check_assets(root, directory / "agents", agents, "agents", runtime))
-            if roles is not None:
-                findings.extend(_check_packaged(directory / "agents", roles, rt.subagents[1]))
+            findings.extend(Finding("warn", f"{entry}: retired packaged agent remains", "run dotbrain refresh; modified or ambiguous files are preserved")
+                            for entry in (directory / "agents").glob(f"{subagents.PACKAGED_PREFIX}*"))
             entries.extend(f"/{workspace}/agents/{name}{rt.subagents[1]}" for name in agents)
         try:
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))

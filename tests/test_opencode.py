@@ -64,7 +64,7 @@ def test_delivery_copies_the_plugin_and_links_skills(dotbrain_home, user):
     assert result.warnings == []
     assert opencode.plugin_file(config_dir).read_bytes() == (PLUGIN_ROOT / "opencode/dotbrain.js").read_bytes()
     packaged = opencode.packaged_dir(config_dir) / "skills"
-    assert (packaged / "run-execution/references/opencode.md").is_file()
+    assert (packaged / "maintain-brain/references/writing.md").is_file()
     assert (opencode.skills_dir(config_dir) / "discovery-test").is_symlink()
     assert opencode.state(config_dir) == "current"
     # The user's own entries stay exactly as they were.
@@ -78,7 +78,7 @@ def test_delivery_copies_the_plugin_and_links_skills(dotbrain_home, user):
     for damage in (lambda: opencode.plugin_file(config_dir).write_text("// dotbrain-managed: old\n"),
                    lambda: opencode.plugin_file(config_dir).unlink(),
                    lambda: (packaged / "stray.txt").write_text("old"),
-                   lambda: shutil.rmtree(packaged / "run-execution/references")):
+                   lambda: shutil.rmtree(packaged / "maintain-brain/references")):
         damage()
         assert opencode.state(config_dir) == "stale"
         assert assets.link_global(dotbrain_home, "skills", "opencode", user_home=home).linked
@@ -161,7 +161,7 @@ def test_doctor_reports_opencode_delivery(dotbrain_home, user):
     # No packaged-agent demand: dotbrain delivers no OpenCode subagents.
     assert not [f for f in findings if "opencode" in f.message and "agents" in f.message]
 
-    (opencode.packaged_dir(config_dir) / "skills/dotbrain/SKILL.md").write_text("changed")
+    (opencode.packaged_dir(config_dir) / "skills/brain-convention/SKILL.md").write_text("changed")
     assert warnings() == {f"opencode: dotbrain delivery is stale at {config_dir}"}
 
 

@@ -157,14 +157,10 @@ def plan(root: Path, user_home: Path) -> Plan | None:
         _convert_targets(skill_data, "skills", SKILLS_FILE, user_home, profiles, reports)
         _convert_targets(agent_data, "agents", AGENTS_FILE, user_home, profiles, reports)
         names = skills._clean(agent_data.get("global"))
-        dropped = [name for name in names if name in config.PACKAGED_ROLES]
-        if dropped:
-            reports.append(f"{AGENTS_FILE}: dropped packaged subagents {', '.join(dropped)} from global; "
-                           "packaged subagents are selected per project in project.yaml")
         merged = {
             "profiles": profiles,
             "skills": list(skills._clean(skill_data.get("global_extra", skill_data.get("extra")))),
-            "subagents": [name for name in names if name not in dropped],
+            "subagents": list(names),
         }
 
         config_path = paths.confined_path(root, "config.yaml")

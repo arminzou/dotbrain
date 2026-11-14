@@ -136,7 +136,7 @@ def test_design_lifecycle_matches_spec_link_only_and_reads_only(tmp_path):
     findings = doctor._check_design_lifecycle(tmp_path, "embedded", run)
     assert len(calls) == 1 and len(findings) == 1
     assert findings[0].status == "warn" and "example.md" in findings[0].message
-    assert "close-design" in findings[0].suggestion and "correct" in findings[0].suggestion
+    assert "maintain-brain" in findings[0].suggestion and "outcome evidence" in findings[0].suggestion
     assert doctor.as_result(doctor.DoctorReport(machine=findings)).status == "success"
     assert snapshot(tmp_path) == before
 
@@ -696,35 +696,17 @@ def packaged_messages(report):
             if "packaged" in f.message or "dotbrain-" in f.message or "unversioned" in f.message]
 
 
-def test_packaged_subagent_findings(tmp_path):
-    from dotbrain import config
-    root, repo = tmp_path / "home", tmp_path / "repo"
-    brainspace = make_project(root, repo=repo, runtimes=("codex",))
-    declaration = brainspace / ".brain/project.yaml"
-    base = declaration.read_text()
-    first, second = config.PACKAGED_ROLES[:2]
-    agents_dir = repo / ".codex/agents"
-    subagents.reconcile_packaged(agents_dir, [first], "codex", label="agents")
-
-    def run():
-        return doctor.run_doctor(root, home=tmp_path / "user", project="example", run=recording_run(repo, []))
-
-    declaration.write_text(base + f"version: 2\npackaged-subagents: [{first}]\n")
-    assert packaged_messages(run()) == []
-
-    declaration.write_text(base)
-    assert any("unversioned" in m for m in packaged_messages(run()))
-
-    declaration.write_text(base + f"version: 2\npackaged-subagents: [{second}]\nsubagents: [dotbrain-mine]\n")
-    write(agents_dir / "dotbrain-foreign.toml", 'name = "x"\n')
-    messages = packaged_messages(run())
-    assert any(f"'{second}' is not delivered" in m for m in messages)
-    assert any(f"dotbrain-{first}.toml: delivered packaged subagent is not listed" in m for m in messages)
-    assert any("dotbrain-foreign.toml: dotbrain-* file is not managed" in m for m in messages)
-    assert any("'dotbrain-mine' uses the reserved" in m for m in messages)
-
-    declaration.write_text(base + "version: 2\npackaged-subagents: []\n")
-    (agents_dir / f"dotbrain-{first}.toml").unlink()
-    (agents_dir / "dotbrain-foreign.toml").unlink()
-    messages = packaged_messages(run())
-    assert len(messages) == 1 and "per-role effort" in messages[0]
+def test_doctor_reports_obsolete_settings_and_retired_resources_without_changes(tmp_path):
+    root, repo = tmp_path / 'home', tmp_path / 'repo'
+    brainspace = make_project(root, repo=repo, runtimes=('codex',))
+    declaration = brainspace / '.brain/project.yaml'
+    declaration.write_text(declaration.read_text() + 'packaged-subagents: [worker]\nretro: {}\n')
+    before = declaration.read_bytes()
+    agent = repo / '.codex/agents/dotbrain-worker.toml'
+    write(agent, 'user edited')
+    report = doctor.run_doctor(root, home=tmp_path / 'user', project='example', run=recording_run(repo, []))
+    messages = [finding.message for finding in report.projects['example']]
+    assert any('packaged-subagents is obsolete' in message for message in messages)
+    assert any('retro is obsolete' in message for message in messages)
+    assert any('retired packaged agent remains' in message for message in messages)
+    assert declaration.read_bytes() == before and agent.read_text() == 'user edited'

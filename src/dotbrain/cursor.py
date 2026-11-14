@@ -184,7 +184,9 @@ def deliver(home: Path, receiver: Path, selection, *, scopes: tuple[Path, ...], 
     if current == "foreign":
         result.warnings.append(f"{plugin_dir(home)} exists and was not created by dotbrain; skipping")
     elif current != "current":
-        owned_copy.install(plugin_dir(home), FILES)
+        preserved = owned_copy.install(plugin_dir(home), FILES)
+        if preserved:
+            result.notices.append(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
         result.linked.append("cursor/skill-bundle")
     if current != "foreign" and (opted_in or global_scope):
         (plugin_dir(home) / GLOBAL).touch()

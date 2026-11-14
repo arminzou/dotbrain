@@ -42,28 +42,6 @@ def setup(tmp_path):
     return home, brainspace, checkout
 
 
-@pytest.mark.parametrize('selection', ['packaged-subagents: []\n', ''])
-def test_refresh_reconciles_packaged_roles_in_each_checkout(setup, tmp_path, selection):
-    home, brainspace, checkout = setup
-    second = tmp_path / 'second-checkout'
-    second.mkdir()
-    git(second, 'init')
-    (second / '.brain').symlink_to(brainspace / '.brain', target_is_directory=True)
-    declaration = brainspace / '.brain/project.yaml'
-    base = 'version: 2\nagents: [claude, codex]\nskills: []\nbeads: {mode: none}\n'
-    for listed in ('packaged-subagents: [worker, reviewer]\n', 'packaged-subagents: [worker]\n', selection):
-        declaration.write_text(base + listed, encoding='utf-8')
-        roles = config.load_project_packaged(home, 'custom')[1]
-        for repo in (checkout, second):
-            result = workflows.refresh_projects(home, cwd=repo)
-            assert not result.errors
-            for workspace, suffix in (('.claude', '.md'), ('.codex', '.toml')):
-                delivered = list((repo / workspace / 'agents').glob('dotbrain-*'))
-                assert sorted(p.name for p in delivered) == sorted(f'dotbrain-{role}{suffix}' for role in roles)
-                assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
-        assert declaration.read_text(encoding='utf-8') == base + listed
-
-
 def test_refresh_warns_about_unmigrated_global_settings_without_migrating(setup):
     home, _, checkout = setup
     def legacy_warnings():
@@ -215,7 +193,7 @@ def test_owned_workspace_migrates_and_undeclared_runtime_rejected_before_writes(
     result = workflows.refresh_project(home, 'custom', runtime='codex')
     assert not result.errors
     assert not (checkout / '.codex').is_symlink()
-    assert (checkout / '.codex' / 'agents' / 'dotbrain-reviewer.toml').is_file()
+    assert not list((checkout / '.codex' / 'agents').glob('dotbrain-*'))
     assert workflows.refresh_project(home, 'custom', runtime='codex').logs == []
 
 
@@ -364,22 +342,6 @@ def test_filtered_batch_undeclared_runtime_rejected_before_any_writes(setup, tmp
     assert (brainspace / '.brain' / 'DOTBRAIN.md').read_text() == 'Old convention\n'
 
 
-def test_refresh_upgrades_unversioned_declaration_once_preserving_lines(setup):
-    home, brainspace, _ = setup
-    declaration = brainspace / '.brain' / 'project.yaml'
-    before = '# Preserve this comment\nagents: []\nbeads: {mode: none}  # trailing\n'
-    declaration.write_text(before, encoding='utf-8')
-    result = workflows.refresh_project(home, 'custom')
-    assert not result.errors
-    after = declaration.read_text(encoding='utf-8')
-    assert after.startswith(before)
-    assert yaml.safe_load(after[len(before):]) == {'version': 2, 'packaged-subagents': list(config.PACKAGED_ROLES)}
-    assert any('packaged-subagents' in line for line in result.logs)
-    second = workflows.refresh_project(home, 'custom')
-    assert declaration.read_text(encoding='utf-8') == after
-    assert not any('packaged-subagents' in line for line in second.logs)
-
-
 def test_refresh_never_modifies_version_two_declaration(setup):
     home, brainspace, _ = setup
     declaration = brainspace / '.brain' / 'project.yaml'
@@ -388,49 +350,50 @@ def test_refresh_never_modifies_version_two_declaration(setup):
     assert declaration.read_text(encoding='utf-8') == '# mine\nversion: 2\nbeads: {mode: none}\n'
 
 
-@pytest.mark.parametrize('text', ['version: 2\npackaged-subagents: [nope]\n', '[not, a, mapping]\n',
-                                  'null\n', '~\n', '', '# only a comment\n'])
-def test_refresh_rejects_bad_packaged_record_naming_roles(setup, text):
-    home, brainspace, _ = setup
-    declaration = brainspace / '.brain' / 'project.yaml'
-    declaration.write_bytes(text.encode())
-    result = workflows.refresh_project(home, 'custom')
-    assert any('researcher, reviewer, verifier, worker' in error for error in result.errors)
-    assert declaration.read_bytes() == text.encode()
-
-
 @pytest.mark.parametrize('text', [
     b'# keep\r\nagents: []\r\nbeads: {mode: none}\r\n',
     b'agents: []\nbeads: {mode: none}',
     b'agents: []\nbeads: {mode: none}\ncustom: |+\n  keep\n',
-    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
-    b'agents: []\nbeads: {mode: none}\nbase: &base {x: 1}\nmerged:\n  <<: *base\n  y: 2\n',
-])
-def test_refresh_upgrade_keeps_line_endings_and_values(setup, text):
-    home, brainspace, _ = setup
-    declaration = brainspace / '.brain' / 'project.yaml'
-    declaration.write_bytes(text)
-    assert not workflows.refresh_project(home, 'custom').errors
-    after = declaration.read_bytes()
-    assert after.startswith(text)
-    assert (b'\r\n' in text) == (after.count(b'\n') == after.count(b'\r\n'))
-    expected = {**yaml.safe_load(text), 'version': 2, 'packaged-subagents': list(config.PACKAGED_ROLES)}
-    assert yaml.safe_load(after) == expected
-
-
-@pytest.mark.parametrize('text', [
     b'{agents: [], beads: {mode: none}}\n',
-    b'agents: []\nbeads: {mode: none}\n...\n',
-    b'  agents: []\n  beads: {mode: none}\n',
-    b'agents: []\nbeads: {mode: none}\nloop: &loop [*loop]\n',
+    b'agents: []\nbeads: &b {mode: none}\ncopy: *b\n',
+    b'agents: []\nbeads: {mode: none}\npackaged-subagents: [worker]\nretro: {}\n',
 ])
-def test_refresh_skips_upgrade_that_would_change_the_declaration(setup, text):
+def test_refresh_preserves_declarations_without_workflow_upgrade(setup, text):
     home, brainspace, _ = setup
-    declaration = brainspace / '.brain' / 'project.yaml'
+    declaration = brainspace / '.brain/project.yaml'
     declaration.write_bytes(text)
-    result = workflows.refresh_project(home, 'custom')
-    assert not result.errors
-    assert any(str(declaration) in w and 'packaged-subagents: [researcher, reviewer, verifier, worker]' in w
-               for w in result.warnings)
-    assert not any('upgraded' in line for line in result.logs)
-    assert declaration.read_bytes() == text
+    for _ in range(2):
+        result = workflows.refresh_project(home, 'custom')
+        assert not result.errors
+        assert declaration.read_bytes() == text
+        if b'packaged-subagents' in text:
+            assert any('packaged-subagents is obsolete' in warning for warning in result.warnings)
+
+
+def test_refresh_retires_exact_agents_in_each_checkout_preserving_records(setup, tmp_path):
+    from pathlib import Path
+    home, brainspace, checkout = setup
+    second = tmp_path / 'second-checkout'
+    second.mkdir()
+    git(second, 'init')
+    (second / '.brain').symlink_to(brainspace / '.brain', target_is_directory=True)
+    declaration = brainspace / '.brain/project.yaml'
+    declaration.write_text('agents: [claude, codex]\nbeads: {mode: none}\npackaged-subagents: [verifier]\n')
+    notebook = brainspace / '.brain/RETRO.md'
+    notebook.write_bytes(b'Private notebook unchanged\r\n')
+    before = declaration.read_bytes()
+    for repo in (checkout, second):
+        for workspace, runtime, suffix in (('.claude', 'claude-code', '.md'), ('.codex', 'codex', '.toml')):
+            agent = repo / workspace / 'agents' / f'dotbrain-verifier{suffix}'
+            agent.parent.mkdir(parents=True)
+            original = (Path(__file__).parent / 'fixtures/retired-agents' / f'{runtime}{suffix}').read_bytes()
+            agent.write_bytes(original)
+            (agent.parent / f'dotbrain-modified{suffix}').write_bytes(original + b'local change')
+        for _ in range(2):
+            result = workflows.refresh_projects(home, cwd=repo)
+            assert not result.errors
+            assert any('preserved for manual inspection' in warning for warning in result.warnings)
+        for workspace in ('.claude', '.codex'):
+            assert len(list((repo / workspace / 'agents').glob('dotbrain-*'))) == 1
+    assert declaration.read_bytes() == before
+    assert notebook.read_bytes() == b'Private notebook unchanged\r\n'
