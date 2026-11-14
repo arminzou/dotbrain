@@ -807,6 +807,25 @@ class Calibration(unittest.TestCase):
             self.assertEqual(manifest["sessionLimit"], 12)
             self.assertTrue(manifest["attempts"][-1]["limits"]["uncappedOverride"])
 
+    def test_codex_launch_uses_supported_explicit_sandbox_and_approval_arguments(self):
+        for trust_hooks in (False, True):
+            with self.subTest(trust_hooks=trust_hooks), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                journey.write(root / "fixture.json", {"schema": 1, "root": str(root), "ids": correct_record()["ids"],
+                              "attempts": [], "sessionLimit": 12, "consecutiveFailureLimit": 3})
+                with patch("journey.execute", return_value=subprocess.CompletedProcess([], 0, "synthetic version", "")), \
+                        patch("journey.snapshot"), \
+                        patch("journey.subprocess.Popen", side_effect=RuntimeError("launch sentinel")) as launch:
+                    with self.assertRaisesRegex(RuntimeError, "launch sentinel"):
+                        journey.run_phase(root, "codex", "first", "codex.exe", True, trust_fixture_hooks=trust_hooks)
+                expected = ["codex.exe", "exec", "--json", "--sandbox", "workspace-write", "-c", "approval_policy=never",
+                            "--add-dir", str(root), *(["--dangerously-bypass-hook-trust"] if trust_hooks else []), "-"]
+                observed = launch.call_args.args[0]
+                self.assertEqual(observed, expected)
+                self.assertEqual(journey.load(root / "fixture.json")["attempts"][0]["argv"], expected)
+                self.assertNotIn("--full-auto", observed)
+                self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", observed)
+
     def test_uncertain_writer_scope_never_reaches_stop(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

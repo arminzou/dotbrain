@@ -107,7 +107,7 @@ python evals/native/journey.py run $qualificationRoot --runtime codex --phase co
 
 For Claude, use a separate prepared root, `--runtime claude`, and its direct
 executable. Calls use `claude -p --verbose --output-format stream-json
---include-partial-messages` or `codex exec --json --full-auto --add-dir ROOT -`, with task text
+--include-partial-messages` or `codex exec --json --sandbox workspace-write -c approval_policy=never --add-dir ROOT -`, with task text
 on stdin. No provider sanitizer runs.
 
 The fixed Codex additional directory grants the isolated Brainspace/worktrees

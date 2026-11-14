@@ -504,7 +504,8 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
     write(root / "fixture.json", manifest)  # Reserve allowance before process launch, including failures.
     task = prompt(manifest, phase)
     write(root / f"private/{name}.input.txt", task)
-    argv = ([executable, "exec", "--json", "--full-auto", "--add-dir", str(root),
+    argv = ([executable, "exec", "--json", "--sandbox", "workspace-write", "-c", "approval_policy=never",
+             "--add-dir", str(root),
              *(["--dangerously-bypass-hook-trust"] if trust_fixture_hooks else []), "-"] if runtime == "codex" else
             [executable, "-p", "--verbose", "--output-format", "stream-json", "--include-partial-messages"])
     attempt["argv"] = argv
