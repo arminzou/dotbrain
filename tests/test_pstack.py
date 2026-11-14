@@ -8,7 +8,7 @@ import subprocess
 import pytest
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, config, doctor, hooks, projects, pstack, resource_loader, skills, workflows
+from dotbrain import adopter_repos, assets, beads, config, doctor, hooks, projects, pstack, resource_loader, skills, subagents, workflows
 
 
 @pytest.fixture(scope="session")
@@ -56,7 +56,9 @@ def integration(dotbrain_home, tmp_path, pstack_repo_seed):
                           file.relative_to(source).as_posix() for file in source.rglob("*") if file.is_file()) + "\0"}[argv[-1]]
             return subprocess.CompletedProcess(argv, 0, output, "")
         if argv[0] == "bd":
-            assert argv == ["bd", "--readonly", "dolt", "test"]
+            expected = (["bd", "--readonly", "dolt", "test"] if settings["beads"]["mode"] == "server"
+                        else ["bd", "--readonly", "ready", "--json"])
+            assert argv == expected
             assert kwargs["cwd"] == brainspace
             assert kwargs["env"]["BEADS_DIR"] == str(brainspace / ".beads")
             assert kwargs["env"]["BD_NON_INTERACTIVE"] == "1"
@@ -147,11 +149,15 @@ def test_complete_selection_uses_only_explicit_source(integration, tmp_path):
     assert all(argv[2] == str(source) for argv, _ in calls)
 
 
-@pytest.mark.parametrize("failure", ["none", "uninitialized", "refused", "missing-bd", "timeout"])
-def test_backend_failure_never_publishes_mode(integration, failure):
+@pytest.mark.parametrize("mode", ["embedded", "server"])
+@pytest.mark.parametrize("failure", ["none", "unsupported", "uninitialized", "refused", "missing-bd", "timeout"])
+def test_backend_failure_never_publishes_mode(integration, failure, mode):
     home, brainspace, repo, _, write, run, _ = integration
+    write(beads={"mode": mode})
     if failure == "none":
         write(beads={"mode": "none"})
+    if failure == "unsupported":
+        write(beads={"mode": "unknown"})
     if failure == "uninitialized":
         (brainspace / ".beads/metadata.json").unlink()
     def unavailable(argv, **kwargs):
@@ -166,6 +172,17 @@ def test_backend_failure_never_publishes_mode(integration, failure):
     with pytest.raises((ValueError, RuntimeError), match="Beads|backend"):
         assets.link_project(home, projects.ProjectTarget("sample", brainspace, repo), "skills", run=unavailable)
     assert (tree(home), tree(repo)) == before
+
+
+@pytest.mark.parametrize(("mode", "command"), [
+    ("embedded", ["bd", "--readonly", "ready", "--json"]),
+    ("server", ["bd", "--readonly", "dolt", "test"]),
+])
+def test_backend_probe_matches_backend(integration, mode, command):
+    _, _, _, _, write, _, calls = integration
+    write(beads={"mode": mode})
+    assert not link(integration).warnings
+    assert [argv for argv, _ in calls if argv[0] == "bd"] == [command]
 
 
 def test_repeatable_delivery_generic_pruning_and_ignored_discovery(integration):
@@ -242,6 +259,46 @@ def test_runtime_filter_and_removed_runtime(integration):
     assert (repo / pstack.RECEIVERS["claude"]).is_symlink()
     with pytest.raises(ValueError, match="not declared"):
         link(integration, "codex")
+
+
+@pytest.mark.parametrize("operation", ["link", "refresh"])
+def test_claude_runtime_alias_delivers_and_opts_out(integration, monkeypatch, operation):
+    home, _, repo, _, write, run, _ = integration
+    monkeypatch.setattr(beads, "pull_beads_for_all", lambda *a, **kw: beads.BootstrapResult())
+    def reconcile():
+        return (link(integration, "claude-code") if operation == "link"
+                else workflows.refresh_projects(home, cwd=repo, runtime="claude-code", run=run))
+    result = reconcile()
+    assert not (result.warnings if operation == "link" else result.errors)
+    assert (repo / pstack.RECEIVERS["claude"]).is_symlink()
+    assert not (repo / pstack.RECEIVERS["codex"]).is_symlink()
+    assert json.loads((repo / pstack.POINTER).read_text())["modes"] == {"claude": pstack.RECEIVERS["claude"]}
+    write(pstack={"enabled": False})
+    result = reconcile()
+    assert not (result.warnings if operation == "link" else result.errors)
+    assert not (repo / pstack.RECEIVERS["claude"]).is_symlink()
+    assert not (repo / pstack.POINTER).exists()
+
+
+def test_scoped_optout_retains_untouched_runtime_metadata(integration):
+    home, _, repo, source, write, _, _ = integration
+    assert not link(integration).warnings
+    original = json.loads((repo / pstack.POINTER).read_text())
+    write(pstack={"enabled": False})
+    assert not link(integration, "codex").warnings
+    retained = json.loads((repo / pstack.POINTER).read_text())
+    assert retained["modes"] == {"claude": original["modes"]["claude"]}
+    assert retained["caches"] == {"claude": original["caches"]["claude"]}
+    assert retained["source"] == original["source"]
+    assert (repo / pstack.RECEIVERS["claude"]).is_symlink()
+    assert not (repo / pstack.RECEIVERS["codex"]).is_symlink()
+    assert pstack.discovery(repo) == b""
+    write(pstack={"enabled": True, "source": str(source)})
+    assert not link(integration, "codex").warnings
+    restored = json.loads((repo / pstack.POINTER).read_text())
+    assert restored["modes"] == original["modes"]
+    assert restored["caches"] == original["caches"]
+    assert pstack.delivery_issues(home, repo, (".claude", ".codex"), True) == []
 
 
 def test_scoped_upgrade_preserves_other_runtime_discovery(integration, monkeypatch):
@@ -347,6 +404,34 @@ def test_optout_survives_failed_backend_sync(integration, monkeypatch, operation
     assert result.errors
     assert not (repo / pstack.POINTER).exists()
     assert not any((repo / relative).is_symlink() for relative in pstack.RECEIVERS.values())
+
+
+@pytest.mark.parametrize("operation", ["wire", "refresh"])
+def test_core_resources_reconcile_despite_failed_tracker_sync(integration, monkeypatch, operation):
+    home, _, repo, _, write, run, calls = integration
+    for relative, body in (("claude/helper.md", "---\nname: helper\ndescription: Synthetic agent\n---\n"),
+                           ("codex/helper.toml", 'name = "helper"\ndescription = "Synthetic agent"\n')):
+        source = home / "subagents" / relative
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text(body, encoding="utf-8")
+    stale_skill = repo / ".agents/skills/stale"
+    stale_skill.parent.mkdir(parents=True)
+    stale_skill.symlink_to(home / "skills/misc/discovery-test", target_is_directory=True)
+    stale_agent = repo / ".claude/agents/stale.md"
+    stale_agent.parent.mkdir(parents=True)
+    stale_agent.symlink_to(home / "subagents/claude/helper.md")
+    write(pstack={"enabled": False}, skills=["misc/discovery-test"], subagents=["helper"])
+    monkeypatch.setattr(beads, "pull_beads_for_all", lambda *a, **kw: beads.BootstrapResult(errors=["offline"]))
+    result = (workflows.wire_project(dotbrain_home=home, repo=repo, run=run) if operation == "wire"
+              else workflows.refresh_projects(home, cwd=repo, run=run))
+    assert "offline" in result.errors
+    assert not stale_skill.is_symlink() and not stale_agent.is_symlink()
+    assert (repo / ".agents/skills/discovery-test").is_symlink()
+    assert (repo / ".claude/skills/discovery-test").is_symlink()
+    assert (repo / ".claude/agents/helper.md").is_symlink()
+    assert subagents.is_managed_copy(repo / ".codex/agents/helper.toml")
+    assert not (repo / pstack.POINTER).exists()
+    assert not any(argv[0] == "bd" for argv, _ in calls)
 
 
 def test_wire_checks_backend_after_sync_and_honors_skip(integration, monkeypatch):

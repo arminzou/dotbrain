@@ -67,7 +67,8 @@ def preflight(home: Path, project: str, *, run=adopter_repos._default_run,
     selection = config.load_project_pstack(home, project)
     if not selection.enabled:
         return selection
-    if config.load_project_config(home, project).mode not in ("embedded", "server"):
+    mode = config.load_project_config(home, project).mode
+    if mode not in ("embedded", "server"):
         raise ValueError("pstack.enabled requires a Beads backend; set beads.mode to embedded or server")
     qualify(selection.source, run)
     if backend:
@@ -75,7 +76,9 @@ def preflight(home: Path, project: str, *, run=adopter_repos._default_run,
         if not (brainspace / ".beads/metadata.json").is_file():
             raise RuntimeError("pstack requires an initialized Beads backend; run dotbrain beads sync")
         try:
-            result = run(["bd", "--readonly", "dolt", "test"], cwd=brainspace,
+            command = (["bd", "--readonly", "dolt", "test"] if mode == "server"
+                       else ["bd", "--readonly", "ready", "--json"])
+            result = run(command, cwd=brainspace,
                          env=beads._beads_env(brainspace), check=False, timeout=TIMEOUT)
         except (OSError, subprocess.SubprocessError) as exc:
             raise RuntimeError(f"pstack Beads backend unavailable: {exc}; check bd and tracker connectivity") from exc
@@ -195,6 +198,8 @@ def _replace_link(link: Path, source: Path) -> None:
 def reconcile(home: Path, repo: Path, project: str, workspaces, *, runtime: str = "all",
               run=adopter_repos._default_run, selection: config.ProjectPstack | None = None) -> skills.LinkResult:
     selection = selection or preflight(home, project, run=run, backend=True)
+    if runtime != "all":
+        runtime = runtimes.select(runtime)[0].name
     result = skills.LinkResult()
     pointer = repo / POINTER
     previous = _read_record(pointer)
@@ -233,8 +238,9 @@ def reconcile(home: Path, repo: Path, project: str, workspaces, *, runtime: str 
             if owned:
                 link.unlink()
                 result.pruned.append(relative)
-    if modes and selection.enabled:
-        body = _record({"owner": NAME, "source": str(selection.source), "revision": REVISION,
+    if modes:
+        source = str(selection.source) if selection.enabled else previous["source"]
+        body = _record({"owner": NAME, "source": source, "revision": REVISION,
                         "version": VERSION, "modes": modes, "caches": caches})
         if not pointer.is_file() or pointer.read_text(encoding="utf-8") != body:
             staging = repo / f"{POINTER}.{uuid.uuid4().hex}.tmp"

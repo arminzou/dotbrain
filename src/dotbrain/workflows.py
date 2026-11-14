@@ -197,7 +197,7 @@ def wire_project(
         if entry.exists() and not entry.is_symlink():
             raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
-    pstack.preflight(dotbrain_home, project, run=run)
+    integration = pstack.preflight(dotbrain_home, project, run=run)
     obsolete = []
     if existing:
         obsolete = config.obsolete_project_settings(dotbrain_home, project)
@@ -248,12 +248,14 @@ def wire_project(
     result.errors += workspace_warnings
     result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs]
     target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
-    # Disabling the mode must remain possible even when tracker synchronization fails.
-    if not config.load_project_pstack(dotbrain_home, project).enabled:
-        mode = pstack.reconcile(dotbrain_home, resolved_repo, project, active_workspaces, run=run)
-        result.errors += mode.warnings
-        result.logs += [f"linked {entry}" for entry in mode.linked]
-        result.logs += [f"pruned {entry}" for entry in mode.pruned]
+    # Core resources and mode opt-out remain independent of tracker synchronization.
+    if not result.errors and not integration.enabled:
+        for kind in ("skills", "agents"):
+            linked = assets.link_project(dotbrain_home, target, kind, run=run)
+            result.errors += linked.warnings
+            result.warnings += linked.notices
+            result.logs += [f"linked {entry}" for entry in linked.linked]
+            result.logs += [f"pruned {entry}" for entry in linked.pruned]
     if existing and run_beads and parent is None:
         synced = beads.pull_beads_for_all(dotbrain_home, projects=[project], run=run)
         result.logs += _tracker_changes(synced)
@@ -285,7 +287,7 @@ def wire_project(
     if not existing:
         result.logs.append(f"created Brainspace at {rel}/{project}")
 
-    if not result.errors:
+    if not result.errors and integration.enabled:
         for kind in ("skills", "agents"):
             linked = assets.link_project(dotbrain_home, target, kind, run=run)
             result.errors += linked.warnings
@@ -447,9 +449,13 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                     if not was_local:
                         target.data['checkout_changes'].append(f'materialized {ws}')
                 if not config.load_project_pstack(dotbrain_home, selected.project).enabled:
-                    mode = pstack.reconcile(dotbrain_home, repo, selected.project, workspaces, runtime=runtime, run=run)
-                    target.errors += mode.warnings
-                    target.data['checkout_changes'] += [f'pruned {entry}' for entry in mode.pruned]
+                    kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
+                    for kind in kinds:
+                        linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
+                        target.errors += linked.warnings
+                        target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
+                        target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
+                        target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
                 before = {name: (repo / name).is_symlink() for name in paths.BRAINSPACE_LINKS}
                 mode = config.load_project_config(dotbrain_home, selected.project).mode
                 errors = adopter_repos.wire_repo(repo, selected.brainspace, dotbrain_home, run,
@@ -473,13 +479,14 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                 if missing and (repo / '.beads').is_symlink():
                     target.data['checkout_changes'].append('attached .beads')
                 # Publish workflow discovery only after tracker synchronization succeeds.
-                kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
-                for kind in kinds:
-                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
-                    target.errors += linked.warnings
-                    target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
-                    target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
-                    target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
+                if config.load_project_pstack(dotbrain_home, selected.project).enabled:
+                    kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
+                    for kind in kinds:
+                        linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
+                        target.errors += linked.warnings
+                        target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
+                        target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
+                        target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
         except (ValueError, RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
             target.errors.append(str(exc))
         target.changes += [f'checkout: {entry}' for entry in target.data['checkout_changes']]
