@@ -250,7 +250,7 @@ def _check_design_lifecycle(brainspace: Path, mode: str, run: Runner) -> list[Fi
             statuses.setdefault(epic.get("spec_id"), set()).add(epic.get("status"))
         # A design with an open follow-up epic is still active.
         findings = [Finding("warn", f"design {path.name} is active while every spec-linked epic is closed",
-                            "run close-design or correct the design lifecycle")
+                            "use maintain-brain to reconcile lifecycle with outcome evidence under the applicable authority; closed tasks alone do not establish shipment")
                     for path in active if statuses.get(f"design:{path.stem}") == {"closed"}]
         return findings or [Finding("ok", "active designs have no closed spec-linked epics")]
     except DIAGNOSIS_ERRORS as exc:

@@ -556,7 +556,9 @@ def unwire_repo(
     if not skills.project_directory_conflict(Path(repo), ".codex/agents") and codex_agents.is_dir():
         managed_links += [entry for entry in codex_agents.iterdir()
                           if not entry.name.startswith(subagents.PACKAGED_PREFIX) and is_managed_copy(entry)]
-    managed_links = [entry for entry in managed_links if not entry.name.startswith(subagents.PACKAGED_PREFIX)]
+    agent_receivers = {repo / rt.workspace / "agents" for rt in runtimes.RUNTIMES.values() if rt.subagents}
+    managed_links = [entry for entry in managed_links
+                     if not (entry.parent in agent_receivers and entry.name.startswith(subagents.PACKAGED_PREFIX))]
     retired_entries = []
     for rt in runtimes.RUNTIMES.values():
         if not rt.subagents:

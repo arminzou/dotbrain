@@ -136,7 +136,7 @@ def test_design_lifecycle_matches_spec_link_only_and_reads_only(tmp_path):
     findings = doctor._check_design_lifecycle(tmp_path, "embedded", run)
     assert len(calls) == 1 and len(findings) == 1
     assert findings[0].status == "warn" and "example.md" in findings[0].message
-    assert "close-design" in findings[0].suggestion and "correct" in findings[0].suggestion
+    assert "maintain-brain" in findings[0].suggestion and "outcome evidence" in findings[0].suggestion
     assert doctor.as_result(doctor.DoctorReport(machine=findings)).status == "success"
     assert snapshot(tmp_path) == before
 

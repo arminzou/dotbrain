@@ -7,7 +7,6 @@ from typer.testing import CliRunner
 
 from conftest import set_fake_home
 from dotbrain.cli import app
-from dotbrain import subagents
 
 
 def test_named_detach_rejects_another_projects_wiring(tmp_path, monkeypatch):
@@ -84,7 +83,8 @@ def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch, claude_
             link = worktree / workspace / "skills" / name
             assert link.is_symlink()
             assert link.resolve() == home / "skills" / "bundle" / name
-    assert subagents.is_managed_copy(worktree / ".codex" / "agents" / "dotbrain-reviewer.toml")
+    for workspace in (".claude", ".codex"):
+        assert not list((worktree / workspace / "agents").glob("dotbrain-*"))
     assert not (worktree / ".claude" / "agents" / "reviewer.md").exists()
     assert {path: path.read_bytes() for path in before} == before
     assert [path.name for path in (home / "brainspaces").iterdir()] == ["sample"]
