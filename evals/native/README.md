@@ -83,6 +83,16 @@ keys, backend routing and Git overrides; there is no API-billing fallback.
 Retain settings in the isolated homes for private inspection. Native attempts
 record the CLI version, argv and settings hashes without reading auth files.
 
+Before a cold phase, install the candidate plugin into that phase's planned home.
+The fixture recognizes only the canonical current-home
+`.codex/plugins/cache/dotbrain/dotbrain/VERSION` or Claude `.claude/` equivalent.
+It checks every regular file against the tracked candidate revision's `plugin/`
+archive, excluding ignored checkout files. Missing/extra/changed files, hardlinks,
+symlinks and junctions fail provenance. The frozen before/after alias receipts
+retain that inventory and admit only the verified plugin subtree as a read root;
+home parents, auth files and earlier homes remain forbidden. Install before the
+boundary: appearance or mutation during the cold phase cannot qualify.
+
 ## Native phases
 
 Only `run --allow-native` makes model calls. Use a direct native executable path

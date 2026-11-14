@@ -66,7 +66,7 @@ def path_identity(path, cwd, aliases=None):
     return normalized
 
 
-def controller_access(tool, root, first_home, aliases=None):
+def controller_access(tool, root, first_home, aliases=None, plugin_roots=()):
     text = tool["input"].casefold().replace("\\\\", "\\").replace("/", "\\")
     if any(marker in text for marker in ("\\private\\", ".raw.jsonl", ".input.txt", ".stderr.txt")):
         return True
@@ -89,13 +89,21 @@ def controller_access(tool, root, first_home, aliases=None):
             continue
     forbidden = [lexical_identity(ntpath.join(root, "private"), cwd), lexical_identity(first_home, cwd),
                  lexical_identity(ntpath.join(root, "homes"), cwd)]
-    return any(any(identity == base or identity.startswith(base + "\\") for base in forbidden)
-               for identity in (path_identity(path, cwd, aliases) for path in paths))
+    plugins = [lexical_identity(path, cwd) for path in plugin_roots]
+    for identity in (path_identity(path, cwd, aliases) for path in paths):
+        if any(identity == base or identity.startswith(base + "\\") for base in forbidden[:2]):
+            return True
+        if (identity == forbidden[2] or identity.startswith(forbidden[2] + "\\")) and not any(
+                identity == base or identity.startswith(base + "\\") for base in plugins):
+            return True
+    return False
 
 
 def continuation_access(tool, root, first_home, read_roots, aliases=None):
     """Allow established read targets; unsupported shell/search behavior cannot prove cold access."""
-    if controller_access(tool, root, first_home, aliases):
+    homes = lexical_identity(ntpath.join(root, "homes"), root)
+    plugins = [path for path in read_roots if lexical_identity(path, root).startswith(homes + "\\")]
+    if controller_access(tool, root, first_home, aliases, plugins):
         return False
     cwd = tool.get("cwd") or ntpath.join(root, "workspace")
     def allowed(path):
@@ -174,6 +182,22 @@ def alias_boundary(second, root, first_home, read_roots):
             return False
     if before["aliases"] != after["aliases"]:
         return False
+    if not isinstance(before.get("plugins", {}), dict) or before.get("plugins", {}) != after.get("plugins", {}):
+        return False
+    plugins = before.get("plugins", {})
+    homes = lexical_identity(ntpath.join(root, "homes"), root)
+    home_roots = {path for path in expected_roots if path.startswith(homes + "\\")}
+    if home_roots != {lexical_identity(path, root) for path in plugins}:
+        return False
+    for path, receipt in plugins.items():
+        if not isinstance(receipt, dict):
+            return False
+        runtime = ".codex" if second["name"].startswith("codex-") else ".claude"
+        prefix = lexical_identity(ntpath.join(second["home"], runtime, "plugins/cache/dotbrain/dotbrain"), root) + "\\"
+        identity = lexical_identity(path, root)
+        if not identity.startswith(prefix) or "\\" in identity[len(prefix):] or not receipt.get("files") or \
+                not re.fullmatch(r"[0-9a-f]{40}", receipt.get("candidateRevision", "")):
+            return False
     aliases = before["aliases"]
     forbidden = [lexical_identity(ntpath.join(root, "private"), root), lexical_identity(ntpath.join(root, "homes"), root),
                  lexical_identity(first_home, root)]
@@ -577,7 +601,7 @@ def inspect_artifacts(root, runtime):
                   priorAllowances=manifest["priorAllowances"], attempts=attempts,
                   operatorDecision=load(root / "private/operator-decision.json"),
                   writerStop=load(root / "private/writer-stop.json"), fixtureRoot=str(root),
-                  readRoots=[str(path) for path in read_roots(root, manifest)],
+                  readRoots=[str(path) for path in read_roots(root, manifest, second["name"])],
                   expectedSecondInput=prompt(manifest, "continue"))
     return evaluate(record)
 

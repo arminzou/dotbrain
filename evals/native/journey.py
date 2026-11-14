@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import time
 import uuid
 
@@ -44,12 +46,59 @@ def brainspace(root):
     return confined(root, "data/brainspaces/catalog")
 
 
-def read_roots(root, manifest):
+def plugin_source(root, manifest):
+    """Hash tracked candidate resources, never ignored checkout or runtime-home files."""
+    result = subprocess.run(["git", "-C", manifest["candidate"], "archive", manifest["candidateRevision"], "plugin"],
+                            env=environment(root), capture_output=True, check=True, timeout=30)
+    files = {}
+    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+        for member in archive:
+            if member.isdir():
+                continue
+            if not member.isfile():
+                raise ValueError("Tracked plugin resource is an alias")
+            files[member.name.removeprefix("plugin/")] = archive.extractfile(member).read()
+    version = json.loads(files[".claude-plugin/plugin.json"])["version"]
+    if not re.fullmatch(r"[0-9A-Za-z._-]+", version):
+        raise ValueError("Invalid tracked plugin version")
+    return version, {name: hashlib.sha256(value).hexdigest() for name, value in files.items()}
+
+
+def verified_plugins(root, manifest, phase):
+    attempt = next((item for item in manifest.get("attempts", []) if item["name"] == phase), None)
+    if not attempt or not manifest.get("candidate"):
+        return {}
+    version, expected = plugin_source(root, manifest)
+    runtime = ".codex" if attempt["runtime"] == "codex" else ".claude"
+    plugin = root / "homes" / phase / runtime / "plugins/cache/dotbrain/dotbrain" / version
+    # Check only the canonical path's ancestors; never enumerate a home or auth directory.
+    for parent in reversed(plugin.relative_to(root).parents):
+        path = root / parent
+        if path.exists() and is_alias(path):
+            raise ValueError("Installed plugin ancestor is redirected")
+    if not plugin.exists() and not plugin.is_symlink():
+        return {}
+    actual = {}
+    for path, info in walk_entries([plugin]):
+        if is_alias(path, info) or (stat.S_ISREG(info.st_mode) and info.st_nlink > 1):
+            raise ValueError("Installed plugin contains an alias")
+        if stat.S_ISREG(info.st_mode):
+            name = path.relative_to(plugin).as_posix()
+            if name not in expected:
+                raise ValueError("Installed plugin contains an untracked resource")
+            actual[name] = digest(path)
+    if actual != expected:
+        raise ValueError("Installed plugin differs from tracked candidate resources")
+    return {str(plugin): {"candidateRevision": manifest["candidateRevision"], "files": actual}}
+
+
+def read_roots(root, manifest, phase=None, plugins=None):
     return [root / "workspace", brainspace(root) / ".brain",
             root / "data/.cache/integrations/dotbrain-pstack",
             Path(manifest.get("candidate", root / "absent")) / "plugin",
             Path(manifest.get("candidate", root / "absent")) / "src/dotbrain/resources",
-            Path(manifest.get("pstack", root / "absent"))]
+            Path(manifest.get("pstack", root / "absent")),
+            *(Path(path) for path in (verified_plugins(root, manifest, phase) if plugins is None else plugins))]
 
 
 def is_alias(path, info=None):
@@ -81,7 +130,8 @@ def capture_aliases(root, phase):
     """Freeze bounded namespace metadata without following links or opening their targets."""
     from verify import lexical_identity
     manifest = load(root / "fixture.json")
-    roots = read_roots(root, manifest)
+    plugins = verified_plugins(root, manifest, phase)
+    roots = read_roots(root, manifest, phase, plugins)
     private = root / "private"
     if is_alias(private):
         raise ValueError("Controller evidence directory is redirected")
@@ -94,7 +144,8 @@ def capture_aliases(root, phase):
     homes = lexical_identity(str(root / "homes"), str(root))
     for path, info in walk_entries(roots):
         key = lexical_identity(str(path), str(root))
-        if key == homes or key.startswith(homes + "\\"):
+        if (key == homes or key.startswith(homes + "\\")) and not any(
+                path == Path(plugin) or path.is_relative_to(Path(plugin)) for plugin in plugins):
             raise ValueError("Alias capture cannot traverse runtime homes")
         if is_alias(path, info):
             aliases[key] = lexical_identity(os.readlink(path), str(path.parent))
@@ -104,7 +155,7 @@ def capture_aliases(root, phase):
                 aliases[key] = target
     return {"schema": 1, "phase": phase, "root": lexical_identity(str(root), str(root)),
             "capturedAt": time.time(), "roots": sorted({lexical_identity(str(path), str(root)) for path in roots}),
-            "aliases": dict(sorted(aliases.items()))}
+            "aliases": dict(sorted(aliases.items())), "plugins": plugins}
 
 
 def environment(root, phase="setup"):

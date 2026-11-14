@@ -467,6 +467,118 @@ class Calibration(unittest.TestCase):
     def test_snapshot_does_not_follow_directory_symlinks(self):
         self.assert_snapshot_skips_directory_alias()
 
+    def test_current_installed_plugin_requires_exact_tracked_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            journey.write(candidate / "plugin/.claude-plugin/plugin.json", {"version": "1.0.0"})
+            journey.write(candidate / "plugin/skills/brain-convention/SKILL.md", "recorded convention")
+            git_env = journey.environment(root)
+            for args in (["init", "-q", str(candidate)], ["-C", str(candidate), "add", "plugin"],
+                         ["-C", str(candidate), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                          "commit", "-qm", "Seed plugin"]):
+                subprocess.run(["git", *args], check=True, env=git_env, capture_output=True)
+            revision = subprocess.check_output(["git", "-C", str(candidate), "rev-parse", "HEAD"], env=git_env, text=True).strip()
+            journey.write(candidate / "plugin/__pycache__/ignored.pyc", "ignored checkout data")
+            (root / "private").mkdir()
+            for runtime in ("codex", "claude"):
+                name = runtime + "-continue-2"
+                home = root / "homes" / name
+                plugin = home / ("." + runtime) / "plugins/cache/dotbrain/dotbrain/1.0.0"
+                manifest = {"schema": 2, "candidate": str(candidate), "candidateRevision": revision,
+                            "attempts": [{"name": name, "runtime": runtime}]}
+                journey.write(root / "fixture.json", manifest)
+                journey.write(plugin / ".claude-plugin/plugin.json", {"version": "1.0.0"})
+                skill = plugin / "skills/brain-convention/SKILL.md"
+                journey.write(skill, "recorded convention")
+                receipt = journey.capture_aliases(root, name)
+                roots = [str(path) for path in journey.read_roots(root, manifest, name)]
+                second = {"name": name, "home": str(home), "aliasesBefore": receipt, "aliasesAfter": copy.deepcopy(receipt)}
+                self.assertTrue(alias_boundary(second, str(root), str(root / "homes/first"), roots))
+                for path, allowed in ((skill, True), (home / "auth.json", False),
+                                      (root / "homes/first/.codex/plugins/cache/dotbrain/dotbrain/1.0.0/skills/brain-convention/SKILL.md", False),
+                                      (root / "private/first.raw.jsonl", False)):
+                    tool = {"name": "shell" if runtime == "codex" else "Read", "input": str(path),
+                            "command": 'cat "' + str(path) + '"' if runtime == "codex" else "", "paths": [str(path)]}
+                    self.assertEqual(continuation_access(tool, str(root), str(root / "homes/first"), roots, receipt["aliases"]), allowed)
+                for defect in ("changed", "extra", "missing", "symlink", "hardlink", "junction"):
+                    if defect == "junction" and sys.platform != "win32":
+                        continue
+                    with self.subTest(runtime=runtime, defect=defect):
+                        saved = skill.read_bytes()
+                        extra = plugin / "extra.txt"
+                        target = root / "homes/first/auth.json"
+                        journey.write(target, "SYNTHETIC-NOT-A-SECRET")
+                        try:
+                            if defect == "changed":
+                                skill.write_text("foreign resource")
+                            elif defect == "extra":
+                                extra.write_text("extra resource")
+                            elif defect == "missing":
+                                skill.unlink()
+                            elif defect in {"symlink", "hardlink"}:
+                                skill.unlink()
+                                skill.symlink_to(target) if defect == "symlink" else os.link(target, skill)
+                            else:
+                                command = "New-Item -ItemType Junction -Path '{}' -Target '{}' | Out-Null".format(
+                                    str(extra).replace("'", "''"), str(target.parent).replace("'", "''"))
+                                subprocess.run(["pwsh", "-NoProfile", "-Command", command], check=True, capture_output=True, timeout=30)
+                            real_digest = journey.digest
+                            def guarded_digest(path):
+                                self.assertFalse(path.resolve().is_relative_to(root / "homes/first"),
+                                                 "plugin verification opened an auth-home target")
+                                return real_digest(path)
+                            with patch("journey.digest", side_effect=guarded_digest), \
+                                    self.assertRaisesRegex(ValueError, "Installed plugin"):
+                                journey.capture_aliases(root, name)
+                        finally:
+                            if extra.exists():
+                                extra.rmdir() if defect == "junction" else extra.unlink()
+                            if skill.exists() or skill.is_symlink():
+                                skill.unlink()
+                            skill.write_bytes(saved)
+                changed = copy.deepcopy(second)
+                changed["aliasesAfter"]["plugins"][str(plugin)]["files"]["extra"] = "changed"
+                self.assertFalse(alias_boundary(changed, str(root), str(root / "homes/first"), roots))
+                self.assertFalse(alias_boundary(second, str(root), str(root / "homes/first"),
+                                               [*roots, str(root / "homes/foreign/plugins")]))
+                absent = copy.deepcopy(second)
+                absent["aliasesBefore"]["plugins"] = {}
+                self.assertFalse(alias_boundary(absent, str(root), str(root / "homes/first"), roots))
+
+    def test_native_formats_admit_only_frozen_current_plugin_reads(self):
+        for runtime in ("codex", "claude"):
+            for defect in (None, "auth", "old-home", "foreign-home", "changed", "appeared"):
+                with self.subTest(runtime=runtime, defect=defect):
+                    record = correct_record(runtime)
+                    second = record["second"]
+                    second.update(name=runtime + "-continue-2", home="/fixture/homes/" + runtime + "-continue-2")
+                    plugin = second["home"] + "/." + runtime + "/plugins/cache/dotbrain/dotbrain/1.0.0"
+                    roots = [*second["aliasesBefore"]["roots"], lexical_identity(plugin, "/fixture")]
+                    record["readRoots"] = roots
+                    for label in ("aliasesBefore", "aliasesAfter"):
+                        second[label].update(phase=second["name"], roots=sorted(roots), plugins={
+                            plugin: {"candidateRevision": "a" * 40, "files": {"skills/brain-convention/SKILL.md": "hash"}}})
+                    path = plugin + "/skills/brain-convention/SKILL.md"
+                    if defect == "auth":
+                        path = second["home"] + "/." + runtime + "/auth.json"
+                    elif defect in {"old-home", "foreign-home"}:
+                        path = path.replace(second["name"], "first" if defect == "old-home" else "foreign")
+                    elif defect == "changed":
+                        second["aliasesAfter"]["plugins"][plugin]["files"]["extra"] = "foreign"
+                    elif defect == "appeared":
+                        second["aliasesBefore"]["plugins"] = {}
+                    if runtime == "codex":
+                        events = [{"type": "item.completed", "item": {"type": "command_execution",
+                                   "command": "cat " + path, "aggregated_output": "recorded convention", "exit_code": 0}}]
+                    else:
+                        events = [{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "plugin-read",
+                                   "name": "Read", "input": {"file_path": path}}]}},
+                                  {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "plugin-read",
+                                   "content": "recorded convention"}]}}]
+                    second["events"][-1:-1] = events
+                    self.assertEqual(evaluate(record)["cold_continuation"], defect is None)
+
     @unittest.skipUnless(sys.platform == "win32", "Windows directory junction regression")
     def test_snapshot_does_not_follow_directory_junctions(self):
         self.assert_snapshot_skips_directory_alias(junction=True)
