@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 
 import pytest
@@ -481,6 +482,72 @@ def test_redirected_integration_cache_is_preserved(integration):
         link(integration)
     assert root.is_symlink() and list(foreign.iterdir()) == []
     assert not (repo / pstack.POINTER).exists()
+
+
+@pytest.mark.skipif(os.name != "nt" or shutil.which("pwsh") is None, reason="Windows ACL inspection requires PowerShell")
+def test_public_mode_cache_inherits_windows_parent_permissions(tmp_path):
+    home = tmp_path / "data"
+    cache = pstack._cache(home)
+    probe = subprocess.run([
+        "pwsh", "-NoProfile", "-Command",
+        "$acl = Get-Acl -LiteralPath $env:DOTBRAIN_TEST_CACHE; "
+        "[pscustomobject]@{protected=$acl.AreAccessRulesProtected; "
+        "inherited=(@($acl.Access | Where-Object { -not $_.IsInherited }).Count -eq 0)} | ConvertTo-Json -Compress",
+    ], check=True, capture_output=True, text=True, env={**os.environ, "DOTBRAIN_TEST_CACHE": str(cache)})
+    permissions = json.loads(probe.stdout)
+    assert permissions == {"protected": False, "inherited": True}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX directory permissions")
+def test_mode_cache_retains_private_posix_permissions(tmp_path):
+    cache = pstack._cache(tmp_path / "data")
+    assert stat.S_IMODE(cache.stat().st_mode) == 0o700
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows inherited staging allocation")
+@pytest.mark.parametrize("kind", ["directory", "symlink"])
+def test_windows_staging_collision_preserves_foreign_entry(tmp_path, monkeypatch, kind):
+    home = tmp_path / "data"
+    root = home / pstack.CACHE
+    root.mkdir(parents=True)
+    fixed = pstack.uuid.UUID(int=0)
+    staging = root / f".staging-{fixed.hex}"
+    if kind == "directory":
+        staging.mkdir()
+        sentinel = staging / "user.txt"
+    else:
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        staging.symlink_to(outside, target_is_directory=True)
+        sentinel = outside / "user.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    monkeypatch.setattr(pstack.uuid, "uuid4", lambda: fixed)
+    with pytest.raises(FileExistsError):
+        pstack._cache(home)
+    assert sentinel.read_text() == "preserve"
+    assert list(root.iterdir()) == [staging]
+    assert staging.is_symlink() == (kind == "symlink")
+
+
+def test_cache_publication_is_complete_and_failed_rename_cleans_only_staging(tmp_path, monkeypatch):
+    home = tmp_path / "data"
+    root = home / pstack.CACHE
+    publications = []
+    rename = Path.rename
+    def fail_publication(path, destination):
+        if path.name.startswith(".staging-"):
+            assert path.parent == destination.parent == root
+            assert not destination.exists()
+            record = pstack._read_record(path / pstack.MARKER)
+            assert record["files"] == pstack._files(path)
+            publications.append(destination)
+            raise OSError("publication failed")
+        return rename(path, destination)
+    monkeypatch.setattr(Path, "rename", fail_publication)
+    with pytest.raises(OSError, match="publication failed"):
+        pstack._cache(home)
+    assert len(publications) == 1
+    assert list(root.iterdir()) == []
 
 
 def test_doctor_is_read_only_and_diagnoses_delivery(integration):

@@ -160,7 +160,12 @@ def _cache(home: Path) -> Path:
         return destination
     paths.refuse_checkout(destination)
     root.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=root))
+    # Windows tempfile's private ACL survives rename; public mode files need parent inheritance.
+    if os.name == "nt":
+        staging = root / f".staging-{uuid.uuid4().hex}"
+        staging.mkdir()
+    else:
+        staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=root))
     try:
         for name, body in files.items():
             target = staging / name
