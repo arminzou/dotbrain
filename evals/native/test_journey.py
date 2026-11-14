@@ -1,6 +1,7 @@
 """Synthetic calibration by default; real isolated Beads self-check is explicitly opt-in."""
 
 import copy
+import base64
 import hashlib
 import json
 import os
@@ -762,10 +763,47 @@ class RealBackend(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("NATIVE_FIXTURE_PROCESS_CHECK") == "1" and sys.platform == "win32",
                      "opt-in Windows fixture process controls")
 class ProcessControls(unittest.TestCase):
+    def test_exit_between_enumeration_and_lookup_is_safe_but_permission_errors_fail(self):
+        for scenario in ("exited", "exited-object", "permission"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                journey.write(root / "writer.py", "import time\ntime.sleep(600)\n")
+                process = subprocess.Popen([sys.executable, str(root / "writer.py")], cwd=root,
+                                           env=journey.environment(root))
+                try:
+                    observed = journey.process_observation(root, [process.pid])
+                    self.assertTrue(observed["present"][0]["scoped"])
+                    def race_runner(argv, **kwargs):
+                        script = base64.b64decode(argv[-1]).decode("utf-16le")
+                        if scenario == "exited":
+                            # Exit after the CIM snapshot, immediately before process-object lookup.
+                            script = script.replace("try { $writer=Get-Process",
+                                "Stop-Process -Id $target.pid -Force -ErrorAction Stop; "
+                                "Wait-Process -Id $target.pid -ErrorAction SilentlyContinue; try { $writer=Get-Process")
+                        elif scenario == "exited-object":
+                            script = script.replace("Stop-Process -InputObject $writer",
+                                "$writer.Kill(); $writer.WaitForExit(); Stop-Process -InputObject $writer")
+                        else:
+                            script = "function Get-Process { throw [System.UnauthorizedAccessException]::new('fixture-permission-denied') }; " + script
+                        argv = [*argv[:-1], base64.b64encode(script.encode("utf-16le")).decode("ascii")]
+                        return subprocess.run(argv, **kwargs)
+                    if scenario != "permission":
+                        after = journey.process_observation(root, [process.pid], stop=observed["present"], run=race_runner)
+                        self.assertEqual(after["present"], [])
+                        process.wait(timeout=10)
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, "fixture-permission-denied"):
+                            journey.process_observation(root, [process.pid], stop=observed["present"], run=race_runner)
+                        self.assertIsNone(process.poll())
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.wait(timeout=10)
+
     def test_captured_fixture_writer_is_stopped_by_identity(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            journey.write(root / "writer.py", "import time\ntime.sleep(30)\n")
+            journey.write(root / "writer.py", "import time\ntime.sleep(600)\n")
             process = subprocess.Popen([sys.executable, str(root / "writer.py")], cwd=root,
                                        env=journey.environment(root))
             try:

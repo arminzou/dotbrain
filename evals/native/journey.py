@@ -359,7 +359,12 @@ def process_observation(root, pids, *, stop=(), run=subprocess.run):
         script += f"$expected=ConvertFrom-Json '{expected}'; foreach($target in $expected) {{ "
         script += "$current=$all | Where-Object ProcessId -eq $target.pid; if($current) { "
         script += "if($current.CreationDate.ToFileTimeUtc().ToString() -ne $target.created) { throw 'Writer PID identity changed' }; "
-        script += "Stop-Process -Id $target.pid -Force -ErrorAction Stop } }; $all=@(Get-CimInstance Win32_Process); "
+        script += "try { $writer=Get-Process -Id $target.pid -ErrorAction Stop } catch { "
+        script += "if($_.FullyQualifiedErrorId -like 'NoProcessFoundForGivenId,*') { continue }; throw }; "
+        # CIM CreationDate truncates native process start ticks to microseconds.
+        script += "$started=$writer.StartTime.ToFileTimeUtc(); "
+        script += "if(($started - ($started % 10)).ToString() -ne $target.created) { throw 'Writer PID identity changed' }; "
+        script += "Stop-Process -InputObject $writer -Force -ErrorAction Stop } }; $all=@(Get-CimInstance Win32_Process); "
     seeds = ",".join(str(pid) for pid in pids)
     script += f"$known=[System.Collections.Generic.HashSet[int]]::new(); @({seeds}) | ForEach-Object {{ [void]$known.Add($_) }}; "
     script += "do { $changed=$false; foreach($item in $all) { if($known.Contains([int]$item.ParentProcessId) -and $known.Add([int]$item.ProcessId)) { $changed=$true } } } while($changed); "
