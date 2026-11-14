@@ -94,6 +94,9 @@ your existing Brains instead of starting an empty one:
 git clone <your-remote> ~/dotbrain
 ```
 
+`dotbrain bootstrap` then clones any [skill submodules](skills.md#external-repositories) the home
+declares.
+
 `wire-brain` asks about this when it finds no dotbrain home, but cloning first saves the round
 trip.
 

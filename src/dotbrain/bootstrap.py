@@ -16,7 +16,7 @@ from typing import Callable
 
 import yaml
 
-from dotbrain import assets, paths, profile_migration, resource_loader, runtimes, subagents
+from dotbrain import assets, home_sync, paths, profile_migration, resource_loader, runtimes, subagents
 from dotbrain.results import CommandResult, TargetResult
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -206,6 +206,13 @@ def prepare(dotbrain_home: Path, runtime: str = "all", *, home: Path | None = No
                 f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"})
     try:
         target.changes += ensure_data_root(dotbrain_home, run=run, user_home=user).logs
+        # A fresh clone of the home lacks its submodules, which selected skills may live in.
+        cloned = home_sync.init_submodules(dotbrain_home)
+        if cloned.submodules == "updated":
+            target.changes.append("cloned the home's submodules")
+        elif cloned.submodules == "failed":
+            target.findings.append({"severity": "warning", "message":
+                f"could not clone the home's submodules; home sync retries: {cloned.submodule_error}"})
         deliveries = (["all"] if runtime == "all" else
                       [rt.name for rt in selected if rt.name not in owned]) + [rt.name for rt in chosen]
         for delivery in deliveries:

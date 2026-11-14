@@ -7,12 +7,19 @@ upstream of the current branch and merges it, keeping this machine's version of 
 file in place and the other machine's beside it as a conflict copy, so no edit is lost. Then it
 pushes. Offline, rejected, and remote-less homes are reported, not errors: the commits stay local
 until a later sync sends them.
+
+Submodules declared in the home's ``.gitmodules`` (external skill repositories) travel by their
+recorded commit. Sync records a new submodule or a forward move once its commit is on the
+submodule's own remote, so every machine can fetch it. After integrating, a full sync checks out
+each submodule's recorded commit, cloning any not yet initialized. A submodule with uncommitted
+changes or unpublished commits is held: never recorded, never moved, and reported.
 """
 
 from __future__ import annotations
 
 import os
 import platform
+import re
 import signal
 import subprocess
 import sys
@@ -30,6 +37,8 @@ Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
 LOCK_NAME = "dotbrain-sync.lock"
 PUSH_TIMEOUT_SECONDS = 20
+SUBMODULE_TIMEOUT_SECONDS = 120  # a first clone of an external repository can take a while
+_NO_COMMIT = "0" * 40
 PUSH_RETRIES = 3  # a full sync re-fetches and re-integrates at most this often after a rejected push
 _SSH_OPTIONS = "-o ConnectTimeout=3 -o BatchMode=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=1"
 _DRAIN_SECONDS = 2  # how long to wait for output once a timed-out process tree is killed
@@ -55,6 +64,9 @@ class SyncReport:
     conflict_copies: list[str] = field(default_factory=list)  # home-relative, written beside the original
     attempts: int = 0  # fetch-integrate-push rounds run
     collisions: list[str] = field(default_factory=list)  # overlapping nested paths or Git refusal diagnostics
+    held: dict[str, str] = field(default_factory=dict)  # submodule path -> why it was neither recorded nor moved
+    submodules: str = "none"  # updated | failed | none
+    submodule_error: str = ""
 
 
 def _kill_tree(proc: subprocess.Popen) -> None:
@@ -121,6 +133,7 @@ class _State:
     unmerged: bool = False
     staged: bool = False  # the index differs from HEAD
     changed: list[str] = field(default_factory=list)  # as _changed_paths lists them
+    submodules: dict[str, tuple[str, str]] = field(default_factory=dict)  # changed submodule -> (S<c><m><u>, commit in HEAD)
 
 
 def _state(run: Runner, home: Path) -> _State:
@@ -144,6 +157,8 @@ def _state(run: Runner, home: Path) -> _State:
             fields = entry.split(" ", 8)
             state.staged |= fields[1][0] != "."
             changed.add(fields[8])
+            if fields[2].startswith("S"):
+                state.submodules[fields[8]] = (fields[2], fields[6])
         elif kind == "2":  # a rename or copy: ... X<score> path, then its source as the next entry
             state.staged = True
             changed.add(entry.split(" ", 9)[9])
@@ -218,11 +233,87 @@ def _nested_repo_path(home: Path, path: str) -> str | None:
     return None
 
 
+def declared_submodules(home: Path) -> list[str]:
+    """Submodule paths the working tree's ``.gitmodules`` declares, without running Git."""
+    try:
+        text = (home / ".gitmodules").read_text(encoding="utf-8")
+    except (FileNotFoundError, NotADirectoryError):
+        return []
+    # ponytail: plain `path = x` lines only; quoted or escaped values would need `git config -f`.
+    return sorted({match.group(1).strip().rstrip("/")
+                   for match in re.finditer(r"^\s*path\s*=\s*(.+?)\s*$", text, re.MULTILINE)})
+
+
+def uninitialized_submodules(home: Path) -> list[str]:
+    return [path for path in declared_submodules(home) if not os.path.lexists(home / path / ".git")]
+
+
+def _classify_submodules(home: Path, run: Runner, state: _State, declared: list[str]) -> tuple[set[str], dict[str, str]]:
+    """Split changed, declared submodules into (record, held). The rest are left to the update.
+
+    Three Git calls per changed submodule, which is rare: its own status, whether a remote holds its
+    commit, and whether that commit moves forward from the recorded one.
+    """
+    untracked_only = {path for path, (flags, pinned) in state.submodules.items()
+                      if flags[1:3] == ".." and pinned != _NO_COMMIT}
+    changed = {_nested_repo_path(home, path) for path in state.changed} & set(declared) - untracked_only
+    record_paths: set[str] = set()
+    held: dict[str, str] = {}
+    for path in sorted(changed):
+        repository = home / path
+        status = _git(run, repository, "status", "--porcelain=v2", "-z", "--untracked-files=no", check=False)
+        if status.returncode != 0:
+            held[path] = f"its Git status failed: {(status.stderr or status.stdout).strip()}"
+            continue
+        if any(entry and not entry.startswith("#") for entry in status.stdout.split("\0")):
+            held[path] = "uncommitted changes"
+            continue
+        published = _git(run, repository, "for-each-ref", "--contains", "HEAD", "--count=1", "refs/remotes", check=False)
+        if published.returncode != 0 or not published.stdout.strip():
+            held[path] = "commits not on its remote"
+            continue
+        pinned = state.submodules.get(path, ("", _NO_COMMIT))[1]
+        if pinned == _NO_COMMIT or _git(run, repository, "merge-base", "--is-ancestor", pinned, "HEAD",
+                                        check=False).returncode == 0:
+            record_paths.add(path)
+    return record_paths, held
+
+
+def _update_submodules(home: Path, run: Runner, env: dict, held: Container[str], report: SyncReport) -> None:
+    """Check out each recorded submodule commit, initializing new ones; held submodules stay put."""
+    staged = _git(run, home, "ls-files", "--stage", "-z", "--", *declared_submodules(home)).stdout
+    targets = [entry.split("\t", 1)[1] for entry in staged.split("\0")
+               if entry.startswith("160000 ") and entry.split("\t", 1)[1] not in held]
+    if not targets:
+        return
+    try:
+        updated = _git(run, home, "submodule", "update", "--init", "--recursive", "--", *targets,
+                       check=False, env=env, timeout=SUBMODULE_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        report.submodules, report.submodule_error = "failed", f"timed out after {SUBMODULE_TIMEOUT_SECONDS} s"
+        return
+    if updated.returncode == 0:
+        report.submodules = "updated"
+    else:
+        report.submodules, report.submodule_error = "failed", (updated.stderr or updated.stdout).strip()
+
+
+def init_submodules(home: Path, run: Runner = run_bounded) -> SyncReport:
+    """Clone the home's uninitialized submodules, as on a fresh clone. Touches nothing else."""
+    report = SyncReport()
+    missing = uninitialized_submodules(home)
+    if missing:
+        _update_submodules(home, run, {"GIT_SSH_COMMAND": _ssh_command(home, run)},
+                           set(declared_submodules(home)) - set(missing), report)
+    return report
+
+
 def record(home: Path, max_file_size: int, run: Runner = subprocess.run,
-           unstaged: list[str] | None = None) -> tuple[list[str], list[str], list[str]]:
+           unstaged: list[str] | None = None, gitlinks: Container[str] = ()) -> tuple[list[str], list[str], list[str]]:
     """Commit uncommitted changes as sync commits. Returns (messages, over-limit paths, nested repos).
 
     ``unstaged`` is the changed-path list when the caller already knows nothing is staged.
+    ``gitlinks`` are submodule paths to record at their checked-out commit instead of skipping.
     """
     if unstaged is None:
         # Unstage everything first, so each commit holds exactly the files staged for it. Committing
@@ -235,6 +326,11 @@ def record(home: Path, max_file_size: int, run: Runner = subprocess.run,
     nested: list[str] = []
     for path in unstaged:
         repository = _nested_repo_path(home, path)
+        if repository in gitlinks:
+            name, shown = _group(repository, data_dir)
+            if (repository, shown) not in groups.get(name, []):
+                groups.setdefault(name, []).append((repository, shown))
+            continue
         if repository is not None:
             if repository not in nested:
                 nested.append(repository)
@@ -333,14 +429,19 @@ def _head_paths(home: Path, run: Runner) -> set[str]:
     return {path.casefold() for path in _git(run, home, "ls-tree", "-r", "--name-only", "-z", "HEAD").stdout.split("\0")}
 
 
-def _unmerged(home: Path, run: Runner) -> dict[str, set[str]]:
-    """Each conflicted path with the index stages it holds (1 base, 2 ours, 3 theirs)."""
+def _unmerged(home: Path, run: Runner) -> tuple[dict[str, set[str]], set[str]]:
+    """Each conflicted path with the index stages it holds (1 base, 2 ours, 3 theirs), and the
+    conflicted paths that are submodules."""
     stages: dict[str, set[str]] = {}
+    gitlinks: set[str] = set()
     for entry in _git(run, home, "ls-files", "--unmerged", "-z").stdout.split("\0"):
         if "\t" in entry:
             info, path = entry.split("\t", 1)
-            stages.setdefault(path, set()).add(info.split()[2])
-    return stages
+            mode, _, stage = info.split()
+            stages.setdefault(path, set()).add(stage)
+            if mode == "160000":
+                gitlinks.add(path)
+    return stages, gitlinks
 
 
 def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Runner, copies: list[str]) -> None:
@@ -354,7 +455,14 @@ def _merge(home: Path, git_dir: Path, upstream: str, report: SyncReport, run: Ru
         report.merged = True
         report.commits.append(clean_message)
         return
-    stages = _unmerged(home, run)
+    stages, gitlinks = _unmerged(home, run)
+    if gitlinks:  # a submodule has no file to keep beside the original as a conflict copy
+        _git(run, home, "merge", "--abort")
+        report.status = "collision"
+        report.collisions.extend(f"{path}: both machines recorded a different submodule commit; run git merge in the "
+                                 "dotbrain home, check out the commit to keep in the submodule, git add it, commit, "
+                                 "then sync" for path in sorted(gitlinks))
+        return
     if not stages:
         diagnostic = merged.stderr or merged.stdout
         if ((git_dir / "MERGE_HEAD").exists()
@@ -476,10 +584,21 @@ def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
         if report.blocked_by:
             report.status = "blocked"
             return report
-        report.commits, report.skipped, report.nested = record(
-            home, settings.max_file_size, run, None if state.staged else state.changed)
+        declared = declared_submodules(home)
+        gitlinks, report.held = _classify_submodules(home, run, state, declared) if declared else (set(), {})
+        report.commits, report.skipped, nested = record(
+            home, settings.max_file_size, run, None if state.staged else state.changed, gitlinks)
+        report.nested = [path for path in nested if path not in declared]
+        stale = {path for path, (flags, _) in state.submodules.items()
+                 if flags[1] == "C" and path in declared} - gitlinks - set(report.held)
+
+        def update_submodules(env: dict | None = None) -> None:
+            if declared and not push_only and (report.merged or stale or uninitialized_submodules(home)):
+                _update_submodules(home, run, env or {"GIT_SSH_COMMAND": _ssh_command(home, run)}, report.held, report)
+
         if state.upstream is None:
             report.push, report.waiting = "no-upstream", len(report.commits)
+            update_submodules()
             return report
         report.upstream = state.upstream
         remote_env = {"GIT_SSH_COMMAND": _ssh_command(home, run)}
@@ -502,6 +621,8 @@ def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
             _push(home, report, run, remote_env, ahead)
             if report.push != "rejected":
                 break
+        if report.status == "synced":
+            update_submodules(remote_env)
     finally:
         _release(lock)
     return report

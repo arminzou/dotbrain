@@ -59,6 +59,44 @@ Adding or removing skills from a selected bundle takes effect on the next reconc
 declaration stays unchanged. Removed owned links are pruned, while foreign entries are preserved.
 `projects show`, catalogs, and doctor use the same expanded selection.
 
+## Skills from external repositories {#external-repositories}
+
+Add an external skill repository as a Git submodule of your dotbrain home, then select its
+skills like any other source:
+
+```bash
+git -C ~/dotbrain submodule add https://github.com/backnotprop/pstack.git skills/pstack
+```
+
+```yaml
+# ~/dotbrain/config.yaml
+skills:
+  - pstack/skills/how
+```
+
+[Home sync](session-context.md#home-sync) shares the submodule with your other machines by its
+commit. You never commit it by hand:
+
+- **Adding or moving forward.** Sync records a new submodule, or a newer commit you checked out
+  in it, once that commit is on the submodule's own remote. Another machine could not fetch a
+  commit that exists only on yours.
+- **Other machines.** A full sync checks out each recorded commit and clones submodules that are
+  missing. `dotbrain bootstrap` clones them too, so a fresh clone of the home gets its skills
+  before the first session.
+- **Local work is left alone.** A submodule with uncommitted changes or unpushed commits is not
+  recorded or moved. Sync reports it and still integrates everything else.
+- **Moving back.** Sync never records an older commit, because that also describes a machine
+  that has not caught up. To pin an older commit, check it out in the submodule and commit the
+  change in `~/dotbrain` yourself.
+- **Updating.** Update a submodule with Git, for example
+  `git -C ~/dotbrain/skills/pstack pull`. The next sync records the new commit. Then run
+  `dotbrain skills link` or `dotbrain refresh` so new skills in a selected bundle are linked.
+
+If two machines record different commits for the same submodule, sync stops without merging
+and reports it. Merge in `~/dotbrain`, check out the commit to keep in the submodule, `git add`
+it, commit, and sync again. `dotbrain doctor` reports submodules that are not cloned, have
+uncommitted changes, or are not at their recorded commit.
+
 ## Core capabilities {#core-workflow}
 
 | Skill | Capability |
