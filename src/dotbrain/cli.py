@@ -326,7 +326,11 @@ _SYNC_EPILOG = ("Acts on the whole home: one commit per changed Brainspace, then
                 "stay uncommitted and are reported. If incoming changes would overwrite an uncommitted or ignored "
                 "local file, Git refuses the merge; sync reports Git's diagnostic, pushes nothing, and fails. "
                 "Offline, rejected, and remote-less homes exit 0 and keep "
-                "the commits. Nested Git repositories are never recorded. Recording is refused during a "
+                "the commits. Nested Git repositories are never recorded. A submodule declared in .gitmodules "
+                "is recorded when new or moved forward to a commit its remote holds; after integrating, a full "
+                "sync checks out every recorded submodule commit, cloning new ones. A submodule with "
+                "uncommitted changes or unpublished commits is reported and left alone; to move one back, "
+                "commit that yourself. Recording is refused during a "
                 "merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. "
                 "Turn sync off with sync.enabled: false. Known limit: sync unstages everything before "
                 "recording, so index-only state (partially staged hunks, git rm --cached, a staged mode "
@@ -375,6 +379,13 @@ def sync(
                             for path in report.skipped]
         target.findings += [{"severity": "warning", "message": f"not committed, a nested Git repository: {path}"}
                             for path in report.nested]
+        target.findings += [{"severity": "warning", "message": f"submodule neither recorded nor updated, {reason}: {path}"}
+                            for path, reason in sorted(report.held.items())]
+        if report.submodules == "updated":
+            target.changes.append("checked out the recorded submodule commits")
+        elif report.submodules == "failed":
+            target.findings.append({"severity": "warning",
+                                    "message": f"submodule update failed; the next sync retries: {report.submodule_error}"})
         target.findings += [{"severity": "warning", "message": f"conflict copy to reconcile: {path}"}
                             for path in report.conflict_copies]
         outcome = _SYNC_OUTCOMES.get(report.push)
