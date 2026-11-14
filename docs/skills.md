@@ -55,9 +55,67 @@ dotbrain skills link --scope global           # explicit global homes
 dotbrain skills link --runtime codex           # declared Codex workspace only
 ```
 
+Name skills or bundles after `link` to select and deliver them in one step, and use `unlink` to
+deselect them and remove their links:
+
+```bash
+dotbrain skills link my-collection/specific-skill              # this checkout's project
+dotbrain skills link another-collection --scope global          # every project
+dotbrain skills unlink my-collection/specific-skill
+```
+
+These commands change only the scope's `skills:` list. Comments and the rest of the file stay as
+they are. An entry that does not exist, a name collision, or a layout dotbrain cannot edit
+exactly fails before the file changes; then edit the list by hand. Entries cannot be combined
+with `--all`: global scope already reaches every project.
+
 Adding or removing skills from a selected bundle takes effect on the next reconciliation; the
 declaration stays unchanged. Removed owned links are pruned, while foreign entries are preserved.
 `projects show`, catalogs, and doctor use the same expanded selection.
+
+## Skills from external repositories {#external-repositories}
+
+Your skill library is `~/dotbrain/skills`. An external skill repository joins it as a Git
+submodule of the dotbrain home, so [home sync](session-context.md#home-sync) shares it with your
+other machines by its commit:
+
+```bash
+dotbrain skills add https://github.com/backnotprop/pstack.git   # skills/pstack, committed
+dotbrain skills link pstack/skills/how                          # select what you want
+dotbrain skills update                                          # latest commit of every repository
+dotbrain skills update pstack --ref v0.15.36                    # a tag, branch or commit, even older
+dotbrain skills remove pstack                                   # deselect everywhere, remove, commit
+```
+
+- **`add`** clones the repository into `skills/<name>` (`--name` changes the folder, `--ref` pins
+  a version), refuses one without any `SKILL.md`, commits it, and lists the `link` command for
+  each skill it found. It selects nothing.
+- **`update`** moves each repository to its remote's latest commit, or one repository to `--ref`,
+  commits each move, and relinks every project and the global homes so new skills in a selected
+  bundle appear and removed ones disappear.
+- **`remove`** deselects the repository's skills in `config.yaml` and every `project.yaml`, removes
+  the submodule and its cloned data, and commits all of it together, then relinks.
+
+`update` skips, and `remove` refuses, a repository with uncommitted changes or unpushed commits.
+Push or discard that work first.
+
+Home sync keeps machines in step:
+
+- **Other machines.** A full sync checks out each recorded commit and clones repositories that are
+  missing. `dotbrain bootstrap` clones them too, so a fresh clone of the home gets its skills
+  before the first session.
+- **Changes made with Git.** A repository added with `git submodule add`, or moved forward with
+  `git pull` inside it, is recorded by the next sync once that commit is on the repository's own
+  remote. Another machine could not fetch a commit that exists only on yours. Sync never records
+  an older commit, because that also describes a machine that has not caught up; use
+  `dotbrain skills update --ref` to move back.
+- **Local work is left alone.** A repository with uncommitted changes or unpushed commits is not
+  recorded or moved. Sync reports it and still integrates everything else.
+
+If two machines record different commits for the same repository, sync stops without merging
+and reports it. Merge in `~/dotbrain`, check out the commit to keep in the submodule, `git add`
+it, commit, and sync again. `dotbrain doctor` reports repositories that are not cloned, have
+uncommitted changes, or are not at their recorded commit.
 
 ## Core capabilities {#core-workflow}
 

@@ -61,11 +61,13 @@ as `{"additional_context": "..."}`. Each event syncs as its hook above does: the
 `turn-end` only record and push; `session-end` starts a full sync. A cleared session sends only
 `clear`, never `session-end`.
 
-A full sync runs four steps:
+A full sync runs five steps:
 
 1. **Record.** Every uncommitted change becomes a sync commit: one per changed Brainspace, then one
    `home` commit for everything else. Files over the size limit and nested Git repositories are
-   skipped and reported. Commits you wrote yourself are left alone.
+   skipped and reported. Commits you wrote yourself are left alone. A
+   [skill submodule](skills.md#external-repositories) is recorded when it is new or moved forward
+   to a commit its own remote holds.
 2. **Fetch** the upstream of the home's current branch.
 3. **Integrate.** Merge the upstream into the current branch. When both machines changed a file,
    this machine's version stays in place and the other machine's version is saved beside it as a
@@ -74,6 +76,9 @@ A full sync runs four steps:
    ignored local file, Git refuses the merge and sync reports its diagnostic without pushing.
 4. **Push.** If the remote moved in the meantime, sync fetches and tries again, at most three
    times. It never force-pushes.
+5. **Update submodules.** When the merge brought changes, a submodule is missing, or one is not at
+   its recorded commit, sync checks out each recorded commit and clones new submodules. Compaction
+   and turn-end syncs skip this step.
 
 Home sync is quiet and fails open. It writes nothing to the agent's context, and a failure never
 blocks the session. Offline machines and homes without a remote keep their sync commits locally

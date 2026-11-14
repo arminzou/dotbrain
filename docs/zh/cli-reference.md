@@ -28,7 +28,11 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`projects list`](#dotbrain-projects-list) | 根据本地声明和连接，列出所有已注册的项目。 |
 | [`projects show`](#dotbrain-projects-show) | 查看当前已连接的项目，或某个指定项目已注册的 checkout。 |
 | [`skills list`](#dotbrain-skills-list) | 查找本地可用的技能。 |
-| [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能。 |
+| [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能，先选中 ENTRIES。 |
+| [`skills unlink`](#dotbrain-skills-unlink) | 从项目或全局选择中移除 ENTRIES，然后同步，清理它们的链接。 |
+| [`skills add`](#dotbrain-skills-add) | 把一个技能仓库作为 home 的 submodule 加到 ~/dotbrain/skills，并提交。 |
+| [`skills update`](#dotbrain-skills-update) | 把技能仓库移到远程的最新提交，逐个提交，然后重新链接。 |
+| [`skills remove`](#dotbrain-skills-remove) | 在所有地方取消选择某个技能仓库的技能，移除它，提交，然后重新链接。 |
 | [`subagents list`](#dotbrain-subagents-list) | 查找本地可用的自定义子 Agent。 |
 | [`subagents link`](#dotbrain-subagents-link) | 在项目范围或显式的全局范围内同步选定的自定义子 Agent。 |
 | [`beads sync`](#dotbrain-beads-sync) | 同步声明的本地任务跟踪绑定，拉取已配置的 remote；从不推送。 |
@@ -177,7 +181,7 @@ dotbrain projects show [OPTIONS]
 
 ## 技能和 Agent {#skills-and-agents}
 
-把技能和运行时原生的子 Agent 链接到 Agent 运行时。见[技能](skills.md)。
+管理技能库，并把技能和运行时原生的子 Agent 链接到 Agent 运行时。见[技能](skills.md)。
 
 ### `dotbrain skills list` {#dotbrain-skills-list}
 
@@ -196,11 +200,15 @@ dotbrain skills list [OPTIONS]
 
 ### `dotbrain skills link` {#dotbrain-skills-link}
 
-在项目范围或显式的全局范围内同步选定的技能。
+在项目范围或显式的全局范围内同步选定的技能，先选中 ENTRIES。
 
 ```text
-dotbrain skills link [OPTIONS]
+dotbrain skills link [OPTIONS] [ENTRIES]
 ```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ENTRIES` | ~/dotbrain/skills 下的技能或 bundle，先加进该范围的选择。 |
 
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -210,6 +218,81 @@ dotbrain skills link [OPTIONS]
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
 | `--all` | — | 同步所有已注册的项目。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills unlink` {#dotbrain-skills-unlink}
+
+从项目或全局选择中移除 ENTRIES，然后同步，清理它们的链接。
+
+```text
+dotbrain skills unlink [OPTIONS] ENTRIES
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ENTRIES` | 要从该范围的选择中移除的已选技能或 bundle。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--scope` *text* | `project` | 分发范围：project 或 global。 |
+| `--project` *text* | — | 选择一个指定的 Brainspace。 |
+| `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills add` {#dotbrain-skills-add}
+
+把一个技能仓库作为 home 的 submodule 加到 ~/dotbrain/skills，并提交。
+
+```text
+dotbrain skills add [OPTIONS] URL
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `URL` | 技能仓库的 Git URL。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--name` *text* | — | ~/dotbrain/skills 下的文件夹名；默认用仓库名。 |
+| `--ref` *text* | — | 固定到这个 tag、分支或提交，而不是默认分支。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills update` {#dotbrain-skills-update}
+
+把技能仓库移到远程的最新提交，逐个提交，然后重新链接。
+
+```text
+dotbrain skills update [OPTIONS] [NAMES]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `NAMES` | 要更新的技能仓库；默认是全部。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--ref` *text* | — | 把一个仓库移到这个 tag、分支或提交，也可以是更旧的提交。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills remove` {#dotbrain-skills-remove}
+
+在所有地方取消选择某个技能仓库的技能，移除它，提交，然后重新链接。
+
+```text
+dotbrain skills remove [OPTIONS] NAME
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `NAME` | ~/dotbrain/skills 下的技能仓库。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain subagents list` {#dotbrain-subagents-list}
@@ -333,7 +416,7 @@ dotbrain beads drop-db [OPTIONS] NAME
 
 把 dotbrain home 里未提交的改动记录为同步提交，整合上游，然后推送。
 
-作用于整个 home：每个有改动的 Brainspace 一个提交，其余改动合成一个 home 提交。完整同步接着 fetch 并 merge 上游：两边都改过的文件，保留这台机器的版本，另一边的版本写到旁边的 NAME.sync-conflict-DATE-HOST.ext（一边编辑、一边删除时，保留编辑）。远程已有新提交导致推送被拒时，最多重试 3 次；sync 从不强制推送。超过 config.yaml 里 sync.max-file-size 的文件（字节数，或 500KB、1MB 这样的大小；默认 1MB）不会提交，会在结果中报告。如果传入的改动会覆盖未提交或被忽略的本地文件，Git 会拒绝 merge；sync 会报告 Git 的原始诊断信息，不推送任何内容，并以失败退出。离线、推送被拒、没有 remote 时都以 0 退出，提交留在本地。嵌套的 Git 仓库永远不会被记录。在 merge、rebase、cherry-pick 或 revert 进行中，有未合并路径，或处于 detached HEAD 时，拒绝记录。用 sync.enabled: false 关闭同步。已知限制：sync 在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、git rm `--cached`、暂存的权限变更）会被工作区内容替换。
+作用于整个 home：每个有改动的 Brainspace 一个提交，其余改动合成一个 home 提交。完整同步接着 fetch 并 merge 上游：两边都改过的文件，保留这台机器的版本，另一边的版本写到旁边的 NAME.sync-conflict-DATE-HOST.ext（一边编辑、一边删除时，保留编辑）。远程已有新提交导致推送被拒时，最多重试 3 次；sync 从不强制推送。超过 config.yaml 里 sync.max-file-size 的文件（字节数，或 500KB、1MB 这样的大小；默认 1MB）不会提交，会在结果中报告。如果传入的改动会覆盖未提交或被忽略的本地文件，Git 会拒绝 merge；sync 会报告 Git 的原始诊断信息，不推送任何内容，并以失败退出。离线、推送被拒、没有 remote 时都以 0 退出，提交留在本地。嵌套的 Git 仓库永远不会被记录。在 .gitmodules 里声明的 submodule，是新加的，或者前移到它的远程仓库里已有的提交时，会被记录；完整同步整合之后，会 checkout 每个记录的 submodule 提交，并克隆新的 submodule。有未提交改动或没推送提交的 submodule 会被报告，保持不动；要回退一个 submodule，需要自己提交这个改动。在 merge、rebase、cherry-pick 或 revert 进行中，有未合并路径，或处于 detached HEAD 时，拒绝记录。用 sync.enabled: false 关闭同步。已知限制：sync 在记录前会先取消所有暂存，所以只存在于暂存区的状态（部分暂存的代码块、git rm `--cached`、暂存的权限变更）会被工作区内容替换。
 
 ```text
 dotbrain sync [OPTIONS]
