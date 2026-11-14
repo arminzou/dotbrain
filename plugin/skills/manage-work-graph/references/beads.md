@@ -157,7 +157,8 @@ Rules:
 
 ## Promoting a public issue inward
 
-When `triage-public` hands a GitHub issue to private execution, you *translate* its labels into
+When an accepted GitHub issue enters private execution (through `triage-public`
+or existing public collaboration), you *translate* its labels into
 native fields; you do not copy the labels onto the bead. GitHub issues are flat, so GitHub fakes
 type/readiness/resolution with labels; beads has real fields for each.
 

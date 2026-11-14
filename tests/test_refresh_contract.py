@@ -160,19 +160,19 @@ def test_refresh_only_designated_conventions_preserves_user_bytes(setup):
     home, brainspace, checkout = setup
     brain = brainspace / '.brain'
     authored = ['AGENTS.md', 'project.yaml', 'CONTEXT.md', 'docs/sub/README.md', 'docs/sub/DOTBRAIN.md',
-                'site/site.yaml', 'site/index.md', 'adr/decision.md']
+                'site/site.yaml', 'site/index.md', 'site/configure.md', 'site/theme/style.css', 'adr/decision.md']
     for relative in authored:
         path = brain / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         if relative not in ('AGENTS.md', 'project.yaml'):
-            path.write_text(f'Authored {relative}\n', encoding='utf-8')
+            path.write_bytes(f'Existing {relative}\r\n'.encode())
     before = {relative: (brain / relative).read_bytes() for relative in authored}
-    for relative in ('DOTBRAIN.md', 'docs/README.md', 'site/configure.md'):
+    for relative in ('DOTBRAIN.md', 'docs/README.md'):
         (brain / relative).write_text('old managed\n', encoding='utf-8')
     result = workflows.refresh_project(home, 'custom')
     assert not result.errors
     assert {relative: (brain / relative).read_bytes() for relative in authored} == before
-    assert set(result.targets[0].data['shared_brain_changes']) == {'DOTBRAIN.md', 'docs/README.md', 'site/configure.md'}
+    assert set(result.targets[0].data['shared_brain_changes']) == {'DOTBRAIN.md', 'docs/README.md'}
     assert workflows.refresh_project(home, 'custom').logs == []
 
 

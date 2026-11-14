@@ -295,8 +295,6 @@ def wire_project(
             and not (brainspace / ".beads").exists()):
         # a worktree attachment never syncs the shared tracker; refresh syncs it and attaches .beads
         result.warnings.append("shared tracker is not synced; run `dotbrain refresh` to sync it and attach .beads")
-    if paths.INJECT_ADOPTER_POINTER:
-        result.warnings += adopter_repos.ensure_agent_context_pointer(resolved_repo)
     expected_links = (".brain",)
     if config.load_project_config(dotbrain_home, project).mode != "none" and (brainspace / ".beads").exists():
         expected_links += (".beads",)

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, site, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -56,7 +56,7 @@ def _check_dotbrain_config(root: Path) -> Finding:
 
 
 def _check_templates(root: Path) -> Finding:
-    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/AGENTS.md").is_file()
+    return (Finding("ok", "package templates/brain present") if resource_loader.resource("templates/brain/DOTBRAIN.md").is_file()
             else Finding("error", "package templates/brain missing", "reinstall dotbrain"))
 
 
@@ -234,13 +234,25 @@ def _check_convention(brainspace: Path) -> list[Finding]:
         return [Finding("info", f"Brain convention check skipped: input unavailable: {exc}")]
 
 
+def _field(source: str, name: str) -> str | None:
+    match = re.match(r"---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", source, re.S)
+    if not match:
+        return None
+    try:
+        data = yaml.safe_load(match.group(1))
+    except yaml.YAMLError:
+        return None
+    value = data.get(name) if isinstance(data, dict) else None
+    return str(value).strip() if value is not None else None
+
+
 def _check_design_lifecycle(brainspace: Path, mode: str, run: Runner) -> list[Finding]:
     try:
         directory = brainspace / ".brain/designs"
         if not directory.is_dir():
             return [Finding("info", "design lifecycle check skipped: designs directory unavailable")]
         active = [path for path in sorted(directory.glob("*.md"))
-                  if site._field(path.read_text(encoding="utf-8"), "lifecycle") == "active"]
+                  if _field(path.read_text(encoding="utf-8"), "lifecycle") == "active"]
         if not active:
             return [Finding("info", "design lifecycle check: no active designs")]
         if mode == "none" or not (brainspace / ".beads/metadata.json").is_file():
@@ -438,22 +450,6 @@ def _check_repo_excludes(repo: Path, entries: tuple[str, ...] = paths.EXCLUDE_EN
     return [Finding("error", f"{exclude}: missing {entry}", "run dotbrain refresh") for entry in entries if entry not in present]
 
 
-def _check_agent_pointer(repo: Path) -> list[Finding]:
-    return [Finding("warn", f"{repo / name}: missing dotbrain pointer", "run dotbrain refresh")
-            for name in ("AGENTS.md", "CLAUDE.md") if (repo / name).is_file()
-            and ".brain/AGENTS.md" not in (repo / name).read_text(encoding="utf-8")]
-
-
-def _check_brain_site(brainspace: Path, *, run: Runner = _default_run) -> list[Finding]:
-    if not (brainspace / ".brain/site").is_dir():
-        return []
-    try:
-        run_cache.get(("node", run), lambda: site.check_node(lambda argv, **kwargs: run(argv, timeout=PROBE_TIMEOUT, **kwargs)))
-        return [Finding("ok", "Brain site: Node available")]
-    except (site.SiteError, OSError, subprocess.SubprocessError) as exc:
-        return [Finding("warn", f"Brain site: {exc}", f"install Node {site.MIN_NODE_TEXT} or later to run dotbrain site")]
-
-
 def _probe(argv: list[str], brainspace: Path, run: Runner, label: str) -> Finding:
     try:
         response = run(argv, cwd=brainspace, check=False, timeout=PROBE_TIMEOUT, env=beads._beads_env(brainspace))
@@ -588,8 +584,6 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
             findings.extend(_check_repo_excludes(repo, tuple(entries), run=run))
         except DIAGNOSIS_ERRORS as exc:
             findings.append(Finding("error", f"Git exclusions unavailable: {exc}", "check Git metadata"))
-        if paths.INJECT_ADOPTER_POINTER:
-            findings.extend(_check_agent_pointer(repo))
         for workspace in workspaces:
             rt = runtimes.for_workspace(workspace)
             directory = runtimes.user_dir(rt, home or Path.home())
@@ -606,7 +600,6 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                 findings.extend(_check_home_plugin(rt, root))
                 findings.extend(_check_cursor_hooks(home or Path.home()))
     findings.extend(_check_beads_state(target.brainspace, target.project, root, run=run))
-    findings.extend(_check_brain_site(target.brainspace, run=run))
     return findings
 
 

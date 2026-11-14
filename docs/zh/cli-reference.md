@@ -36,10 +36,6 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`beads list-db`](#dotbrain-beads-list-db) | 列出远程数据库标识，包括没有对应 Brainspace 的数据库。 |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | 显式删除一个远程数据库；从不根据当前项目推断。 |
 | [`sync`](#dotbrain-sync) | 把 dotbrain home 里未提交的改动记录为同步提交，整合上游，然后推送。 |
-| [`site init`](#dotbrain-site-init) | 为 Brain 创建站点：生成 .brain/site/，包含 site.yaml、首页和使用手册。 |
-| [`site dev`](#dotbrain-site-dev) | 在本地（127.0.0.1）运行 Brain 站点，带热更新。 |
-| [`site build`](#dotbrain-site-build) | 构建 Brain 站点；导航链接到不存在的页面时失败。 |
-| [`site preview`](#dotbrain-site-preview) | 在本地（127.0.0.1）运行上一次的构建结果。 |
 | [`hook session-start`](#dotbrain-hook-session-start) | 先同步 home（最多等 10 秒），再输出已连接仓库的 Brain 上下文。 |
 | [`hook stop`](#dotbrain-hook-stop) | 在后台启动一次只推送的 home 同步，立即返回。 |
 | [`hook session-end`](#dotbrain-hook-session-end) | 在后台启动一次完整的 home 同步，立即返回。 |
@@ -348,65 +344,6 @@ dotbrain sync [OPTIONS]
 | `--push-only` | — | 记录并推送，不 fetch remote。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果。 |
-
-## Brain 站点 {#brain-site}
-
-创建和运行 Brain 的私有站点。见 [Brain 站点](brain-site.md)。
-
-### `dotbrain site init` {#dotbrain-site-init}
-
-为 Brain 创建站点：生成 .brain/site/，包含 site.yaml、首页和使用手册。
-
-```text
-dotbrain site init [OPTIONS]
-```
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--project` *text* | — | 选择一个指定的 Brainspace。 |
-| `--title` *text* | — | 站点标题。默认是 '&lt;name&gt; Brain'。 |
-| `--home` *path* | — | 覆盖私有数据目录。 |
-| `--json` | — | 输出一个结构化结果。 |
-
-### `dotbrain site dev` {#dotbrain-site-dev}
-
-在本地（127.0.0.1）运行 Brain 站点，带热更新。
-
-```text
-dotbrain site dev [OPTIONS]
-```
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--project` *text* | — | 选择一个指定的 Brainspace。 |
-| `--home` *path* | — | 覆盖私有数据目录。 |
-
-### `dotbrain site build` {#dotbrain-site-build}
-
-构建 Brain 站点；导航链接到不存在的页面时失败。
-
-```text
-dotbrain site build [OPTIONS]
-```
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--project` *text* | — | 选择一个指定的 Brainspace。 |
-| `--home` *path* | — | 覆盖私有数据目录。 |
-| `--json` | — | 输出一个结构化结果。 |
-
-### `dotbrain site preview` {#dotbrain-site-preview}
-
-在本地（127.0.0.1）运行上一次的构建结果。
-
-```text
-dotbrain site preview [OPTIONS]
-```
-
-| 选项 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--project` *text* | — | 选择一个指定的 Brainspace。 |
-| `--home` *path* | — | 覆盖私有数据目录。 |
 
 ## 内部命令 {#internal}
 

@@ -59,7 +59,7 @@ note.
 For epic scope use `bd swarm validate <epic>` and `bd swarm status <epic>`, never
 `bd swarm create`. Keep live assignments, pending joins, and next steps in this session.
 
-Stop for missing authorized scope or required checks. Exclude `learn:` beads.
+Stop for missing authorized scope or required checks.
 Keep human-gated items in scope and their dependents waiting. A missing required
 capability blocks execution: worktree isolation for concurrent writers, a distinct Beads
 actor per worker, or an independent reviewer when review is required. Stop and report;
@@ -72,6 +72,13 @@ permissions and actor rules. Worker startup is defined only
 in the [worker role contract](references/worker.md). An unwired linked
 worktree needs no tracker preparation. Runtimes start worktrees from different commits, so
 never rely on where one began.
+
+Record useful understanding through
+[work intake's discovery rule](../manage-work-graph/references/work-intake.md#discovery-rule-during-execution)
+as it settles, including evidence, applicability, remaining hypotheses, and next work.
+The lead owns durable updates; read-only findings and worker reports feed that writer.
+Recording verified facts needs no routine permission and does not authorize a new decision,
+scope expansion, criteria change, or closure.
 
 For code work, keep the delivery branch at its last accepted revision. Work and repairs
 stay on an isolated candidate branch even with one writer; the sole writer may use the

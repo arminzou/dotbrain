@@ -3,6 +3,10 @@
 This directory is the public docs site: VitePress, deployed to GitHub Pages by
 `.github/workflows/docs.yml` on every push to `main` that touches `docs/`.
 
+Before creating or revising guidance agents consume, read the shared
+[writing reference](../plugin/skills/curate-project-context/references/writing.md).
+For VitePress-specific syntax, read the [page guide](../plugin/skills/curate-project-context/references/vitepress.md).
+
 ```bash
 cd docs && npm ci && npm run dev     # preview with live reload
 npm run build                        # must pass before a push
@@ -17,8 +21,10 @@ npm run build                        # must pass before a push
   ``## `config.yaml` `` and ``## `project.yaml` `` through the real config loader. Keep those
   headings exact, keep the fences plain ```` ```yaml ````, and keep every key the test reads.
 - `zh/` holds the Simplified Chinese pages, one per English page with the same file name. They are
-  hand-maintained, best effort: write natural Chinese, keep commands, code, diagrams and terms
-  developers know in English (Agent, Coding Agent, PR, worktree, checkout) as is. When translating a
+  hand-maintained, best effort: preserve the English facts and structure, using short, natural
+  Chinese sentences rather than literal translations or stacked passives. Keep commands, code,
+  diagrams and terms developers know in English (Agent, Coding Agent, PR, gitignore, worktree,
+  checkout, thread) as is. When translating a
   heading that is a link target, keep the English slug with `{#english-slug}`. `zh/cli-reference.md`
   is a hand translation, not generated. Chinese nav and sidebar live under `locales.zh` in
   `.vitepress/config.mts`.
@@ -32,7 +38,7 @@ npm run build                        # must pass before a push
 ## Diagrams
 
 Follow the dotbrain Mermaid guide,
-[`plugin/skills/brain-site/references/mermaid.md`](../plugin/skills/brain-site/references/mermaid.md):
+[`plugin/skills/curate-project-context/references/mermaid.md`](../plugin/skills/curate-project-context/references/mermaid.md):
 diagram type, label style (bold name over a plain line, italic paths, verb arrow labels), fit, and
 pitfalls. It is the convention for every project dotbrain wires; this site follows it too.
 

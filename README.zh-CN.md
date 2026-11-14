@@ -102,6 +102,11 @@ dotbrain doctor
 
 ### 更新
 
+插件提供 14 个核心 skills，包括 `triage-public`，无需选择私有来源。
+`brain-site`、`teach-me` 和 `review-architecture` 已退役，`dotbrain site` 命令组也已移除。
+已有用户文件和缓存保持原样。移除的命令和如何按需清理重复的私有 skill 选择，
+见 [skill 集合升级说明](docs/zh/getting-started.md#skill-set-upgrade)。
+
 使用 Claude Code 或 Codex 时，插件和 CLI 需要一起更新。在 Claude Code 中运行 `/plugin`，从菜单中更新 dotbrain，
 再运行 `/reload-plugins`。Codex 则运行：
 
@@ -153,9 +158,10 @@ Hermes、OpenCode、Pi 和 Cursor CLI 支持 skills 和会话集成，但 Dotbra
 Lead 或独立完成任务的 Agent 会按任务检索私有复盘记录，并将相关发现随任务说明交给 worker 和 reviewer，
 无需在会话启动时加载整份复盘笔记。
 
-新建 Brain 时会生成私有的 `AGENTS.md`，用于保存少量个人偏好和项目私有规则，
-`CLAUDE.md` 则是指向它的符号链接。Agent 会在开始实质工作前读取这些内容，而非在会话启动时自动加载。
-`wire` 和 `refresh` 会保留已有内容，以及指向其他上下文文档的引用。仓库的公共要求写在公开的 `RULES.md` 中，个人偏好则保留在私有空间。
+新建 Brain 不再生成私有的 `AGENTS.md` 和 `CLAUDE.md`，也不再将它们作为指令入口。
+`wire` 和 `refresh` 会保留旧文件和已有的上下文引用，但不会要求它们存在，也不会重新生成。
+删除旧文件前，先按内容归属迁移有用的信息：仓库要求放在公开的 `RULES.md`，私有知识留在 Brain。
+个人偏好不会因此自动变成所有贡献者都要遵守的公共要求。
 加载顺序见[会话上下文](https://arminzou.github.io/dotbrain/zh/session-context)。
 
 `dotbrain projects list` 可以列出已注册的项目。在已连接的 checkout 里，

@@ -152,22 +152,24 @@ def _dotbrain_home_seed(tmp_path_factory: pytest.TempPathFactory) -> Path:
         "brain/run-execution",
         "brain/manage-work-graph",
         "brain/review-gate",
-        "brain/teach-me",
         "brain/find-unknowns",
         "brain/run-retro",
         "brain/to-design",
-        "brain/brain-site",
         "brain/close-design",
         "brain/to-issues",
-        "brain/triage-public",
         "brain/curate-project-context",
-        "brain/review-architecture",
         "brain/grill-decisions",
         "brain/wire-brain",
-        "brain/write-agent-docs",
+        "brain/triage-public",
     ):
         name = Path(skill).name
         shutil.copytree(plugin_skills_root / name, root / "skills" / skill)
+    custom = root / "skills" / "custom" / "example-workflow"
+    custom.mkdir(parents=True)
+    (custom / "SKILL.md").write_text(
+        "---\nname: example-workflow\ndescription: Synthetic custom skill for selection tests.\n---\n",
+        encoding="utf-8",
+    )
     skill_dir = root / "skills" / "misc" / "discovery-test"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("# discovery-test\n")

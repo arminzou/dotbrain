@@ -42,5 +42,20 @@ Once an initiative is design-linked:
 - design-linked work items should link back with `--spec-id design:<slug>` instead of copying the
   initiative design into bead `--design`
 
-If implementation reveals something that changes the design story, update the active design doc. If
-the discovery is only item-local execution detail, keep it in the bead.
+The lead records verified discoveries, resolved unknowns, and outcomes without routine approval.
+Update the active design when they change the initiative story; keep item-local execution detail
+in the bead. Delegated workers return findings and evidence in their item comments; they do not
+gain permission to edit the graph or active design.
+
+Keep the observation and its evidence, the revision/environment where it applies, and any inference
+or unresolved hypothesis distinguishable. Resolve an unknown only to the extent the evidence
+settles it; retain remaining uncertainty and its next action. Record proposals as proposals,
+including the decision still needed. Observed behavior does not replace an accepted decision.
+New consequential product/architecture decisions and scope, criteria, or authority changes retain
+their human gates; reuse applicable approval without asking again.
+
+Durable vocabulary belongs in `CONTEXT.md`, accepted decision rationale in ADRs through
+`grill-decisions`, and derived explanations or runbooks in `.brain/docs/`. Use those existing
+owners and formats when the finding belongs beyond the initiative; do not copy execution state
+into them. Context curation keeps its Check/Fix authority boundary. Transferable practices remain
+retro candidates in work records under `run-execution`; only `run-retro` writes `RETRO.md`.

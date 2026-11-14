@@ -9,9 +9,10 @@ can send as they are, or adapt, for the common jobs. Each one says when to use i
 triggers, and where the step is explained.
 
 You do not have to name a skill: describing the job is usually enough for the agent to pick it.
-Naming the skill makes the choice certain. The skills `review-architecture`, `run-retro`,
-`teach-me`, and `brain-site` never start on their own; invoke them explicitly, for example `/dotbrain:run-retro` in Claude
-Code.
+For an explicit choice, use the name exposed by your runtime. The packaged `run-retro` never
+starts on its own; invoke it explicitly, for example `/dotbrain:run-retro` in Claude Code, or
+select it from the Codex skill picker. All skills named below ship with the plugin;
+see [the catalog](skills.md).
 
 ## Set Up
 
@@ -242,52 +243,7 @@ are `code` (correctness), `simplify`, and `readiness` (is a subsystem sound enou
 **When:** an initiative ships, is abandoned, or is superseded. Also for sweeping designs that
 never closed out. **Skill:** `close-design`. See [The workflow](workflow.md#_7-close-the-design).
 
-## Learn
-
-To start or continue learning, first invoke `/dotbrain:teach-me` in Claude Code or `$teach-me`
-in Codex. Parking a question needs no invocation.
-
-### Start learning a topic
-
-```text
-Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
-```
-
-**When:** you want to understand part of the project, not just get an answer. **Skill:**
-`teach-me`. See [Learning your project](learning.md).
-
-### Continue a learning path
-
-```text
-Continue my learning path on retries. Read my progress and learning records, then resume the next step.
-```
-
-**When:** picking up learning in a new session. **Skill:** `teach-me`. See
-[Learning your project](learning.md#walk-a-learning-path).
-
-### Park a question for later
-
-```text
-Park this for learning: why does retrying this operation require an idempotency key?
-```
-
-**When:** a question comes up mid-task and you do not want to switch into teaching now.
-**Skill:** `manage-work-graph`. See [Learning your project](learning.md#park-a-question-while-working).
-
 ## Maintain the Brain
-
-### Set up or fix the Brain site
-
-```text
-Set up a Brain site for this project and put the runbooks in the sidebar.
-```
-
-```text
-dotbrain site build fails. Find the cause and fix it.
-```
-
-**When:** you want to read the Brain in a browser, rearrange its sidebar, or repair a failed build.
-**Skill:** `brain-site`. See [Brain site configuration](brain-site-configuration.md).
 
 ### Check context health
 
@@ -302,15 +258,17 @@ public/private boundary. It reports by default and fixes only what you ask. **Sk
 ### Write or edit agent-facing docs
 
 ```text
-Use write-agent-docs to tighten this project's AGENTS.md.
+Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
 ```
 
 **When:** creating or editing `AGENTS.md`, Brain context, design docs, skills, or public docs agents
-rely on. **Skill:** `write-agent-docs`.
+rely on. **Guidance:** `curate-project-context/references/writing.md` and its linked syntax guides.
+For context repairs, use `curate-project-context` in fix mode.
 
 ### Triage public issues
 
-Ask for triage, or invoke `/dotbrain:triage-public` in Claude Code or `$triage-public` in Codex, then give the scope:
+Ask for triage or invoke the packaged `triage-public` using the name exposed by your runtime,
+then give the scope. No private source or `skills:` selection is required:
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.
@@ -318,16 +276,8 @@ Triage the open GitHub issues and promote the accepted ones into our work graph.
 
 **When:** the project takes public issues and you want them classified, reproduced, and brought
 into private execution. Requires `public-tracker` in [`project.yaml`](configuration.md#project-yaml).
-**Skill:** `triage-public`.
-
-### Look for architecture improvements
-
-```text
-/dotbrain:review-architecture
-```
-
-**When:** you want a review of the codebase for deepening opportunities, informed by the Brain's
-vocabulary and ADRs. **Skill:** `review-architecture`, explicit only.
+**Skill:** `triage-public`. Public mutations require applicable authorization; private work
+never generates public tracking issues.
 
 ## Related
 

@@ -1,7 +1,9 @@
 # Skills
 
-The dotbrain plugin delivers its Brain-coupled skills: the operating manual for a wired project.
-They cover wiring, planning, execution, triage, and Brain maintenance. Several are inspired by and adapted
+The dotbrain plugin delivers 14 core skills: the operating manual for a wired project.
+They cover wiring, project understanding, planning, public issue intake, execution, review,
+and Brain maintenance.
+The core works without separately supplied skills. Several are inspired by and adapted
 from [mattpocock/skills](https://github.com/mattpocock/skills).
 
 [The workflow](workflow.md) shows how they fit together.
@@ -10,6 +12,8 @@ Skill linking is operator-managed:
 
 - global skills are selected in `~/dotbrain/config.yaml`
 - per-project skills are selected in `brainspaces/<name>/.brain/project.yaml`
+
+These selections add user-supplied sources; they do not change the plugin's packaged inventory.
 
 ## Select and reconcile skills
 
@@ -68,7 +72,7 @@ declaration stays unchanged. Removed owned links are pruned, while foreign entri
 ## Core workflow
 
 Wire, decide, design, decompose, execute, review, close, and curate project context.
-`write-agent-docs` supports the workflow with writing guidance and remains model-invocable.
+`curate-project-context` owns the shared writing and syntax references used by the workflow.
 
 ### Setup
 
@@ -101,6 +105,15 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   implement, verify, reflect, deliver through a draft pull request that becomes ready for your
   review, and stop on success or blocked
 
+### Public issue intake
+
+- **`triage-public`** — classify and reproduce public issues, clarify scope with reporters, and
+  promote accepted work inward into private execution with a reference to its public origin.
+  It ships with the plugin and needs no private source or `skills:` selection. Set
+  `public-tracker` in [project configuration](configuration.md#project-yaml) to use public intake;
+  public mutations still require applicable authorization. Private work never generates public
+  tracking issues.
+
 ### Review and curate
 
 - **`review-gate`** — review code, simplification opportunities, or readiness for delivery, and record the
@@ -108,34 +121,22 @@ Wire, decide, design, decompose, execute, review, close, and curate project cont
   evidence covers the commit being accepted and each finding has a recorded outcome. Human PR approval, merge and release remain separate
 - **`curate-project-context`** — find and repair stale, duplicated, misplaced, unreachable, or
   leaking context across the public project and private Brain
-- **`write-agent-docs`** — writing discipline for public project docs, private Brain material,
-  user-owned skills, and guidance agents reach through pointers
+- Shared writing guidance lives in `curate-project-context/references/writing.md`, with linked
+  VitePress and Mermaid guides. The former `write-agent-docs` entrypoint is absorbed into these
+  references; use them directly when writing public docs, private Brain material, or skills.
 
-## Optional skills invoked by name
+## Convention and retrospectives {#optional-skills-invoked-by-name}
 
-These skills are included with Dotbrain. In Claude Code, use `/dotbrain:<name>`; in Codex, use `$<name>`.
-`dotbrain` and `triage-public` also start when you ask for them in words; the others run only by name.
+These two skills complete the 14-skill core. In Claude Code, use `/dotbrain:<name>`. In Codex,
+select the skill from the picker and use the name exposed by the installed runtime; an
+unqualified `$<name>` is not confirmed for plugin delivery. `dotbrain` also starts from a
+request in words. `run-retro` remains explicit-only in both Claude Code and Codex metadata.
 
 - **`dotbrain`** — the operating convention itself. The session-start hook injects it
   automatically; in runtimes where the hook does not run, ask for it or invoke it by name.
 - **`run-retro`** — collect lessons from work and review records, or check whether those lessons
   improved later behavior. Invoke it manually or through a schedule you configure. Suggestions
   stay private by default; see [Retrospectives](#retrospectives).
-- **`triage-public`** — classify public tracker items and promote ready work into private execution
-- **`review-architecture`** — find opportunities to simplify interfaces and encapsulate implementation complexity within modules
-
-### Brain Site
-
-- **`brain-site`** — explicitly invoke to set up, maintain, build, or preview a Brain's private
-  site with `dotbrain site`, including sidebar, theme, and rendering checks
-
-### Learning
-
-See [Learning your project](learning.md) for learning paths, parked concepts, and session continuity.
-
-- **`teach-me`** — teach the operator their project from its Brain over many sessions: explain in
-  conversation, walk a learning path tracked as a `learn:` bead, record what was demonstrated, and
-  capture approved lessons into `.brain/learning/`
 
 ## Subagents
 
@@ -149,7 +150,7 @@ Custom subagents selected under `subagents:` in `config.yaml` use the same defau
 
 ## Installing Them
 
-For Claude Code and Codex, the skills arrive with the marketplace plugin, installed once per runtime on each machine rather than per repo. See
+For Claude Code and Codex, the 14 core skills arrive with the marketplace plugin, installed once per runtime on each machine rather than per repo. See
 [getting-started.md](getting-started.md) for the install commands. Because the plugin installs at
 user scope, its skills are available in every session, including repos that are not wired yet.
 
@@ -213,8 +214,9 @@ Public auto-delivery is off by default: suggestions stay private for your decisi
 `retro.promotion.auto-deliver: true` and an existing repo-relative `destinations` array in
 private project configuration to authorize unattended commit/push/PR delivery. Otherwise
 authorize individual proposals. It reads PR/merge state read-only to reconcile acceptance;
-approval and merge remain human-owned. An adopted `RULES.md` uses `Rule` / `What to check`
-tables; other guides retain their conventions. Rule proposals have run-retro's own PR process
+approval and merge remain human-owned. Existing rules and guides retain their format.
+A root `RULES.md` without an established format uses `Rule` / `How to apply` tables
+grouped by work area. Rule proposals have run-retro's own PR process
 and body, independent of the `pr` skill used for ordinary changes.
 ### First use and scope
 

@@ -1,12 +1,12 @@
 # Writing within dotbrain
 
 Dotbrain gives agent-consumed writing three visibility surfaces. The writing principles in
-[`SKILL.md`](../SKILL.md) apply to all three; placement and authority differ.
+[Writing for agents](writing.md) apply to all three; placement and authority differ.
 
 | Surface | Typical documents | Constraint |
 |---|---|---|
 | Public project repository | `AGENTS.md`, `CLAUDE.md`, README, architecture, contributor and referenced project docs | Must remain useful without access to the private Brain and contain no private Brain material |
-| Private project Brain | `AGENTS.md`, `DOTBRAIN.md`, `CONTEXT.md`, ADRs, designs, `RETRO.md`, and `.brain/docs/` | Private rules/preferences, shared operations, vocabulary, decisions, findings, and design history |
+| Private project Brain | `DOTBRAIN.md`, `CONTEXT.md`, ADRs, designs, `RETRO.md`, and `.brain/docs/` | Shared operations, vocabulary, decisions, findings, and design history |
 | User data root | Skills under `$DOTBRAIN_HOME/skills/` and their references | Follow the nearest authoring policy; linking and invocation remain explicit operator choices |
 
 Public and private documents may point across the boundary only through the public-safe convention
@@ -15,9 +15,8 @@ publicly necessary reasoning without leaking private paths, identifiers, or oper
 
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md` and task-specific
 references. Shared `DOTBRAIN.md` owns private retrieval; the lead or sole agent searches the
-retrospective for relevant findings and passes them through assignments. Private `.brain/AGENTS.md`
-holds a small set of personal preferences and private project rules, with `CLAUDE.md` as its alias.
-Keep repository requirements in public `RULES.md` and preserve private preferences privately.
+retrospective for relevant findings and passes them through assignments. Keep repository requirements
+in public `RULES.md`.
 
 Use dotbrain's specialized workflows when the task changes structure or lifecycle:
 
@@ -27,7 +26,7 @@ Use dotbrain's specialized workflows when the task changes structure or lifecycl
 - `grill-decisions` resolves contested terminology and durable decisions; other active workflows
   may write already-settled vocabulary or promote their own residue using the established formats.
 
-Those workflows determine what belongs in a document and when it changes. The parent skill
+Those workflows determine what belongs in a document and when it changes. The writing reference
 determines how the resulting writing retrieves cleanly, directs action, and remains maintainable.
 
 ## Section contract for dotbrain skills

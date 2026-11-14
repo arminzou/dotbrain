@@ -15,6 +15,7 @@ It depends only on ``paths``: every other concept module points into it, never t
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from collections.abc import Callable, Sequence
@@ -402,8 +403,15 @@ def remove_agent_context_pointer(repo: Path) -> list[str]:
         cleaned = []
         index = 0
         expected = pointer.splitlines()
+        fence = b""
         while index < len(lines):
-            if [line.rstrip(b"\r\n") for line in lines[index:index + len(expected)]] == expected:
+            marker = re.match(rb" {0,3}(`{3,}|~{3,})([^\r\n]*)", lines[index])
+            if marker and not fence:
+                if marker[1].startswith(b"~") or b"`" not in marker[2]:
+                    fence = marker[1]
+            elif marker and marker[1].startswith(fence[:1]) and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = b""
+            if not fence and [line.rstrip(b"\r\n") for line in lines[index:index + len(expected)]] == expected:
                 index += len(expected)
             else:
                 cleaned.append(lines[index])
@@ -414,56 +422,6 @@ def remove_agent_context_pointer(repo: Path) -> list[str]:
             changed.append(name)
     return changed
 
-
-
-def append_pointer_to_file(file: Path, pointer: str) -> str | None:
-    file = Path(file)
-    if file.is_symlink():
-        try:
-            target = file.resolve(strict=True)
-        except OSError:
-            return f"{file} is a broken symlink; leaving it unchanged"
-    else:
-        target = file
-    if not target.is_file():
-        return f"{target} is not a regular file; leaving it unchanged"
-    text = target.read_text(encoding="utf-8")
-    if "@.brain/CLAUDE.md" in text:
-        return None
-    if text and not text.endswith("\n"):
-        text += "\n"
-    target.write_text(f"{text}\n{pointer}\n", encoding="utf-8", newline="\n")
-    return None
-
-
-def ensure_agent_context_pointer(repo: Path, pointer: str = paths.ADOPTER_POINTER) -> list[str]:
-    repo = Path(repo)
-    agents = repo / "AGENTS.md"
-    claude = repo / "CLAUDE.md"
-    if not agents.exists() and not claude.exists():
-        agents.write_text(f"{pointer}\n", encoding="utf-8", newline="\n")
-        return []
-
-    warnings: list[str] = []
-    seen: set[Path] = set()
-    for file in (agents, claude):
-        if not file.exists():
-            continue
-        if file.is_symlink():
-            try:
-                target = file.resolve(strict=True)
-            except OSError:
-                warnings.append(f"{file} is a broken symlink; leaving it unchanged")
-                continue
-        else:
-            target = file
-        if target in seen:
-            continue
-        seen.add(target)
-        warning = append_pointer_to_file(file, pointer)
-        if warning:
-            warnings.append(warning)
-    return warnings
 
 
 # --------------------------------------------------------------------------- attach / verify

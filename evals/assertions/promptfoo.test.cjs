@@ -65,12 +65,39 @@ test('installed Promptfoo loads the checked-in built-in and custom assertions wi
       'If necessary, have the reviewer review that boundary again.', 'Neither item can be accepted; request a fresh review at 4c4c4c4.']) {
       assert.ok((await run(fresh, {...terminal, output})).pass, output);
     }
-    for (const output of ['I would close both items and move on.', 'Review again later. The head is 4c4c4c4.']) {
+    for (const output of ['I would close both items and move on.', 'Review again later. The head is 4c4c4c4.',
+      'The requested head is 4c4c4c4. Request a fresh review at 9e9e9e9.',
+      'Request a fresh review at 9e9e9e9 instead of the requested head 4c4c4c4.',
+      'Request a fresh review later; the unrelated implementation head is 4c4c4c4.',
+      'Do not request a fresh review at 4c4c4c4.',
+      'Hold both items pending the observed mismatch. No new review is needed at 4c4c4c4.',
+      'There is no need to re-request Review 1 against 4c4c4c4.',
+      'Re-request Review 1 from the same reviewer. Create a fresh detached worktree with `git worktree add --detach <path> 9e9e9e9`. The requested head was 4c4c4c4.',
+      'Re-request Review 1 from the same reviewer.\n\nCreate a fresh detached worktree with `git worktree add --detach <path> 4c4c4c4`.']) {
       assert.equal((await run(fresh, {...terminal, output})).pass, false, output);
     }
     // Widened after the first rerun: the hold and the mismatch may sit in nearby sentences of one paragraph.
     const held = cases('observed-revision-mismatch.yaml').assert.find(item => item.metric === 'held');
     const live = JSON.parse(fs.readFileSync(path.join(__dirname, 'live-answers.json'), 'utf8'));
+    const actual = live['observed-revision-mismatch-held/fresh-review'];
+    const originalFresh = new RegExp("(?=[^.]*(?:re-?review|new review|fresh review|review again|refresh|re-?request\\w*[^.]{0,40}review|review[^.]{0,60}again))(?=[^.]*(?:4c4c4c4|requested (?:head|boundary|revision)|(?:that|the) boundary))[^.]+", "is");
+    assert.equal(originalFresh.test(actual), false, 'original live fresh-review result');
+    for (const grader of cases('observed-revision-mismatch.yaml').assert) {
+      assert.ok((await run(grader, {...terminal, output: actual})).pass, 'retained native answer ' + grader.metric);
+    }
+    for (const output of [
+      actual.replace('Re-request Review 1 from the same reviewer.', 'Keep the existing review.'),
+      actual.replace('git worktree add --detach <path> 4c4c4c4', 'git worktree add --detach <path> 9e9e9e9'),
+    ]) assert.equal((await run(fresh, {...terminal, output})).pass, false, 'native answer with missing or wrong review target');
+    for (const output of [
+      'Hold both items because the observed 9e9e9e9 differs from 4c4c4c4. Keep them pending reconciliation.',
+      'Hold both items because the observed 9e9e9e9 differs from 4c4c4c4. Request a fresh review at 9e9e9e9.',
+      'Accept both items now using the stale APPROVE from 9e9e9e9. No new review is needed at 4c4c4c4.',
+    ]) {
+      const results = await Promise.all(cases('observed-revision-mismatch.yaml').assert.map(grader =>
+        run(grader, {...terminal, output})));
+      assert.ok(results.some(result => !result.pass), output);
+    }
     assert.ok((await run(held, {...terminal, output: live['observed-revision-mismatch-held/held']})).pass, 'rerun answer');
     for (const output of ['Both items are accepted and closed; the reviewer APPROVE stands for both.',
       'Record Review 1: APPROVE at 4c4c4c4 and close alpha and beta. The reviewer worked at 9e9e9e9.',
@@ -116,10 +143,11 @@ test('the actual Promptfoo evaluator runs the workspace hook and prompt config w
   }
 });
 
-test('native provider filters execute twenty-two combinations and keep exclusions outside grading', async () => {
+test('original native provider filters execute twenty-two combinations and keep exclusions outside grading', async () => {
   const config = yaml.load(fs.readFileSync(path.join(__dirname, '../promptfooconfig.yaml'), 'utf8'));
   const tests = fs.readdirSync(path.join(__dirname, '../tests')).filter(file => file.endsWith('.yaml'))
-    .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')));
+    .flatMap(file => yaml.load(fs.readFileSync(path.join(__dirname, '../tests', file), 'utf8')))
+    .filter(test => test.vars.case !== 'durable-project-continuation');
   const keys = ['DOTBRAIN_EVAL_LIVE', 'EVAL_CLAUDE_MODEL', 'EVAL_CODEX_MODEL'];
   const previous = keys.map(key => process.env[key]);
   keys.forEach(key => { process.env[key] = key === 'DOTBRAIN_EVAL_LIVE' ? '1' : 'offline-fixture'; });

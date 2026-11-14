@@ -210,7 +210,7 @@ def render_operation(result, *, preview: bool = False) -> None:
             if len(groups) > 1:
                 line(output, name, HEADING_STYLE, indent=2)
             for change in changes:
-                line(output, change, "cyan" if result.command == "site build" else "", checkout=target.checkout, indent=4 if len(groups) > 1 else 2)
+                line(output, change, checkout=target.checkout, indent=4 if len(groups) > 1 else 2)
         if target.data and target.data.get("pre_count") is not None:
             line(output, f"Issues before: {target.data['pre_count']}; after: {target.data['post_count']}", "dim", indent=2)
         if not target.changes and not target.errors and not target.findings:

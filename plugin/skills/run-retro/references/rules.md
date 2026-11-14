@@ -24,10 +24,42 @@ Use these areas as discovery prompts, not a template to fill:
 
 Create no category or rule merely to complete this list. During initialization, discover
 existing guidance and record its links; do not copy standards into retrospective findings.
-A new `RULES.md` comes only from the repository-scope [rules file offer](retro.md) and holds
+A `RULES.md` initialized outside this retrospective is an existing baseline, not a
+template to reset. Read it and relevant linked guidance before proposing additions
+or amendments, regardless of how it was initialized. Use the repository's adopted
+rules; no external default collection or skill is required.
+Within this skill, a new `RULES.md` comes only from the repository-scope [rules file offer](retro.md) and holds
 only requirements existing guidance already states, never an invented comprehensive set. Existing adopted requirements need no
 retrospective evidence. During later retrospectives, propose a specific addition or amendment only
 from supported findings under [promotion](promotion.md); a proposal is not adoption.
+
+## Distill repository-specific rules
+
+For each supported finding, identify the repository condition that caused the problem,
+the decision a future contributor must make differently, and how to recognize correct
+application. Express the durable requirement using repository concepts. Keep incident
+history and supporting evidence in the private finding.
+
+Prefer correcting the owning design or adding reliable enforcement when appropriate.
+Suggest those interventions through [promotion](promotion.md); do not implement them
+from a retrospective. Written rules explain remaining decisions or constraints.
+
+Compare the finding with accepted rules, relevant guides, existing enforcement, and
+open proposals by meaning:
+
+| Existing coverage | Action |
+| --- | --- |
+| Guidance or enforcement already addresses the concrete decision and its application. | Add no rule. Investigate discovery, compliance, or enforcement gaps instead. |
+| A baseline rule applies but lacks necessary repository-specific detail. | Propose an amendment to its application guidance, using `How to apply` where that format is adopted. |
+| The finding establishes a distinct repository-specific constraint. | Propose a new row in the relevant work area. |
+| The finding conflicts with an adopted requirement or lacks sufficient evidence. | Keep it unresolved and surface the conflict or evidence gap. |
+
+A broad principle is not sufficient coverage when it leaves the concrete decision open.
+For example, "respect component boundaries" does not specify which dependencies are
+forbidden. Discover the actual boundary, supported interface, and available check before
+proposing details. Preserve baseline protections and unrelated repository requirements;
+do not turn an incident-specific workaround into a permanent requirement without
+establishing why the constraint remains necessary.
 
 ## Placement and detail
 
@@ -41,15 +73,15 @@ delivery requires the agreed destination and authority.
 
 Use the repository's agreed public destination for repository requirements. Preserve an
 existing standards or contributor guide's format; do not impose a new filename or table
-structure on it. For an explicitly adopted root `RULES.md`, group rules by work area and use
-`Rule` / `What to check` tables. State the applicable trigger and required behavior in the
-rule; give an observable review check in the second column. Add a short rationale when the
-constraint would otherwise be unclear. Keep rows short; put longer explanations below the
-table. Escape literal pipes in cells. Preserve existing unrelated guidance when adding rules.
+structure on it. For a root `RULES.md` without an established format, group rules by work
+area and use `Rule` / `How to apply` tables. Write each rule as a short sentence stating
+the required behavior, without bold formatting. Keep each row self-contained: put scope,
+application guidance, observable checks, necessary rationale, exceptions, and links in
+the second column, rather than in supporting paragraphs. Escape literal pipes in cells.
+Preserve existing unrelated guidance when adding rules.
 
-Tables are an index, not a limit on explanation. Add concise rationale, exceptions, and an
-example below a row when needed to apply it consistently. A rule saying only "follow the
-commit convention" is insufficient unless it links to a concrete specification. For commit
+A rule saying only "follow the commit convention" is insufficient unless its row links
+to a concrete specification. For commit
 rules, derive the subject structure, body expectations, and examples from the repository's
 accepted guidance and history; do not impose a generic convention. Show actual checks only
 when known, and clearly label placeholders or illustrative results.
@@ -59,12 +91,11 @@ when known, and clearly label placeholders or illustrative results.
 ```markdown
 # Repository rules
 
-Apply the rules relevant to the change. Reviewers name the rule when reporting a violation.
-AGENTS.md routes agents to guidance; README.md describes the project.
+Apply the rules relevant to your change.
 
 ## Managed content
 
-| Rule | What to check |
+| Rule | How to apply |
 | --- | --- |
 | Preserve user-owned content when updating managed instructions. | Change only the owned block; surrounding content stays byte-for-byte intact. |
 ```

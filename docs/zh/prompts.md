@@ -9,9 +9,9 @@ pageClass: prompt-examples
 
 提示词保留英文，因为那就是你发给 Agent 的内容；换成中文说法，Agent 也一样能理解。
 
-不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。说出 skill 名称则可以确保选中它。
-`review-architecture`、`run-retro`、`teach-me` 和 `brain-site` 从不会自动启动，需要显式调用，比如在 Claude Code 里用
-`/dotbrain:run-retro`。
+不一定要说出 skill 名称：把要做的事描述清楚，Agent 通常就能选对 skills。要明确选中某个 skill，
+请使用 runtime 显示的名称。内置的 `run-retro` 不会自动启动，需要显式调用：Claude Code 用
+`/dotbrain:run-retro`，Codex 从 skill picker 选择。下面提到的 skills 都随插件提供，见[目录](skills.md)。
 
 ## 配置 {#set-up}
 
@@ -225,51 +225,7 @@ outlive it to ADRs and CONTEXT.md.
 **什么时候用：** 一项工作已经上线、被放弃或被取代。也可以用来清理那些一直没结束的设计。**Skill：**
 `close-design`。见[工作流程](workflow.md#_7-close-the-design)。
 
-## 学习 {#learn}
-
-开始或继续学习前，先调用 skill：Claude Code 用 `/dotbrain:teach-me`，Codex 用 `$teach-me`。
-把问题先存起来则不用调用。
-
-### 开始学一个主题 {#start-learning-a-topic}
-
-```text
-Teach me how this project handles failed deliveries. I want to be able to diagnose one myself.
-```
-
-**什么时候用：** 你想真正理解项目的某一部分，而不只是要一个答案。**Skill：** `teach-me`。
-见[学习你的项目](learning.md)。
-
-### 继续学习路径 {#continue-a-learning-path}
-
-```text
-Continue my learning path on retries. Read my progress and learning records, then resume the next step.
-```
-
-**什么时候用：** 在新会话里接着学。**Skill：** `teach-me`。见[学习你的项目](learning.md#walk-a-learning-path)。
-
-### 先把问题存起来 {#park-a-question-for-later}
-
-```text
-Park this for learning: why does retrying this operation require an idempotency key?
-```
-
-**什么时候用：** 做事途中冒出一个问题，但现在不想切换到学习。**Skill：** `manage-work-graph`。
-见[学习你的项目](learning.md#park-a-question-while-working)。
-
 ## 维护 Brain {#maintain-the-brain}
-
-### 创建或修复 Brain 站点 {#set-up-or-fix-the-brain-site}
-
-```text
-Set up a Brain site for this project and put the runbooks in the sidebar.
-```
-
-```text
-dotbrain site build fails. Find the cause and fix it.
-```
-
-**什么时候用：** 想在浏览器里读 Brain、调整侧边栏，或修复构建失败。**Skill：** `brain-site`。
-见 [Brain 站点配置](brain-site-configuration.md)。
 
 ### 检查上下文健康 {#check-context-health}
 
@@ -284,15 +240,17 @@ AGENTS.md and the Brain, and anything private leaking into the public repo.
 ### 编写或修改给 Agent 看的文档 {#write-or-edit-agent-facing-docs}
 
 ```text
-Use write-agent-docs to tighten this project's AGENTS.md.
+Use curate-project-context to tighten this project's AGENTS.md, applying its shared writing reference.
 ```
 
 **什么时候用：** 创建或修改 `AGENTS.md`、Brain 上下文、设计文档、skills，或 Agent 会依赖的公开文档。
-**Skill：** `write-agent-docs`。
+**参考：** `curate-project-context/references/writing.md` 及其中链接的语法指南。
+需要修复上下文时，使用 `curate-project-context` 的 fix 模式。
 
 ### 分诊公开任务 {#triage-public-issues}
 
-直接说明要 triage 公开 issues，或者调用 skill：Claude Code 用 `/dotbrain:triage-public`，Codex 用 `$triage-public`，再说明要处理的范围：
+可以直接要求 triage，或使用 runtime 显示的名称调用内置的 `triage-public`，再说明处理范围。
+无需私有来源或 `skills:` 选择：
 
 ```text
 Triage the open GitHub issues and promote the accepted ones into our work graph.
@@ -300,15 +258,7 @@ Triage the open GitHub issues and promote the accepted ones into our work graph.
 
 **什么时候用：** 项目接收公开任务，你想让它们被分类、复现，并纳入私有执行。需要在
 [`project.yaml`](configuration.md#project-yaml) 里配置 `public-tracker`。**Skill：** `triage-public`。
-
-### 寻找架构改进点 {#look-for-architecture-improvements}
-
-```text
-/dotbrain:review-architecture
-```
-
-**什么时候用：** 想结合 Brain 的术语和 ADR，审查代码库里可以加深架构的地方。**Skill：** `review-architecture`，
-只能显式调用。
+修改公开内容需要相应授权；私有工作不会生成公开的跟踪任务。
 
 ## 相关内容 {#related}
 

@@ -5,7 +5,7 @@ Judge whether a finding warrants an intervention by impact if the mistake repeat
 confidence (reproduced, or one ambiguous observation), applicability to future decisions in this
 repository, and existing protection. One reproduced data-loss incident can justify a narrow
 intervention; speculative broad guidance needs further evidence. Copied reports and reruns add
-no evidence. Personal preferences stay in `.brain/AGENTS.md` even if recurring.
+no evidence. Recurrence alone does not make a personal preference a public repository requirement.
 
 ## Resolve delivery authority
 

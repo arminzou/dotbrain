@@ -1,6 +1,8 @@
 # Public provenance and PRs
 
-Governs work that originates from, or lands through, the public issue tracker (`triage-public`).
+Governs work that originates from, or lands through, the public issue tracker.
+`triage-public` handles requested public intake; these provenance rules also apply to existing
+public collaboration. Private intake needs no public tracker.
 
 ## One-directional promotion
 

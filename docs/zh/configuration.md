@@ -138,8 +138,9 @@ packaged-subagents:           # exact list; remove a role and refresh to opt out
 Codex 项目 skills 使用 `<checkout>/.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。全局 skills 和
 profile 主目录的位置不变。旧链接迁移和冲突处理见[skills 同步](skills.md#select-and-reconcile-skills)。
 
-`public-tracker` 用来设置公开的任务入口和与贡献者的协作。它从不镜像私有的工作图，也不会把私有工作变成
-公开任务；见 `triage-public` skill。
+`public-tracker` 声明公开任务入口和与贡献者的协作。内置的 `triage-public` skill 会读取它，
+无需私有来源或 `skills:` 选择。接受的公开任务会进入私有执行流程；私有工作不会生成公开的跟踪任务。
+见[公开任务入口](skills.md#public-issue-intake)。
 
 `run-retro` 直接读取这些设置，不增加 CLI 交付命令。自动交付未设置或关闭时，它更新私有发现，
 查找仓库已有的规则、标准或贡献指南，并建议文件位置和规则，由你决定是否创建 PR。

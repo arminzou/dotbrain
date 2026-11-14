@@ -34,7 +34,7 @@ Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
 
 ## 1. 安装插件 {#_1-install-the-plugin}
 
-在 Claude Code 和 Codex 中，配合 Brain 使用的 skills、dotbrain 约定和会话启动 hook 都由插件提供。
+在 Claude Code 和 Codex 中，14 个核心 skills、dotbrain 约定和会话启动 hook 都由插件提供。
 每台机器上的每个 runtime 只需安装一次，不用为每个仓库重复安装。
 
 ::: code-group
@@ -257,6 +257,29 @@ dotbrain refresh
 ## 保持更新 {#staying-current}
 
 dotbrain 发布新版本时，插件和 CLI 要一起更新。
+
+### Skill 集合升级 {#skill-set-upgrade}
+
+插件提供 [14 个核心 skills](skills.md#core-workflow)，包括 `triage-public`。
+公开任务入口无需私有副本或 `skills:` 选择。如果以前选中了私有的 `triage-public`，
+可以从对应的项目或全局 `skills:` 列表中移除这个重复来源，再为项目运行 `dotbrain skills link`，
+或为全局选择运行 `dotbrain skills link --scope global`。如果选中的整个 bundle 包含它，
+可改为逐个选择仍需保留的来源。同步时只会清理不再选中的自有链接；来源文件保留。
+升级本身不会改动任何选择。[通用 skill 选择](skills.md#select-and-reconcile-skills)仍然可用。
+
+`brain-site`、`teach-me` 和 `review-architecture` 已退役。`dotbrain site` 命令组已移除，
+包括 `dotbrain site init`、`dotbrain site dev`、`dotbrain site build` 和 `dotbrain site preview`。
+已有用户文件、私有 skill 副本、课程、站点设置、缓存和工作记录都保持原样。
+Dotbrain 不再创建、刷新或渲染私有站点，也不再管理教学流程。架构分析仍属于日常设计和工程审阅。
+
+`write-agent-docs` 也不再是独立入口。它的写作规范以及 VitePress、Mermaid 指南都放在
+`curate-project-context/references/` 中；编写 Agent 会读取的文档时直接查阅这些参考。
+
+这次升级保留可选的打包 subagents 和 `beads.mode: none`。文件链接和打包检查只能证明分发成功，
+native runtime 是否发现并调用了 skill 需要另行验证。
+`run-retro` 仍随插件提供，保持 explicit-only：手动调用，或由你授权的宿主定时任务调用；audit 仍只在你要求时运行。
+
+### 更新插件和 CLI {#update-the-plugin-and-cli}
 
 ::: code-group
 

@@ -1,7 +1,8 @@
 # Skills
 
-Dotbrain 内置了配合 Brain 使用的 workflow skills，相当于已连接项目的操作手册。它们涵盖连接、规划、执行、公开 issue 的分类处理和
-Brain 维护。其中有几个借鉴并改编自 [mattpocock/skills](https://github.com/mattpocock/skills)。
+Dotbrain 插件内置 14 个核心 skills，相当于已连接项目的操作手册，涵盖连接、理解项目、规划、公开任务入口、
+执行、审阅和 Brain 维护。核心流程不依赖额外提供的 skills。其中有几个借鉴并改编自
+[mattpocock/skills](https://github.com/mattpocock/skills)。
 
 [工作流程](workflow.md)展示了它们如何配合。
 
@@ -9,6 +10,8 @@ skills 的链接由你自己管理：
 
 - 全局 skills 在 `~/dotbrain/config.yaml` 里选择
 - 项目 skills 在 `brainspaces/<name>/.brain/project.yaml` 里选择
+
+这些设置用来添加你提供的 skill 来源，不会改变插件内置的 skill 列表。
 
 ## 选择和同步 skills {#select-and-reconcile-skills}
 
@@ -60,7 +63,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 ## 核心工作流程 {#core-workflow}
 
 从连接项目、明确决策、设计和拆分任务，到执行、审阅、收尾，再到整理项目上下文。
-`write-agent-docs` 为这些环节提供写作规范，Agent 仍可按需自动调用。
+`curate-project-context` 维护这些环节共用的写作和语法参考。
 
 ### 配置 {#setup}
 
@@ -86,36 +89,30 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 - **`iterate-design`**：用 Agent 原生的循环模式推进一份 active 设计文档：规划、实现、验证、反思，通过一个
   draft PR 交付，完成后转为 ready 等你审阅，在成功或阻塞时停下
 
+### 公开任务入口 {#public-issue-intake}
+
+- **`triage-public`**：对公开任务分类、尝试复现，向报告者澄清范围，再把接受的任务纳入私有执行流程，
+  保留指向公开来源的引用。它随插件提供，无需私有来源或 `skills:` 选择。要启用公开任务入口，在
+  [项目配置](configuration.md#project-yaml) 中设置 `public-tracker`；修改公开内容仍需要相应授权。
+  私有工作不会生成公开的跟踪任务。
+
 ### 审阅与整理 {#review-and-curate}
 
 - **`review-gate`**：执行 review（代码、简化或交付准备情况），并将结论和问题处理结果记录在任务中；必要证据对应待验收的 commit、
   各条发现处理完毕后，lead 可在 PR 合并前关闭已通过的审阅。PR 批准、合并和发布仍由你决定
 - **`curate-project-context`**：在公开项目和私有 Brain 中找出并修复过时、重复、放错位置、无法访问或泄露的上下文
-- **`write-agent-docs`**：为公开项目文档、私有 Brain 内容、用户自己的 skills，以及 Agent 通过指针读到的指引
-  提供写作规范
+- 共用写作规范放在 `curate-project-context/references/writing.md`，并链接到 VitePress 和 Mermaid 指南。
+  原来的 `write-agent-docs` 入口已并入这些参考文档；编写公开文档、私有 Brain 内容或 skills 时直接读取即可。
 
-## 按名称调用的可选 skills {#optional-skills-invoked-by-name}
+## 操作约定和复盘 {#optional-skills-invoked-by-name}
 
-这些 skills 仍随插件提供。在 Claude Code 中用 `/dotbrain:<name>`，在 Codex 中用 `$<name>`。
-`dotbrain` 和 `triage-public` 也可以直接用文字要求启动；其他 skills 只能按名称调用。
+这两个 skills 也属于 14 个核心 skills。在 Claude Code 中用 `/dotbrain:<name>`。在 Codex 中，从 skill picker 里
+选择，并使用当前 runtime 显示的名称；插件分发的 skills 尚未确认都能用不带命名空间的 `$<name>` 调用。
+`dotbrain` 也可以直接用文字要求启动。`run-retro` 在 Claude Code 和 Codex 的元数据中仍是 explicit-only。
 
 - **`dotbrain`**：操作约定本身。会话启动 hook 会自动注入它；在不运行 hook 的 runtime 里，直接要求或按名称调用都可以。
 - **`run-retro`**：整理工作和审阅记录中的经验，或检查这些经验是否改善了后续行为。
   手动调用，也可由你配置定时任务运行。建议默认保留在私有 Brain 中；详见[复盘](#retrospectives)。
-- **`triage-public`**：对公开任务跟踪里的条目分类，把准备好的工作提升到私有执行中
-- **`review-architecture`**：审查代码库，寻找可以简化接口、将实现复杂度封装在模块内部的机会
-
-### Brain 站点 {#brain-site}
-
-- **`brain-site`**：手动调用，用 `dotbrain site` 创建、维护、构建或预览 Brain 的私有站点，
-  包括侧边栏、主题和页面渲染检查
-
-### 学习 {#learning}
-
-学习路径、暂存的概念和会话之间的延续，请看[学习你的项目](learning.md)。
-
-- **`teach-me`**：跨多个会话，根据 Brain 教你了解自己的项目：在对话中讲解，按一条以 `learn:` bead 跟踪的
-  学习路径推进，记录你展示出的理解，并把认可的课程保存到 `.brain/learning/`
 
 ## subagents {#subagents}
 
@@ -128,7 +125,7 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 
 ## 安装 {#installing-them}
 
-Claude Code 和 Codex 的 skills 随 marketplace 插件一起提供，每台机器上的每个 runtime 只需安装一次，无需按仓库重复安装。安装命令见[快速开始](getting-started.md)。
+Claude Code 和 Codex 的 14 个核心 skills 随 marketplace 插件一起提供，每台机器上的每个 runtime 只需安装一次，无需按仓库重复安装。安装命令见[快速开始](getting-started.md)。
 插件装在用户级别，所以它的 skills 在每个会话里都可用，包括还没连接的仓库。
 
 Hermes 的 skills 来自 `dotbrain bootstrap --runtime hermes` 放进 Hermes 主目录的插件副本，
@@ -174,7 +171,8 @@ Cursor 也会读取 `.claude/skills`、`.codex/skills` 和 `.agents/skills`，�
 默认关闭公开自动交付：建议只保存在私有笔记中，由你决定。只有获得单次提案授权，或在私有项目配置中将
 `retro.promotion.auto-deliver` 设为 `true` 并通过 `destinations` 数组列出允许修改的已有公开文件，它才会自动准备和交付改动。
 它以只读方式检查 PR 和合并状态；只有确认改动已合入目标分支，才会记录规则已被接受。PR 批准、合并和发布仍由你决定。
-已采用的 `RULES.md` 按主题使用 `Rule` / `What to check` 表格，其他指南保留原有格式。规则提案使用 `run-retro` 自己的 PR 流程和格式，
+已有规则和指南保留原有格式。根目录的 `RULES.md` 若尚无固定格式，则按工作领域分组，使用 `Rule` / `How to apply` 表格。
+规则提案使用 `run-retro` 自己的 PR 流程和格式，
 不调用负责普通改动交付的 `pr` skill。
 ### 首次运行与整理范围
 

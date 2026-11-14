@@ -22,11 +22,12 @@ Boundaries:
 - **Private work graph** — work items in the engine's store; this skill owns it and it is the
   source of truth. Never mirror work state into markdown docs, ROADMAPs, TodoWrite/task lists, or
   a public issue tracker.
-- **Public issue tracker** — handled by `triage-public`; existing public collaboration may be
-  promoted inward with a provenance link, but private work is never published outward for tracking.
+- **Public issue tracker** — `triage-public` handles requested intake;
+  existing public collaboration may be promoted inward with a provenance link, but private work
+  is never published outward for tracking.
   See [references/public-provenance.md](references/public-provenance.md) when work crosses that
   boundary.
-- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/AGENTS.md`, `.brain/DOTBRAIN.md`; owned by other skills.
+- **Knowledge layer** — `.brain/CONTEXT.md`, `.brain/adr/`, `.brain/DOTBRAIN.md`; owned by other skills.
 
 ## What this skill owns
 
@@ -41,8 +42,6 @@ Boundaries:
   ([references/public-provenance.md](references/public-provenance.md))
 - record a code review's findings as a review bead
   ([references/review-beads.md](references/review-beads.md))
-- park a concept for later learning on a learning bead
-  ([references/learning-beads.md](references/learning-beads.md))
 
 Implementing an item — dispatch, integration, checks, bounded repair, escalation, and recovery — is
 `run-execution`'s. A plain request to do the work starts it.
@@ -53,8 +52,6 @@ Implementing an item — dispatch, integration, checks, bounded repair, escalati
   between a direct work item and that path is [references/work-intake.md](references/work-intake.md).
 - An epic exists but has no child work items — it has not been decomposed yet; run `to-issues`.
 - The item is human-gated — stop for sign-off before claiming it (see [Ownership and closure](#ownership-and-closure)).
-- The item is a `learn:` bead (label `learning`) — it tracks the operator's learning, not work;
-  `teach-me` resumes and updates it.
 
 Branch selection and delivery follow [run-execution](../run-execution/SKILL.md).
 Session invariants follow the dotbrain convention.
@@ -117,14 +114,14 @@ control characters. Append with `bd comments add <id> --file <file> --actor <act
 
 1. On a new session or after context recovery, run `bd prime` for the Beads protocol. dotbrain
    injects no Beads context; skip it only when the operator's own Beads hook already supplied it.
-   Read `.brain/AGENTS.md` for private tracker conventions (absent or empty means defaults), and follow public repository instructions/root `RULES.md`; read [references/beads.md](references/beads.md) (engine mechanics and native-modeling
+   Follow public repository instructions/root `RULES.md`; read [references/beads.md](references/beads.md) (engine mechanics and native-modeling
    rules), and [references/work-intake.md](references/work-intake.md) (bead vs. design doc), then
    project Brain context and relevant ADRs.
 2. Inspect the graph with structured, non-interactive output: ready frontier, list, and item detail
    (commands in [references/beads.md](references/beads.md)).
 3. Check for human-gated items among the ready set (engine reference covers the command). Recheck
    every iteration: the gated set changes as items close and new ones are created.
-4. Select the next ready item, skipping learning beads (label `learning`), which are not work:
+4. Select the next ready item:
    - **Human-gated** — stop for sign-off before claiming.
    - **Autonomous** — proceed. Claim it here only when this session will work it as a team of
      one; when workers will be dispatched, `run-execution` claims under each worker's own actor.
@@ -159,9 +156,3 @@ it's the natural next step after a review pass, whatever skill or process ran it
 [references/review-beads.md](references/review-beads.md). It covers the single-pass and multi-pass
 shapes a review bead can take, one generalized recipe regardless of which review produced the
 findings, and how to recognize an existing bead's shape before operating on it.
-
-## Learning beads
-
-When the operator asks to park a concept for later learning, see
-[references/learning-beads.md](references/learning-beads.md). It covers the path and backlog bead
-shapes, the concept comment, and how to file one without leaving the work underway.

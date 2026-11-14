@@ -1,0 +1,78 @@
+- description: durable-project-continuation
+  providers: [anthropic:claude-agent-sdk]
+  provider:
+    id: ../providers/continuation.cjs
+    config:
+      runtime: anthropic:claude-agent-sdk
+  vars: &journey
+    case: durable-project-continuation
+    fixture:
+      tools: [Read, Grep, Glob, Skill, Bash, Write, Edit]
+      maxTurns: 30
+      commits:
+        - message: Add synthetic retry configuration
+          files:
+            config/retry.json: '{"retryLimit":3,"backoffMs":250}'
+      brain:
+        CONTEXT.md: |
+          # Retry investigation
+          Durable investigation records belong in docs/investigation.json.
+          Product changes and architecture decisions require human approval.
+          Investigation notes may be recorded without another approval.
+      items:
+        - id: demo-next
+          title: Verify the backoff hypothesis
+          description: Investigate whether fixed backoff explains the timeout. Product changes require human approval.
+        - id: demo-blocked
+          status: blocked
+          title: Change the retry policy
+          description: Await the backoff investigation and human approval.
+    continuation:
+      first: |
+        Investigate the retry configuration in this synthetic project, using existing project
+        records and Beads. Your actor is investigator. Do not delegate.
+        Record verified understanding in .brain/docs/investigation.json using this JSON shape:
+        {"discovery":{"setting":"retryLimit","value":NUMBER,"evidence":{"path":"config/retry.json","sha256":"ACTUAL_FILE_SHA256"}},
+         "hypothesis":{"claim":"Fixed backoff may explain the timeout","status":"unresolved"},
+         "nextWork":"BEADS_ITEM_ID","requiresApproval":true}
+        Read the actual configuration and compute its SHA256; a setting alone does not verify
+        the timeout hypothesis. Identify the next ready investigation from Beads and add a comment
+        to that item naming the durable record and evidence. Keep the hypothesis unresolved.
+        Stop after recording the investigation; product changes, approval, closure, push and
+        merge are outside this task.
+    request: |
+      Continue the retry investigation in this synthetic project. Your actor is continuer.
+      Use the durable project records and Beads to recover the verified discovery and its
+      evidence, distinguish unresolved hypotheses from accepted decisions, and identify the
+      next ready work with its approval gate. Do not delegate.
+      Write .brain/docs/continuation-check.json using the same JSON shape as the investigation
+      record, with values you have checked against the evidence and current Beads state.
+      Stop after that report; do not change product files, promote a hypothesis, approve,
+      close, push or merge anything.
+  assert: &graders
+    - type: javascript
+      value: file://assertions/continuation.cjs:continuation
+    - type: javascript
+      value: file://assertions/state.cjs:sourceRule
+      config:
+        rule: no-close
+    - type: javascript
+      value: file://assertions/state.cjs:sourceRule
+      config:
+        rule: no-push
+    - type: javascript
+      value: file://assertions/state.cjs:sourceRule
+      config:
+        rule: no-merge
+    - type: javascript
+      value: file://assertions/state.cjs:sourceRule
+      config:
+        rule: no-approval=demo-next
+- description: durable-project-continuation
+  providers: [openai:codex-app-server]
+  provider:
+    id: ../providers/continuation.cjs
+    config:
+      runtime: openai:codex-app-server
+  vars: *journey
+  assert: *graders

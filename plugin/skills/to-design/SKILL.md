@@ -33,13 +33,10 @@ flagged as needing a new one, and every ADR it interacts with is listed.
 
 ### 2. Surface the unknowns before writing
 
-Territory you have not inspected produces designs that break on contact. For unfamiliar codebases
-or broad changes, run `find-unknowns` — it is the blind-spot pass, and its output seeds
-`Known Unknowns` directly.
-
-Where the area is already familiar, inspect the relevant modules yourself and produce a short
-module sketch for the user: touched modules or systems, likely integration points, obvious
-constraints, open questions.
+Investigate the relevant modules to the depth the initiative needs; use `find-unknowns` when a
+deeper blind-spot pass helps. Reuse applicable recorded findings. Produce a short module sketch
+for the user: touched modules or systems, likely integration points, observed constraints, open
+questions. This chooses an investigation method, not an additional orientation gate.
 
 Investigate observable questions first and research recorded history when rationale matters;
 current code alone does not establish intent. Keep evidence, inference, and unresolved gaps
@@ -65,6 +62,11 @@ the section set, per-section authoring hints, and the lifecycle rules that apply
 The doc is born `lifecycle: draft`; flip it to `active` in step 5, once the epic exists.
 
 Use `CONTEXT.md` vocabulary exactly for every concept it already names.
+
+Carry verified discoveries and resolved unknowns into the design with evidence and applicability,
+keeping inferences, unresolved hypotheses, proposals, and accepted decisions distinguishable.
+Record facts within the existing authority without routine permission; new consequential decisions
+and scope, criteria, or authority changes still follow step 4.
 
 Describe concrete seams with independently verifiable outcomes: the behavior or interface delivered,
 the verification boundary (what the check proves and leaves unproven), and interface prerequisites

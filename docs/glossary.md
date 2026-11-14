@@ -55,11 +55,6 @@ See [The workflow](workflow.md).
 One issue in the Beads execution store. Epics group beads, and `blocks` dependencies decide which
 are ready.
 
-### Brain site
-
-The private, local documentation site `dotbrain site` renders from a Brain. See
-[Brain site](brain-site.md).
-
 ### `config.yaml`
 
 The global dotbrain config file, usually at `~/dotbrain/config.yaml`. It holds machine-wide

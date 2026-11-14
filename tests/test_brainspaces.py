@@ -25,8 +25,8 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
     brainspace.mkdir()
     brainspaces.seed_brain(brainspace, dotbrain_home)
     brain = brainspace / ".brain"
-    assert (brain / "AGENTS.md").is_file()
-    assert (brain / "CLAUDE.md").is_symlink()
+    assert not (brain / "AGENTS.md").exists()
+    assert not (brain / "CLAUDE.md").exists()
     assert (brain / "DOTBRAIN.md").is_file()
     assert b"\r\n" not in (brain / "DOTBRAIN.md").read_bytes()
     for sub in ("adr", "designs", "docs"):
@@ -35,21 +35,22 @@ def test_seed_brain_creates_skeleton(dotbrain_home: Path, tmp_path: Path):
             f"dotbrain-owned README.md not synced to .brain/{sub}/"
     # the agents/ skill-config dir is retired and no longer seeded
     assert not (brain / "agents").exists()
-    # site/ opts a Brain into a Brain site, so only `dotbrain site init` writes it
     assert not (brain / "site").exists()
 
 
-def test_seed_brain_refreshes_the_site_manual_only_in_a_brain_with_a_site(dotbrain_home: Path, tmp_path: Path):
+@pytest.mark.parametrize("create_missing", [True, False])
+def test_seed_brain_preserves_existing_site_files(dotbrain_home: Path, tmp_path: Path, create_missing: bool):
     brainspace = tmp_path / "brainspace"
     brain = brainspace / ".brain"
     (brain / "site").mkdir(parents=True)
-    (brain / "site" / "configure.md").write_text("stale\n", encoding="utf-8")
-    (brain / "site" / "index.md").write_text("mine\n", encoding="utf-8")
+    for name in ("configure.md", "index.md", "site.yaml"):
+        (brain / "site" / name).write_bytes(f"Existing {name}\r\n".encode())
+    before = {path.name: path.read_bytes() for path in (brain / "site").iterdir()}
 
-    brainspaces.seed_brain(brainspace, dotbrain_home)
+    changed = brainspaces.seed_brain(brainspace, dotbrain_home, create_missing=create_missing)
 
-    assert (brain / "site" / "configure.md").read_text(encoding="utf-8").startswith("# Configuring this site")
-    assert (brain / "site" / "index.md").read_text(encoding="utf-8") == "mine\n", "the home page is the Brain's own"
+    assert {path.name: path.read_bytes() for path in (brain / "site").iterdir()} == before
+    assert not any(path.startswith("site/") for path in changed)
 
 
 def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: Path):
@@ -57,7 +58,34 @@ def test_seed_brain_ignores_data_root_templates(dotbrain_home: Path, tmp_path: P
     brainspace.mkdir()
     shutil.rmtree(dotbrain_home / "templates")
     brainspaces.seed_brain(brainspace, dotbrain_home)
-    assert (brainspace / ".brain" / "AGENTS.md").is_file()
+    assert (brainspace / ".brain" / "DOTBRAIN.md").is_file()
+
+
+@pytest.mark.parametrize("create_missing", [True, False])
+@pytest.mark.parametrize("legacy", ["agents-only", "claude-only", "dangling-alias"])
+def test_seed_brain_preserves_incomplete_legacy_entries(
+    dotbrain_home: Path, tmp_path: Path, create_missing: bool, legacy: str
+):
+    brainspace = tmp_path / "brainspace"
+    brain = brainspace / ".brain"
+    brain.mkdir(parents=True)
+    if legacy == "dangling-alias":
+        (brain / "CLAUDE.md").symlink_to("AGENTS.md")
+    else:
+        name = "AGENTS.md" if legacy == "agents-only" else "CLAUDE.md"
+        (brain / name).write_bytes(b"User instructions\r\n")
+
+    for _ in range(2):
+        changed = brainspaces.seed_brain(brainspace, dotbrain_home, create_missing=create_missing)
+        assert not set(changed).intersection({"AGENTS.md", "CLAUDE.md"})
+        if legacy == "dangling-alias":
+            assert (brain / "CLAUDE.md").readlink() == Path("AGENTS.md")
+            assert not (brain / "AGENTS.md").exists()
+        else:
+            assert (brain / name).read_bytes() == b"User instructions\r\n"
+            other = "CLAUDE.md" if name == "AGENTS.md" else "AGENTS.md"
+            assert not (brain / other).exists()
+            assert not (brain / other).is_symlink()
 
 
 def test_seed_brain_does_not_rewrite_unchanged_owned_files(

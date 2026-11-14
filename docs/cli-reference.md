@@ -43,10 +43,6 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`beads list-db`](#dotbrain-beads-list-db) | List remote database identifiers, including databases without a Brainspace. |
 | [`beads drop-db`](#dotbrain-beads-drop-db) | Explicitly delete a remote database; never infer it from the current project. |
 | [`sync`](#dotbrain-sync) | Record uncommitted home changes as sync commits, integrate the upstream, and push. |
-| [`site init`](#dotbrain-site-init) | Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual. |
-| [`site dev`](#dotbrain-site-dev) | Serve the Brain site locally with live reload (127.0.0.1). |
-| [`site build`](#dotbrain-site-build) | Build the Brain site; fails on a nav link to a missing page. |
-| [`site preview`](#dotbrain-site-preview) | Serve the last build locally (127.0.0.1). |
 | [`hook session-start`](#dotbrain-hook-session-start) | Sync the home (waiting at most 10 s), then emit a wired repo's Brain context. |
 | [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
 | [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
@@ -352,65 +348,6 @@ dotbrain sync [OPTIONS]
 | `--push-only` | — | Record and push without fetching the remote. |
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
-
-## Brain site
-
-Set up and run a Brain's private site. See [Brain site](brain-site.md).
-
-### `dotbrain site init` {#dotbrain-site-init}
-
-Give a Brain a site: create .brain/site/ with site.yaml, the home page, and the manual.
-
-```text
-dotbrain site init [OPTIONS]
-```
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `--project` *text* | — | Select a named Brainspace. |
-| `--title` *text* | — | Site title. Defaults to '&lt;name&gt; Brain'. |
-| `--home` *path* | — | Override the private data root. |
-| `--json` | — | Emit one structured result. |
-
-### `dotbrain site dev` {#dotbrain-site-dev}
-
-Serve the Brain site locally with live reload (127.0.0.1).
-
-```text
-dotbrain site dev [OPTIONS]
-```
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `--project` *text* | — | Select a named Brainspace. |
-| `--home` *path* | — | Override the private data root. |
-
-### `dotbrain site build` {#dotbrain-site-build}
-
-Build the Brain site; fails on a nav link to a missing page.
-
-```text
-dotbrain site build [OPTIONS]
-```
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `--project` *text* | — | Select a named Brainspace. |
-| `--home` *path* | — | Override the private data root. |
-| `--json` | — | Emit one structured result. |
-
-### `dotbrain site preview` {#dotbrain-site-preview}
-
-Serve the last build locally (127.0.0.1).
-
-```text
-dotbrain site preview [OPTIONS]
-```
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `--project` *text* | — | Select a named Brainspace. |
-| `--home` *path* | — | Override the private data root. |
 
 ## Internal
 

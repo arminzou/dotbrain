@@ -12,8 +12,8 @@ Code invoke `/dotbrain:run-retro`. In Codex select this skill from the skill pic
 exposed name; `$run-retro` is not confirmed for plugin delivery. The host owns scheduling. This
 skill supplies no scheduler or CLI loop runner.
 
-Maintain private `RETRO.md` as plain Markdown. These are agent findings; human lessons belong
-to `teach-me`. This skill is the notebook's only writer: leads record retro candidates on their
+Maintain private `RETRO.md` as plain Markdown for agent findings.
+This skill is the notebook's only writer: leads record retro candidates on their
 own work records at completion, and this skill curates those into findings and recovers what they
 missed. Add no checkpoint hooks, handoff steps, or
 session-start injection. Public auto-delivery is disabled unless explicitly enabled in private
@@ -44,6 +44,10 @@ write uses [the compare-and-swap save](references/retro.md#save), never a lock.
 Read [the retrospective format](references/retro.md). On first use, read current root guidance
 and referenced standards, record scope, guidance links, timezone, and a curation cutoff of now,
 then save, report initialization, and stop. First use reviews no history.
+
+On every pass, read the repository's root `RULES.md` when present and follow its
+links relevant to the findings. Treat its existing rules as the baseline; use
+supported findings to propose repository-specific additions or amendments.
 
 Require an explicitly selected contributor scope (branches/PRs) or repository scope (integration
 branch); never infer ownership from authors. If scope is unset, report the missing choice without
@@ -84,7 +88,11 @@ Completion: the selected records, the stopping point, and source gaps are known.
 A finding earns an entry only if it would change a future task's decision, states when it applies
 and what to do, and adds guidance beyond existing instructions or protection. Successful practices
 qualify like mistakes. Merge duplicates, sharpen practices and triggers, reconcile contradictory
-evidence, and retire findings already covered by `RULES.md`, tests, skill text, or structural fixes.
+evidence, and retire findings covered by `RULES.md`, tests, skill text, or structural fixes
+only when that protection addresses the concrete future decision. A broad baseline principle
+does not cover missing repository-specific application details. Use
+[rule distillation](references/rules.md#distill-repository-specific-rules) to distinguish
+existing coverage, amendments, and distinct requirements.
 Leave unresolved observations in their source records. Separate observed facts from inference and
 preserve limits.
 
@@ -103,7 +111,9 @@ decision. Make no public edit, commit, push, or PR without proposal-specific aut
 scheduled run never waits for a reply.
 
 When authorized, follow [the public rule format](references/rules.md) and the destination's
-conventions. Prepare in a clean target-based checkout or worktree, never on an unrelated feature
+conventions. For `RULES.md`, update the existing rules in place, preserving unrelated
+requirements and merging equivalent guidance rather than duplicating it.
+Prepare in a clean target-based checkout or worktree, never on an unrelated feature
 branch. Use run-retro's own PR process and body, not the `pr` skill. Save proposal state before
 each public action as promotion requires, each a compare-and-swap save against the last recorded
 hash, then re-hash. If the notebook changed, write only the finding that carries the proposal, with

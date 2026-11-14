@@ -92,6 +92,11 @@ decisions return here with evidence and a recommendation; settled decisions need
 Canon is written during the walk, not batched at the end. A term resolved in question three is
 written before question four, because a session that ends early still leaves the project better off.
 
+Record settled facts and approved decisions without asking again. Keep verified observations
+and their evidence separate from inference, unresolved hypotheses, and proposals. If observed
+behavior conflicts with an accepted decision, surface the conflict; do not silently rewrite the
+decision. New consequential product or architecture choices still require the human's approval.
+
 - **Terminology** goes into `CONTEXT.md` the moment it resolves, using
   [context format](references/context-format.md). Keep it to terms meaningful to a domain expert; leave
   implementation detail out.

@@ -134,8 +134,6 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
         delivered = list((repo / workspace / "agents").glob("dotbrain-*"))
         assert sorted(p.name for p in delivered) == sorted(f"dotbrain-{role}{suffix}" for role in config.PACKAGED_ROLES)
         assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
-    if paths.INJECT_ADOPTER_POINTER:
-        assert paths.ADOPTER_POINTER in (repo / "AGENTS.md").read_text()
 
     workflows.unwire_project(
         dotbrain_home=dotbrain_home,

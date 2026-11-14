@@ -26,8 +26,6 @@ uv run pytest
 
 You can develop and run tests without wiring this checkout to a Brainspace or installing an
 agent plugin. Tests use temporary directories rather than your live data root or runtime homes.
-For Beads integration checks, install `bd` from [Beads](https://github.com/gastownhall/beads);
-CI installs it on Linux, macOS, and Windows.
 
 For an editable CLI on your `PATH`, see [Develop](README.md#develop). Those setup scripts also
 install prerequisites. On Windows, enable Developer Mode for tests and manual checks that create
@@ -35,11 +33,9 @@ symlinks.
 
 ## Make and check your change
 
-Keep each pull request focused. Follow the dependency layering, subprocess test seams, and other
-requirements in [RULES.md](RULES.md); [Architecture](docs/architecture.md) explains the product model.
-Add a regression test for a behavior fix where practical. Run the affected tests while iterating
-and `uv run pytest` before pushing or submitting code changes for review. When several agents
-work on one branch, only the integrating agent runs the full suite; see [RULES.md](RULES.md). There is no configured linter.
+Follow [RULES.md](RULES.md) for change scope, dependency boundaries, subprocess test seams,
+regression coverage, verification, and source hygiene.
+[Architecture](docs/architecture.md) explains the product model.
 
 For public docs changes, use Node.js 22 and follow [the docs editing guide](docs/AGENTS.md):
 
@@ -51,22 +47,11 @@ npm run dev
 npm run build
 ```
 
-Mermaid diagrams render in the browser, so check them visually in both light and dark themes;
-a successful build alone does not verify them. For CLI help changes, regenerate the reference
-from the repo root with `uv run python -m dotbrain._cli_reference`.
-
-Keep contributions useful without the maintainer's private context. Include only public tool
-source, packaged templates, and documentation; exclude personal Brainspaces, execution stores,
-runtime wiring, credentials, and private tracker or decision identifiers.
+The docs editing guide also covers generated CLI references and visual checks for Mermaid diagrams.
 
 ## Submit a pull request
 
-Create a branch in your fork and open a pull request against `main`. Explain the problem,
-the resulting behavior, and how you verified it. Include before/after screenshots for visual
-changes and link any relevant public issue. Call out changes to command syntax or JSON output
-and explain how users should migrate.
-
-Use the repository's Conventional Commit style for commit messages, such as
-`fix(cli): explain invalid project selection` or `docs: clarify installation steps`.
-CI runs the Python test suite on Linux, macOS, and Windows. Check its results and address failures
-before asking for review.
+Create a branch in your fork and open a pull request against `main`. Link any relevant public issue.
+Follow [the commit and PR requirements](RULES.md#commits-and-prs) for the commit message,
+description, screenshots, and migration guidance, and [the verification requirements](RULES.md#verification)
+for local checks and CI results.

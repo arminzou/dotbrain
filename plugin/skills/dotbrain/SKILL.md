@@ -48,7 +48,6 @@ Do not edit per project; packaged template changes propagate to every Brain.
 
 ## Rules
 
-- Read `.brain/AGENTS.md` before substantial work for private rules/preferences; missing means defaults.
 - Public `AGENTS.md` routes changes/reviews to root `RULES.md` if present, usable without a Brain.
 - Before implementation or review, the lead or sole agent searches `.brain/RETRO.md` once per
   task or batch and passes applicable practices through assignments; at completion it records
@@ -56,6 +55,11 @@ Do not edit per project; packaged template changes propagate to every Brain.
   Workers and reviewers reuse supplied findings; they need not read the whole notebook.
   A missing notebook blocks nothing; do not scaffold it. Only `run-retro` writes `RETRO.md`.
 - Brain writes are agent-managed; Git history in `~/dotbrain` makes them revertable.
+- The owning writer records verified discoveries, resolved unknowns, and outcomes without routine
+  approval: execution in Beads, durable understanding in the appropriate Brain record. Keep
+  evidence and applicability with consequential facts; distinguish observations, inferences,
+  unresolved hypotheses, proposals, and accepted decisions. Observed behavior never silently
+  replaces an accepted decision or instruction. Read-only investigators hand findings to the writer.
 - The work graph lives in beads. Work from `bd ready`; record multi-step plans as epics with
   `blocks` dependencies, not as markdown checklists. `manage-work-graph` maintains the graph;
   `run-execution` carries out an item or finite batch. Follow `manage-work-graph` for
@@ -75,8 +79,7 @@ Do not edit per project; packaged template changes propagate to every Brain.
   `.brain/docs/` for documented answers. These private references are not injected.
 - Search the Brain by targeting `.brain/`: repo-root searches skip hidden, gitignored paths.
 - The code repo may be public; the Brain never is. Never mirror Brain content into the repo;
-  for a public need, derive fresh standalone guidance (the standard `.brain/AGENTS.md` pointer is
-  allowed). Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
+  for a public need, derive fresh standalone guidance. Code, tests, comments, commits, and PR text carry no private Brain context: no ADR
   numbers, Brain paths, decision-record identifiers, or private incident details. State a
   decision's rationale in plain terms; the linkage stays in the Brain.
 
@@ -106,22 +109,22 @@ decisions, rules) and the territory (the codebase and its real constraints). Tha
 project's unknowns. Name them in four quadrants and use the terms exactly, so skills, issues, and
 design docs speak one language:
 
-- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, public `RULES.md`, and private `AGENTS.md`.
+- **Known knowns** — stated and settled. Live in `CONTEXT.md`, `adr/`, and public `RULES.md`.
 - **Known unknowns** — open questions you can name. Live in a design doc's `Known Unknowns` and in beads.
 - **Unknown knowns** — tacit preferences and domain expectations, recognized only when shown.
   Surfaced by grilling and prototypes, then written into canon.
 - **Unknown unknowns** — constraints, edge cases, and existing behavior you have not thought to
   consider. Surfaced by a blind-spot pass before implementation; caught mid-build as discoveries.
 
-Cheap moves early — orient, grill, prototype — turn expensive late unknowns into known knowns.
+Choose investigation depth and retrieval timing within applicable instructions; `find-unknowns`
+is available for deeper investigation.
 
-Choose reversible defaults within scope; take human preferences, authority, acceptance changes,
-and consequential tradeoffs to `grill-decisions`. Active designs own uncertainty; Beads owns
-execution state.
+Choose reversible defaults within scope; take new consequential product/architecture decisions,
+consequential tradeoffs, human preferences, authority, and acceptance changes to `grill-decisions`.
+Active designs own uncertainty; Beads owns execution state.
 
 ## Brain structure
 
-- `AGENTS.md` — small private rules/preferences; `CLAUDE.md` is its relative symlink
 - `DOTBRAIN.md` — shared Brain operations and retrieval, owned by dotbrain
 - `RETRO.md` — optional private retrospective findings and evidence, retrieved for the task;
   established repository rules remain authoritative in public `RULES.md`
@@ -135,12 +138,10 @@ execution state.
   frontmatter vocabulary lives in `to-design`'s design template
 - `docs/` — derived docs, runbooks, reference material. Optional, never authoritative —
   canon wins
-- `learning/` — the operator's learning workspace for this project, owned by `teach-me`. Optional,
-  never authoritative; learning paths and parked concepts live in `learn:` beads. When the user
-  asks to park a concept for later learning, file it per `manage-work-graph`'s learning-beads
-  reference
-- `site/` — optional site settings (`site.yaml` nav), home (`index.md`), `configure.md`, and
-  theme extensions. `dotbrain site` renders all Brain Markdown; `brain-site` maintains it
 
 Skills are cross-project; the Brain only configures them. Skill *selection* lives in
 `project.yaml` (`skills:`).
+
+Requested public issue intake belongs to packaged `triage-public`; private work intake belongs
+to `manage-work-graph`. Public mutations require maintainer authorization, and promotion flows
+inward with provenance. Core workflows need no private skill library or project `skills:` selection.

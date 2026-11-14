@@ -39,8 +39,9 @@ function main() {
     fs.appendFileSync(path.join(root, 'pushes.log'), fs.readFileSync(0, 'utf8'));
     process.exit(0);
   }
+  const captured = bodies(args);
   fs.appendFileSync(path.join(root, 'calls.jsonl'), JSON.stringify({tool, args, actor: process.env.BD_ACTOR || '',
-    bodies: bodies(args), cwd: process.cwd(), time: Date.now()}) + '\n');
+    bodies: captured, cwd: process.cwd(), time: Date.now()}) + '\n');
   // A test's `fixture.responses` answers "<tool> <verb> <subverb>" or "<tool> <verb>" verbatim.
   const operands = positionals(args);
   const responses = JSON.parse(fs.readFileSync(path.join(root, 'responses.json'), 'utf8'));
@@ -60,7 +61,18 @@ function main() {
       console.log(JSON.stringify(shown));
     } else if (verb === 'comments' && operands[1] !== 'add') {
       console.log(JSON.stringify(items.find(item => item.id === operands[1])?.comments ?? []));
-    } else if (['update', 'comments', 'close', 'create'].includes(verb)) {
+    } else if (verb === 'comments' && operands[1] === 'add') {
+      const item = items.find(item => item.id === operands[2]);
+      const actorIndex = args.indexOf('--actor');
+      const comment = {author: args.find(arg => arg.startsWith('--actor='))?.slice('--actor='.length) ??
+        (actorIndex < 0 ? process.env.BD_ACTOR || '' : args[actorIndex + 1]),
+        text: captured.join('\n') || operands.slice(3).join(' ')};
+      if (item) {
+        (item.comments ??= []).push(comment);
+        fs.writeFileSync(path.join(root, 'items.json'), JSON.stringify(items));
+      }
+      console.log(JSON.stringify(comment));
+    } else if (['update', 'close', 'create'].includes(verb)) {
       console.log(JSON.stringify({id: operands[1], status: verb === 'close' ? 'closed' : 'in_progress'}));
     }
     else if (verb === 'prime') console.log('Synthetic tracker. Use bd show, ready, update and comments.');

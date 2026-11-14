@@ -1,6 +1,0 @@
-interface:
-  display_name: "Brain Site"
-  short_description: "Set up and build a Brain's private site"
-
-policy:
-  allow_implicit_invocation: false

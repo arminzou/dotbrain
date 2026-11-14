@@ -34,7 +34,7 @@ A user's direct request that names no work item needs only the change.
    land under the shared Git user. A label out of order is not missing.
 2. Read the Sources the assignment names: the design section, the Brain's
    repository instructions, the acceptance criteria, and the required checks.
-   Read public `AGENTS.md` and root `RULES.md` (when present) for making changes. Read `.brain/AGENTS.md` when present for private rules/preferences. Reuse task-relevant
+   Read public `AGENTS.md` and root `RULES.md` (when present) for making changes. Reuse task-relevant
    retrospective findings supplied in the assignment; do not read the whole notebook.
    When it names a skill, invoke that skill by its exact name and read it before working.
 3. When the assignment names a work item, confirm that `bd where` names the

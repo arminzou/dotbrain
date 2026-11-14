@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import sys
 
-from dotbrain import resource_loader, skills, subagents
+from dotbrain import config, resource_loader, skills, subagents
 
 
 def deliver(root: Path) -> None:
@@ -19,14 +19,16 @@ def deliver(root: Path) -> None:
         (workspace / name).symlink_to(brainspace / name, target_is_directory=True)
     with resource_loader.plugin_tree() as source:
         # Keep the complete public plugin surface without evals or npm dependencies.
-        for name in (".claude-plugin", "assets", "skills", "agents", "hooks", "scripts"):
+        for name in (".claude-plugin", "assets", "skills", "hooks", "scripts"):
             shutil.copytree(source / name, root / "plugin" / name)
         shutil.copytree(source / "skills", home / "skills/dotbrain")
     result = skills.link_project(home, brainspace, [".codex"], ["dotbrain"],
                                  workspace_dirs={".codex": workspace / ".codex"})
-    agents = subagents.link_project_subagents(home, brainspace, [".codex"],
-                                             subagents.PROJECT_BASELINE,
-                                             workspace_dirs={".codex": workspace / ".codex"})
+    agents = subagents.link_project_subagents(
+        home, brainspace, [".claude", ".codex"], [],
+        packaged=config.PACKAGED_ROLES,
+        workspace_dirs={name: workspace / name for name in (".claude", ".codex")},
+    )
     if result.warnings or agents.warnings:
         raise RuntimeError(result.warnings + agents.warnings)
     for link in root.rglob("*"):
