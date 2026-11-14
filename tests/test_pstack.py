@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -525,10 +526,18 @@ def test_hook_reads_local_selection_and_respects_payload_limit(integration, monk
     assert pstack.NAME.encode() not in hooks.brain_context(repo)
 
 
-def test_packaged_mode_is_not_global_plugin_skill():
+def test_packaged_mode_resources_resolve_outside_global_plugin():
     files = dict(resource_loader.iter_resource_files(f"integrations/{pstack.NAME}"))
     frontmatter = yaml.safe_load(files[Path("SKILL.md")].read_text(encoding="utf-8").split("---")[1])
     assert frontmatter["name"] == pstack.NAME
+    for relative, source in files.items():
+        if relative.suffix != ".md":
+            continue
+        for target in re.findall(r"\]\(([^)]+)\)", source.read_text(encoding="utf-8")):
+            if target.startswith(("http", "#")):
+                continue
+            resolved = Path(os.path.normpath(str(relative.parent / target.split("#")[0])))
+            assert resolved in files, f"{relative} -> {target}: unresolved mode resource"
     with resource_loader.plugin_tree() as plugin:
         assert not (plugin / "skills" / pstack.NAME).exists()
         assert len(list((plugin / "skills").glob("*/SKILL.md"))) == 5
