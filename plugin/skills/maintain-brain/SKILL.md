@@ -24,7 +24,7 @@ Use the project's established vocabulary and preserve consequential rationale an
 | Adopted public repository requirements and their routing | Repository `RULES.md` and `AGENTS.md` | Use `repo-rules` for public requirement changes |
 
 Read [Writing for agents](references/writing.md) when authoring agent-consumed prose.
-It includes placement guidance and pointers for VitePress and Mermaid syntax.
+It includes placement guidance and the shared writing discipline.
 
 Recording an observation does not adopt a decision. Distinguish:
 
