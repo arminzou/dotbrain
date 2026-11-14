@@ -132,6 +132,8 @@ See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-lin
 
 `skills:` lists your global skills, linked into every agent session on this machine. Each entry is
 a path to a skill folder under `~/dotbrain/skills/`.
+`dotbrain skills link <entry> --scope global` and `dotbrain skills unlink` edit this list for you;
+see [skills](skills.md#select-and-reconcile-skills).
 
 Claude Code and Codex receive skills in `<home>/skills` for their default homes (`~/.claude`
 and `~/.codex`) and each extra home listed in `profiles`. Missing profile homes are silently

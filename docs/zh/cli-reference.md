@@ -28,7 +28,11 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`projects list`](#dotbrain-projects-list) | 根据本地声明和连接，列出所有已注册的项目。 |
 | [`projects show`](#dotbrain-projects-show) | 查看当前已连接的项目，或某个指定项目已注册的 checkout。 |
 | [`skills list`](#dotbrain-skills-list) | 查找本地可用的技能。 |
-| [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能。 |
+| [`skills link`](#dotbrain-skills-link) | 在项目范围或显式的全局范围内同步选定的技能，先选中 ENTRIES。 |
+| [`skills unlink`](#dotbrain-skills-unlink) | 从项目或全局选择中移除 ENTRIES，然后同步，清理它们的链接。 |
+| [`skills add`](#dotbrain-skills-add) | 把一个技能仓库作为 home 的 submodule 加到 ~/dotbrain/skills，并提交。 |
+| [`skills update`](#dotbrain-skills-update) | 把技能仓库移到远程的最新提交，逐个提交，然后重新链接。 |
+| [`skills remove`](#dotbrain-skills-remove) | 在所有地方取消选择某个技能仓库的技能，移除它，提交，然后重新链接。 |
 | [`subagents list`](#dotbrain-subagents-list) | 查找本地可用的自定义子 Agent。 |
 | [`subagents link`](#dotbrain-subagents-link) | 在项目范围或显式的全局范围内同步选定的自定义子 Agent。 |
 | [`beads sync`](#dotbrain-beads-sync) | 同步声明的本地任务跟踪绑定，拉取已配置的 remote；从不推送。 |
@@ -177,7 +181,7 @@ dotbrain projects show [OPTIONS]
 
 ## 技能和 Agent {#skills-and-agents}
 
-把技能和运行时原生的子 Agent 链接到 Agent 运行时。见[技能](skills.md)。
+管理技能库，并把技能和运行时原生的子 Agent 链接到 Agent 运行时。见[技能](skills.md)。
 
 ### `dotbrain skills list` {#dotbrain-skills-list}
 
@@ -196,11 +200,15 @@ dotbrain skills list [OPTIONS]
 
 ### `dotbrain skills link` {#dotbrain-skills-link}
 
-在项目范围或显式的全局范围内同步选定的技能。
+在项目范围或显式的全局范围内同步选定的技能，先选中 ENTRIES。
 
 ```text
-dotbrain skills link [OPTIONS]
+dotbrain skills link [OPTIONS] [ENTRIES]
 ```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ENTRIES` | ~/dotbrain/skills 下的技能或 bundle，先加进该范围的选择。 |
 
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -210,6 +218,81 @@ dotbrain skills link [OPTIONS]
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
 | `--all` | — | 同步所有已注册的项目。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills unlink` {#dotbrain-skills-unlink}
+
+从项目或全局选择中移除 ENTRIES，然后同步，清理它们的链接。
+
+```text
+dotbrain skills unlink [OPTIONS] ENTRIES
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ENTRIES` | 要从该范围的选择中移除的已选技能或 bundle。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--scope` *text* | `project` | 分发范围：project 或 global。 |
+| `--project` *text* | — | 选择一个指定的 Brainspace。 |
+| `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills add` {#dotbrain-skills-add}
+
+把一个技能仓库作为 home 的 submodule 加到 ~/dotbrain/skills，并提交。
+
+```text
+dotbrain skills add [OPTIONS] URL
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `URL` | 技能仓库的 Git URL。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--name` *text* | — | ~/dotbrain/skills 下的文件夹名；默认用仓库名。 |
+| `--ref` *text* | — | 固定到这个 tag、分支或提交，而不是默认分支。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills update` {#dotbrain-skills-update}
+
+把技能仓库移到远程的最新提交，逐个提交，然后重新链接。
+
+```text
+dotbrain skills update [OPTIONS] [NAMES]
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `NAMES` | 要更新的技能仓库；默认是全部。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--ref` *text* | — | 把一个仓库移到这个 tag、分支或提交，也可以是更旧的提交。 |
+| `--home` *path* | — | 覆盖私有数据目录。 |
+| `--json` | — | 输出一个结构化结果。 |
+
+### `dotbrain skills remove` {#dotbrain-skills-remove}
+
+在所有地方取消选择某个技能仓库的技能，移除它，提交，然后重新链接。
+
+```text
+dotbrain skills remove [OPTIONS] NAME
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `NAME` | ~/dotbrain/skills 下的技能仓库。 |
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain subagents list` {#dotbrain-subagents-list}

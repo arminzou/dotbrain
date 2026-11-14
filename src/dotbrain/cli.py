@@ -18,7 +18,7 @@ from dotbrain.presentation import activity, project_progress
 from dotbrain import __version__
 from dotbrain import projects
 from dotbrain import doctor as doctor_mod
-from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, home_sync, hooks, migrate, paths, workflows
+from dotbrain import beads as beads_mod, bootstrap as bootstrap_mod, config, home_sync, hooks, migrate, paths, skill_sources, workflows
 
 app = HelpTyper(
     cls=ResultGroup,
@@ -27,7 +27,7 @@ app = HelpTyper(
     invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-skills_app = HelpTyper(help="Link dotbrain skills into agent runtimes.", no_args_is_help=True)
+skills_app = HelpTyper(help="Manage the skill library and link skills into agent runtimes.", no_args_is_help=True)
 subagents_app = HelpTyper(help="Link your custom vendor-native subagents into agent runtimes.", no_args_is_help=True)
 beads_app = HelpTyper(help="Manage beads tracker state and backend.", no_args_is_help=True)
 hook_app = HelpTyper(help="Run dotbrain hook entrypoints.", no_args_is_help=True)
@@ -546,9 +546,81 @@ def skills_list(home: HomeOption = None, runtime: RuntimeOption = "all", project
 
 
 @skills_app.command("link")
-def skills_link(home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
-    """Reconcile selected skills in project or explicit global scope."""
-    _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, all_projects)
+def skills_link(entries: Optional[list[str]] = typer.Argument(None, help="Skills or bundles under ~/dotbrain/skills to add to the scope's selection first."), home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), all_projects: bool = typer.Option(False, "--all", help="Reconcile every registered project."), json_output: JsonOption = False) -> None:
+    """Reconcile selected skills in project or explicit global scope, selecting ENTRIES first."""
+    _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, all_projects, select=entries or ())
+
+
+@skills_app.command("unlink")
+def skills_unlink(entries: list[str] = typer.Argument(..., help="Selected skills or bundles to remove from the scope's selection."), home: HomeOption = None, runtime: RuntimeOption = "all", scope: str = typer.Option("project", "--scope", help="Delivery scope: project or global."), project: Optional[str] = typer.Option(None, "--project", help="Select a named Brainspace."), repo: Optional[Path] = typer.Option(None, "--repo", help="Select a wired checkout; defaults to the current checkout."), json_output: JsonOption = False) -> None:
+    """Remove ENTRIES from the project or global selection, then reconcile, pruning their links."""
+    _asset_report("skills", "link", home, runtime, project, json_output, scope, repo, deselect=entries)
+
+
+def _library(command: str, json_output: bool, action) -> None:
+    """Run one skill-library change and render it; ``action`` returns a TargetResult."""
+    try:
+        target = action()
+    except ValueError as exc:
+        render(CommandResult(command, "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(2) from exc
+    except (home_sync.SyncError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        render(CommandResult(command, "failure", errors=[str(exc)]), json_output=json_output)
+        raise typer.Exit(1) from exc
+    if target.errors:
+        target.status = "failure"
+    render(CommandResult(command, "failure" if target.errors else "success", targets=[target]), json_output=json_output)
+    if target.errors:
+        raise typer.Exit(1)
+
+
+def _library_home(home: Optional[Path]) -> Path:
+    return home.expanduser().resolve() if home is not None else paths.resolve_dotbrain_home()
+
+
+@skills_app.command("add")
+def skills_add(url: str = typer.Argument(..., help="Git URL of the skill repository."),
+               name: Optional[str] = typer.Option(None, "--name", help="Folder under ~/dotbrain/skills; defaults to the repository name."),
+               ref: Optional[str] = typer.Option(None, "--ref", help="Tag, branch or commit to pin instead of the default branch."),
+               home: HomeOption = None, json_output: JsonOption = False) -> None:
+    """Add a skill repository to ~/dotbrain/skills as a submodule of the home and commit it."""
+    def action():
+        root = _library_home(home)
+        path, found = skill_sources.add(root, url, name=name, ref=ref)
+        target = TargetResult(scope="home", checkout=str(root), changes=[f"added {path}"], data={"skills": found})
+        target.findings += [{"severity": "info", "message": f"select with: dotbrain skills link {entry}"} for entry in found]
+        return target
+    _library("skills add", json_output, action)
+
+
+@skills_app.command("update")
+def skills_update(names: Optional[list[str]] = typer.Argument(None, help="Skill repositories to update; defaults to all."),
+                  ref: Optional[str] = typer.Option(None, "--ref", help="Move one repository to this tag, branch or commit, including an older one."),
+                  home: HomeOption = None, json_output: JsonOption = False) -> None:
+    """Move skill repositories to their remote's latest commit, commit each move, and relink."""
+    def action():
+        root = _library_home(home)
+        changes, skipped = skill_sources.update(root, tuple(names or ()), ref=ref)
+        target = TargetResult(scope="home", checkout=str(root), changes=changes)
+        target.findings += [{"severity": "warning", "message": f"skipped {name}: {reason}"} for name, reason in sorted(skipped.items())]
+        if changes:
+            linked, target.errors = skill_sources.relink_all(root)
+            target.changes += linked
+        return target
+    _library("skills update", json_output, action)
+
+
+@skills_app.command("remove")
+def skills_remove(name: str = typer.Argument(..., help="Skill repository under ~/dotbrain/skills."),
+                  home: HomeOption = None, json_output: JsonOption = False) -> None:
+    """Deselect a skill repository's skills everywhere, remove it, commit, and relink."""
+    def action():
+        root = _library_home(home)
+        target = TargetResult(scope="home", checkout=str(root), changes=skill_sources.remove(root, name))
+        linked, target.errors = skill_sources.relink_all(root)
+        target.changes += linked
+        return target
+    _library("skills remove", json_output, action)
 
 
 @subagents_app.command("list")

@@ -51,36 +51,53 @@ dotbrain skills link --runtime codex           # declared Codex workspace only
 在选中的 skill bundle 里增删 skills，下次同步时就会生效，声明本身不变。被移除的、dotbrain 自己的链接会被清理，
 其他来源的条目会保留。`projects show`、skills 目录和 doctor 都使用同样的展开结果。
 
-## 来自外部仓库的 skills {#external-repositories}
-
-把外部 skill 仓库作为 Git submodule 加进 dotbrain 主目录，然后像其他来源一样选择它的 skills：
+在 `link` 后面写上 skill 或 bundle，就能一步完成选择和链接；用 `unlink` 取消选择并移除链接：
 
 ```bash
-git -C ~/dotbrain submodule add https://github.com/backnotprop/pstack.git skills/pstack
+dotbrain skills link my-collection/specific-skill              # 当前 checkout 的项目
+dotbrain skills link another-collection --scope global          # 所有项目
+dotbrain skills unlink my-collection/specific-skill
 ```
 
-```yaml
-# ~/dotbrain/config.yaml
-skills:
-  - pstack/skills/how
+这些命令只改动该范围的 `skills:` 列表，注释和文件其他部分保持原样。条目不存在、名称冲突，或者
+dotbrain 无法精确编辑的写法，都会在文件改动前失败；这时请手动编辑列表。条目不能和 `--all` 一起用：
+全局范围本来就覆盖所有项目。
+
+## 来自外部仓库的 skills {#external-repositories}
+
+你的 skill 库是 `~/dotbrain/skills`。外部 skill 仓库作为 dotbrain 主目录的 Git submodule 加进来，
+[主目录同步](session-context.md#home-sync)按提交把它共享给你的其他机器：
+
+```bash
+dotbrain skills add https://github.com/backnotprop/pstack.git   # skills/pstack，已提交
+dotbrain skills link pstack/skills/how                          # 选择你要的 skill
+dotbrain skills update                                          # 所有仓库更新到最新提交
+dotbrain skills update pstack --ref v0.15.36                    # tag、分支或提交，也可以更旧
+dotbrain skills remove pstack                                   # 处处取消选择、移除、提交
 ```
 
-[主目录同步](session-context.md#home-sync)按提交把 submodule 共享给你的其他机器，你不需要手动提交它：
+- **`add`** 把仓库克隆到 `skills/<name>`（`--name` 改文件夹名，`--ref` 固定版本），没有任何 `SKILL.md`
+  的仓库会被拒绝。它提交仓库，并为找到的每个 skill 列出对应的 `link` 命令。它不会选择任何 skill。
+- **`update`** 把每个仓库移到远程的最新提交，或者把一个仓库移到 `--ref`，逐个提交，然后重新链接
+  所有项目和全局目录，让选中 bundle 里新增的 skills 出现、被删的消失。
+- **`remove`** 在 `config.yaml` 和每个 `project.yaml` 里取消选择这个仓库的 skills，移除 submodule
+  和它克隆的数据，一起提交，然后重新链接。
 
-- **新增或前移。** submodule 是新加的，或者你在里面 checkout 了更新的提交，只要这个提交已经在
-  submodule 自己的远程仓库里，同步就会记录它。只存在于你机器上的提交，别的机器取不到。
-- **其他机器。** 完整同步会 checkout 每个记录的提交，并克隆缺失的 submodule。`dotbrain bootstrap`
-  也会克隆它们，所以新克隆的主目录在第一次会话前就有了这些 skills。
-- **不动本地工作。** submodule 有未提交的改动或没推送的提交时，不会被记录，也不会被移动。
-  同步会报告它，其余内容照常整合。
-- **回退。** 同步从不记录更旧的提交，因为还没跟上的机器看起来也是这样。要固定到更旧的提交，
-  在 submodule 里 checkout 它，再自己在 `~/dotbrain` 里提交这个改动。
-- **更新。** 用 Git 更新 submodule，例如 `git -C ~/dotbrain/skills/pstack pull`。下次同步会记录
-  新提交。然后运行 `dotbrain skills link` 或 `dotbrain refresh`，让选中 bundle 里新增的 skills 链接上。
+仓库有未提交的改动或没推送的提交时，`update` 会跳过它，`remove` 会拒绝。先推送或丢弃这些改动。
 
-两台机器为同一个 submodule 记录了不同的提交时，同步会停下，不做 merge，并报告这个情况。在
-`~/dotbrain` 里 merge，在 submodule 里 checkout 要保留的提交，`git add` 它，提交，然后再同步。
-`dotbrain doctor` 会报告没有克隆、有未提交改动，或者不在记录提交上的 submodule。
+主目录同步让各台机器保持一致：
+
+- **其他机器。** 完整同步会 checkout 每个记录的提交，并克隆缺失的仓库。`dotbrain bootstrap` 也会
+  克隆它们，所以新克隆的主目录在第一次会话前就有了这些 skills。
+- **用 Git 做的改动。** 用 `git submodule add` 加的仓库，或者在仓库里 `git pull` 前移的提交，只要
+  这个提交已经在仓库自己的远程里，下次同步就会记录。只存在于你机器上的提交，别的机器取不到。
+  同步从不记录更旧的提交，因为还没跟上的机器看起来也是这样；要回退，用 `dotbrain skills update --ref`。
+- **不动本地工作。** 仓库有未提交的改动或没推送的提交时，不会被记录，也不会被移动。同步会报告它，
+  其余内容照常整合。
+
+两台机器为同一个仓库记录了不同的提交时，同步会停下，不做 merge，并报告这个情况。在 `~/dotbrain`
+里 merge，在 submodule 里 checkout 要保留的提交，`git add` 它，提交，然后再同步。`dotbrain doctor`
+会报告没有克隆、有未提交改动，或者不在记录提交上的仓库。
 
 ## 核心能力 {#core-workflow}
 

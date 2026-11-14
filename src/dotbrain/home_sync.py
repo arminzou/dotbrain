@@ -248,6 +248,19 @@ def uninitialized_submodules(home: Path) -> list[str]:
     return [path for path in declared_submodules(home) if not os.path.lexists(home / path / ".git")]
 
 
+def hold_reason(repository: Path, run: Runner = run_bounded) -> str | None:
+    """Why a submodule checkout must not be recorded, moved or removed: local work only it holds."""
+    status = _git(run, repository, "status", "--porcelain=v2", "-z", "--untracked-files=no", check=False)
+    if status.returncode != 0:
+        return f"its Git status failed: {(status.stderr or status.stdout).strip()}"
+    if any(entry and not entry.startswith("#") for entry in status.stdout.split("\0")):
+        return "uncommitted changes"
+    published = _git(run, repository, "for-each-ref", "--contains", "HEAD", "--count=1", "refs/remotes", check=False)
+    if published.returncode != 0 or not published.stdout.strip():
+        return "commits not on its remote"
+    return None
+
+
 def _classify_submodules(home: Path, run: Runner, state: _State, declared: list[str]) -> tuple[set[str], dict[str, str]]:
     """Split changed, declared submodules into (record, held). The rest are left to the update.
 
@@ -261,16 +274,9 @@ def _classify_submodules(home: Path, run: Runner, state: _State, declared: list[
     held: dict[str, str] = {}
     for path in sorted(changed):
         repository = home / path
-        status = _git(run, repository, "status", "--porcelain=v2", "-z", "--untracked-files=no", check=False)
-        if status.returncode != 0:
-            held[path] = f"its Git status failed: {(status.stderr or status.stdout).strip()}"
-            continue
-        if any(entry and not entry.startswith("#") for entry in status.stdout.split("\0")):
-            held[path] = "uncommitted changes"
-            continue
-        published = _git(run, repository, "for-each-ref", "--contains", "HEAD", "--count=1", "refs/remotes", check=False)
-        if published.returncode != 0 or not published.stdout.strip():
-            held[path] = "commits not on its remote"
+        reason = hold_reason(repository, run)
+        if reason:
+            held[path] = reason
             continue
         pinned = state.submodules.get(path, ("", _NO_COMMIT))[1]
         if pinned == _NO_COMMIT or _git(run, repository, "merge-base", "--is-ancestor", pinned, "HEAD",
