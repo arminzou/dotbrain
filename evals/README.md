@@ -1,5 +1,11 @@
 # Shared skill evals
 
+For direct native CLI evidence backed by an actual isolated Beads graph, use
+[the native catalog journey](native/README.md). Its deterministic calibration
+and opt-in real-backend self-check make no model calls; native qualification is
+a separate authorized step. The shared provider suite below retains its original
+fixtures and evidence boundaries.
+
 [`promptfooconfig.yaml`](promptfooconfig.yaml) is the entry point for one shared
 suite on Claude Code and Codex. It covers dotbrain's core capabilities rather than
 every retired case: skill loading, worker and review boundaries, closure on fresh
