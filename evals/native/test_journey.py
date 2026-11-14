@@ -129,6 +129,13 @@ class Calibration(unittest.TestCase):
                     block["input"]["run_in_background"] = True
         self.assertFalse(evaluate(record)["worker_lifecycle"])
 
+    def test_transcript_leak_through_tool_output_cannot_pass_continuation(self):
+        record = correct_record()
+        record["second"]["events"].insert(1, {"type": "item.completed", "item": {
+            "type": "command_execution", "command": "cat unrelated.json", "exit_code": 0,
+            "aggregated_output": record["first"]["sessionOutput"]}})
+        self.assertFalse(evaluate(record)["cold_continuation"])
+
     def test_export_retains_raw_hashes_and_never_reads_auth_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

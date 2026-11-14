@@ -132,6 +132,7 @@ def evaluate(record):
                                 initial["session"] != continuation["session"] and continuation["complete"]),
         "cold_continuation": first["home"] != second["home"] and second["input"] == record["expectedSecondInput"]
         and first["sessionOutput"] not in second["input"] and not any(
+            first["sessionOutput"].strip() in tool["output"] for tool in continuation["tools"]) and not any(
             any(marker in tool["input"] for marker in (".raw", ".input.txt", "private/", "private\\", first["home"]))
             for tool in continuation["tools"]),
         "durable_discovery": finding.get("pageSize") == 7 and finding.get("sourceSha256") == record["configSha256"]
