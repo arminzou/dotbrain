@@ -164,6 +164,8 @@ mode 只交付到配置的 Claude Code 和 Codex 项目工作区。被 gitignore
 
 `skills:` 列出你的全局 skills，它们会链接到这台机器上的每个 Agent 会话。每一项是 `~/dotbrain/skills/`
 下某个 skill 文件夹的路径。
+`dotbrain skills link <entry> --scope global` 和 `dotbrain skills unlink` 会替你编辑这个列表；
+见 [skills](skills.md#select-and-reconcile-skills)。
 
 Claude Code 和 Codex 的 skills 会链接到默认主目录（`~/.claude` 和 `~/.codex`）及 `profiles` 中每个额外
 主目录下的 `skills/`。本机不存在的 profile 主目录会静默跳过，方便多台机器共享此文件。其他 runtime 继续

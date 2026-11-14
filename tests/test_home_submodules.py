@@ -9,7 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from dotbrain import doctor, home_sync
+from typer.testing import CliRunner
+
+from dotbrain import doctor, home_sync, skill_sources
+from dotbrain.cli import app
 
 SUB = "skills/ext"
 
@@ -235,3 +238,100 @@ def test_doctor_reports_each_unhealthy_submodule(root: Path):
     (home / SUB / "how" / "SKILL.md").write_text("edited\n", encoding="utf-8")
     assert doctor_findings(home) == [("warn", f"home sync: submodule {SUB} has uncommitted changes, "
                                       "so sync neither records nor updates it")]
+
+
+# --------------------------------------------------------------------------- skill library commands
+
+
+def push_to_ext(root: Path, tmp_path: Path, name: str) -> str:
+    """Another author publishes a commit to the external skill repository."""
+    work = tmp_path / f"author-{name.replace('/', '-')}"
+    git(tmp_path, "clone", "-q", (root / "ext.git").as_posix(), str(work))
+    new = commit(work, name)
+    git(work, "push", "-q", "origin", "HEAD:main")
+    return new
+
+
+def test_skills_add_commits_the_repository_and_lists_its_skills(root: Path):
+    home = root / "home"
+    url = (root / "ext.git").as_posix()
+
+    result = CliRunner().invoke(app, ["skills", "add", url, "--name", "second", "--home", str(home)])
+
+    assert result.exit_code == 0, result.output
+    assert "dotbrain skills link second/how" in result.output
+    assert git(home, "log", "-1", "--format=%s") == "home: add skill repository skills/second"
+    assert git(home, "status", "--porcelain") == ""
+    assert "skills/second" in home_sync.declared_submodules(home)
+
+
+def test_skills_add_without_skills_leaves_nothing_behind(root: Path, tmp_path: Path):
+    home = root / "home"
+    git(root, "init", "-q", "--bare", "-b", "main", "plain.git")
+    work = tmp_path / "plain"
+    git(tmp_path, "clone", "-q", (root / "plain.git").as_posix(), str(work))
+    commit(work, "README.md")
+    git(work, "push", "-q", "origin", "HEAD:main")
+    before = git(home, "rev-parse", "HEAD")
+
+    with pytest.raises(ValueError, match="contains no SKILL.md"):
+        skill_sources.add(home, (root / "plain.git").as_posix())
+
+    assert git(home, "rev-parse", "HEAD") == before
+    assert git(home, "status", "--porcelain") == ""
+    assert not (home / "skills" / "plain").exists()
+    assert not (home / ".git" / "modules" / "skills" / "plain").exists()
+
+
+def test_skills_update_moves_to_latest_or_a_ref_and_commits(root: Path, tmp_path: Path):
+    home = root / "home"
+    first = pinned(home)
+    latest = push_to_ext(root, tmp_path, "later/SKILL.md")
+
+    changes, skipped = skill_sources.update(home)
+
+    assert skipped == {} and changes == [f"updated {SUB} from {first[:12]} to {latest[:12]}"]
+    assert pinned(home) == latest and head(home / SUB) == latest
+    assert git(home, "status", "--porcelain") == ""
+    assert skill_sources.update(home) == ([], {})
+
+    changes, _ = skill_sources.update(home, ("ext",), ref=first)  # back to an older commit
+
+    assert pinned(home) == first
+    assert git(home, "log", "-1", "--format=%s") == f"home: update skill repository {SUB} to {first[:12]}"
+
+
+def test_skills_update_skips_local_work(root: Path, tmp_path: Path):
+    home = root / "home"
+    (home / SUB / "how" / "SKILL.md").write_text("edited\n", encoding="utf-8")
+    push_to_ext(root, tmp_path, "later/SKILL.md")
+    before = pinned(home)
+
+    assert skill_sources.update(home) == ([], {"ext": "uncommitted changes"})
+    assert pinned(home) == before
+
+
+def test_skills_remove_deselects_everywhere_and_commits(root: Path):
+    home = root / "home"
+    (home / "config.yaml").write_text("version: 4\nskills:\n  - ext/how\n", encoding="utf-8")
+    git(home, "add", "config.yaml")
+    git(home, "commit", "-q", "-m", "select")
+
+    result = CliRunner().invoke(app, ["skills", "remove", "ext", "--home", str(home)])
+
+    assert result.exit_code == 0, result.output
+    assert (home / "config.yaml").read_text(encoding="utf-8") == "version: 4\nskills: []\n"
+    assert home_sync.declared_submodules(home) == []
+    assert not (home / SUB).exists() and not (home / ".git" / "modules" / SUB).exists()
+    assert git(home, "log", "-1", "--format=%s") == f"home: remove skill repository {SUB}"
+    assert git(home, "status", "--porcelain") == ""
+    assert git(home, "show", "--name-only", "--format=", "HEAD").splitlines() == [".gitmodules", "config.yaml", SUB]
+
+
+def test_skills_remove_refuses_local_work(root: Path):
+    home = root / "home"
+    commit(home / SUB, "local/SKILL.md")
+
+    with pytest.raises(ValueError, match="commits not on its remote"):
+        skill_sources.remove(home, "ext")
+    assert home_sync.declared_submodules(home) == [SUB]

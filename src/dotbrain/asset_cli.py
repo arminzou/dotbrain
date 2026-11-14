@@ -4,11 +4,13 @@ import subprocess
 import typer
 import yaml
 
-from dotbrain import assets, brainspaces, paths, projects, runtimes
+from dotbrain import assets, brainspaces, paths, projects, runtimes, skill_sources
 from dotbrain.results import CommandResult, TargetResult, render
 
 
-def report(kind, operation, home, runtime, project, json_output, scope="project", repo=None, all_projects=False):
+def report(kind, operation, home, runtime, project, json_output, scope="project", repo=None, all_projects=False,
+           select=(), deselect=()):
+    """List or link assets; ``select``/``deselect`` first change the scope's skills: selection."""
     result = CommandResult(f"{'subagents' if kind == 'agents' else kind} {operation}")
     exit_code = 1
     try:
@@ -24,6 +26,8 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
                 raise ValueError("--scope must be project or global")
             if scope == "global" and (project is not None or repo is not None or all_projects):
                 raise ValueError("--scope global conflicts with project selectors")
+            if (select or deselect) and all_projects:
+                raise ValueError("skill entries cannot be combined with --all; use --scope global for every project")
             targets = [None] if scope == "global" else projects.select_projects(root, project=project, repo=repo, all_projects=all_projects)
             for target in targets:
                 if target is not None and runtime != "all":
@@ -42,8 +46,12 @@ def report(kind, operation, home, runtime, project, json_output, scope="project"
                     if target is not None:
                         item.findings += [{"severity": "warning", "message": message}
                                           for message in brainspaces.unknown_agent_warnings(target.brainspace, root)]
+                    if select or deselect:
+                        item.changes += skill_sources.change_selection(
+                            root, skill_sources.selection_file(root, target.brainspace if target else None),
+                            add=tuple(select), remove=tuple(deselect))
                     linked = assets.link_global(root, kind, runtime) if target is None else assets.link_project(root, target, kind, runtime)
-                    item.changes = [f"delivered {name}" for name in linked.linked] + [f"pruned {name}" for name in linked.pruned]
+                    item.changes += [f"delivered {name}" for name in linked.linked] + [f"pruned {name}" for name in linked.pruned]
                     item.errors.extend(linked.warnings)
                     item.findings += [{"severity": "warning", "message": m} for m in linked.notices]
                     if item.errors:
