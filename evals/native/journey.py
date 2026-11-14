@@ -18,7 +18,7 @@ import uuid
 
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(value if isinstance(value, str) else json.dumps(value, indent=2), encoding="utf-8")
+    path.write_text(value if isinstance(value, str) else json.dumps(value, indent=2), encoding="utf-8", newline="\n")
 
 
 def load(path):
@@ -36,6 +36,13 @@ def confined(root, name):
     return path
 
 
+def brainspace(root):
+    manifest = confined(root, "fixture.json")
+    if manifest.exists() and load(manifest).get("schema", 1) < 2:
+        return confined(root, "workspace")
+    return confined(root, "data/brainspaces/catalog")
+
+
 def environment(root, phase="setup"):
     # An allowlist prevents inherited backend routing and API credentials from selecting live state.
     env = {key: value for key, value in os.environ.items()
@@ -47,15 +54,16 @@ def environment(root, phase="setup"):
                CLAUDE_CONFIG_DIR=str(home / ".claude"), APPDATA=str(home / "AppData/Roaming"),
                LOCALAPPDATA=str(home / "AppData/Local"), XDG_CONFIG_HOME=str(home / ".config"),
                TMP=str(home / "tmp"), TEMP=str(home / "tmp"), TMPDIR=str(home / "tmp"),
-               DOTBRAIN_HOME=str(root / "data"), BEADS_DIR=str(root / "workspace/.beads"),
+               DOTBRAIN_HOME=str(root / "data"), BEADS_DIR=str(brainspace(root) / ".beads"),
+               PYTHONDONTWRITEBYTECODE="1",
                BD_NON_INTERACTIVE="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"),
                GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", NATIVE_FIXTURE_ROOT=str(root),
                NATIVE_FIXTURE_PHASE=phase)
     return env
 
 
-def execute(root, argv, *, phase="setup", check=True, run=subprocess.run):
-    result = run([str(a) for a in argv], cwd=confined(root, "workspace"), env=environment(root, phase),
+def execute(root, argv, *, phase="setup", check=True, run=subprocess.run, cwd=None):
+    result = run([str(a) for a in argv], cwd=cwd or confined(root, "workspace"), env=environment(root, phase),
                  text=True, encoding="utf-8", capture_output=True, timeout=120, check=False)
     if check and result.returncode:
         raise RuntimeError(f"Command failed ({result.returncode}): {argv}\n{result.stderr}")
@@ -76,7 +84,8 @@ def bd(root, args, *, phase="setup", check=True, run=subprocess.run):
     if args[0] in {"create", "update", "close", "reopen", "init", "dep"} or args[:2] == ["comments", "add"]:
         if "--actor" not in args or args.index("--actor") + 1 >= len(args):
             raise ValueError("Tracker writes require an explicit actor")
-    result = execute(root, [manifest["bd"], *args], phase=phase, check=False, run=run)
+    result = execute(root, [manifest["bd"], *args], phase=phase, check=False, run=run,
+                     cwd=brainspace(root) if args[0] == "init" else None)
     receipt = dict(argv=args, phase=phase, returncode=result.returncode,
                    stdout=result.stdout, stderr=result.stderr, time=time.time())
     with confined(root, "private/beads.jsonl").open("a", encoding="utf-8") as stream:
@@ -86,17 +95,38 @@ def bd(root, args, *, phase="setup", check=True, run=subprocess.run):
     return result
 
 
+CHECK_SCRIPT = '''import hashlib
+import json
+from pathlib import Path
+import subprocess
+
+receipt = {"check": "catalog-v1", "revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+           "scriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "ok": False}
+try:
+    assert json.loads(Path("api.json").read_text()) == {"pageSize": 7}
+    assert json.loads(Path("ui.json").read_text()) == {"pageSize": 7}
+    receipt["ok"] = True
+except (OSError, ValueError, AssertionError) as error:
+    receipt["error"] = str(error)
+print(json.dumps(receipt))
+raise SystemExit(0 if receipt["ok"] else 1)
+'''
+
+
 def snapshot(root, name):
     value = {"items": json.loads(bd(root, ["list", "--all", "--limit", "0", "--json"]).stdout),
              "ready": json.loads(bd(root, ["ready", "--json"]).stdout), "details": {},
              "head": execute(root, ["git", "rev-parse", "HEAD"]).stdout.strip(),
              "status": execute(root, ["git", "status", "--porcelain"]).stdout,
+             "refs": dict(line.split() for line in execute(root, ["git", "for-each-ref",
+                         "--format=%(refname:short) %(objectname)", "refs/heads"]).stdout.splitlines()),
              "knowledge": {}}
+    value["checkSha256"] = digest(confined(root, "workspace/check.py"))
     for item in value["items"]:
         value["details"][item["id"]] = {
             "show": json.loads(bd(root, ["show", item["id"], "--json"]).stdout),
             "comments": json.loads(bd(root, ["comments", item["id"], "--json"]).stdout)}
-    brain = confined(root, "workspace/.brain")
+    brain = brainspace(root) / ".brain"
     for file in brain.rglob("*"):
         if file.is_file():
             confined(root, file.relative_to(root))
@@ -109,32 +139,36 @@ def prepare(root, candidate, pstack, binary):
     if root.exists():
         raise ValueError("Use a new fixture root; previous attempts are never overwritten")
     root.mkdir(parents=True, mode=0o700)
-    for name in ("workspace/.brain/docs", "private", "bin", "data"):
+    for name in ("workspace", "private", "bin", "data/brainspaces/catalog/.brain/docs"):
         confined(root, name).mkdir(parents=True)
-    manifest = {"schema": 1, "root": str(root), "candidate": str(candidate), "pstack": str(pstack),
+    manifest = {"schema": 2, "root": str(root), "candidate": str(candidate), "pstack": str(pstack),
                 "bd": str(binary), "sentinel": "PRIVATE-" + uuid.uuid4().hex,
                 "priorAllowances": {"status": "exhausted", "renewed": False},
-                "sessionLimit": 12, "consecutiveFailureLimit": 3, "attempts": []}
+                "sessionLimit": 12, "consecutiveFailureLimit": 3, "attempts": [], "wiringAttempts": []}
     for key, checkout in (("candidateRevision", candidate), ("pstackRevision", pstack)):
         result = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"],
                                 capture_output=True, text=True, check=True, env=environment(root), timeout=120)
         manifest[key] = result.stdout.strip()
     write(root / "fixture.json", manifest)
+    execute(root, ["git", "init", "-q", str(root / "data")])
+    write(root / "data/config.yaml", "version: 4\nskills: []\nsubagents: []\n")
+    write(root / "data/.gitignore", "brainspaces/*/.beads/\n")
     execute(root, ["git", "init", "-q", "-b", "main"])
     execute(root, ["git", "config", "user.name", "Fixture"])
     execute(root, ["git", "config", "user.email", "fixture@example.invalid"])
+    execute(root, ["git", "config", "core.autocrlf", "false"])
     write(root / "workspace/.gitignore", ".brain/\n.beads/\n.codex/\n.claude/\n.agents/\n")
     write(root / "workspace/README.md", "# Catalog fixture\nReturn only public catalog fields.\n")
     write(root / "workspace/config.json", {"pageSize": 7})
-    write(root / "workspace/check.py", "import json\nfrom pathlib import Path\nassert json.loads(Path('api.json').read_text()) == {'pageSize': 7}\nassert json.loads(Path('ui.json').read_text()) == {'pageSize': 7}\n")
+    write(root / "workspace/check.py", CHECK_SCRIPT)
     write(root / "workspace/wait.py", "import time\ntime.sleep(1800)\n")
-    write(root / "workspace/.brain/docs/decision.md",
+    write(brainspace(root) / ".brain/docs/decision.md",
           "# Catalog contract\nThe accepted public page size is seven. Internal supplier labels stay private.\n" + manifest["sentinel"] + "\n")
-    write(root / "workspace/.brain/project.yaml", "agents: [claude-code, codex]\nskills: [dotbrain]\npstack:\n  enabled: true\n  source: " + json.dumps(str(pstack)) + "\n")
+    write(brainspace(root) / ".brain/project.yaml", "agents: [claude-code, codex]\nbeads:\n  mode: embedded\npstack:\n  enabled: true\n  source: " + json.dumps(str(pstack)) + "\n")
     write(root / "workspace/AGENTS.md", "# Catalog fixture\nRead project knowledge before changing the contract. Use the selected project mode.\nAll tracker writes require an explicit --actor. Never publish private context.\n")
     execute(root, ["git", "add", "."])
     execute(root, ["git", "commit", "-qm", "Seed catalog fixture"])
-    bd(root, ["init", "--prefix", "sample", "--skip-agents", "--skip-hooks", "--non-interactive",
+    bd(root, ["init", "--stealth", "--prefix", "sample", "--skip-agents", "--skip-hooks", "--non-interactive",
               "--actor", "fixture-setup"])
     ids = {}
     for role, title in (("contract", "Settle catalog API contract"), ("api", "Implement catalog API"),
@@ -159,6 +193,34 @@ def prepare(root, candidate, pstack, binary):
     return manifest
 
 
+def wire(root, executable, *, run=subprocess.run):
+    """Invoke the candidate CLI; source Brainspace owns state before repository attachment."""
+    manifest = load(root / "fixture.json")
+    env = environment(root)
+    env["PYTHONPATH"] = str(Path(manifest["candidate"]) / "src")
+    env["PATH"] = str(Path(manifest["bd"]).parent) + os.pathsep + env.get("PATH", "")
+    argv = [executable, "wire", "--home", str(root / "data"), "--repo", str(root / "workspace"),
+            "--project", "catalog", "--json"]
+    before = json.loads(bd(root, ["list", "--all", "--limit", "0", "--json"]).stdout)
+    result = run(argv, cwd=root / "workspace", env=env, capture_output=True, text=True,
+                 encoding="utf-8", timeout=120, check=False)
+    receipt = {"argv": argv, "exitCode": result.returncode, "stdout": result.stdout,
+               "stderr": result.stderr, "time": time.time(), "candidateRevision": subprocess.run(
+                   ["git", "-C", manifest["candidate"], "rev-parse", "HEAD"], env=env,
+                   capture_output=True, text=True, check=True, timeout=30).stdout.strip()}
+    for name in (".brain", ".beads"):
+        link = confined(root, "workspace/" + name)
+        receipt[name] = link.is_symlink() and link.resolve() == (brainspace(root) / name).resolve()
+    after = json.loads(bd(root, ["list", "--all", "--limit", "0", "--json"]).stdout)
+    receipt["backendPreserved"] = before == after
+    manifest["wiringAttempts"].append(receipt)
+    write(root / "fixture.json", manifest)
+    write(root / f"private/wire-{len(manifest['wiringAttempts'])}.json", receipt)
+    if result.returncode or not all(receipt[name] for name in (".brain", ".beads", "backendPreserved")):
+        raise ValueError("Supported candidate wiring failed; preserve receipt and resolve delivery prerequisite")
+    return receipt
+
+
 def prompt(manifest, phase):
     ids = manifest["ids"]
     common = ("Use the project's selected workflow and actual Beads graph. Read relevant knowledge; "
@@ -171,6 +233,9 @@ def prompt(manifest, phase):
                          "{claim:'Latency cause is unknown',status:'unresolved'}. Settle the contract "
                          "before starting dependent API/UI work. Exercise competing claims with different actors. "
                          "Delegate isolated API/UI work and record worker identities, branches and candidate commits. "
+                         "Each task's native worker assignment must name that task ID and its unique Beads actor. "
+                         "For each API/UI task post a Beads comment containing exactly a JSON object with key "
+                         "qualification whose value has taskId, workerActor, branch and revision (full commit SHA). "
                          "Run check.py before both implementations exist, retain the failure, leave failed work open. "
                          "Record FAIL and actual candidate commit hashes in Beads. Stop at a recoverable handoff "
                          "before integration; do not silently clear writer ownership. After handoff and worker "
@@ -182,8 +247,9 @@ def prompt(manifest, phase):
                          "the controller evidence. Reinspect observed claim ownership and use guarded takeover; "
                          "a changed guard requires fresh inspection. Reconcile actual candidate branches and "
                          "preserve previous failed checks. Integrate API/UI candidates, run python check.py, "
-                         "and record passing evidence before closing integration. Verify public output contains "
-                         "no private context. Never count this instruction as proof that a worker process stopped.")
+                         "and record passing evidence before closing integration. Keep check.py unchanged and execute "
+                         "it in a separate simple python check.py command. Verify public output contains no private "
+                         "context. Never count this instruction as proof that a worker process stopped.")
     return common + ("This is a cold continuation. Retrieve durable knowledge and graph records; reconcile "
                      "candidate revisions, attempts and every writer. An old writer's authority is uncertain: "
                      "do not take over on silence/lease expiry or self-report alone. Record the required operator "
@@ -248,17 +314,25 @@ def stop_writers(root):
     return receipt
 
 
-def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800):
+def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800, uncapped=False, trust_fixture_hooks=False):
     if not allow_native:
         raise ValueError("Native model calls require --allow-native and separately arranged subscription auth")
     manifest = load(confined(root, "fixture.json"))
+    if manifest.get("schema", 1) >= 2 and (not manifest["wiringAttempts"] or
+            manifest["wiringAttempts"][-1]["exitCode"] or not all(manifest["wiringAttempts"][-1].get(name)
+                for name in (".brain", ".beads", "backendPreserved"))):
+        raise ValueError("Native qualification requires a successful supported candidate wire receipt")
+    if manifest.get("schema", 1) >= 2 and any(not (root / "workspace" / name).is_symlink() or
+            (root / "workspace" / name).resolve() != (brainspace(root) / name).resolve() for name in (".brain", ".beads")):
+        raise ValueError("Current repository links no longer match the wired fixture Brainspace")
     attempts = manifest["attempts"]
     if any(a["runtime"] != runtime for a in attempts):
         raise ValueError("Use a separate fixture/backend for each runtime")
-    if sum(a["runtime"] == runtime for a in attempts) >= manifest["sessionLimit"]:
+    if not uncapped and sum(a["runtime"] == runtime for a in attempts) >= manifest["sessionLimit"]:
         raise ValueError("Native session allowance exhausted")
     recent = [a for a in attempts if a["runtime"] == runtime]
-    if len(recent) >= 3 and all(a.get("exitCode", 1) != 0 for a in recent[-3:]):
+    cap = manifest["consecutiveFailureLimit"]
+    if not uncapped and len(recent) >= cap and all(a.get("exitCode", 1) != 0 for a in recent[-cap:]):
         raise ValueError("Three consecutive native failures; stop and retain evidence")
     if phase == "continue" and not any(a["runtime"] == runtime and a["phase"] == "first" for a in attempts):
         raise ValueError("Continuation requires an earlier first phase")
@@ -286,12 +360,15 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
     name = planned["name"]
     env = planned["environment"]
     env["PATH"] = str(root / "bin") + os.pathsep + env.get("PATH", "")
-    attempt = dict(runtime=runtime, phase=phase, name=name, home=env["HOME"], started=time.time(), cwd=str(root / "workspace"))
+    attempt = dict(runtime=runtime, phase=phase, name=name, home=env["HOME"], started=time.time(), cwd=str(root / "workspace"),
+                   limits={"uncappedOverride": uncapped, "defaultSessionLimit": manifest["sessionLimit"],
+                           "defaultFailureLimit": manifest["consecutiveFailureLimit"]})
     attempts.append(attempt)
     write(root / "fixture.json", manifest)  # Reserve allowance before process launch, including failures.
     task = prompt(manifest, phase)
     write(root / f"private/{name}.input.txt", task)
-    argv = ([executable, "exec", "--json", "--full-auto", "-"] if runtime == "codex" else
+    argv = ([executable, "exec", "--json", "--full-auto", "--add-dir", str(root),
+             *(["--dangerously-bypass-hook-trust"] if trust_fixture_hooks else []), "-"] if runtime == "codex" else
             [executable, "-p", "--verbose", "--output-format", "stream-json", "--include-partial-messages"])
     attempt["argv"] = argv
     attempt["runtimeVersion"] = execute(root, [executable, "--version"], phase=name).stdout.strip()
@@ -393,12 +470,17 @@ def main():
     setup.add_argument("root", type=Path)
     for name in ("candidate", "pstack", "bd"):
         setup.add_argument("--" + name, required=True, type=Path)
+    wiring = commands.add_parser("wire")
+    wiring.add_argument("root", type=Path)
+    wiring.add_argument("--executable", required=True)
     phase = commands.add_parser("run")
     phase.add_argument("root", type=Path)
     phase.add_argument("--runtime", choices=("codex", "claude"), required=True)
     phase.add_argument("--phase", choices=("first", "continue", "integration"), required=True)
     phase.add_argument("--executable", required=True)
     phase.add_argument("--allow-native", action="store_true")
+    phase.add_argument("--uncapped", action="store_true", help="Record an authorized override of session/failure caps; retain all receipts.")
+    phase.add_argument("--trust-fixture-hooks", action="store_true", help="Codex only: trust the vetted candidate's fixture hooks; keep sandbox enabled.")
     phase.add_argument("--timeout-seconds", type=int, default=1800)
     planned = commands.add_parser("plan")
     planned.add_argument("root", type=Path)
@@ -418,7 +500,9 @@ def main():
     elif args.command == "run":
         if not 1 <= args.timeout_seconds <= 1800:
             parser.error("timeout must be between 1 and 1800 seconds")
-        result = run_phase(root, args.runtime, args.phase, args.executable, args.allow_native, args.timeout_seconds)
+        result = run_phase(root, args.runtime, args.phase, args.executable, args.allow_native, args.timeout_seconds, args.uncapped, args.trust_fixture_hooks)
+    elif args.command == "wire":
+        result = wire(root, args.executable)
     elif args.command == "plan":
         result = plan(root, args.runtime, args.phase)
     elif args.command == "proxy":

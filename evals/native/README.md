@@ -28,6 +28,12 @@ It retains its embedded Dolt backend and receipts under `evals/results/`. It
 checks actual dependency readiness, exclusive actor claims and a failed product
 check. It makes no model calls and accesses no authentication files.
 
+To include supported CLI attachment in that external check, also set
+`NATIVE_FIXTURE_DOTBRAIN` to a candidate CLI executable and
+`NATIVE_FIXTURE_PSTACK` to its usable pstack source. The check verifies real links
+and preserved backend identity/records. Use the final integrated candidate for
+mode-delivery evidence; an older CLI attachment smoke proves only attachment.
+
 On Windows, setting `NATIVE_FIXTURE_PROCESS_CHECK=1` also exercises the process
 controls against a temporary Python sleeper, with no agent runtime or model call.
 
@@ -39,22 +45,30 @@ allowance. Existing roots and exports are never overwritten.
 
 ```powershell
 python evals/native/journey.py prepare evals/results/catalog-codex --candidate C:/candidate --pstack C:/pstack --bd C:/tools/bd.exe
+python evals/native/journey.py wire evals/results/catalog-codex --executable C:/candidate-cli/dotbrain.exe
 python evals/native/journey.py plan evals/results/catalog-codex --runtime codex --phase first
 ```
 
-`prepare` creates an actual isolated embedded Beads backend, contract prerequisite,
-dependent API/UI tasks, integration task, Git repository, private decision and
-random private sentinel. Candidate and pstack revisions and Beads version are
-recorded. It uses neither `items.json` nor a fake tracker. The `bd` proxy delegates
+`prepare` initializes a Git data root and source Brainspace at
+`data/brainspaces/catalog/`, with an actual embedded Beads backend, contract
+prerequisite, dependent API/UI tasks, integration task, private decision and
+random sentinel. The adopter Git repository starts without `.brain` or `.beads`
+entries. Its project declaration records embedded mode and pstack opt-in without
+an obsolete private skill selection. Candidate/pstack revisions and Beads version
+are recorded. It uses neither `items.json` nor a fake tracker. The `bd` proxy delegates
 to the specified binary and retains actual argv, actors, output and exit status.
 
-Delivery is a separate prerequisite: use the integrated candidate's supported
-wiring/delivery route with the fixture's isolated environment from `plan` and
-workspace. Preserve its real backend and private decision. The project declares
-`pstack.enabled: true` and the supplied `pstack.source`. Deliver resources and
-hooks into each fresh runtime home as needed; inventory alone does not qualify
-discovery or invocation. Neither candidate checkout nor pstack checkout is a
-mutation target of the fixture.
+`wire` is the supported delivery prerequisite. It invokes the supplied candidate
+CLI's `wire --home ROOT/data --repo ROOT/workspace --project catalog --json`, with
+candidate `src` on `PYTHONPATH`, bytecode writes disabled, and all home/backend/Git
+destinations inside the fixture. It captures the actual CLI result, candidate
+revision, repository-link targets and unchanged seeded graph. The CLI owns link
+and resource creation; no delivery links are hand-built. Failed delivery remains
+an explicit prerequisite and retains its receipt; native launch refuses it.
+An integrated candidate with pstack support is required before mode qualification.
+Deliver hooks/resources into each fresh runtime home as needed; inventory alone
+does not qualify invocation. Candidate and pstack source homes are never mutation
+targets.
 
 `plan` returns the exact next home/environment and fixed task without reserving a
 session. The controller arranges subscription authentication in that home and
@@ -79,8 +93,13 @@ python evals/native/journey.py run evals/results/catalog-codex --runtime codex -
 
 For Claude, use a separate prepared root, `--runtime claude`, and its direct
 executable. Calls use `claude -p --verbose --output-format stream-json
---include-partial-messages` or `codex exec --json --full-auto -`, with task text
+--include-partial-messages` or `codex exec --json --full-auto --add-dir ROOT -`, with task text
 on stdin. No provider sanitizer runs.
+
+The fixed Codex additional directory grants the isolated Brainspace/worktrees
+write access while keeping its sandbox enabled. For vetted fixture hooks, the
+controller can explicitly add `--trust-fixture-hooks`; its native argv records
+the resulting hook-trust option. This never enables a full sandbox bypass.
 
 The first task records a verified discovery and unresolved hypothesis, exercises
 competing claims and delegated candidates, retains a failing check, then waits
@@ -90,6 +109,20 @@ exit status and interruption are recorded. This never establishes that delegated
 writers stopped. Child lifecycle evidence is checked separately and uncertain
 authority remains held. A cold second task receives only the fixed continuation
 request and task IDs, retrieves durable records and records the operator boundary.
+
+Each API/UI native assignment names its task ID and distinct Beads actor. Each
+task retains a Beads comment with this structure, using its real short branch
+name and candidate revision:
+
+```json
+{"qualification":{"taskId":"sample-api","workerActor":"api-writer","branch":"feature/api","revision":"0123456789abcdef0123456789abcdef01234567"}}
+```
+
+The verifier derives the actual native worker identity from that task/actor
+assignment, corroborates the actual claim, task comment, branch snapshot, Git
+object and role-specific implementation, and requires both candidates to be
+ancestors of the checked integration revision. A hash mentioned elsewhere or an
+unrelated completed worker earns no candidate credit.
 
 To exercise confirmed takeover, the test driver first uses the captured process
 identities to stop affected fixture writers:
@@ -130,11 +163,13 @@ python evals/native/journey.py plan evals/results/catalog-codex --runtime codex 
 python evals/native/journey.py run evals/results/catalog-codex --runtime codex --phase integration --executable C:/tools/codex.exe --allow-native
 ```
 
-Attempts reserve allowance before launch, retain failures, stop after three
-consecutive nonzero exits, and cap each fixture at twelve sessions. The controller
-must also enforce the approved total across fixtures, checkpoint failure/no-progress
-caps, and the run's deadline. Deliberate interruption is retained as a nonzero
-exit rather than silently reset. The native process environment directs home,
+Attempts reserve allowance before launch and retain failures. Defaults stop
+after three consecutive nonzero exits and twelve sessions per fixture. An
+explicitly authorized uncapped run adds `--uncapped` to each native call; every
+receipt records that override and the unchanged defaults, keeping all earlier
+attempts and exhausted prior initiative allowances. The controller applies its
+current approved policy across fixtures. Deliberate interruption remains a
+nonzero exit rather than silently reset. The native process environment directs home,
 temporary files, Git configuration and backend writes into the fixture; this is
 not an operating-system security sandbox. Use the runtime's own permissions to
 restrict additional writes to the fixture.
@@ -167,8 +202,14 @@ held rather than inferred from a final narrative. Completion is distinct from
 OS process termination; the fixture deliberately exercises the operator path
 for uncertain takeover.
 
-Integration credit requires a passing native `check.py` call before a separate
-native close call, corroborating actual Beads closure and final graph state.
+Check credit requires a simple interpreter invocation of the actual fixture
+`check.py`, its native exit status, and the script's JSON result carrying its
+unchanged script digest and checked commit. Reading, echoing or mentioning the
+script earns no execution credit. Passing integration must precede a separate
+native close call, corroborate Beads closure, preserve a clean final checkout,
+and include both actual API/UI candidates. Cold-continuation access checks use
+Windows path identity, including casing, relative traversal and filesystem
+aliases; even partial reads of prior controller artifacts invalidate continuation.
 The private sentinel is checked in tracked files and the retained candidate
 commit. Broader discovery, opt-out and preservation scenarios remain separate
 qualification work.
