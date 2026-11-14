@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 import journey
-from verify import evaluate, native_trace, simple_read, inspect_artifacts, controller_access
+from verify import evaluate, native_trace, simple_read, inspect_artifacts, controller_access, continuation_access
 
 
 def correct_record(runtime="codex"):
@@ -24,13 +24,14 @@ def correct_record(runtime="codex"):
     check_hash = "check-hash"
     qualification = {role: {"taskId": ids[role], "workerActor": role + "-writer", "branch": "feature/" + role,
                            "revision": sha} for role, sha in (("api", revision), ("ui", ui_revision))}
-    items = {item: {"id": item, "status": "open", "assignee": role + "-writer" if role in {"api", "ui"} else ""}
+    items = {item: {"id": item, "status": "in_progress" if role in {"api", "ui"} else "closed" if role == "contract" else "open",
+                    "assignee": "coordinator-old" if role != "integration" else ""}
              for role, item in ids.items()}
     state = {"items": items, "knowledge": {"docs/discovery.json": discovery},
              "details": {"handoff": "docs/discovery.json FAIL candidate " + revision}, "head": baseline_sha,
              "refs": {value["branch"]: value["revision"] for value in qualification.values()}, "status": ""}
     for role, value in qualification.items():
-        state["details"][ids[role]] = {"comments": [{"author": "coordinator", "text": json.dumps({"qualification": value})}]}
+        state["details"][ids[role]] = {"comments": [{"author": "coordinator-old", "text": json.dumps({"qualification": value})}]}
     recovered_state = copy.deepcopy(state)
     recovered_state["knowledge"]["docs/recovered.json"] = json.dumps({"discovery": json.loads(discovery),
          "nextWork": ids["integration"], "takeover": "operator-decision-required"})
@@ -44,10 +45,12 @@ def correct_record(runtime="codex"):
                     for tool in ("spawn_agent", "wait"):
                         result.append({"type": "item.completed", "item": {"type": "collab_tool_call", "tool": tool,
                                        "prompt": ids[role] + " actor " + role + "-writer",
-                                       "status": "completed", "agents_states": {role + "-child": {"status": "completed"}}}})
+                                       "status": "completed", "agents_states": {role + "-child": {"status": "completed",
+                                       "message": json.dumps({"qualification": qualification[role]}) if tool == "wait" else ""}}}})
             return result + [{"type": "turn.completed"}]
         result = [{"type": "system", "session_id": session}]
-        for i, (name, output, ok) in enumerate(tools + ([("Agent-api", "worker result", True), ("Agent-ui", "worker result", True)] if worker else [])):
+        for i, (name, output, ok) in enumerate(tools + ([("Agent-api", json.dumps({"qualification": qualification["api"]}), True),
+                                                       ("Agent-ui", json.dumps({"qualification": qualification["ui"]}), True)] if worker else [])):
             tool = "Agent" if name.startswith("Agent-") else "Read" if name.startswith("cat ") else "Bash"
             args = ({"prompt": ids[name[6:]] + " actor " + name[6:] + "-writer"} if tool == "Agent" else
                     {"file_path": name[4:]} if tool == "Read" else {"command": name})
@@ -74,26 +77,42 @@ def correct_record(runtime="codex"):
     for child, parent in (("api", "contract"), ("ui", "contract"), ("integration", "api"), ("integration", "ui")):
         baseline["details"][ids[child]]["show"][0]["dependencies"].append({"depends_on_id": ids[parent]})
     final_state = copy.deepcopy(state)
-    final_state["items"][ids["integration"]]["status"] = "closed"
+    for role in ("api", "ui", "integration"):
+        final_state["items"][ids[role]].update(status="closed", assignee="coordinator-new")
     final_state["head"] = final_sha
+    def result(item, status, owner):
+        return json.dumps([{"id": item, "status": status, "assignee": owner}])
+    recovery_calls = []
+    for role in ("api", "ui"):
+        recovery_calls.append({"argv": ["update", ids[role], "--if-assignee", "coordinator-old", "--assignee", "coordinator-new",
+                                "--actor", "coordinator-new", "--json"], "returncode": 0, "phase": "integration",
+                               "stdout": result(ids[role], "in_progress", "coordinator-new")})
+        recovery_calls.append({"argv": ["close", ids[role], "--actor", "coordinator-new", "--json"],
+                               "returncode": 0, "phase": "integration", "stdout": result(ids[role], "closed", "coordinator-new")})
+    recovery_calls += [{"argv": ["ready", "--json"], "returncode": 0, "phase": "integration",
+                       "stdout": result(ids["integration"], "open", "")},
+                      {"argv": ["update", ids["integration"], "--claim", "--actor", "coordinator-new", "--json"],
+                       "returncode": 0, "phase": "integration", "stdout": result(ids["integration"], "in_progress", "coordinator-new")},
+                      {"argv": ["close", ids["integration"], "--actor", "coordinator-new", "--json"],
+                       "returncode": 0, "phase": "integration", "stdout": result(ids["integration"], "closed", "coordinator-new")}]
     integration = {"name": "integration", "receipt": {"name": "integration"}, "state": final_state,
                    "scriptPreserved": True, "productValid": True,
-                   "events": events("session-c", [("python check.py", json.dumps({"check": "catalog-v1", "ok": True,
+                   "events": events("session-c", [("bd " + " ".join(call["argv"]), call["stdout"], True) for call in recovery_calls[:-1]] +
+                       [("python check.py", json.dumps({"check": "catalog-v1", "ok": True,
                                                "revision": final_sha, "scriptSha256": check_hash}), True),
-                                                    ("bd close " + ids["integration"], "closed", True)])}
+                        ("bd " + " ".join(recovery_calls[-1]["argv"]), recovery_calls[-1]["stdout"], True)])}
     return dict(runtime=runtime, first=first, second=second, integration=integration, ids=ids, before=state, after=recovered_state,
-                baseline=baseline, calls=[{"argv": ["close", ids["contract"], "--actor", "coordinator"],
+                baseline=baseline, calls=[{"argv": ["close", ids["contract"], "--actor", "coordinator-old"],
                                           "returncode": 0, "phase": "first"}] +
                 [{"argv": ["update", ids["api"], "--claim", "--actor", actor],
                                           "returncode": code, "phase": "first"}
-                                         for actor, code in (("api-writer", 0), ("competitor", 1))] +
-                [{"argv": ["update", ids["ui"], "--claim", "--actor", "ui-writer"], "returncode": 0, "phase": "first"},
-                 {"argv": ["close", ids["integration"], "--actor", "coordinator"], "returncode": 0, "phase": "integration"}],
+                                         for actor, code in (("coordinator-old", 0), ("competitor", 1))] +
+                [{"argv": ["update", ids["ui"], "--claim", "--actor", "coordinator-old"], "returncode": 0, "phase": "first"}] + recovery_calls,
                 config='{"pageSize":7}', configSha256="hash", expectedSecondInput="cold task",
                 candidates={role: {**value, "objectExists": True, "integrated": True, "scriptPreserved": True, "roleImplemented": True}
                             for role, value in qualification.items()}, checkSha256=check_hash, public={"README.md": "Public guidance"},
                 sentinel="PRIVATE-CANARY", priorAllowances={"status": "exhausted", "renewed": False},
-                operatorDecision={"decision": "authorize-takeover", "actor": "operator", "observedOwner": "api-writer"},
+                operatorDecision={"decision": "authorize-takeover", "actor": "operator", "observedOwner": "coordinator-old"},
                 fixtureRoot="/fixture", writerStop={"attempt": "first", "parent": 123,
                 "before": {"present": first["writerTree"]["present"]},
                 "after": {"fixtureRoot": "/fixture", "requested": [123, 456], "present": []}},
@@ -101,6 +120,17 @@ def correct_record(runtime="codex"):
 
 
 class Calibration(unittest.TestCase):
+    @staticmethod
+    def add_shell_result(record, command, output="selected first-session fragment"):
+        if record["runtime"] == "codex":
+            extra = [{"type": "item.completed", "item": {"type": "command_execution", "command": command,
+                       "aggregated_output": output, "exit_code": 0}}]
+        else:
+            extra = [{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "extra",
+                       "name": "Bash", "input": {"command": command}}]}},
+                     {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "extra", "content": output}]}}]
+        record["second"]["events"][1:1] = extra
+
     @staticmethod
     def replace_check_command(record, phase, command):
         for event in record[phase]["events"]:
@@ -171,6 +201,131 @@ class Calibration(unittest.TestCase):
                 with self.subTest(runtime=runtime, path=target):
                     self.assertFalse(evaluate(record)["cold_continuation"])
 
+    def test_recursive_glob_and_indirect_continuation_access_is_inconclusive(self):
+        for runtime in ("codex", "claude"):
+            for command in ("Get-ChildItem .. -Recurse -Filter *first* | Get-Content",
+                            "Get-ChildItem .. -Recurse -File -Filter *first* | Get-Content",
+                            "Get-Content ../**/*first*", "Get-Content ..",
+                            'python -c "from pathlib import Path; print(next(Path(\'..\').rglob(\'*first*\')).read_text())"',
+                            "$candidate = '..'; Get-ChildItem $candidate -Recurse | Get-Content"):
+                record = correct_record(runtime)
+                self.add_shell_result(record, command)
+                with self.subTest(runtime=runtime, command=command):
+                    self.assertFalse(evaluate(record)["cold_continuation"])
+            for command in ("cat config.json", "Get-Content .brain/docs/discovery.json", "bd ready --json",
+                            "bd show sample-api --json", "bd comments sample-api --json", "git status --porcelain",
+                            "bd dolt test", "bd --readonly dolt test", "dotbrain doctor --json",
+                            "bd --readonly ready --json",
+                            "dotbrain doctor --home /fixture/data --repo /fixture/workspace --json"):
+                record = correct_record(runtime)
+                self.add_shell_result(record, command, "ordinary fixture state")
+                with self.subTest(runtime=runtime, ordinary=command):
+                    self.assertTrue(evaluate(record)["cold_continuation"])
+            for command in ("dotbrain doctor --home .. --json", "dotbrain doctor --repo ../private --json"):
+                record = correct_record(runtime)
+                self.add_shell_result(record, command)
+                self.assertFalse(evaluate(record)["cold_continuation"])
+            record = correct_record(runtime)
+            if runtime == "codex":
+                unknown = [{"type": "item.completed", "item": {"id": "unknown", "type": "mcp_tool_call", "output": "fragment"}}]
+                unfinished = [{"type": "item.started", "item": {"id": "unfinished", "type": "command_execution", "command": "cat config.json"}}]
+            else:
+                unknown = [{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "unknown",
+                    "name": "Grep", "input": {"path": "..", "pattern": "first"}}]}}, {"type": "user", "message": {
+                    "content": [{"type": "tool_result", "tool_use_id": "unknown", "content": "fragment"}]}}]
+                unfinished = [{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "unfinished",
+                    "name": "Read", "input": {"file_path": "config.json"}}]}}]
+            for extra in (unknown, unfinished):
+                wrong = copy.deepcopy(record)
+                wrong["second"]["events"][1:1] = extra
+                self.assertFalse(evaluate(wrong)["cold_continuation"])
+
+    def test_coordinator_claims_are_distinct_from_native_worker_candidate_returns(self):
+        for runtime in ("codex", "claude"):
+            record = correct_record(runtime)
+            owner = record["operatorDecision"]["observedOwner"]
+            for role in ("api", "ui"):
+                self.assertEqual(record["before"]["items"][record["ids"][role]]["assignee"], owner)
+                self.assertNotEqual(record["candidates"][role]["workerActor"], owner)
+            self.assertTrue(all(evaluate(record).values()))
+            for defect in ("missing", "wrong-revision", "wrong-branch", "wrong-task", "wrong-worker"):
+                wrong = copy.deepcopy(record)
+                changes = {"wrong-revision": ("a" * 40, "f" * 40), "wrong-branch": ("feature/api", "feature/unrelated"),
+                           "wrong-task": ("sample-api", "sample-ui"), "wrong-worker": ("api-writer", "other-worker")}
+                agent_ids = {block["id"] for event in wrong["first"]["events"] for block in
+                    event.get("message", {}).get("content", []) if block.get("name") == "Agent" and
+                    "sample-api" in block.get("input", {}).get("prompt", "")}
+                for event in wrong["first"]["events"]:
+                    item = event.get("item", {})
+                    returned = item.get("agents_states", {}).get("api-child") if item.get("tool") == "wait" else None
+                    if returned:
+                        returned["message"] = "worker completed" if defect == "missing" else returned["message"].replace(*changes[defect])
+                    for block in event.get("message", {}).get("content", []):
+                        if block.get("tool_use_id") in agent_ids:
+                            block["content"] = "worker completed" if defect == "missing" else block["content"].replace(*changes[defect])
+                with self.subTest(runtime=runtime, returned=defect):
+                    grade = evaluate(wrong)
+                    self.assertFalse(grade["candidate"])
+                    self.assertFalse(grade["worker_lifecycle"])
+
+    def test_cold_skill_loading_is_limited_to_vetted_core_and_mode(self):
+        for skill, expected in (("dotbrain:work-graph", True), ("dotbrain-pstack", True),
+                                ("unknown:read-anything", False), ("dotbrain:unknown", False), (None, False)):
+            self.assertEqual(continuation_access({"name": "Skill", "input": json.dumps({"skill": skill}), "skill": skill},
+                             "/fixture", "/fixture/first", ["/fixture/workspace"]), expected)
+
+    def test_confirmed_recovery_requires_guards_ownership_and_prerequisite_transitions(self):
+        defects = ("absent-transfer", "absent-guard", "duplicate-guard", "forced-guard", "failed-guard", "wrong-old-owner", "wrong-result-owner",
+                   "missing-result", "old-final-owner", "open-api", "open-ui", "forced-api-close", "forced-integration-close",
+                   "absent-ready", "early-ready", "absent-integration-claim", "early-integration-close")
+        for runtime in ("codex", "claude"):
+            correct = correct_record(runtime)
+            next(c for c in correct["calls"] if c["argv"][0] == "ready")["argv"] = ["--readonly", "ready", "--json"]
+            self.assertTrue(evaluate(correct)["integration_verified"])
+            for defect in defects:
+                record = correct_record(runtime)
+                calls = record["calls"]
+                guards = [c for c in calls if "--if-assignee" in c["argv"]]
+                api, ui, integration = (record["ids"][role] for role in ("api", "ui", "integration"))
+                if defect == "absent-transfer":
+                    record["calls"] = [c for c in calls if c not in guards]
+                elif defect == "absent-guard":
+                    index = guards[0]["argv"].index("--if-assignee")
+                    del guards[0]["argv"][index:index + 2]
+                elif defect == "failed-guard":
+                    guards[0]["returncode"] = 13
+                elif defect == "duplicate-guard":
+                    guards[0]["argv"] += ["--if-assignee", "changed-owner"]
+                elif defect == "forced-guard":
+                    guards[0]["argv"].append("--force")
+                elif defect == "wrong-old-owner":
+                    guards[0]["argv"][guards[0]["argv"].index("--if-assignee") + 1] = "changed-owner"
+                elif defect == "wrong-result-owner":
+                    guards[0]["stdout"] = guards[0]["stdout"].replace("coordinator-new", "other-owner")
+                elif defect == "missing-result":
+                    guards[0].pop("stdout")
+                elif defect == "old-final-owner":
+                    record["integration"]["state"]["items"][api]["assignee"] = "coordinator-old"
+                elif defect in {"open-api", "open-ui"}:
+                    record["integration"]["state"]["items"][api if defect == "open-api" else ui]["status"] = "open"
+                elif defect.startswith("forced-"):
+                    target = api if defect == "forced-api-close" else integration
+                    next(c for c in calls if c["phase"] == "integration" and c["argv"][:2] == ["close", target])["argv"].append("--force")
+                elif defect in {"absent-ready", "early-ready"}:
+                    ready = next(c for c in calls if c["argv"][0] == "ready")
+                    calls.remove(ready)
+                    if defect == "early-ready":
+                        index = next(i for i, c in enumerate(calls) if c["argv"][:2] == ["close", ui])
+                        calls.insert(index, ready)
+                elif defect == "absent-integration-claim":
+                    record["calls"] = [c for c in calls if c["argv"][:2] != ["update", integration]]
+                else:
+                    close = next(c for c in calls if c["argv"][:2] == ["close", integration])
+                    calls.remove(close)
+                    calls.insert(4, close)
+                with self.subTest(runtime=runtime, recovery=defect):
+                    self.assertFalse(evaluate(record)["integration_verified"])
+
     def test_controller_artifact_symlink_identity_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -181,6 +336,17 @@ class Calibration(unittest.TestCase):
             self.assertTrue(controller_access({"input": str(alias), "paths": [str(alias)]}, str(root), str(root / "homes/first")))
             self.assertTrue(controller_access({"input": "Get-Content context.json -TotalCount 1",
                 "command": "Get-Content context.json -TotalCount 1"}, str(root), str(root / "homes/first")))
+            brain = root / "data/brainspaces/catalog/.brain"
+            cache = root / "data/.cache/integrations/dotbrain-pstack/example"
+            journey.write(brain / "docs/discovery.json", "verified knowledge")
+            journey.write(cache / "SKILL.md", "public mode")
+            (root / "workspace/.brain").symlink_to(brain, target_is_directory=True)
+            mode = root / "workspace/.agents/skills/dotbrain-pstack"
+            mode.parent.mkdir(parents=True)
+            mode.symlink_to(cache, target_is_directory=True)
+            for path in (root / "workspace/.brain/docs/discovery.json", mode / "SKILL.md"):
+                self.assertTrue(continuation_access({"name": "Read", "input": str(path), "paths": [str(path)]},
+                    str(root), str(root / "homes/first"), [str(root / "workspace"), str(brain), str(cache.parent)]))
 
     def test_each_dependent_task_needs_its_own_worker_and_integrated_candidate(self):
         for runtime in ("codex", "claude"):
@@ -356,6 +522,26 @@ class Calibration(unittest.TestCase):
         with self.assertRaises(ValueError):
             journey.run_phase(Path("unused"), "codex", "first", "never-launch")
 
+    def test_backend_probe_proxy_keeps_readonly_connectivity_queries_in_fixture_store(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            journey.write(root / "fixture.json", {"schema": 2, "bd": "actual-bd"})
+            (root / "private").mkdir()
+            calls = []
+            def run(argv, **kwargs):
+                calls.append(argv)
+                self.assertEqual(Path(kwargs["env"]["BEADS_DIR"]), root / "data/brainspaces/catalog/.beads")
+                return subprocess.CompletedProcess(argv, 0, "backend healthy", "")
+            for args in (["dolt", "test"], ["--readonly", "dolt", "test"], ["--readonly", "ready", "--json"]):
+                self.assertEqual(journey.bd(root, args, phase="native", run=run).returncode, 0)
+            self.assertEqual(len(calls), 3)
+            for args in (["dolt", "push"], ["--readonly", "dolt", "sql"], ["--readonly", "dolt", "test", "--global"],
+                         ["ready", "--global=true"], ["ready", "-Coutside"],
+                         ["update", "sample-api", "--claim"]):
+                with self.assertRaises(ValueError):
+                    journey.bd(root, args, phase="native", run=run)
+            self.assertEqual(len(calls), 3)
+
     def test_explicit_uncapped_override_preserves_defaults_and_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -408,6 +594,13 @@ class RealBackend(unittest.TestCase):
         self.assertNotEqual(journey.bd(root, ["update", item, "--claim", "--actor", "writer-b"], check=False).returncode, 0)
         claimed = json.loads(journey.bd(root, ["show", item, "--json"]).stdout)
         self.assertEqual(claimed[0]["assignee"], "writer-a")
+        wrong_guard = journey.bd(root, ["update", item, "--if-assignee", "changed-owner", "--assignee", "coordinator-new",
+                                       "--actor", "coordinator-new", "--json"], check=False)
+        self.assertEqual(wrong_guard.returncode, 13)
+        transferred = journey.bd(root, ["update", item, "--if-assignee", "writer-a", "--assignee", "coordinator-new",
+                                       "--actor", "coordinator-new", "--json"])
+        self.assertEqual(json.loads(transferred.stdout)[0]["assignee"], "coordinator-new")
+        self.assertEqual(journey.bd(root, ["--readonly", "ready", "--json"]).returncode, 0)
         self.assertIn(str(journey.brainspace(root) / ".beads"), journey.bd(root, ["where"]).stdout)
         self.assertNotEqual(journey.execute(root, [sys.executable, "check.py"], check=False).returncode, 0)
         self.assertFalse((root / "workspace/.brain").exists())

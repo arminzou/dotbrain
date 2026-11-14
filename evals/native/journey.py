@@ -59,6 +59,9 @@ def environment(root, phase="setup"):
                BD_NON_INTERACTIVE="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"),
                GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", NATIVE_FIXTURE_ROOT=str(root),
                NATIVE_FIXTURE_PHASE=phase)
+    manifest = confined(root, "fixture.json")
+    if manifest.exists() and load(manifest).get("candidate"):
+        env["PYTHONPATH"] = str(Path(load(manifest)["candidate"]) / "src")
     return env
 
 
@@ -73,11 +76,12 @@ def execute(root, argv, *, phase="setup", check=True, run=subprocess.run, cwd=No
 def bd(root, args, *, phase="setup", check=True, run=subprocess.run):
     manifest = load(confined(root, "fixture.json"))
     # All tracker calls use an explicit backend and no ambient server/global switches.
-    if any(arg in {"--global", "--db", "--database", "--directory", "-C", "--repo"}
-           or arg.startswith(("--db=", "--database=", "--directory=", "--repo=")) for arg in args):
+    if any(arg.split("=", 1)[0] in {"--global", "--db", "--database", "--directory", "-C", "--repo"}
+           or arg.startswith("-C") for arg in args):
         raise ValueError("Tracker routing overrides are forbidden")
-    if not args or args[0] not in {"init", "version", "where", "prime", "ready", "list", "show",
-                                   "comments", "create", "update", "close", "reopen", "dep"}:
+    backend_probe = args in (["dolt", "test"], ["--readonly", "dolt", "test"], ["--readonly", "ready", "--json"])
+    if not args or (not backend_probe and args[0] not in {"init", "version", "where", "prime", "ready", "list", "show",
+                                                        "comments", "create", "update", "close", "reopen", "dep"}):
         raise ValueError("Tracker command is outside the isolated journey")
     if phase != "setup" and args[0] == "init":
         raise ValueError("Only fixture setup may initialize the backend")
@@ -233,9 +237,11 @@ def prompt(manifest, phase):
                          "{claim:'Latency cause is unknown',status:'unresolved'}. Settle the contract "
                          "before starting dependent API/UI work. Exercise competing claims with different actors. "
                          "Delegate isolated API/UI work and record worker identities, branches and candidate commits. "
-                         "Each task's native worker assignment must name that task ID and its unique Beads actor. "
+                         "The coordinator claims both tasks under its own Beads actor; worker identities are separate. "
+                         "Each native worker assignment must name that task ID and its unique workerActor label. "
                          "For each API/UI task post a Beads comment containing exactly a JSON object with key "
                          "qualification whose value has taskId, workerActor, branch and revision (full commit SHA). "
+                         "Each worker must return that same qualification JSON alongside its normal result. "
                          "Run check.py before both implementations exist, retain the failure, leave failed work open. "
                          "Record FAIL and actual candidate commit hashes in Beads. Stop at a recoverable handoff "
                          "before integration; do not silently clear writer ownership. After handoff and worker "
@@ -246,7 +252,12 @@ def prompt(manifest, phase):
         return common + ("An operator decision authorizing the uncertain-owner takeover is recorded in "
                          "the controller evidence. Reinspect observed claim ownership and use guarded takeover; "
                          "a changed guard requires fresh inspection. Reconcile actual candidate branches and "
-                         "preserve previous failed checks. Integrate API/UI candidates, run python check.py, "
+                         "preserve previous failed checks. Transfer each API/UI claim with --if-assignee observed-old-owner "
+                         "and --assignee new-coordinator, under that new coordinator's --actor, retaining JSON results; "
+                         "do not combine the guard with --claim or --force. Close accepted API/UI work under the new "
+                         "coordinator, record bd ready --json exposing integration, and claim integration under that "
+                         "coordinator before verification. Use --json on all ownership and closure operations. "
+                         "Integrate API/UI candidates, run python check.py, "
                          "and record passing evidence before closing integration. Keep check.py unchanged and execute "
                          "it in a separate simple python check.py command. Verify public output contains no private "
                          "context. Never count this instruction as proof that a worker process stopped.")
@@ -256,7 +267,9 @@ def prompt(manifest, phase):
                      "decision and pending evidence. Recover the verified constraint and unresolved hypothesis "
                      "without treating the hypothesis as fact. Write .brain/docs/recovered.json with discovery "
                      "equal to the recovered discovery object, nextWork equal to the integration task ID, and "
-                     "takeover:'operator-decision-required'. Do not close work without actual passing checks.")
+                     "takeover:'operator-decision-required'. Use explicit native file reads/editors and simple "
+                     "file or bd graph queries. Recursive, glob, indirect shell reads and delegated readers "
+                     "cannot establish this cold-access boundary. Do not close work without actual passing checks.")
 
 
 def plan(root, runtime, phase):

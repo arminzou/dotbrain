@@ -4,6 +4,7 @@ import json
 import ntpath
 from pathlib import Path
 import re
+import shlex
 import sys
 
 
@@ -70,6 +71,162 @@ def controller_access(tool, root, first_home):
                for identity in (path_identity(path, cwd) for path in paths))
 
 
+def continuation_access(tool, root, first_home, read_roots):
+    """Allow established read targets; unsupported shell/search behavior cannot prove cold access."""
+    if controller_access(tool, root, first_home):
+        return False
+    cwd = tool.get("cwd") or ntpath.join(root, "workspace")
+    def allowed(path):
+        if any(char in path for char in "*?`$"):
+            return False
+        identity = path_identity(path, cwd)
+        return any(identity == base or identity.startswith(base + "\\")
+                   for base in (path_identity(value, cwd) for value in read_roots))
+    if tool["name"] in {"Read", "Write", "Edit", "file_change"}:
+        return bool(tool.get("paths")) and all(allowed(path) for path in tool["paths"])
+    if tool["name"] == "Skill":
+        name = tool.get("skill", "")
+        if not isinstance(name, str):
+            return False
+        namespace, _, leaf = name.rpartition(":")
+        return namespace in {"", "dotbrain"} and (leaf or name) in {
+            "brain-convention", "work-graph", "maintain-brain", "wire-brain", "repo-rules", "dotbrain-pstack"}
+    if tool["name"] == "TodoWrite":
+        return True
+    if tool["name"] not in {"shell", "Bash"}:
+        return False
+    command = command_body(tool.get("command", ""))
+    if any(char in command for char in "*?`$;|&<>"):
+        return False
+    target = read_target(command)
+    if target:
+        return allowed(target)
+    tokens = [token.strip("\"'") for token in shlex.split(command, posix=False)]
+    if not tokens:
+        return False
+    binary = ntpath.basename(tokens[0]).casefold().removesuffix(".exe").removesuffix(".cmd")
+    if binary == "bd":
+        if any(token.split("=", 1)[0] in {"--db", "--database", "--directory", "-C", "--repo", "--global"}
+               or token.startswith("-C") for token in tokens):
+            return False
+        if tokens[1:] in (["dolt", "test"], ["--readonly", "dolt", "test"], ["--readonly", "ready", "--json"]):
+            return True
+        if len(tokens) < 2 or tokens[1] not in {"ready", "list", "show", "where", "prime", "comments"}:
+            return False
+        if tokens[1] == "comments" and len(tokens) > 2 and tokens[2] in {"delete", "edit", "remove"}:
+            return False
+        return all(allowed(tokens[i + 1]) for i, token in enumerate(tokens[:-1]) if token in {"--file", "--body-file"})
+    if binary == "dotbrain" and len(tokens) > 1 and tokens[1] == "doctor":
+        index = 2
+        while index < len(tokens):
+            flag = tokens[index]
+            if flag == "--json":
+                index += 1
+                continue
+            if index + 1 >= len(tokens) or flag not in {"--home", "--repo", "--project"}:
+                return False
+            value = tokens[index + 1]
+            if flag == "--project":
+                if value != "catalog":
+                    return False
+            elif path_identity(value, cwd) != path_identity(ntpath.join(root, "data" if flag == "--home" else "workspace"), cwd):
+                return False
+            index += 2
+        return True
+    if binary == "git":
+        if len(tokens) > 1 and tokens[1] == "branch":
+            return all(token in {"--list", "--show-current", "--all", "-a", "--verbose", "-v", "--no-color"} for token in tokens[2:])
+        return len(tokens) > 1 and tokens[1] in {"status", "rev-parse", "branch", "log", "show"} and not any(
+            token in {"--output", "-o", "--exec", "--work-tree", "--git-dir", "-C", "-c", "--ext-diff", "--textconv"} or token.startswith(("--output=", "--work-tree=", "--git-dir="))
+            for token in tokens[2:])
+    return False
+
+
+def returned_candidate(output, candidate):
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(output):
+        if char != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(output[index:])
+        except ValueError:
+            continue
+        if isinstance(value, dict):
+            value = value.get("qualification", value)
+            if isinstance(value, dict) and all(value.get(key) == candidate.get(key) for key in
+                                              ("taskId", "workerActor", "branch", "revision")):
+                return True
+    return False
+
+
+def option(args, name):
+    indexes = [i for i, arg in enumerate(args) if arg == name or arg.startswith(name + "=")]
+    if len(indexes) != 1:
+        return None
+    index = indexes[0]
+    if "=" in args[index]:
+        return args[index].split("=", 1)[1]
+    return args[index + 1] if index + 1 < len(args) else None
+
+
+def bead_result(call, item, *, status=None, owner=None):
+    try:
+        rows = json.loads(call.get("stdout", ""))
+    except (ValueError, TypeError):
+        return False
+    rows = [rows] if isinstance(rows, dict) else rows
+    return isinstance(rows, list) and any(isinstance(row, dict) and row.get("id") == item and
+        (status is None or row.get("status") == status) and (owner is None or row.get("assignee") == owner) for row in rows)
+
+
+def recovery_transitions(record):
+    """Require guarded coordinator transfer, unforced prerequisite closures, readiness, claim and closure."""
+    old = record["operatorDecision"].get("observedOwner")
+    if not old:
+        return False
+    ids, final = record["ids"], record["integration"]
+    calls = [(i, call) for i, call in enumerate(record["calls"]) if call["phase"] == final["name"]]
+    def operation(call, *args):
+        return call["returncode"] == 0 and call["argv"][:len(args)] == list(args)
+    def unforced(call):
+        return not any(arg.split("=", 1)[0] in {"--force", "-f"} for arg in call["argv"])
+    owners, closed = [], []
+    for role in ("api", "ui"):
+        item = ids[role]
+        guard = next(((i, call) for i, call in calls if operation(call, "update", item) and unforced(call) and
+            "--claim" not in call["argv"] and option(call["argv"], "--if-assignee") == old and
+            record["before"]["items"][item].get("assignee") == old and
+            option(call["argv"], "--assignee") not in {None, "", old} and
+            option(call["argv"], "--actor") == option(call["argv"], "--assignee") and
+            bead_result(call, item, status="in_progress", owner=option(call["argv"], "--assignee"))), None)
+        if not guard:
+            return False
+        owner = option(guard[1]["argv"], "--assignee")
+        close = next(((i, call) for i, call in calls if i > guard[0] and operation(call, "close", item) and
+                      unforced(call) and option(call["argv"], "--actor") == owner and
+                      bead_result(call, item, status="closed", owner=owner)), None)
+        state = final["state"]["items"][item]
+        if not close or state.get("status") != "closed" or state.get("assignee") != owner:
+            return False
+        owners.append(owner)
+        closed.append(close[0])
+    if owners[0] != owners[1]:
+        return False
+    owner, item = owners[0], ids["integration"]
+    ready = next((i for i, call in calls if i > max(closed) and (operation(call, "ready") or
+                  call["returncode"] == 0 and call["argv"] == ["--readonly", "ready", "--json"]) and
+                  "--json" in call["argv"] and bead_result(call, item, status="open")), None)
+    if ready is None:
+        return False
+    claim = next((i for i, call in calls if i > ready and operation(call, "update", item) and
+                  "--claim" in call["argv"] and option(call["argv"], "--actor") == owner and
+                  bead_result(call, item, status="in_progress", owner=owner)), None)
+    state = final["state"]["items"][item]
+    return claim is not None and state.get("status") == "closed" and state.get("assignee") == owner and any(
+        i > claim and operation(call, "close", item) and unforced(call) and option(call["argv"], "--actor") == owner and
+        bead_result(call, item, status="closed", owner=owner) for i, call in calls)
+
+
 def executed_check(tool, root, script_hash, ok, revision=None):
     if tool["name"] not in {"shell", "Bash"} or tool["ok"] != ok:
         return None
@@ -106,7 +263,8 @@ def task_candidates(state, ids):
 
 def native_trace(runtime, events):
     """Return native identity, completed tools, worker starts/finishes and terminal status."""
-    trace = {"session": None, "tools": [], "workers": set(), "finished": set(), "complete": False, "assignments": {}}
+    trace = {"session": None, "tools": [], "workers": set(), "finished": set(), "complete": False,
+             "assignments": {}, "returns": {}, "incomplete": set()}
     pending = {}
     child_activity = set()
     for event in events:
@@ -116,8 +274,11 @@ def native_trace(runtime, events):
                 trace["session"] = event.get("thread_id")
             elif kind == "turn.completed":
                 trace["complete"] = True
+            elif kind == "item.started" and event.get("item", {}).get("id"):
+                trace["incomplete"].add(event["item"]["id"])
             elif kind == "item.completed":
                 item = event.get("item", {})
+                trace["incomplete"].discard(item.get("id"))
                 if item.get("type") == "command_execution":
                     trace["tools"].append({"name": "shell", "input": item.get("command", ""),
                                            "command": item.get("command", ""), "cwd": item.get("cwd"),
@@ -131,6 +292,14 @@ def native_trace(runtime, events):
                     if item.get("tool") in {"wait", "close_agent"}:
                         trace["finished"].update(key for key, value in agents.items()
                                                  if value.get("status") in {"completed", "shutdown"})
+                        trace["returns"].update({key: tool_text(value.get("message", value.get("output", "")))
+                            for key, value in agents.items() if value.get("status") == "completed"})
+                elif item.get("type") == "file_change":
+                    trace["tools"].append({"name": "file_change", "input": json.dumps(item),
+                        "paths": [change["path"] for change in item.get("changes", []) if "path" in change],
+                        "output": "", "ok": item.get("status") == "completed"})
+                elif item.get("type") not in {"agent_message", "reasoning", "todo_list"}:
+                    trace["tools"].append({"name": "unsupported", "input": json.dumps(item), "output": "", "ok": False})
         elif runtime == "claude":
             trace["session"] = event.get("session_id") or trace["session"]
             if event.get("parent_tool_use_id") and kind in {"assistant", "user"}:
@@ -140,12 +309,15 @@ def native_trace(runtime, events):
             for block in event.get("message", {}).get("content", []) if isinstance(event.get("message", {}).get("content"), list) else []:
                 if block.get("type") == "tool_use":
                     pending[block["id"]] = block
+                    trace["incomplete"].add(block["id"])
                     if block.get("name") in {"Agent", "Task"}:
                         trace["workers"].add(block["id"])
                         trace["assignments"][block["id"]] = block.get("input", {}).get("prompt", "")
                 elif block.get("type") == "tool_result" and block.get("tool_use_id") in pending:
                     call = pending[block["tool_use_id"]]
+                    trace["incomplete"].discard(block["tool_use_id"])
                     trace["tools"].append({"name": call["name"], "input": json.dumps(call.get("input", {})),
+                                           "skill": call.get("input", {}).get("skill", ""),
                                            "command": call.get("input", {}).get("command", ""),
                                            "paths": [call["input"]["file_path"]] if call.get("input", {}).get("file_path") else [],
                                            "output": tool_text(block.get("content", "")),
@@ -154,6 +326,7 @@ def native_trace(runtime, events):
                     if call["name"] in {"Agent", "Task"} and not block.get("is_error") and \
                             not call.get("input", {}).get("run_in_background"):
                         trace["finished"].add(call["id"])
+                        trace["returns"][call["id"]] = tool_text(block.get("content", ""))
     if runtime == "claude":
         trace["finished"] &= child_activity
     return trace
@@ -167,12 +340,12 @@ def evaluate(record):
     before, after = record["before"], record["after"]
     traces = [native_trace(record["runtime"], events) for events in (first["events"], second["events"])]
     initial, continuation = traces
+    old_owner = record["operatorDecision"].get("observedOwner")
     def action(call, *args):
         return call["argv"][:len(args)] == list(args)
 
     def actor(call):
-        args = call["argv"]
-        return args[args.index("--actor") + 1] if "--actor" in args and args.index("--actor") + 1 < len(args) else None
+        return option(call["argv"], "--actor")
 
     def read(trace, name, content):
         def normalized(text):
@@ -218,13 +391,19 @@ def evaluate(record):
         matched_workers[role] = {worker for worker, assignment in initial["assignments"].items()
                                 if ids[role] in assignment and evidence.get("workerActor") and
                                 evidence["workerActor"] in assignment}
+    provenance = {role: len(matched_workers[role]) == 1 and all(returned_candidate(
+        initial["returns"].get(worker, ""), candidates[role]) for worker in matched_workers[role])
+        for role in ("api", "ui")}
     criteria = {
         "native_sessions": bool(initial["session"] and continuation["session"] and
                                 initial["session"] != continuation["session"] and continuation["complete"]),
         "cold_continuation": first["home"] != second["home"] and second["input"] == record["expectedSecondInput"]
+        and not continuation["incomplete"] and not continuation["workers"]
         and first["sessionOutput"] not in second["input"] and not any(
             first["sessionOutput"].strip() in tool["output"] for tool in continuation["tools"]) and not any(
-            controller_access(tool, record["fixtureRoot"], first["home"])
+            not continuation_access(tool, record["fixtureRoot"], first["home"], record.get("readRoots", [
+                ntpath.join(record["fixtureRoot"], "workspace"), ntpath.join(record["fixtureRoot"], "data/brainspaces/catalog/.brain"),
+                ntpath.join(record["fixtureRoot"], "data/.cache/integrations/dotbrain-pstack")]))
             for tool in continuation["tools"]),
         "durable_discovery": finding.get("pageSize") == 7 and finding.get("sourceSha256") == record["configSha256"]
         and finding.get("hypothesis") == {"claim": "Latency cause is unknown", "status": "unresolved"}
@@ -247,16 +426,17 @@ def evaluate(record):
                                   for t in initial["tools"])
         and before["items"][ids["integration"]]["status"] != "closed" and "FAIL" in handoff,
         "candidate": all(candidates.get(role, {}).get("taskId") == ids[role] and
+                         provenance[role] and
                          bool(re.fullmatch(r"[0-9a-f]{40}", candidates[role].get("revision", ""))) and
                          candidates[role].get("objectExists") is True and candidates[role].get("integrated") is True and
                          candidates[role].get("scriptPreserved") is True and candidates[role].get("roleImplemented") is True and
-                         candidates[role].get("workerActor") == before["items"][ids[role]].get("assignee") and
+                         bool(old_owner) and old_owner == before["items"][ids[role]].get("assignee") and
                          any(c["phase"] == first["name"] and action(c, "update", ids[role]) and "--claim" in c["argv"]
-                             and c["returncode"] == 0 and actor(c) == candidates[role]["workerActor"] for c in calls) and
+                             and c["returncode"] == 0 and actor(c) == old_owner for c in calls) and
                          before["refs"].get(candidates[role].get("branch")) == candidates[role]["revision"] and
                          candidates[role]["revision"] != record["baseline"].get("head")
                          for role in ("api", "ui")),
-        "worker_lifecycle": initial["workers"] <= initial["finished"] and all(len(matched_workers[role]) == 1 and matched_workers[role] <= initial["finished"]
+        "worker_lifecycle": initial["workers"] <= initial["finished"] and all(provenance[role] and matched_workers[role] <= initial["finished"]
                                 for role in ("api", "ui")) and matched_workers["api"].isdisjoint(matched_workers["ui"]),
         "interruption": first.get("interrupted") is True and isinstance(first.get("pid"), int)
         and first.get("exitCode") is not None and first.get("ended", 0) >= first.get("started", 1),
@@ -273,6 +453,7 @@ def evaluate(record):
         final["state"].get("status") == "" and final.get("productValid") is True and
         any(action(c, "close", ids["integration"]) and c["phase"] == final["name"] and c["returncode"] == 0 for c in calls) and
         final["state"]["items"][ids["integration"]]["status"] == "closed" and
+        recovery_transitions(record) and
         record["operatorDecision"].get("decision") == "authorize-takeover" and
         bool(record["operatorDecision"].get("actor")) and
         record["operatorDecision"].get("observedOwner") == before["items"][ids["api"]].get("assignee"),
@@ -285,7 +466,7 @@ def evaluate(record):
 
 def inspect_artifacts(root, runtime):
     """Construct assertions only from retained local artifacts, not a model-authored summary."""
-    from journey import load, digest, prompt, execute, confined
+    from journey import load, digest, prompt, execute, confined, brainspace
     manifest = load(root / "fixture.json")
     attempts = [a for a in manifest["attempts"] if a["runtime"] == runtime]
     if len(attempts) < 3:
@@ -347,6 +528,11 @@ def inspect_artifacts(root, runtime):
                   priorAllowances=manifest["priorAllowances"], attempts=attempts,
                   operatorDecision=load(root / "private/operator-decision.json"),
                   writerStop=load(root / "private/writer-stop.json"), fixtureRoot=str(root),
+                  readRoots=[str(root / "workspace"), str(brainspace(root) / ".brain"),
+                             str(root / "data/.cache/integrations/dotbrain-pstack"),
+                             str(Path(manifest.get("candidate", root / "absent")) / "plugin"),
+                             str(Path(manifest.get("candidate", root / "absent")) / "src/dotbrain/resources"),
+                             manifest.get("pstack", str(root / "absent"))],
                   expectedSecondInput=prompt(manifest, "continue"))
     return evaluate(record)
 

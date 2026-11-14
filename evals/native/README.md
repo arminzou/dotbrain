@@ -110,19 +110,22 @@ writers stopped. Child lifecycle evidence is checked separately and uncertain
 authority remains held. A cold second task receives only the fixed continuation
 request and task IDs, retrieves durable records and records the operator boundary.
 
-Each API/UI native assignment names its task ID and distinct Beads actor. Each
-task retains a Beads comment with this structure, using its real short branch
-name and candidate revision:
+The coordinator claims API/UI tasks under its own Beads actor. Each delegated
+native assignment names its task ID and a separate worker label (`workerActor`).
+Each worker returns this qualification JSON alongside its normal result, and
+the coordinator records it in that task's Beads comments using the actual short
+branch name and candidate revision:
 
 ```json
 {"qualification":{"taskId":"sample-api","workerActor":"api-writer","branch":"feature/api","revision":"0123456789abcdef0123456789abcdef01234567"}}
 ```
 
-The verifier derives the actual native worker identity from that task/actor
-assignment, corroborates the actual claim, task comment, branch snapshot, Git
-object and role-specific implementation, and requires both candidates to be
-ancestors of the checked integration revision. A hash mentioned elsewhere or an
-unrelated completed worker earns no candidate credit.
+The verifier keeps coordinator claims distinct from actual native worker
+identities. It correlates each worker's returned task/label/branch/revision with
+the assignment and coordinator-recorded comment, then checks branch snapshots,
+Git objects, implementations and ancestry of the checked integration revision.
+A coordinator mention, a bare completed-worker status, or an unrelated worker
+earns no candidate-return credit.
 
 To exercise confirmed takeover, the test driver first uses the captured process
 identities to stop affected fixture writers:
@@ -146,7 +149,7 @@ scenario resolution in
 observed owner:
 
 ```json
-{"decision":"authorize-takeover","actor":"operator","observedOwner":"api-writer"}
+{"decision":"authorize-takeover","actor":"operator","observedOwner":"coordinator-old"}
 ```
 
 This file is scenario control for the already-authorized operator branch; it
@@ -156,6 +159,15 @@ It never substitutes for the independent stop receipt or native child lifecycle
 evidence. Without all three, integration refuses to launch. The controller
 rechecks stopped process IDs immediately before integration. A changed claim
 still requires native inspection and its ownership guard.
+
+Confirmed recovery must retain successful `bd update --if-assignee OLD
+--assignee NEW --actor NEW --json` receipts for both coordinator-owned API/UI
+claims, matching the observed old owner and resulting new owner. Do not combine
+the guard with `--claim` or `--force`. Under the new coordinator, close API/UI
+work with JSON results, query `bd ready --json` after both closures, then claim
+and eventually close integration. The gate checks this order, actual returned
+owners/statuses and final state; missing/failed/changed guards, open prerequisites
+or forced closures cannot pass.
 
 ```powershell
 python evals/native/journey.py plan evals/results/catalog-codex --runtime codex --phase integration
@@ -194,11 +206,23 @@ writer stop,
 integration verification, private boundary, and retained limits.
 
 Read credit requires native Claude Read records with contents or a simple
-successful `cat`, `Get-Content` or `type` command with matching output. Complex
-shell scripts do not establish a read automatically. Claude worker credit needs
-linked child activity and a successful synchronous result; Codex needs native
-spawn and completed/shutdown agent-state records. Unsupported CLI telemetry is
-held rather than inferred from a final narrative. Completion is distinct from
+successful `cat`, `Get-Content` or `type` command with matching output. Cold
+continuation permits explicit file/editor targets in the workspace, owning Brain
+and vetted resource sources (including the integration cache), plus bounded graph
+and read-only Git queries. Embedded backend probes use `bd --readonly ready
+--json`; server probes may use `bd dolt test` or `bd --readonly dolt test`.
+Candidate doctor queries keep home/repo selectors bound to the fixture.
+Backend routing overrides and actor-free mutations remain refused. Native
+Python entrypoints use candidate `src` with bytecode disabled. Skill-loading
+credit is limited to the vetted core and selected mode; unknown indirect
+loaders cannot establish cold access.
+Recursive, glob, indirect, unestablished or delegated reads cannot qualify;
+unfinished/unsupported native tool activity also holds the gate. This is an
+allowed-read boundary, not a blacklist of transcript filenames.
+Claude worker credit needs linked child activity and a successful synchronous
+candidate return; Codex needs native spawn/completion and the candidate message
+linked to that actual worker identity. Unsupported CLI telemetry is held rather
+than inferred from a final narrative. Completion is distinct from
 OS process termination; the fixture deliberately exercises the operator path
 for uncertain takeover.
 
@@ -213,6 +237,11 @@ aliases; even partial reads of prior controller artifacts invalidate continuatio
 The private sentinel is checked in tracked files and the retained candidate
 commit. Broader discovery, opt-out and preservation scenarios remain separate
 qualification work.
+
+This gate checks config/discovery retrieval and reuse. Actual planted-decision
+retrieval, late-worker-result races and privacy in ignored delivered resources
+remain separate qualification checks; the seventeen criteria do not establish
+all continuity, recovery or public-delivery outcomes.
 
 `export` preserves raw files, hashes the raw/export pairs, redacts recognized
 credential fields (including encoded JSON), bearer credentials, known secret
