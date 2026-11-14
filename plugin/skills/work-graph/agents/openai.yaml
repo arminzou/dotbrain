@@ -1,4 +1,3 @@
 interface:
   display_name: Work Graph
   short_description: Inspect and maintain private Beads work state
-  default_prompt: Inspect and maintain this project's work graph.
