@@ -327,10 +327,193 @@ def task_candidates(state, ids):
 HOOK_TRUST_NOTICE = "`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."
 
 
-def native_trace(runtime, events):
+def journal_shell_command(value):
+    script = value.get("input", "")
+    wrapper = re.fullmatch(r'\s*text\(await tools\.exec_command\((\{(?:\s*(?:"(?:cmd|workdir|max_output_tokens|yield_time_ms)"|cmd|workdir|max_output_tokens|yield_time_ms)\s*:\s*(?:"(?:[^"\\]|\\.)*"|\d+)\s*,?)+\})\)\);?\s*', script)
+    if value.get("name") != "exec" or not wrapper:
+        return None
+    try:
+        args = json.loads(re.sub(r'([{,]\s*)(cmd|workdir|max_output_tokens|yield_time_ms)\s*:', r'\1"\2":', wrapper[1]))
+    except ValueError:
+        return None
+    return args if isinstance(args.get("cmd"), str) and ("workdir" not in args or
+        isinstance(args["workdir"], str) and ntpath.isabs(args["workdir"])) else None
+
+
+def observed_assignment(active, identity, assignments):
+    """An immutable task input must be the child's first actual tool/read."""
+    first_call = next((e["payload"] for e in active if e.get("type") == "response_item" and
+                       e.get("payload", {}).get("type") in {"function_call", "custom_tool_call"}), None)
+    args = journal_shell_command(first_call or {})
+    if not args:
+        return None
+    path = read_target(args["cmd"])
+    if path not in assignments:
+        return None
+    expected = assignments[path]
+    first_item = next((e for e in active if e.get("type") == "event_msg" and
+                       e.get("payload", {}).get("type") == "item_completed"), None)
+    if not first_item:
+        return None
+    payload = first_item["payload"]
+    item = payload.get("item", {})
+    command = item.get("command", [])
+    if payload.get("thread_id") != identity or item.get("type") != "CommandExecution" or \
+            item.get("status") != "completed" or item.get("exit_code") != 0 or not isinstance(command, list) or \
+            len(command) not in {3, 4} or command[-2].casefold() != "-command" or read_target(command[-1]) != path:
+        return None
+    try:
+        from datetime import datetime
+        observed = datetime.fromisoformat(first_item["timestamp"].replace("Z", "+00:00")).timestamp()
+        if not expected["seededAt"] < expected["nativeStarted"] <= observed or \
+                json.loads(item.get("aggregated_output", "")) != expected["value"]:
+            return None
+    except (ValueError, KeyError, TypeError):
+        return None
+    return json.dumps(expected["value"])
+
+
+def journal_trace(trace, journals, assignments=None):
+    """Correlate native dispatch, delivered assignment and returned child final."""
+    root = trace["session"]
+    if root not in journals:
+        raise ValueError("Journal root differs from stdout thread")
+    visited = set()
+    def visit(identity, parent=None, agent_path="/root"):
+        if identity in visited:
+            raise ValueError("Duplicate journal identity")
+        visited.add(identity)
+        events = journals[identity]
+        meta = events[0].get("payload", {}) if events and events[0].get("type") == "session_meta" else {}
+        if meta.get("id") != identity:
+            raise ValueError("Journal identity mismatch")
+        if parent:
+            spawn = meta.get("source", {}).get("subagent", {}).get("thread_spawn", {})
+            if spawn.get("parent_thread_id") != parent or spawn.get("agent_path") != agent_path or \
+                    meta.get("parent_thread_id", parent) != parent or meta.get("agent_path", agent_path) != agent_path or \
+                    meta.get("session_id", root) != root:
+                raise ValueError("Foreign child journal")
+        elif meta.get("source") != "exec":
+            raise ValueError("Journal root is not a native exec session")
+        # Child journals contain inherited parent history. Only the active turn belongs to this child.
+        start = next((i for i, e in enumerate(events) if e.get("type") == "event_msg" and
+                      e.get("payload", {}).get("type") == "task_started" and
+                      e["payload"].get("turn_attribution", {}).get("initiating_agent_path") ==
+                      (agent_path.rpartition("/")[0] if parent else None)), None)
+        active = events[start:] if start is not None else []
+        calls, outputs, deliveries, finals = {}, {}, {}, []
+        command_receipts = list(trace["tools"]) if identity == root else []
+        native_receipts = list(command_receipts)
+        for event in active:
+            value = event.get("payload", {})
+            if event.get("type") != "response_item":
+                if identity == root and event.get("type") == "event_msg" and value.get("type") == "item_completed":
+                    item = value.get("item", {})
+                    kind = item.get("type")
+                    if kind == "CommandExecution":
+                        command = item.get("command", [])
+                        body = command[-1] if isinstance(command, list) and len(command) >= 3 and command[-2].casefold() == "-command" else None
+                        match = next((tool for tool in native_receipts if body is not None and tool.get("name") == "shell" and
+                                      command_body(tool.get("command", "")) == command_body(body)), None)
+                        if match is not None:
+                            native_receipts.remove(match)
+                        else:
+                            trace["tools"].append({"name": "unsupported", "input": json.dumps(item), "output": "", "ok": False})
+                    elif kind not in {"Reasoning", "AgentMessage", "UserMessage"} and not (
+                            kind == "Extension" and item.get("kind") == "clock.sleep"):
+                        trace["tools"].append({"name": "unsupported", "input": json.dumps(item), "output": "", "ok": False})
+                continue
+            kind = value.get("type")
+            call_id = value.get("call_id")
+            if kind == "function_call":
+                if not call_id or call_id in calls:
+                    raise ValueError("Ambiguous native journal call")
+                calls[call_id] = value
+            elif kind == "function_call_output":
+                if call_id in outputs:
+                    raise ValueError("Duplicate native journal result")
+                outputs[call_id] = value
+            elif kind == "agent_message":
+                deliveries.setdefault(value.get("author"), []).append(value)
+            elif kind == "message" and value.get("role") == "assistant" and value.get("phase") == "final_answer":
+                finals.append(tool_text(value.get("content", [])))
+            elif kind in {"custom_tool_call", "custom_tool_call_output"}:
+                # Journal JS is not executable proof. Cold phases retain an explicit hold.
+                if identity == root and kind == "custom_tool_call":
+                    script = value.get("input", "")
+                    args = journal_shell_command(value)
+                    matched = None
+                    if args:
+                        matched = next((tool for tool in command_receipts if tool.get("name") == "shell" and
+                                        command_body(tool.get("command", "")) == command_body(args.get("cmd", ""))), None)
+                    if matched is not None:
+                        if args.get("workdir"):
+                            if matched.get("cwd") and lexical_identity(matched["cwd"], matched["cwd"]) != \
+                                    lexical_identity(args["workdir"], args["workdir"]):
+                                raise ValueError("Journal working directory differs from stdout receipt")
+                            matched["cwd"] = args["workdir"]
+                        command_receipts.remove(matched)
+                    else:
+                        trace["tools"].append({"name": "unsupported", "input": script, "output": "", "ok": False})
+            elif kind not in {"reasoning", "message", "additional_tools"} and identity == root:
+                trace["tools"].append({"name": "unsupported", "input": json.dumps(value), "output": "", "ok": False})
+        dispatched_paths = set()
+        for call_id, call in calls.items():
+            if call.get("name") != "spawn_agent":
+                if identity == root and call.get("name") != "sleep":
+                    trace["tools"].append({"name": "unsupported", "input": json.dumps(call), "output": "", "ok": False})
+                continue
+            args = json.loads(call.get("arguments", "{}"))
+            if call_id not in outputs:
+                trace["incomplete"].add(call_id)
+                continue
+            result = json.loads(outputs[call_id].get("output", "{}"))
+            path = result.get("task_name")
+            if not isinstance(args.get("task_name"), str) or path != agent_path + "/" + args["task_name"]:
+                raise ValueError("Dispatch result does not match requested child")
+            dispatched_paths.add(path)
+            children = [key for key, rows in journals.items() if rows and
+                        isinstance(rows[0].get("payload", {}).get("source"), dict) and
+                        rows[0]["payload"]["source"].get("subagent", {}).get("thread_spawn", {}).get("agent_path") == path and
+                        rows[0]["payload"]["source"]["subagent"]["thread_spawn"].get("parent_thread_id") == identity]
+            if len(children) != 1:
+                raise ValueError("Missing or ambiguous dispatched child journal")
+            child = children[0]
+            trace["workers"].add(child)
+            child_final, child_assignment = visit(child, identity, path)
+            assignment = args.get("message", "")
+            if not isinstance(assignment, str):
+                raise ValueError("Invalid native assignment")
+            child_messages = [e.get("payload", {}) for e in journals[child] if e.get("type") == "response_item" and
+                              e.get("payload", {}).get("type") == "agent_message" and
+                              e["payload"].get("author") == agent_path and e["payload"].get("recipient") == path]
+            delivered = any(assignment and any(b.get("text", "").endswith(assignment) or
+                            b.get("encrypted_content") == assignment for b in m.get("content", [])) for m in child_messages)
+            if not delivered:
+                raise ValueError("Child assignment is not linked to dispatch")
+            # Ciphertext delivery proves dispatch, but cannot prove the required task/actor assignment.
+            if not assignment.startswith("gAAAA"):
+                trace["assignments"][child] = assignment
+            elif child_assignment:
+                trace["assignments"][child] = child_assignment
+                trace["assignmentInputs"][child] = json.loads(child_assignment)
+            returned = [tool_text(m.get("content", [])) for m in deliveries.get(path, []) if m.get("recipient") == agent_path]
+            if child_final and any(text.endswith(child_final) for text in returned):
+                trace["finished"].add(child)
+                trace["returns"][child] = child_final
+        if identity == root and any(author not in dispatched_paths for author in deliveries):
+            trace["tools"].append({"name": "unsupported", "input": "Unlinked native agent message", "output": "", "ok": False})
+        return (finals[-1] if len(finals) == 1 else None, observed_assignment(active, identity, assignments or {}))
+    visit(root)
+    if visited != set(journals):
+        raise ValueError("Unlinked journal retained")
+    return trace
+
+
+def native_trace(runtime, events, journals=None, assignments=None):
     """Return native identity, completed tools, worker starts/finishes and terminal status."""
     trace = {"session": None, "tools": [], "workers": set(), "finished": set(), "complete": False,
-             "assignments": {}, "returns": {}, "incomplete": set(), "control": []}
+             "assignments": {}, "assignmentInputs": {}, "returns": {}, "incomplete": set(), "control": []}
     pending = {}
     child_activity = set()
     for event in events:
@@ -397,7 +580,7 @@ def native_trace(runtime, events):
                         trace["returns"][call["id"]] = tool_text(block.get("content", ""))
     if runtime == "claude":
         trace["finished"] &= child_activity
-    return trace
+    return journal_trace(trace, journals, assignments) if runtime == "codex" and journals is not None else trace
 
 
 def evaluate(record):
@@ -406,7 +589,7 @@ def evaluate(record):
     ids = record["ids"]
     calls = record["calls"]
     before, after = record["before"], record["after"]
-    traces = [native_trace(record["runtime"], events) for events in (first["events"], second["events"])]
+    traces = [native_trace(record["runtime"], phase["events"], phase.get("journals"), phase.get("journalAssignments")) for phase in (first, second)]
     initial, continuation = traces
     old_owner = record["operatorDecision"].get("observedOwner")
     read_roots = record.get("readRoots", [ntpath.join(record["fixtureRoot"], "workspace"),
@@ -446,7 +629,7 @@ def evaluate(record):
     handoff = json.dumps(before["details"])
     candidates = record["candidates"]
     final = record["integration"]
-    integration = native_trace(record["runtime"], final["events"])
+    integration = native_trace(record["runtime"], final["events"], final.get("journals"))
     stopped = record["writerStop"]
     known_writers = {(p["pid"], p["created"]) for p in first["writerTree"]["present"]}
     def ownership(state):
@@ -464,7 +647,9 @@ def evaluate(record):
                                 if ids[role] in assignment and evidence.get("workerActor") and
                                 evidence["workerActor"] in assignment}
     provenance = {role: len(matched_workers[role]) == 1 and all(returned_candidate(
-        initial["returns"].get(worker, ""), candidates[role]) for worker in matched_workers[role])
+        initial["returns"].get(worker, ""), candidates[role]) and (worker not in initial["assignmentInputs"] or all(
+        initial["assignmentInputs"][worker].get(key) == candidates[role].get(key) for key in ("taskId", "workerActor", "branch")))
+        for worker in matched_workers[role])
         for role in ("api", "ui")}
     criteria = {
         "native_sessions": bool(initial["session"] and continuation["session"] and
@@ -546,11 +731,17 @@ def inspect_artifacts(root, runtime):
     if [a["phase"] for a in (first, second, final)] != ["first", "continue", "integration"]:
         raise ValueError("Select an adjacent first/continue/integration sequence; earlier attempts remain retained")
     def captured(attempt):
+        if attempt.get("journalCaptureRequired") and not attempt.get("journalSha256"):
+            raise ValueError("Required native journal capture is missing")
         base = confined(root, "private/" + attempt["name"])
         raw = base.with_name(base.name + ".raw.jsonl").read_text(encoding="utf-8")
         events = [json.loads(line) for line in raw.splitlines() if line]
         value = {**attempt, "receipt": attempt, "events": events, "sessionOutput": raw,
                  "input": base.with_name(base.name + ".input.txt").read_text(encoding="utf-8")}
+        if attempt.get("journalSha256"):
+            from journey import retained_journals, retained_assignments
+            value["journals"] = retained_journals(root, attempt)
+            value["journalAssignments"] = retained_assignments(root, attempt)
         if attempt["phase"] == "continue":
             for label in ("Before", "After"):
                 file = confined(root, f"private/{attempt['name']}-aliases-{label.lower()}.json")

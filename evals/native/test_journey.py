@@ -1155,6 +1155,209 @@ class ProcessControls(unittest.TestCase):
                     process.wait(timeout=10)
 
 
+class JournalEvidence(unittest.TestCase):
+    def journals(self):
+        record = correct_record()
+        first = record["first"]
+        old = native_trace("codex", first["events"])
+        root = "11111111-1111-1111-1111-111111111111"
+        first["events"] = [e for e in first["events"] if e.get("item", {}).get("type") != "collab_tool_call"]
+        first["events"][0]["thread_id"] = root
+        def row(kind, **value):
+            return {"type": "response_item", "payload": {"type": kind, **value}}
+        def start(parent=None):
+            return {"type": "event_msg", "payload": {"type": "task_started", "turn_attribution": {"initiating_agent_path": parent}}}
+        journals = {root: [{"type": "session_meta", "payload": {"id": root, "source": "exec"}}, start()]}
+        for index, role in enumerate(("api", "ui"), 2):
+            child = str(index) * 8 + "-" + "-".join([str(index) * 4] * 3) + "-" + str(index) * 12
+            path, call = "/root/" + role, "call-" + role
+            assignment, final = old["assignments"][role + "-child"], old["returns"][role + "-child"]
+            journals[root] += [row("function_call", name="spawn_agent", call_id=call,
+                                  arguments=json.dumps({"task_name": role, "message": assignment})),
+                               row("function_call_output", call_id=call, output=json.dumps({"task_name": path})),
+                               row("agent_message", author=path, recipient="/root", content=[{"text": "FINAL_ANSWER\n" + final}])]
+            journals[child] = [{"type": "session_meta", "payload": {"id": child, "source": {"subagent": {"thread_spawn": {
+                "parent_thread_id": root, "agent_path": path}}}}}, start("/root"),
+                row("agent_message", author="/root", recipient=path, content=[{"text": "NEW_TASK\n" + assignment}]),
+                row("message", role="assistant", phase="final_answer", content=[{"text": final}])]
+        first["journals"] = journals
+        return record
+
+    def test_journal_candidate_calibration_and_link_failures(self):
+        record = self.journals()
+        self.assertTrue(all(evaluate(record).values()))
+        root, api, ui = record["first"]["journals"]
+        for mutation in ("call", "parent", "delivery", "return", "final", "foreign", "encrypted"):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(record)
+                rows = bad["first"]["journals"]
+                if mutation == "call": rows[root][3]["payload"]["call_id"] = "foreign-call"
+                if mutation == "parent": rows[api][0]["payload"]["source"]["subagent"]["thread_spawn"]["parent_thread_id"] = ui
+                if mutation == "delivery": rows[api][2]["payload"]["content"] = [{"text": "unlinked"}]
+                if mutation == "return": rows[root][4]["payload"]["content"] = [{"text": "unlinked"}]
+                if mutation == "final": rows[api].pop()
+                if mutation == "foreign": rows["foreign"] = rows[api]
+                if mutation == "encrypted":
+                    args = json.loads(rows[root][2]["payload"]["arguments"])
+                    args["message"] = "gAAAAencrypted"
+                    rows[root][2]["payload"]["arguments"] = json.dumps(args)
+                    rows[api][2]["payload"]["content"] = [{"type": "encrypted_content", "encrypted_content": args["message"]}]
+                try:
+                    self.assertFalse(all(evaluate(bad).values()))
+                except ValueError:
+                    pass
+
+    def test_journal_unknown_activity_holds_cold_boundary(self):
+        record = correct_record()
+        second = record["second"]
+        root = "session-b"
+        journals = {root: [{"type": "session_meta", "payload": {"id": root, "source": "exec"}},
+                          {"type": "event_msg", "payload": {"type": "task_started", "turn_attribution": {"initiating_agent_path": None}}}]}
+        second["journals"] = journals
+        self.assertTrue(evaluate(record)["cold_continuation"])
+        for script, expected in [('text(await tools.exec_command({cmd:"cat config.json"}))', True),
+                                 ('text(await tools.exec_command({cmd:"cat config.json",workdir:"/fixture/first"}))', False),
+                                 ('text(await tools.exec_command({cmd:"cat ../private/first.raw.jsonl"}))', False),
+                                 ('text(await tools.exec_command({cmd:readSecret()}))', False),
+                                 ('text(await tools.read_file({path:"config.json"}))', False)]:
+            journals[root] = journals[root][:2] + [{"type": "response_item", "payload": {
+                "type": "custom_tool_call", "name": "exec", "input": script}}]
+            self.assertEqual(evaluate(record)["cold_continuation"], expected)
+        for event in ({"type": "response_item", "payload": {"type": "web_search_call"}},
+                      {"type": "response_item", "payload": {"type": "function_call", "name": "send_message", "call_id": "delegate-read"}},
+                      {"type": "event_msg", "payload": {"type": "item_completed", "item": {"type": "UnknownNativeRead"}}},
+                      {"type": "response_item", "payload": {"type": "agent_message", "author": "/root/old", "recipient": "/root", "content": [{"text": "old transcript"}]}}):
+            journals[root] = journals[root][:2] + [event]
+            self.assertFalse(evaluate(record)["cold_continuation"])
+
+    def test_encrypted_dispatch_requires_first_observed_immutable_assignment_read(self):
+        record = self.journals()
+        first = record["first"]
+        root, *children = first["journals"]
+        first["journalAssignments"] = {}
+        for index, (role, child) in enumerate(zip(("api", "ui"), children)):
+            rows = first["journals"][root]
+            call = rows[2 + index * 3]["payload"]
+            args = json.loads(call["arguments"])
+            args["message"] = "gAAAAencrypted-" + role
+            call["arguments"] = json.dumps(args)
+            child_rows = first["journals"][child]
+            child_rows[2]["payload"]["content"] = [{"type": "encrypted_content", "encrypted_content": args["message"]}]
+            path = "/fixture/workspace/.brain/docs/" + role + "-assignment.json"
+            candidate = record["candidates"][role]
+            value = {key: candidate[key] for key in ("taskId", "workerActor", "branch")}
+            value.update(worktree="/fixture/worktrees/" + role, ownedFiles=[role + ".json"], modePath="/fixture/workspace/.agents/skills/dotbrain-pstack/SKILL.md")
+            first["journalAssignments"][path] = {"value": value, "seededAt": 1, "nativeStarted": 2}
+            command = "Get-Content -LiteralPath " + path
+            child_rows[3:3] = [{"type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec",
+                "input": "text(await tools.exec_command(" + json.dumps({"cmd": command}) + "))"}},
+                {"timestamp": "1970-01-01T00:00:03Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": child,
+                 "item": {"type": "CommandExecution", "status": "completed", "exit_code": 0,
+                          "command": ["pwsh.exe", "-Command", command], "aggregated_output": json.dumps(value)}}}]
+        self.assertTrue(all(evaluate(record).values()))
+        for mutation in ("missing", "late", "output", "failed", "foreign", "earlier_tool", "indirect", "branch"):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(record)
+                inputs = bad["first"]["journalAssignments"]
+                rows = bad["first"]["journals"][children[0]]
+                receipt = rows[4]
+                if mutation == "missing": inputs.clear()
+                if mutation == "late": next(iter(inputs.values()))["nativeStarted"] = 4
+                if mutation == "output": receipt["payload"]["item"]["aggregated_output"] = "prose claims read"
+                if mutation == "failed": receipt["payload"]["item"]["exit_code"] = 1
+                if mutation == "foreign": receipt["payload"]["thread_id"] = children[1]
+                if mutation == "earlier_tool": rows.insert(3, {"type": "response_item", "payload": {"type": "function_call", "name": "apply_patch", "call_id": "earlier"}})
+                if mutation == "indirect": rows[3]["payload"]["input"] = "text(await tools.exec_command({cmd:readFile()}))"
+                if mutation == "branch":
+                    value = next(iter(inputs.values()))["value"]
+                    value["branch"] = "foreign-branch"
+                    receipt["payload"]["item"]["aggregated_output"] = json.dumps(value)
+                self.assertFalse(evaluate(bad)["candidate"])
+
+    def test_seeded_assignment_hashes_and_prelaunch_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            journey.write(root / "fixture.json", {"schema": 2})
+            attempt = {"name": "codex-first-1"}
+            assignments = journey.seed_assignments(root, {"ids": {"api": "sample-api", "ui": "sample-ui"}}, attempt)
+            attempt["nativeStarted"] = attempt["assignmentSeededAt"] + 1
+            values = journey.retained_assignments(root, attempt)
+            self.assertEqual(len(values), 2)
+            self.assertEqual(next(iter(values.values()))["value"]["taskId"], "sample-api")
+            path = root / assignments["api"]["copy"]
+            path.write_text("tampered")
+            with self.assertRaises(ValueError): journey.retained_assignments(root, attempt)
+
+    def test_capture_provenance_tamper_alias_auth_and_foreign(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            record = self.journals()
+            attempt = {"name": "codex-first-1", "started": 1794666500, "ended": 1794666800}
+            journey.write(root / "private/codex-first-1.raw.jsonl", "".join(json.dumps(e) + "\n" for e in record["first"]["events"]))
+            directory = root / "homes/codex-first-1/.codex/sessions/2026/11/14"
+            for identity, rows in record["first"]["journals"].items():
+                rows[0]["payload"]["cwd"] = str(root / "workspace")
+                journey.write(directory / f"rollout-{identity}.jsonl", "".join(json.dumps(e) + "\n" for e in rows))
+            auth = root / "homes/codex-first-1/.codex/auth.json"
+            journey.write(auth, "not JSON and must not be read")
+            original = Path.open
+            def guarded(path, *args, **kwargs):
+                if path == auth:
+                    raise AssertionError("auth read")
+                return original(path, *args, **kwargs)
+            with patch.object(Path, "open", guarded):
+                receipt = journey.capture_journals(root, attempt)
+            self.assertEqual(len(journey.retained_journals(root, attempt)), 3)
+            journey.write(root / "fixture.json", {"schema": 2, "attempts": [{**attempt, "runtime": "codex"}]})
+            (root / "workspace").mkdir()
+            origin = root / next(iter(receipt["files"].values()))["source"]
+            linked = root / "workspace/old-journal.txt"
+            os.link(origin, linked)
+            frozen = journey.capture_aliases(root, "codex-continue-2")
+            key = lexical_identity(str(linked), str(root))
+            self.assertIn("\\homes\\codex-first-1\\", frozen["aliases"][key])
+            linked.unlink()
+            history = root / "homes/codex-first-1/.codex/unrelated-history"
+            journey.write(history, "previous transcript")
+            os.link(history, linked)
+            frozen = journey.capture_aliases(root, "codex-continue-2")
+            self.assertIn("\\private\\", frozen["aliases"][key])
+            linked.unlink()
+            retained = root / next(iter(receipt["files"].values()))["copy"]
+            retained.write_text("tampered")
+            with self.assertRaises(ValueError): journey.retained_journals(root, attempt)
+            retained.unlink()
+            retained.symlink_to(auth)
+            with self.assertRaises(ValueError): journey.retained_journals(root, attempt)
+            retained.unlink()
+            with self.assertRaises(FileNotFoundError): journey.retained_journals(root, attempt)
+
+    def test_capture_rejects_foreign_and_redirected_journals(self):
+        for violation in ("foreign", "hardlink", "symlink", "parent"):
+            with self.subTest(violation=violation), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                record = self.journals()
+                attempt = {"name": "codex-first-1", "started": 1794666500, "ended": 1794666800}
+                journey.write(root / "private/codex-first-1.raw.jsonl", "".join(json.dumps(e) + "\n" for e in record["first"]["events"]))
+                directory = root / "homes/codex-first-1/.codex/sessions/2026/11/14"
+                for identity, rows in record["first"]["journals"].items():
+                    rows[0]["payload"]["cwd"] = str(root / "workspace")
+                    if violation == "parent" and rows[0]["payload"]["source"] != "exec":
+                        rows[0]["payload"]["source"]["subagent"]["thread_spawn"]["parent_thread_id"] = "foreign"
+                    journey.write(directory / f"rollout-{identity}.jsonl", "".join(json.dumps(e) + "\n" for e in rows))
+                source = next(directory.glob("*.jsonl"))
+                if violation == "foreign":
+                    foreign = "44444444-4444-4444-4444-444444444444"
+                    journey.write(directory / f"rollout-{foreign}.jsonl", json.dumps({"type": "session_meta", "payload": {
+                        "id": foreign, "cwd": str(root / "workspace"), "source": "exec"}}) + "\nnot-readable-body")
+                if violation == "hardlink": os.link(source, root / "other-copy")
+                if violation == "symlink":
+                    moved = root / "other-copy"
+                    source.rename(moved)
+                    source.symlink_to(moved)
+                with self.assertRaises(ValueError): journey.capture_journals(root, attempt)
+
+
 if __name__ == "__main__":
     import sys
     unittest.main()

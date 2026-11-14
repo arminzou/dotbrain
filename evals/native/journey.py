@@ -18,6 +18,7 @@ import tarfile
 import time
 import tomllib
 import uuid
+from datetime import datetime, timedelta
 
 
 def write(path, value):
@@ -31,6 +32,164 @@ def load(path):
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def evidence_file(root, path):
+    """Reject redirected ancestors and hardlinks before reading controller evidence."""
+    relative = path.relative_to(root)
+    for part in (*reversed(relative.parents), relative):
+        current = root / part
+        info = current.lstat()
+        if is_alias(current, info) or stat.S_ISREG(info.st_mode) and info.st_nlink != 1:
+            raise ValueError("Journal evidence contains an alias")
+    if not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("Journal evidence is not a regular file")
+    return path
+
+
+def seed_assignments(root, manifest, attempt):
+    assignments = {}
+    for role in ("api", "ui"):
+        value = {"taskId": manifest["ids"][role], "workerActor": f"{role}-worker-{attempt['name']}",
+                 "branch": f"candidate/{attempt['name']}/{role}", "worktree": str(root / "worktrees" / role),
+                 "ownedFiles": [role + ".json"], "modePath": str(root / "workspace/.agents/skills/dotbrain-pstack/SKILL.md")}
+        source = brainspace(root) / f".brain/docs/native-assignments/{attempt['name']}-{role}.json"
+        target = root / f"private/{attempt['name']}-{role}.assignment.json"
+        if source.exists() or target.exists():
+            raise ValueError("Assignment input already exists")
+        for path in (source, target):
+            for parent in path.parents:
+                if parent == root.parent:
+                    break
+                if parent.exists() and is_alias(parent):
+                    raise ValueError("Assignment directory is redirected")
+        write(source, value)
+        evidence_file(root, source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        assignments[role] = {"source": source.relative_to(root).as_posix(), "copy": target.relative_to(root).as_posix(),
+                             "sha256": digest(target)}
+    attempt["assignments"] = assignments
+    attempt["assignmentSeededAt"] = time.time()
+    return assignments
+
+
+def retained_assignments(root, attempt):
+    result = {}
+    for role, item in attempt.get("assignments", {}).items():
+        if role not in {"api", "ui"} or item["copy"] != f"private/{attempt['name']}-{role}.assignment.json" or \
+                item["source"] != (brainspace(root) / f".brain/docs/native-assignments/{attempt['name']}-{role}.json").relative_to(root).as_posix():
+            raise ValueError("Assignment is outside the phase namespace")
+        copy = evidence_file(root, root / item["copy"])
+        if digest(copy) != item["sha256"] or not attempt.get("assignmentSeededAt", 0) < attempt.get("nativeStarted", 0):
+            raise ValueError("Assignment input changed or lacks prelaunch provenance")
+        result[str(root / item["source"])] = {"value": load(copy), "seededAt": attempt["assignmentSeededAt"],
+                                             "nativeStarted": attempt["nativeStarted"]}
+    return result
+
+
+def capture_journals(root, attempt):
+    """Capture only a fresh phase's dated session namespace and proven native descendants."""
+    from verify import native_trace
+    raw = evidence_file(root, root / f"private/{attempt['name']}.raw.jsonl")
+    events = [json.loads(line) for line in raw.read_text(encoding="utf-8").splitlines() if line]
+    session = native_trace("codex", events)["session"]
+    if not session:
+        raise ValueError("Cannot capture journals without native stdout thread identity")
+    base = root / f"homes/{attempt['name']}/.codex/sessions"
+    day = datetime.fromtimestamp(attempt["started"]).date()
+    last = datetime.fromtimestamp(attempt["ended"]).date()
+    paths, headers, journals = {}, {}, {}
+    while day <= last:
+        directory = base / day.strftime("%Y/%m/%d")
+        if directory.exists():
+            # Validate the directory before enumeration; no home/auth traversal.
+            for part in (*reversed(directory.relative_to(root).parents), directory.relative_to(root)):
+                if is_alias(root / part):
+                    raise ValueError("Journal directory is redirected")
+            for path in directory.glob("*.jsonl"):
+                evidence_file(root, path)
+                with path.open(encoding="utf-8") as stream:
+                    header = json.loads(stream.readline())
+                meta = header.get("payload", {})
+                identity = meta.get("id", "")
+                if header.get("type") != "session_meta" or not re.fullmatch(r"[0-9a-f-]{36}", identity) or \
+                        not path.name.endswith(identity + ".jsonl") or identity in paths or \
+                        meta.get("cwd") != str(root / "workspace"):
+                    raise ValueError("Foreign or ambiguous native journal")
+                paths[identity] = path
+                headers[identity] = meta
+        day += timedelta(days=1)
+    pending = [session]
+    while pending:
+        identity = pending.pop()
+        if identity in journals or identity not in paths:
+            raise ValueError("Missing or duplicate journal identity")
+        journals[identity] = [json.loads(line) for line in paths[identity].read_text(encoding="utf-8").splitlines() if line]
+        for child, meta in headers.items():
+            source = meta.get("source")
+            spawn = source.get("subagent", {}).get("thread_spawn", {}) if isinstance(source, dict) else {}
+            if spawn.get("parent_thread_id") == identity:
+                pending.append(child)
+    if set(journals) != set(paths):
+        raise ValueError("Unrelated journal in fresh phase namespace")
+    assignment_inputs = retained_assignments(root, attempt)
+    for path, value in assignment_inputs.items():
+        if load(evidence_file(root, Path(path))) != value["value"]:
+            raise ValueError("Native assignment input changed during phase")
+    native_trace("codex", events, journals, assignment_inputs)
+    receipt = {"schema": 1, "phase": attempt["name"], "session": session, "rawSha256": digest(raw), "files": {}}
+    receipt["assignments"] = attempt.get("assignments", {})
+    receipt["assignmentSeededAt"] = attempt.get("assignmentSeededAt")
+    receipt["nativeStarted"] = attempt.get("nativeStarted")
+    for identity, source in paths.items():
+        target = root / f"private/{attempt['name']}-{identity}.journal.jsonl"
+        if target.exists():
+            raise ValueError("Journal capture already exists")
+        info = source.stat()
+        data = source.read_bytes()
+        if [json.loads(line) for line in data.decode("utf-8").splitlines() if line] != journals[identity]:
+            raise ValueError("Native journal changed during capture")
+        evidence_file(root, source)
+        after = source.stat()
+        if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
+            raise ValueError("Native journal identity changed during capture")
+        target.write_bytes(data)
+        receipt["files"][identity] = {"source": source.relative_to(root).as_posix(), "copy": target.relative_to(root).as_posix(),
+                                      "sha256": hashlib.sha256(data).hexdigest(), "device": info.st_dev, "inode": info.st_ino}
+    target = root / f"private/{attempt['name']}-journals.json"
+    write(target, receipt)
+    attempt["journalSha256"] = digest(target)
+    return receipt
+
+
+def retained_journals(root, attempt):
+    receipt_path = evidence_file(root, root / f"private/{attempt['name']}-journals.json")
+    if digest(receipt_path) != attempt.get("journalSha256"):
+        raise ValueError("Journal provenance changed")
+    receipt = load(receipt_path)
+    if receipt.get("assignments", {}) != attempt.get("assignments", {}) or any(
+            receipt.get(key) != attempt.get(key) for key in ("assignmentSeededAt", "nativeStarted")):
+        raise ValueError("Assignment provenance differs from journal capture")
+    if receipt.get("schema") != 1 or receipt.get("phase") != attempt["name"] or receipt.get("rawSha256") != \
+            digest(evidence_file(root, root / f"private/{attempt['name']}.raw.jsonl")):
+        raise ValueError("Journal provenance does not match phase stdout")
+    from verify import native_trace
+    events = [json.loads(line) for line in (root / f"private/{attempt['name']}.raw.jsonl").read_text(encoding="utf-8").splitlines() if line]
+    if receipt.get("session") != native_trace("codex", events)["session"]:
+        raise ValueError("Journal provenance names a foreign root")
+    journals = {}
+    for identity, item in receipt["files"].items():
+        if not re.fullmatch(r"[0-9a-f-]{36}", identity) or item["copy"] != f"private/{attempt['name']}-{identity}.journal.jsonl":
+            raise ValueError("Journal copy is outside phase namespace")
+        prefix = f"homes/{attempt['name']}/.codex/sessions/"
+        if not item["source"].startswith(prefix) or not re.fullmatch(r"\d{4}/\d{2}/\d{2}/[^/]+" + re.escape(identity) + r"\.jsonl", item["source"][len(prefix):]):
+            raise ValueError("Journal source is outside phase namespace")
+        path = evidence_file(root, confined(root, item["copy"]))
+        if digest(path) != item["sha256"]:
+            raise ValueError("Retained journal changed")
+        journals[identity] = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    return journals
 
 
 def confined(root, name):
@@ -141,9 +300,20 @@ def capture_aliases(root, phase):
         info = path.lstat()
         if stat.S_ISREG(info.st_mode) and info.st_ino:
             controller_ids[(info.st_dev, info.st_ino)] = lexical_identity(str(path), str(root))
+    for attempt in manifest.get("attempts", []):
+        if attempt.get("journalSha256"):
+            retained_journals(root, attempt)
+            receipt = load(root / f"private/{attempt['name']}-journals.json")
+            for item in receipt["files"].values():
+                controller_ids[(item["device"], item["inode"])] = lexical_identity(str(root / item["source"]), str(root))
     aliases = {}
     homes = lexical_identity(str(root / "homes"), str(root))
-    for path, info in walk_entries(roots):
+    entries = list(walk_entries(roots))
+    in_root_links = {}
+    for path, info in entries:
+        if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
+            in_root_links.setdefault((info.st_dev, info.st_ino), []).append(lexical_identity(str(path), str(root)))
+    for path, info in entries:
         key = lexical_identity(str(path), str(root))
         if (key == homes or key.startswith(homes + "\\")) and not any(
                 path == Path(plugin) or path.is_relative_to(Path(plugin)) for plugin in plugins):
@@ -152,7 +322,11 @@ def capture_aliases(root, phase):
             aliases[key] = lexical_identity(os.readlink(path), str(path.parent))
         elif stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
             target = controller_ids.get((info.st_dev, info.st_ino))
-            if target:
+            siblings = in_root_links[(info.st_dev, info.st_ino)]
+            if not target and len(siblings) == info.st_nlink:
+                target = min(siblings)
+            target = target or lexical_identity(str(private / "unestablished-hardlink"), str(root))
+            if key != target:
                 aliases[key] = target
     return {"schema": 1, "phase": phase, "root": lexical_identity(str(root), str(root)),
             "capturedAt": time.time(), "roots": sorted({lexical_identity(str(path), str(root)) for path in roots}),
@@ -532,9 +706,12 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
             raise ValueError("Integration requires an independently recorded operator takeover decision")
         stopped = load(confined(root, "private/writer-stop.json"))
         first = next(a for a in reversed(attempts) if a["phase"] == "first")
+        if first.get("journalCaptureRequired") and not first.get("journalSha256"):
+            raise ValueError("Required native journal capture is missing")
         from verify import native_trace
         events = [json.loads(line) for line in confined(root, f"private/{first['name']}.raw.jsonl").read_text(encoding="utf-8").splitlines() if line]
-        trace = native_trace(runtime, events)
+        trace = native_trace(runtime, events, retained_journals(root, first) if first.get("journalSha256") else None,
+                             retained_assignments(root, first))
         if not trace["workers"] or not trace["workers"] <= trace["finished"]:
             raise ValueError("Native delegated-writer lifecycle is incomplete: preserve the hold")
         if stopped["attempt"] != first["name"] or stopped["parent"] != first["pid"] or stopped["after"]["fixtureRoot"] != str(root):
@@ -556,12 +733,24 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
     attempts.append(attempt)
     write(root / "fixture.json", manifest)  # Reserve allowance before process launch, including failures.
     task = prompt(manifest, phase)
+    if runtime == "codex" and phase == "first":
+        assignments = seed_assignments(root, manifest, attempt)
+        task += (" Controller-seeded worker task inputs (not results): " + json.dumps({role: str(root / item["source"])
+                  for role, item in assignments.items()}) + ". Delegate each worker with its corresponding assignment file path. "
+                 "Every worker must first execute a standalone simple Get-Content -LiteralPath read of its assignment JSON, "
+                 "before any other tool, worktree inspection or candidate work. Use its exact taskId, workerActor, branch, "
+                 "worktree and ownedFiles; then read its modePath and implement only its owned files. "
+                 "Return the required qualification JSON from actual candidate work. Do not edit assignment inputs.")
     write(root / f"private/{name}.input.txt", task)
     argv = ([executable, "exec", "--json", *codex_permission_options(root),
              *(["--dangerously-bypass-hook-trust"] if trust_fixture_hooks else []), "-"] if runtime == "codex" else
             [executable, "-p", "--verbose", "--output-format", "stream-json", "--include-partial-messages"])
     if runtime == "codex":
+        attempt["journalCaptureRequired"] = True
         validate_codex_permission_config(root, name)
+        sessions = root / f"homes/{name}/.codex/sessions"
+        if sessions.exists() or sessions.is_symlink():
+            raise ValueError("Native phase requires a fresh journal namespace")
         attempt["permissionProfile"] = codex_permissions(root)
         for path in attempt["permissionProfile"]["workspace_roots"]:
             confined(root, Path(path).relative_to(root)).mkdir(parents=True, exist_ok=True)
@@ -577,6 +766,8 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
         attempt["aliasesBeforeSha256"] = digest(receipt)
         write(root / "fixture.json", manifest)
     snapshot(root, name + "-before")
+    attempt["nativeStarted"] = time.time()
+    write(root / "fixture.json", manifest)
     with (root / f"private/{name}.raw.jsonl").open("w", encoding="utf-8") as stdout, \
             (root / f"private/{name}.stderr.txt").open("w", encoding="utf-8") as stderr:
         process = subprocess.Popen(argv, cwd=root / "workspace", env=env, stdin=subprocess.PIPE,
@@ -607,6 +798,9 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
             attempt.update(exitCode=process.returncode, ended=time.time(), delegatedWriters="unverified")
             write(root / "fixture.json", manifest)
     snapshot(root, name + "-after")
+    if runtime == "codex":
+        capture_journals(root, attempt)
+        write(root / "fixture.json", manifest)
     if phase == "continue":
         receipt = confined(root, f"private/{name}-aliases-after.json")
         write(receipt, capture_aliases(root, name))
@@ -650,7 +844,7 @@ def export(root):
     hashes = {}
     # Only parse known evidence files, never traverse runtime homes or copy authentication files.
     for source in sorted((root / "private").glob("*.json*")):
-        confined(root, source.relative_to(root))
+        evidence_file(root, source)
         text = source.read_text(encoding="utf-8")
         values = [json.loads(line) for line in text.splitlines() if line] if source.suffix == ".jsonl" else load(source)
         sources = (str(root), manifest["candidate"], manifest["pstack"])

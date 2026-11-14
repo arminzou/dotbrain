@@ -300,6 +300,34 @@ retrieval, late-worker-result races and privacy in ignored delivered resources
 remain separate qualification checks; the seventeen criteria do not establish
 all continuity, recovery or public-delivery outcomes.
 
+Codex stdout remains unchanged. New phases also retain exact native session
+journals as flat private files with a hashed phase provenance receipt. Capture
+inspects only dated session directories in that fresh phase's isolated Codex home,
+checks native stdout root identity and linked descendant parentage, and rejects
+redirected paths, hardlinks, foreign or missing journals. Authentication files and
+other homes are not traversed. Verification checks retained file hashes and
+correlates call-linked dispatch results, delivered assignments, child identities,
+child final answers and parent-delivered returns. Inherited parent history in child
+journals cannot establish child activity. Encrypted assignment delivery establishes
+dispatch only; unobservable task/actor assignments remain unqualified.
+
+New Codex first phases seed separate immutable API/UI assignment JSON inputs in
+ignored Brain documentation and retain hashed private copies before native launch.
+Inputs name the task, worker actor, branch, fixed worktree, owned files and selected
+mode path; they contain no results or workflow status. The coordinator must pass
+each input path to its worker. With encrypted dispatch, assignment credit requires
+that child's first tool to perform a simple successful native read of the exact
+input, with matching observed output and prelaunch provenance. Missing, late,
+indirect, foreign or changed reads cannot qualify. Existing runs without this
+observable assignment evidence remain unqualified.
+
+Cold continuation treats unknown journal tools and arbitrary JavaScript as a hold.
+A strictly recognized single `exec_command` wrapper can corroborate a matching
+stdout command receipt; JavaScript is never executed or interpreted as evidence.
+Frozen alias receipts also cover retained journal copies and recorded native
+origin file identities. Hardlinks qualify only when every link is established
+inside the allowed read roots; unestablished links retain the cold-access hold.
+
 `export` preserves raw files, hashes the raw/export pairs, redacts recognized
 credential fields (including encoded JSON), bearer credentials, known secret
 assignments, private sentinels and fixture/source paths without depth truncation.
