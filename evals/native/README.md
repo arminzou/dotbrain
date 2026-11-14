@@ -37,6 +37,12 @@ mode-delivery evidence; an older CLI attachment smoke proves only attachment.
 
 On Windows, setting `NATIVE_FIXTURE_PROCESS_CHECK=1` also exercises the process
 controls against a temporary Python sleeper, with no agent runtime or model call.
+Set `NATIVE_FIXTURE_CODEX` to the installed Codex executable for model-free named
+permission-profile checks: baseline Git denial, fixture/worktree commits, local
+permission rendering, parser acceptance and denied outside/protected/private
+writes. With the backend and CLI wiring inputs above, this also verifies actual
+API/UI worktree attachment inside that sandbox. These opt-in checks retain their
+receipts externally and never invoke a model or arrange authentication.
 
 ## Prepare and deliver
 
@@ -113,11 +119,31 @@ python evals/native/journey.py run $qualificationRoot --runtime codex --phase co
 
 For Claude, use a separate prepared root, `--runtime claude`, and its direct
 executable. Calls use `claude -p --verbose --output-format stream-json
---include-partial-messages` or `codex exec --json --sandbox workspace-write -c approval_policy=never --add-dir ROOT -`, with task text
-on stdin. No provider sanitizer runs.
+--include-partial-messages`. Codex receives `exec --json`, fixed configuration
+overrides selecting `default_permissions=qualification`, `approval_policy=never`,
+the generated `permissions.qualification` table, and task text on stdin. No
+provider sanitizer runs.
 
-The fixed Codex additional directory grants the isolated Brainspace/worktrees
-write access while keeping its sandbox enabled. For vetted fixture hooks, the
+The fixed Codex profile extends `:workspace`, keeps networking disabled, and adds
+only the owning Brain/Beads, exact Beads receipt log, primary Git metadata, and
+fixed API/UI worktree destinations and delivery metadata. The first-phase prompt
+names those destinations. Linked worktree Git metadata gets explicit grants at
+its primary-repository location. Home/private parents and unrelated protected
+paths receive no additional write grant. The complete profile and argv are
+recorded in the attempt; runtime settings and authentication remain independently
+arranged. The harness does not rewrite runtime configuration.
+
+Legacy `sandbox_mode` or `sandbox_workspace_write` keys in the isolated runtime
+or repository config fail before launch because they override named profiles.
+Generated argv includes neither `--sandbox` nor `--add-dir`; see the official
+[permission profile precedence](https://learn.chatgpt.com/docs/permissions).
+Actual parser acceptance, local rendered configuration and model-free sandbox
+checks establish separate facts; only later native behavior can prove `exec`
+consumes the profile during the journey. Baseline and named-profile probes use
+fresh separate homes so retained sandbox protection state cannot contaminate
+their comparison.
+
+For vetted fixture hooks, the
 controller can explicitly add `--trust-fixture-hooks`; its native argv records
 the resulting hook-trust option. This never enables a full sandbox bypass.
 The exact native hook-trust startup notice is retained as control metadata;

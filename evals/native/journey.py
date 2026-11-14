@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import tomllib
 import uuid
 
 
@@ -165,6 +166,8 @@ def environment(root, phase="setup"):
     home = confined(root, f"homes/{phase}")
     for name in (".codex", ".claude", ".config", "tmp", "AppData/Roaming", "AppData/Local"):
         confined(home, name).mkdir(parents=True, exist_ok=True)
+    dolt_config = confined(root, "data/dolt-config")
+    dolt_config.mkdir(parents=True, exist_ok=True)
     env.update(HOME=str(home), USERPROFILE=str(home), CODEX_HOME=str(home / ".codex"),
                CLAUDE_CONFIG_DIR=str(home / ".claude"), APPDATA=str(home / "AppData/Roaming"),
                LOCALAPPDATA=str(home / "AppData/Local"), XDG_CONFIG_HOME=str(home / ".config"),
@@ -174,6 +177,7 @@ def environment(root, phase="setup"):
                BD_NON_INTERACTIVE="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"),
                GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", NATIVE_FIXTURE_ROOT=str(root),
                NATIVE_FIXTURE_PHASE=phase)
+    env["DOLT_ROOT_PATH"] = str(dolt_config)
     manifest = confined(root, "fixture.json")
     if manifest.exists() and load(manifest).get("candidate"):
         env["PYTHONPATH"] = str(Path(load(manifest)["candidate"]) / "src")
@@ -369,6 +373,9 @@ def prompt(manifest, phase):
                          "{claim:'Latency cause is unknown',status:'unresolved'}. Settle the contract "
                          "before starting dependent API/UI work. Exercise competing claims with different actors. "
                          "Delegate isolated API/UI work and record worker identities, branches and candidate commits. "
+                         "Use these fixed local Git worktree destinations for API and UI work respectively: "
+                         + json.dumps(str(Path(manifest["root"]) / "worktrees/api")) + " and "
+                         + json.dumps(str(Path(manifest["root"]) / "worktrees/ui")) + ". "
                          "The coordinator claims both tasks under its own Beads actor; worker identities are separate. "
                          "Each native worker assignment must name that task ID and its unique workerActor label. "
                          "For each API/UI task post a Beads comment containing exactly a JSON object with key "
@@ -409,6 +416,39 @@ def plan(root, runtime, phase):
     name = f"{runtime}-{phase}-{len(manifest['attempts']) + 1}"
     env = environment(root, name)
     return {"name": name, "environment": env, "prompt": prompt(manifest, phase)}
+
+
+def codex_permissions(root):
+    """Fixed fixture destinations; protected metadata outside these paths stays read-only."""
+    worktrees = [confined(root, "worktrees/" + role) for role in ("api", "ui")]
+    writable = [confined(root, "workspace/.git"), confined(root, "private/beads.jsonl"),
+                confined(root, "data/dolt-config"),
+                confined(root, (brainspace(root) / ".beads.gate.lock").relative_to(root)),
+                *(confined(root, (brainspace(root) / name).relative_to(root)) for name in (".brain", ".beads"))]
+    writable += [confined(root, path.relative_to(root) / name) for path in worktrees
+                 for name in (".git", ".agents", ".codex", ".claude")]
+    writable += [confined(root, "workspace/.git/worktrees/" + role) for role in ("api", "ui")]
+    return {"extends": ":workspace", "workspace_roots": {str(path): True for path in worktrees},
+            "filesystem": {str(brainspace(root)): "read", **{str(path): "write" for path in writable}},
+            "network": {"enabled": False}}
+
+
+def codex_permission_options(root):
+    profile = codex_permissions(root)
+    worktrees = ",".join(json.dumps(path) + "=true" for path in profile["workspace_roots"])
+    filesystem = ",".join(json.dumps(path) + "=" + json.dumps(access) for path, access in profile["filesystem"].items())
+    value = '{extends=":workspace",workspace_roots={' + worktrees + '},filesystem={' + filesystem + '},network={enabled=false}}'
+    return ["-c", "default_permissions=qualification", "-c", "approval_policy=never",
+            "-c", "permissions.qualification=" + value]
+
+
+def validate_codex_permission_config(root, phase):
+    for name in (f"homes/{phase}/.codex/config.toml", "workspace/.codex/config.toml"):
+        path = confined(root, name)
+        if path.is_file():
+            config = tomllib.loads(path.read_text(encoding="utf-8"))
+            if any(key in config for key in ("sandbox_mode", "sandbox_workspace_write")):
+                raise ValueError("Legacy sandbox configuration overrides the fixed permission profile")
 
 
 def process_observation(root, pids, *, stop=(), run=subprocess.run):
@@ -517,10 +557,14 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
     write(root / "fixture.json", manifest)  # Reserve allowance before process launch, including failures.
     task = prompt(manifest, phase)
     write(root / f"private/{name}.input.txt", task)
-    argv = ([executable, "exec", "--json", "--sandbox", "workspace-write", "-c", "approval_policy=never",
-             "--add-dir", str(root),
+    argv = ([executable, "exec", "--json", *codex_permission_options(root),
              *(["--dangerously-bypass-hook-trust"] if trust_fixture_hooks else []), "-"] if runtime == "codex" else
             [executable, "-p", "--verbose", "--output-format", "stream-json", "--include-partial-messages"])
+    if runtime == "codex":
+        validate_codex_permission_config(root, name)
+        attempt["permissionProfile"] = codex_permissions(root)
+        for path in attempt["permissionProfile"]["workspace_roots"]:
+            confined(root, Path(path).relative_to(root)).mkdir(parents=True, exist_ok=True)
     attempt["argv"] = argv
     attempt["runtimeVersion"] = execute(root, [executable, "--version"], phase=name).stdout.strip()
     attempt["settingsSha256"] = {config: digest(confined(root, f"homes/{name}/{config}"))

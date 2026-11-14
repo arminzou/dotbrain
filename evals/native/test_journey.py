@@ -813,18 +813,71 @@ class Calibration(unittest.TestCase):
                 root = Path(tmp)
                 journey.write(root / "fixture.json", {"schema": 1, "root": str(root), "ids": correct_record()["ids"],
                               "attempts": [], "sessionLimit": 12, "consecutiveFailureLimit": 3})
+                config = root / "homes/codex-first-1/.codex/config.toml"
+                journey.write(config, 'model="synthetic-preserved"\n[windows]\nsandbox="unelevated"\n')
+                config_before = config.read_bytes()
                 with patch("journey.execute", return_value=subprocess.CompletedProcess([], 0, "synthetic version", "")), \
                         patch("journey.snapshot"), \
                         patch("journey.subprocess.Popen", side_effect=RuntimeError("launch sentinel")) as launch:
                     with self.assertRaisesRegex(RuntimeError, "launch sentinel"):
                         journey.run_phase(root, "codex", "first", "codex.exe", True, trust_fixture_hooks=trust_hooks)
-                expected = ["codex.exe", "exec", "--json", "--sandbox", "workspace-write", "-c", "approval_policy=never",
-                            "--add-dir", str(root), *(["--dangerously-bypass-hook-trust"] if trust_hooks else []), "-"]
+                expected = ["codex.exe", "exec", "--json", *journey.codex_permission_options(root),
+                            *(["--dangerously-bypass-hook-trust"] if trust_hooks else []), "-"]
                 observed = launch.call_args.args[0]
                 self.assertEqual(observed, expected)
                 self.assertEqual(journey.load(root / "fixture.json")["attempts"][0]["argv"], expected)
                 self.assertNotIn("--full-auto", observed)
                 self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", observed)
+                self.assertNotIn("--sandbox", observed)
+                self.assertNotIn("--add-dir", observed)
+                self.assertEqual(journey.load(root / "fixture.json")["attempts"][0]["permissionProfile"], journey.codex_permissions(root))
+                self.assertEqual(config.read_bytes(), config_before)
+                self.assertEqual(journey.load(root / "fixture.json")["attempts"][0]["settingsSha256"][".codex/config.toml"],
+                                 hashlib.sha256(config_before).hexdigest())
+
+    def test_codex_permission_scope_is_fixed_confined_and_keeps_protected_paths(self):
+        import tomllib
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "fixture"
+            root.mkdir()
+            journey.write(root / "fixture.json", {"schema": 2})
+            profile = journey.codex_permissions(root)
+            roots = {str(root / "worktrees" / role): True for role in ("api", "ui")}
+            expected = {str(root / "workspace/.git"), str(root / "private/beads.jsonl"), str(root / "data/dolt-config"),
+                        str(root / "data/brainspaces/catalog/.beads.gate.lock"), str(root / "data/brainspaces/catalog/.brain"),
+                        str(root / "data/brainspaces/catalog/.beads")}
+            expected.update(str(root / "worktrees" / role / name) for role in ("api", "ui")
+                            for name in (".git", ".agents", ".codex", ".claude"))
+            expected.update(str(root / "workspace/.git/worktrees" / role) for role in ("api", "ui"))
+            self.assertEqual(profile, {"extends": ":workspace", "workspace_roots": roots,
+                                       "filesystem": {str(root / "data/brainspaces/catalog"): "read", **{path: "write" for path in expected}},
+                                       "network": {"enabled": False}})
+            self.assertTrue(all(Path(path).is_relative_to(root) and Path(path) != root for path in expected))
+            self.assertNotIn(str(root / "homes"), expected)
+            self.assertNotIn(str(root / "private"), expected)
+            self.assertNotIn(str(root / "workspace/.aws"), expected)
+            options = journey.codex_permission_options(root)
+            self.assertEqual(options[:4], ["-c", "default_permissions=qualification", "-c", "approval_policy=never"])
+            self.assertEqual(tomllib.loads(options[-1])["permissions"]["qualification"], profile)
+            foreign = Path(tmp) / "foreign"
+            foreign.mkdir()
+            (root / "worktrees").symlink_to(foreign, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "escapes fixture"):
+                journey.codex_permissions(root)
+
+    def test_legacy_settings_cannot_override_the_fixed_permission_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for location in ("homes/current/.codex/config.toml", "workspace/.codex/config.toml"):
+                for key in ("sandbox_mode", "sandbox_workspace_write"):
+                    with self.subTest(location=location, key=key):
+                        file = root / location
+                        journey.write(file, key + ('="workspace-write"' if key == "sandbox_mode" else '={network_access=true}'))
+                        with self.assertRaisesRegex(ValueError, "Legacy sandbox configuration"):
+                            journey.validate_codex_permission_config(root, "current")
+                        file.unlink()
+            journey.write(root / "homes/current/.codex/config.toml", '[windows]\nsandbox="unelevated"\nmodel="synthetic-preserved"\n')
+            journey.validate_codex_permission_config(root, "current")
 
     def test_exact_hook_trust_notice_is_retained_without_tool_credit(self):
         from verify import HOOK_TRUST_NOTICE
@@ -939,7 +992,100 @@ class RealBackend(unittest.TestCase):
             after = journey.capture_aliases(root, "wire-selfcheck")
             self.assertTrue(alias_boundary({"name": "wire-selfcheck", "aliasesBefore": before, "aliasesAfter": after},
                             str(root), str(root / "homes/first"), [str(path) for path in journey.read_roots(root, manifest)]))
+            if os.environ.get("NATIVE_FIXTURE_CODEX") and sys.platform == "win32":
+                env = journey.environment(root, "wire-permissions")
+                env["PATH"] = str(root / "bin") + os.pathsep + env["PATH"]
+                journey.write(Path(env["CODEX_HOME"]) / "config.toml", '[windows]\nsandbox="unelevated"\n')
+                for path in journey.codex_permissions(root)["workspace_roots"]:
+                    Path(path).mkdir(parents=True)
+                options = journey.codex_permission_options(root)
+                receipts = []
+                for role in ("api", "ui"):
+                    worktree = root / "worktrees" / role
+                    for command in (["git", "worktree", "add", "-b", "sandbox-" + role, str(worktree)],
+                                    [os.environ["NATIVE_FIXTURE_DOTBRAIN"], "wire", "--home", str(root / "data"),
+                                     "--repo", str(worktree), "--project", "catalog", "--json"]):
+                        result = subprocess.run([os.environ["NATIVE_FIXTURE_CODEX"], "sandbox", "-P", "qualification", *options,
+                                                 "-C", str(root / "workspace"), "--", *command],
+                                                cwd=root / "workspace", env=env, capture_output=True, text=True,
+                                                encoding="utf-8", timeout=120)
+                        receipts.append({"command": command, "exitCode": result.returncode,
+                                         "stdout": result.stdout, "stderr": result.stderr})
+                        journey.write(root / "private/worktree-wire-sandbox.json", receipts)
+                        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+                    self.assertEqual((worktree / ".brain").resolve(), journey.brainspace(root) / ".brain")
+                    self.assertEqual((worktree / ".beads").resolve(), journey.brainspace(root) / ".beads")
         print("Actual backend self-check retained:", root)
+
+
+@unittest.skipUnless(os.environ.get("NATIVE_FIXTURE_CODEX") and sys.platform == "win32",
+                     "opt-in installed Windows Codex sandbox, without models")
+class NativePermissions(unittest.TestCase):
+    def test_fixed_profile_git_worktrees_and_denied_writes(self):
+        parent = Path(os.environ.get("NATIVE_FIXTURE_PARENT", tempfile.gettempdir())) / "dotbrain-native-selfchecks"
+        parent.mkdir(parents=True, exist_ok=True)
+        root = Path(tempfile.mkdtemp(prefix="permissions-", dir=parent)) / "fixture"
+        journey.create_private_root(root)
+        journey.write(root / "fixture.json", {"schema": 2})
+        workspace = root / "workspace"
+        workspace.mkdir()
+        for path in journey.codex_permissions(root)["workspace_roots"]:
+            Path(path).mkdir(parents=True)
+        receipts = []
+        cli = os.environ["NATIVE_FIXTURE_CODEX"]
+        environments = {name: journey.environment(root, name) for name in ("baseline", "profile")}
+        for env in environments.values():
+            journey.write(Path(env["CODEX_HOME"]) / "config.toml", '[windows]\nsandbox="unelevated"\n')
+        def run(argv, phase="profile"):
+            result = subprocess.run(argv, cwd=workspace, env=environments[phase], capture_output=True,
+                                    text=True, encoding="utf-8", timeout=60)
+            receipts.append({"argv": argv, "phase": phase, "exitCode": result.returncode,
+                             "stdout": result.stdout, "stderr": result.stderr})
+            journey.write(root / "private/sandbox-probes.json", receipts)
+            return result
+        options = journey.codex_permission_options(root)
+        def sandbox(command, baseline=False):
+            return run([cli, "sandbox", "-P", ":workspace" if baseline else "qualification",
+                        *([] if baseline else options), "-C", str(workspace), "--", *command],
+                       "baseline" if baseline else "profile")
+        identity = ["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid"]
+        self.assertEqual(run(["git", "init", "-q", str(workspace)]).returncode, 0)
+        self.assertEqual(run([*identity, "commit", "--allow-empty", "-qm", "Seed fixture"]).returncode, 0)
+        commit = [*identity, "commit", "--allow-empty", "-m", "Sandbox commit"]
+        # Fresh homes prevent the baseline sandbox's retained protection state contaminating the profile.
+        self.assertNotEqual(sandbox(commit, baseline=True).returncode, 0)
+        self.assertEqual(sandbox(commit).returncode, 0)
+        parsed = run([cli, "exec", "--json", *options, "--dangerously-bypass-hook-trust", "-", "--help"])
+        self.assertEqual(parsed.returncode, 0)
+        rendered = run([cli, "debug", "prompt-input", *options, "synthetic local probe"])
+        self.assertEqual(rendered.returncode, 0)
+        self.assertIn("Network access is restricted", rendered.stdout)
+        self.assertIn("Approval policy is currently never", rendered.stdout)
+        self.assertIn(str(workspace / ".git").replace("\\", "\\\\"), rendered.stdout)
+        for role in ("api", "ui"):
+            worktree = root / "worktrees" / role
+            created = sandbox(["git", "worktree", "add", "-b", "synthetic-" + role, str(worktree)])
+            self.assertEqual(created.returncode, 0, created.stderr)
+            journey.write(worktree / (role + ".txt"), "synthetic work")
+            self.assertEqual(sandbox(["git", "-C", str(worktree), "add", role + ".txt"]).returncode, 0)
+            committed = sandbox([*identity, "-C", str(worktree), "commit", "-m", "Synthetic work"])
+            self.assertEqual(committed.returncode, 0, committed.stderr)
+        for name, path in (("outside", root.parent / "outside.txt"),
+                           ("protected", workspace / ".aws/sentinel.txt"),
+                           ("private", root / "private/sentinel.txt")):
+            with self.subTest(denied=name):
+                journey.write(path, "preserved")
+                quoted = str(path).replace("'", "''")
+                denied = sandbox(["pwsh", "-NoProfile", "-Command",
+                                  f"Set-Content -LiteralPath '{quoted}' -Value changed -ErrorAction Stop"])
+                self.assertNotEqual(denied.returncode, 0)
+                self.assertEqual(path.read_text(), "preserved")
+        log = root / "private/beads.jsonl"
+        journey.write(log, "")
+        logged = sandbox([sys.executable, "-c", "from pathlib import Path; Path(" + repr(str(log)) + ").open('a').write('synthetic-receipt\\n')"])
+        self.assertEqual(logged.returncode, 0, logged.stderr)
+        self.assertEqual(log.read_text(), "synthetic-receipt\n")
+        print("Native permission self-check retained:", root)
 
 
 @unittest.skipUnless(os.environ.get("NATIVE_FIXTURE_PROCESS_CHECK") == "1" and sys.platform == "win32",
