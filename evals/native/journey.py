@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -41,6 +42,62 @@ def brainspace(root):
     if manifest.exists() and load(manifest).get("schema", 1) < 2:
         return confined(root, "workspace")
     return confined(root, "data/brainspaces/catalog")
+
+
+def read_roots(root, manifest):
+    return [root / "workspace", brainspace(root) / ".brain",
+            root / "data/.cache/integrations/dotbrain-pstack",
+            Path(manifest.get("candidate", root / "absent")) / "plugin",
+            Path(manifest.get("candidate", root / "absent")) / "src/dotbrain/resources",
+            Path(manifest.get("pstack", root / "absent"))]
+
+
+def is_alias(path, info=None):
+    info = info or path.lstat()
+    return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == 0xA0000003
+
+
+def capture_aliases(root, phase):
+    """Freeze bounded namespace metadata without following links or opening their targets."""
+    from verify import lexical_identity
+    manifest = load(root / "fixture.json")
+    roots = read_roots(root, manifest)
+    private = root / "private"
+    if is_alias(private):
+        raise ValueError("Controller evidence directory is redirected")
+    controller_ids = {}
+    for path in private.iterdir():
+        info = path.lstat()
+        if stat.S_ISREG(info.st_mode) and info.st_ino:
+            controller_ids[(info.st_dev, info.st_ino)] = lexical_identity(str(path), str(root))
+    aliases = {}
+    homes = lexical_identity(str(root / "homes"), str(root))
+    pending = list(roots)
+    visited = set()
+    while pending:
+        path = pending.pop()
+        key = lexical_identity(str(path), str(root))
+        if key == homes or key.startswith(homes + "\\"):
+            raise ValueError("Alias capture cannot traverse runtime homes")
+        if key in visited:
+            continue
+        visited.add(key)
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
+        if is_alias(path, info):
+            aliases[key] = lexical_identity(os.readlink(path), str(path.parent))
+        elif stat.S_ISDIR(info.st_mode):
+            with os.scandir(path) as entries:
+                pending.extend(Path(entry.path) for entry in entries)
+        elif stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
+            target = controller_ids.get((info.st_dev, info.st_ino))
+            if target:
+                aliases[key] = target
+    return {"schema": 1, "phase": phase, "root": lexical_identity(str(root), str(root)),
+            "capturedAt": time.time(), "roots": sorted({lexical_identity(str(path), str(root)) for path in roots}),
+            "aliases": dict(sorted(aliases.items()))}
 
 
 def environment(root, phase="setup"):
@@ -131,7 +188,12 @@ def snapshot(root, name):
             "show": json.loads(bd(root, ["show", item["id"], "--json"]).stdout),
             "comments": json.loads(bd(root, ["comments", item["id"], "--json"]).stdout)}
     brain = brainspace(root) / ".brain"
+    if is_alias(brain):
+        raise ValueError("Owning Brain directory is redirected")
     for file in brain.rglob("*"):
+        info = file.lstat()
+        if is_alias(file, info) or info.st_nlink > 1:
+            continue
         if file.is_file():
             confined(root, file.relative_to(root))
             value["knowledge"][str(file.relative_to(brain)).replace("\\", "/")] = file.read_text(encoding="utf-8")
@@ -389,6 +451,11 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
                                 for config in (".codex/config.toml", ".claude/settings.json")
                                 if confined(root, f"homes/{name}/{config}").is_file()}
     write(root / "fixture.json", manifest)
+    if phase == "continue":
+        receipt = confined(root, f"private/{name}-aliases-before.json")
+        write(receipt, capture_aliases(root, name))
+        attempt["aliasesBeforeSha256"] = digest(receipt)
+        write(root / "fixture.json", manifest)
     snapshot(root, name + "-before")
     with (root / f"private/{name}.raw.jsonl").open("w", encoding="utf-8") as stdout, \
             (root / f"private/{name}.stderr.txt").open("w", encoding="utf-8") as stderr:
@@ -420,6 +487,11 @@ def run_phase(root, runtime, phase, executable, allow_native=False, timeout=1800
             attempt.update(exitCode=process.returncode, ended=time.time(), delegatedWriters="unverified")
             write(root / "fixture.json", manifest)
     snapshot(root, name + "-after")
+    if phase == "continue":
+        receipt = confined(root, f"private/{name}-aliases-after.json")
+        write(receipt, capture_aliases(root, name))
+        attempt["aliasesAfterSha256"] = digest(receipt)
+        write(root / "fixture.json", manifest)
     return attempt
 
 
@@ -449,6 +521,7 @@ def redact(value, sentinels=()):
 
 
 def export(root):
+    from verify import lexical_identity
     manifest = load(confined(root, "fixture.json"))
     output = confined(root, "export")
     if output.exists():
@@ -460,7 +533,9 @@ def export(root):
         confined(root, source.relative_to(root))
         text = source.read_text(encoding="utf-8")
         values = [json.loads(line) for line in text.splitlines() if line] if source.suffix == ".jsonl" else load(source)
-        safe = redact(values, (manifest["sentinel"], str(root), manifest["candidate"], manifest["pstack"]))
+        sources = (str(root), manifest["candidate"], manifest["pstack"])
+        safe = redact(values, (manifest["sentinel"], *sources,
+                              *(lexical_identity(path, str(root)) for path in sources)))
         write(output / source.name, "".join(json.dumps(item) + "\n" for item in safe)
               if source.suffix == ".jsonl" else safe)
         hashes[source.name] = {"rawSha256": digest(source), "exportSha256": digest(output / source.name)}

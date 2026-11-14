@@ -24,7 +24,9 @@ python -m unittest discover -s evals/native -v
 Remove-Item Env:NATIVE_FIXTURE_BD
 ```
 
-It retains its embedded Dolt backend and receipts under `evals/results/`. It
+It retains its embedded Dolt backend and receipts under a temporary
+`dotbrain-native-selfchecks/` directory. Set `NATIVE_FIXTURE_PARENT` to choose
+another external parent. It
 checks actual dependency readiness, exclusive actor claims and a failed product
 check. It makes no model calls and accesses no authentication files.
 
@@ -39,14 +41,17 @@ controls against a temporary Python sleeper, with no agent runtime or model call
 
 ## Prepare and deliver
 
-Use a distinct new root for each runtime. Keep the controller's existing global
+Use a distinct new root for each runtime, outside every wired checkout. For
+example, use `~/.codex/qualifications/catalog-codex`. Delivery correctly refuses
+a data root nested inside a wired source checkout. Keep the controller's existing global
 session ledger and earlier initiative evidence; creating a fixture grants no new
 allowance. Existing roots and exports are never overwritten.
 
 ```powershell
-python evals/native/journey.py prepare evals/results/catalog-codex --candidate C:/candidate --pstack C:/pstack --bd C:/tools/bd.exe
-python evals/native/journey.py wire evals/results/catalog-codex --executable C:/candidate-cli/dotbrain.exe
-python evals/native/journey.py plan evals/results/catalog-codex --runtime codex --phase first
+$qualificationRoot = Join-Path $env:USERPROFILE '.codex/qualifications/catalog-codex'
+python evals/native/journey.py prepare $qualificationRoot --candidate C:/candidate --pstack C:/pstack --bd C:/tools/bd.exe
+python evals/native/journey.py wire $qualificationRoot --executable C:/candidate-cli/dotbrain.exe
+python evals/native/journey.py plan $qualificationRoot --runtime codex --phase first
 ```
 
 `prepare` initializes a Git data root and source Brainspace at
@@ -85,10 +90,10 @@ on Windows. Each invocation gets a new home and session; resume/continue switche
 and transcript injection are absent from the command interface.
 
 ```powershell
-python evals/native/journey.py run evals/results/catalog-codex --runtime codex --phase first --executable C:/tools/codex.exe --allow-native --timeout-seconds 900
-python evals/native/journey.py plan evals/results/catalog-codex --runtime codex --phase continue
+python evals/native/journey.py run $qualificationRoot --runtime codex --phase first --executable C:/tools/codex.exe --allow-native --timeout-seconds 900
+python evals/native/journey.py plan $qualificationRoot --runtime codex --phase continue
 # Arrange subscription auth and delivered resources in the new home.
-python evals/native/journey.py run evals/results/catalog-codex --runtime codex --phase continue --executable C:/tools/codex.exe --allow-native
+python evals/native/journey.py run $qualificationRoot --runtime codex --phase continue --executable C:/tools/codex.exe --allow-native
 ```
 
 For Claude, use a separate prepared root, `--runtime claude`, and its direct
@@ -131,7 +136,7 @@ To exercise confirmed takeover, the test driver first uses the captured process
 identities to stop affected fixture writers:
 
 ```powershell
-python evals/native/journey.py stop-writers evals/results/catalog-codex
+python evals/native/journey.py stop-writers $qualificationRoot
 ```
 
 The controller records the launched parent's PID, working directory and process
@@ -170,9 +175,9 @@ owners/statuses and final state; missing/failed/changed guards, open prerequisit
 or forced closures cannot pass.
 
 ```powershell
-python evals/native/journey.py plan evals/results/catalog-codex --runtime codex --phase integration
+python evals/native/journey.py plan $qualificationRoot --runtime codex --phase integration
 # Arrange this fresh home's resources and subscription auth.
-python evals/native/journey.py run evals/results/catalog-codex --runtime codex --phase integration --executable C:/tools/codex.exe --allow-native
+python evals/native/journey.py run $qualificationRoot --runtime codex --phase integration --executable C:/tools/codex.exe --allow-native
 ```
 
 Attempts reserve allowance before launch and retain failures. Defaults stop
@@ -189,9 +194,9 @@ restrict additional writes to the fixture.
 ## Inspect and qualify
 
 ```powershell
-python evals/native/journey.py inspect evals/results/catalog-codex
-python evals/native/verify.py evals/results/catalog-codex --runtime codex
-python evals/native/journey.py export evals/results/catalog-codex
+python evals/native/journey.py inspect $qualificationRoot
+python evals/native/verify.py $qualificationRoot --runtime codex
+python evals/native/journey.py export $qualificationRoot
 ```
 
 Inspect the complete private native JSONL, stderr, fixed inputs, tracker receipts,
@@ -234,6 +239,14 @@ native close call, corroborate Beads closure, preserve a clean final checkout,
 and include both actual API/UI candidates. Cold-continuation access checks use
 Windows path identity, including casing, relative traversal and filesystem
 aliases; even partial reads of prior controller artifacts invalidate continuation.
+Before and after cold continuation, the controller retains bounded alias
+metadata with phase-linked hashes. Capture does not follow links or traverse
+runtime auth homes; controlled-file hardlink identities are retained too.
+Grading uses these frozen identities rather than the later filesystem. Missing,
+changed or tampered receipts hold the result, and integration cannot erase a
+transcript read by deleting or retargeting its alias. Ordinary Brain/mode links
+remain readable. Older attempts without this evidence remain inconclusive;
+never reconstruct their earlier identities from the current filesystem.
 The private sentinel is checked in tracked files and the retained candidate
 commit. Broader discovery, opt-out and preservation scenarios remain separate
 qualification work.

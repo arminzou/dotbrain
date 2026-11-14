@@ -37,18 +37,36 @@ def simple_read(command):
     return read_target(command) is not None
 
 
-def path_identity(path, cwd):
-    path = path.replace("/", "\\").removeprefix("\\\\?\\")
-    normalized = ntpath.normcase(ntpath.normpath(ntpath.join(cwd, path)))
+def lexical_identity(path, cwd):
+    path = str(path).replace("/", "\\")
+    if path.startswith("\\\\?\\UNC\\"):
+        path = "\\\\" + path[8:]
+    else:
+        path = path.removeprefix("\\\\?\\").removeprefix("\\??\\")
+    return ntpath.normcase(ntpath.normpath(ntpath.join(str(cwd), path)))
+
+
+def path_identity(path, cwd, aliases=None):
+    normalized = lexical_identity(path, cwd)
+    if aliases is not None:
+        seen = set()
+        while normalized not in seen:
+            seen.add(normalized)
+            match = next((key for key in sorted(aliases, key=len, reverse=True)
+                          if normalized == key or normalized.startswith(key + "\\")), None)
+            if match is None:
+                return normalized
+            normalized = lexical_identity(aliases[match] + normalized[len(match):], cwd)
+        raise ValueError("Cyclic alias identity in continuation boundary")
     # Resolve actual filesystem aliases on the supported Windows host.
     if sys.platform == "win32":
-        normalized = ntpath.normcase(str(Path(ntpath.join(cwd, path)).resolve()))
+        normalized = ntpath.normcase(str(Path(normalized).resolve()))
     elif not ntpath.splitdrive(cwd)[0] and not ntpath.splitdrive(path)[0]:
         normalized = ntpath.normcase(str((Path(cwd.replace("\\", "/")) / path.replace("\\", "/")).resolve()))
     return normalized
 
 
-def controller_access(tool, root, first_home):
+def controller_access(tool, root, first_home, aliases=None):
     text = tool["input"].casefold().replace("\\\\", "\\").replace("/", "\\")
     if any(marker in text for marker in ("\\private\\", ".raw.jsonl", ".input.txt", ".stderr.txt")):
         return True
@@ -60,28 +78,32 @@ def controller_access(tool, root, first_home):
         paths = [*paths, target]
     for groups in re.findall(r'"([^"\n]+)"|\'([^\'\n]+)\'|([^\s;|&]+)', command):
         token = next(part for part in groups if part)
+        if aliases is not None:
+            paths = [*paths, token]
+            continue
         local = Path(cwd) / token
         try:
             if local.exists() or local.is_symlink():
                 paths = [*paths, token]
         except OSError:
             continue
-    forbidden = [path_identity(ntpath.join(root, "private"), cwd), path_identity(first_home, cwd)]
+    forbidden = [lexical_identity(ntpath.join(root, "private"), cwd), lexical_identity(first_home, cwd),
+                 lexical_identity(ntpath.join(root, "homes"), cwd)]
     return any(any(identity == base or identity.startswith(base + "\\") for base in forbidden)
-               for identity in (path_identity(path, cwd) for path in paths))
+               for identity in (path_identity(path, cwd, aliases) for path in paths))
 
 
-def continuation_access(tool, root, first_home, read_roots):
+def continuation_access(tool, root, first_home, read_roots, aliases=None):
     """Allow established read targets; unsupported shell/search behavior cannot prove cold access."""
-    if controller_access(tool, root, first_home):
+    if controller_access(tool, root, first_home, aliases):
         return False
     cwd = tool.get("cwd") or ntpath.join(root, "workspace")
     def allowed(path):
         if any(char in path for char in "*?`$"):
             return False
-        identity = path_identity(path, cwd)
+        identity = path_identity(path, cwd, aliases)
         return any(identity == base or identity.startswith(base + "\\")
-                   for base in (path_identity(value, cwd) for value in read_roots))
+                   for base in (lexical_identity(value, cwd) for value in read_roots))
     if tool["name"] in {"Read", "Write", "Edit", "file_change"}:
         return bool(tool.get("paths")) and all(allowed(path) for path in tool["paths"])
     if tool["name"] == "Skill":
@@ -129,7 +151,7 @@ def continuation_access(tool, root, first_home, read_roots):
             if flag == "--project":
                 if value != "catalog":
                     return False
-            elif path_identity(value, cwd) != path_identity(ntpath.join(root, "data" if flag == "--home" else "workspace"), cwd):
+            elif path_identity(value, cwd, aliases) != lexical_identity(ntpath.join(root, "data" if flag == "--home" else "workspace"), cwd):
                 return False
             index += 2
         return True
@@ -140,6 +162,23 @@ def continuation_access(tool, root, first_home, read_roots):
             token in {"--output", "-o", "--exec", "--work-tree", "--git-dir", "-C", "-c", "--ext-diff", "--textconv"} or token.startswith(("--output=", "--work-tree=", "--git-dir="))
             for token in tokens[2:])
     return False
+
+
+def alias_boundary(second, root, first_home, read_roots):
+    before, after = second.get("aliasesBefore", {}), second.get("aliasesAfter", {})
+    expected_roots = sorted({lexical_identity(path, root) for path in read_roots})
+    for receipt in (before, after):
+        if receipt.get("schema") != 1 or receipt.get("phase") != second["name"] or \
+                receipt.get("root") != lexical_identity(root, root) or receipt.get("roots") != expected_roots or \
+                not isinstance(receipt.get("aliases"), dict):
+            return False
+    if before["aliases"] != after["aliases"]:
+        return False
+    aliases = before["aliases"]
+    forbidden = [lexical_identity(ntpath.join(root, "private"), root), lexical_identity(ntpath.join(root, "homes"), root),
+                 lexical_identity(first_home, root)]
+    return not any(any(target == base or target.startswith(base + "\\") for base in forbidden)
+                   for target in (path_identity(path, root, aliases) for path in aliases))
 
 
 def returned_candidate(output, candidate):
@@ -341,6 +380,10 @@ def evaluate(record):
     traces = [native_trace(record["runtime"], events) for events in (first["events"], second["events"])]
     initial, continuation = traces
     old_owner = record["operatorDecision"].get("observedOwner")
+    read_roots = record.get("readRoots", [ntpath.join(record["fixtureRoot"], "workspace"),
+        ntpath.join(record["fixtureRoot"], "data/brainspaces/catalog/.brain"),
+        ntpath.join(record["fixtureRoot"], "data/.cache/integrations/dotbrain-pstack")])
+    frozen_aliases = second.get("aliasesBefore", {}).get("aliases", {})
     def action(call, *args):
         return call["argv"][:len(args)] == list(args)
 
@@ -398,12 +441,11 @@ def evaluate(record):
         "native_sessions": bool(initial["session"] and continuation["session"] and
                                 initial["session"] != continuation["session"] and continuation["complete"]),
         "cold_continuation": first["home"] != second["home"] and second["input"] == record["expectedSecondInput"]
+        and alias_boundary(second, record["fixtureRoot"], first["home"], read_roots)
         and not continuation["incomplete"] and not continuation["workers"]
         and first["sessionOutput"] not in second["input"] and not any(
             first["sessionOutput"].strip() in tool["output"] for tool in continuation["tools"]) and not any(
-            not continuation_access(tool, record["fixtureRoot"], first["home"], record.get("readRoots", [
-                ntpath.join(record["fixtureRoot"], "workspace"), ntpath.join(record["fixtureRoot"], "data/brainspaces/catalog/.brain"),
-                ntpath.join(record["fixtureRoot"], "data/.cache/integrations/dotbrain-pstack")]))
+            not continuation_access(tool, record["fixtureRoot"], first["home"], read_roots, frozen_aliases)
             for tool in continuation["tools"]),
         "durable_discovery": finding.get("pageSize") == 7 and finding.get("sourceSha256") == record["configSha256"]
         and finding.get("hypothesis") == {"claim": "Latency cause is unknown", "status": "unresolved"}
@@ -466,7 +508,7 @@ def evaluate(record):
 
 def inspect_artifacts(root, runtime):
     """Construct assertions only from retained local artifacts, not a model-authored summary."""
-    from journey import load, digest, prompt, execute, confined, brainspace
+    from journey import load, digest, prompt, execute, confined, read_roots
     manifest = load(root / "fixture.json")
     attempts = [a for a in manifest["attempts"] if a["runtime"] == runtime]
     if len(attempts) < 3:
@@ -478,8 +520,15 @@ def inspect_artifacts(root, runtime):
         base = confined(root, "private/" + attempt["name"])
         raw = base.with_name(base.name + ".raw.jsonl").read_text(encoding="utf-8")
         events = [json.loads(line) for line in raw.splitlines() if line]
-        return {**attempt, "receipt": attempt, "events": events, "sessionOutput": raw,
-                "input": base.with_name(base.name + ".input.txt").read_text(encoding="utf-8")}
+        value = {**attempt, "receipt": attempt, "events": events, "sessionOutput": raw,
+                 "input": base.with_name(base.name + ".input.txt").read_text(encoding="utf-8")}
+        if attempt["phase"] == "continue":
+            for label in ("Before", "After"):
+                file = confined(root, f"private/{attempt['name']}-aliases-{label.lower()}.json")
+                if digest(file) != attempt.get(f"aliases{label}Sha256"):
+                    raise ValueError("Continuation alias receipt changed or lacks captured digest")
+                value["aliases" + label] = load(file)
+        return value
     before = load(root / f"private/{first['name']}-after.json")
     after = load(root / f"private/{second['name']}-after.json")
     for state in (before, after):
@@ -528,11 +577,7 @@ def inspect_artifacts(root, runtime):
                   priorAllowances=manifest["priorAllowances"], attempts=attempts,
                   operatorDecision=load(root / "private/operator-decision.json"),
                   writerStop=load(root / "private/writer-stop.json"), fixtureRoot=str(root),
-                  readRoots=[str(root / "workspace"), str(brainspace(root) / ".brain"),
-                             str(root / "data/.cache/integrations/dotbrain-pstack"),
-                             str(Path(manifest.get("candidate", root / "absent")) / "plugin"),
-                             str(Path(manifest.get("candidate", root / "absent")) / "src/dotbrain/resources"),
-                             manifest.get("pstack", str(root / "absent"))],
+                  readRoots=[str(path) for path in read_roots(root, manifest)],
                   expectedSecondInput=prompt(manifest, "continue"))
     return evaluate(record)
 

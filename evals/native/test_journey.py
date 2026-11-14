@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import journey
 from verify import evaluate, native_trace, simple_read, inspect_artifacts, controller_access, continuation_access
+from verify import lexical_identity, alias_boundary
 
 
 def correct_record(runtime="codex"):
@@ -72,6 +73,12 @@ def correct_record(runtime="codex"):
     second = {"name": "second", "home": "/fixture/second", "receipt": {"name": "second"},
               "input": "cold task", "events": events("session-b", [("cat discovery.json", discovery, True),
                  ("cat config.json", '{"pageSize":7}', True), ("cat handoff", "operator decision: uncertain writer", True)])}
+    read_roots = ["/fixture/workspace", "/fixture/data/brainspaces/catalog/.brain",
+                  "/fixture/data/.cache/integrations/dotbrain-pstack"]
+    second["aliasesBefore"] = {"schema": 1, "phase": "second", "root": lexical_identity("/fixture", "/fixture"),
+        "roots": sorted(lexical_identity(path, "/fixture") for path in read_roots), "aliases": {}, "capturedAt": 1}
+    second["aliasesAfter"] = copy.deepcopy(second["aliasesBefore"])
+    second["aliasesAfter"]["capturedAt"] = 2
     baseline = {"head": baseline_sha, "checkSha256": check_hash,
                 "details": {item: {"show": [{"dependencies": []}]} for item in ids.values()}}
     for child, parent in (("api", "contract"), ("ui", "contract"), ("integration", "api"), ("integration", "ui")):
@@ -113,7 +120,7 @@ def correct_record(runtime="codex"):
                             for role, value in qualification.items()}, checkSha256=check_hash, public={"README.md": "Public guidance"},
                 sentinel="PRIVATE-CANARY", priorAllowances={"status": "exhausted", "renewed": False},
                 operatorDecision={"decision": "authorize-takeover", "actor": "operator", "observedOwner": "coordinator-old"},
-                fixtureRoot="/fixture", writerStop={"attempt": "first", "parent": 123,
+                fixtureRoot="/fixture", readRoots=read_roots, writerStop={"attempt": "first", "parent": 123,
                 "before": {"present": first["writerTree"]["present"]},
                 "after": {"fixtureRoot": "/fixture", "requested": [123, 456], "present": []}},
                 attempts=[first["receipt"], second["receipt"], integration["receipt"]])
@@ -348,6 +355,73 @@ class Calibration(unittest.TestCase):
                 self.assertTrue(continuation_access({"name": "Read", "input": str(path), "paths": [str(path)]},
                     str(root), str(root / "homes/first"), [str(root / "workspace"), str(brain), str(cache.parent)]))
 
+    def test_frozen_alias_receipts_survive_removal_and_retargeting(self):
+        for runtime in ("codex", "claude"):
+            for kind in ("symlink", "hardlink"):
+                for change in ("removed", "retargeted"):
+                    for controller_target in (True, False):
+                        with self.subTest(runtime=runtime, kind=kind, change=change, controller=controller_target), tempfile.TemporaryDirectory() as tmp:
+                            root = Path(tmp)
+                            manifest = {"schema": 2}
+                            journey.write(root / "fixture.json", manifest)
+                            journey.write(root / "workspace/config.json", '{"pageSize":7}')
+                            journey.write(root / "private/first.raw.jsonl", "header\nselected first-session fragment\nfooter")
+                            brain = root / "data/brainspaces/catalog/.brain"
+                            (brain / "docs").mkdir(parents=True)
+                            (root / "workspace/.brain").symlink_to(brain, target_is_directory=True)
+                            alias = brain / "docs/context.json"
+                            target = root / ("private/first.raw.jsonl" if controller_target else "workspace/config.json")
+                            if kind == "symlink":
+                                alias.symlink_to(target)
+                            else:
+                                os.link(target, alias)
+                            before = journey.capture_aliases(root, "second")
+                            output = alias.read_text().splitlines()[1] if controller_target else alias.read_text()
+                            after = journey.capture_aliases(root, "second")
+                            alias.unlink()
+                            if change == "retargeted":
+                                alias.symlink_to(root / ("workspace/config.json" if controller_target else "private/first.raw.jsonl"))
+                            record = correct_record(runtime)
+                            record.update(fixtureRoot=str(root), readRoots=[str(path) for path in journey.read_roots(root, manifest)])
+                            record["first"]["home"] = str(root / "homes/first")
+                            record["second"].update(home=str(root / "homes/second"), aliasesBefore=before, aliasesAfter=after)
+                            record["writerStop"]["after"]["fixtureRoot"] = str(root)
+                            if runtime == "codex":
+                                self.add_shell_result(record, "cat .brain/docs/context.json", output)
+                            else:
+                                record["second"]["events"][1:1] = [
+                                    {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "alias-read",
+                                     "name": "Read", "input": {"file_path": ".brain/docs/context.json"}}]}},
+                                    {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "alias-read", "content": output}]}}]
+                            self.assertEqual(evaluate(record)["cold_continuation"], not controller_target)
+
+    def test_missing_or_changed_alias_boundary_is_inconclusive(self):
+        for runtime in ("codex", "claude"):
+            missing = correct_record(runtime)
+            missing["second"].pop("aliasesBefore")
+            self.assertFalse(evaluate(missing)["cold_continuation"])
+            changed = correct_record(runtime)
+            changed["second"]["aliasesAfter"]["aliases"][lexical_identity("/fixture/workspace/context.json", "/fixture")] = \
+                lexical_identity("/fixture/workspace/config.json", "/fixture")
+            self.assertFalse(evaluate(changed)["cold_continuation"])
+
+    def test_alias_capture_does_not_follow_runtime_home_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            journey.write(root / "fixture.json", {"schema": 2})
+            (root / "private").mkdir()
+            (root / "workspace").mkdir()
+            home = root / "homes/first/.codex"
+            journey.write(home / "auth.json", "AUTH-PAYLOAD-MUST-NOT-BE-CAPTURED")
+            (root / "workspace/home-view").symlink_to(home, target_is_directory=True)
+            real_scandir = os.scandir
+            def guarded_scandir(path):
+                self.assertFalse(Path(path).resolve().is_relative_to(root / "homes"))
+                return real_scandir(path)
+            with patch("journey.os.scandir", side_effect=guarded_scandir):
+                receipt = journey.capture_aliases(root, "second")
+            self.assertNotIn("AUTH-PAYLOAD-MUST-NOT-BE-CAPTURED", json.dumps(receipt))
+
     def test_each_dependent_task_needs_its_own_worker_and_integrated_candidate(self):
         for runtime in ("codex", "claude"):
             for defect in ("wrong-worker", "unrelated-commit", "missing-ui", "unintegrated", "missing-ui-claim"):
@@ -441,11 +515,13 @@ class Calibration(unittest.TestCase):
                 encoded = encoded.replace(old, new)
             record = json.loads(encoded)
             attempts = []
-            manifest = {"root": str(root), "ids": record["ids"], "attempts": attempts, "priorAllowances": record["priorAllowances"]}
+            manifest = {"schema": 2, "root": str(root), "ids": record["ids"], "attempts": attempts, "priorAllowances": record["priorAllowances"]}
+            journey.write(root / "fixture.json", manifest)
             for phase, value, state in (("first", record["first"], record["before"]),
                                         ("continue", record["second"], record["after"]),
                                         ("integration", record["integration"], record["integration"]["state"])):
-                attempt = {key: item for key, item in value.items() if key not in {"events", "input", "sessionOutput", "receipt", "state"}}
+                attempt = {key: item for key, item in value.items() if key not in {
+                    "events", "input", "sessionOutput", "receipt", "state", "aliasesBefore", "aliasesAfter"}}
                 attempt.update(runtime="codex", phase=phase)
                 attempts.append(attempt)
                 journey.write(root / f"private/{value['name']}.raw.jsonl", "\n".join(json.dumps(e) for e in value["events"]) + "\n")
@@ -453,6 +529,11 @@ class Calibration(unittest.TestCase):
                 state = copy.deepcopy(state)
                 state["items"] = list(state["items"].values())
                 journey.write(root / f"private/{value['name']}-after.json", state)
+                if phase == "continue":
+                    for label in ("Before", "After"):
+                        receipt = root / f"private/{value['name']}-aliases-{label.lower()}.json"
+                        journey.write(receipt, journey.capture_aliases(root, value["name"]))
+                        attempt[f"aliases{label}Sha256"] = journey.digest(receipt)
             manifest["sentinel"] = record["sentinel"]
             journey.write(root / "fixture.json", manifest)
             journey.write(root / "private/baseline.json", record["baseline"])
@@ -462,6 +543,12 @@ class Calibration(unittest.TestCase):
             journey.write(root / "private/writer-stop.json", record["writerStop"])
             checks = inspect_artifacts(root, "codex")
             self.assertTrue(all(checks.values()), checks)
+            alias_file = root / "private/second-aliases-before.json"
+            alias_body = alias_file.read_text()
+            journey.write(alias_file, {"tampered": True})
+            with self.assertRaisesRegex(ValueError, "alias receipt changed"):
+                inspect_artifacts(root, "codex")
+            journey.write(alias_file, alias_body)
             original_state = journey.load(root / "private/first-after.json")
             state = copy.deepcopy(original_state)
             claim = json.loads(state["details"][record["ids"]["api"]]["comments"][0]["text"])
@@ -575,8 +662,8 @@ class Calibration(unittest.TestCase):
 class RealBackend(unittest.TestCase):
     def test_isolated_graph_claims_and_failed_check(self):
         # Preserve the actual backend and receipts for inspection, including on failure.
-        parent = Path(__file__).resolve().parents[1] / "results"
-        parent.mkdir(exist_ok=True)
+        parent = Path(os.environ.get("NATIVE_FIXTURE_PARENT", tempfile.gettempdir())) / "dotbrain-native-selfchecks"
+        parent.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="native-selfcheck-", dir=parent)) / "fixture"
         source = root.parent / "source"
         source.mkdir()
@@ -609,6 +696,7 @@ class RealBackend(unittest.TestCase):
         self.assertTrue((journey.brainspace(root) / ".beads/metadata.json").is_file())
         self.assertEqual(journey.load(journey.brainspace(root) / ".beads/metadata.json")["dolt_mode"], "embedded")
         if os.environ.get("NATIVE_FIXTURE_DOTBRAIN"):
+            self.assertIn("NATIVE_FIXTURE_PSTACK", os.environ, "Actual mode wiring needs an explicit qualified pstack source")
             identity = journey.load(journey.brainspace(root) / ".beads/metadata.json")["project_id"]
             receipt = journey.wire(root, os.environ["NATIVE_FIXTURE_DOTBRAIN"])
             self.assertEqual(receipt["exitCode"], 0)
@@ -616,6 +704,10 @@ class RealBackend(unittest.TestCase):
             self.assertTrue((root / "workspace/.brain").is_symlink())
             self.assertTrue((root / "workspace/.beads").is_symlink())
             self.assertEqual(identity, journey.load(journey.brainspace(root) / ".beads/metadata.json")["project_id"])
+            before = journey.capture_aliases(root, "wire-selfcheck")
+            after = journey.capture_aliases(root, "wire-selfcheck")
+            self.assertTrue(alias_boundary({"name": "wire-selfcheck", "aliasesBefore": before, "aliasesAfter": after},
+                            str(root), str(root / "homes/first"), [str(path) for path in journey.read_roots(root, manifest)]))
         print("Actual backend self-check retained:", root)
 
 
