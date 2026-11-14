@@ -58,18 +58,6 @@ Codex Agent 文件，不会占用项目自己的文件。Agent 看到的是一�
 
 Brain 里的每个部分各有一个用途：
 
-```mermaid
-treeView-beta
-  accTitle: The files and folders of a Brain
-  .brain/
-    CONTEXT.md ## domain vocabulary
-    adr/ ## decision records
-    designs/ ## one design doc per initiative
-    DOTBRAIN.md ## shared convention, owned by dotbrain
-    project.yaml ## runtime, tracker, skill selection
-    docs/ ## derived runbooks and reference
-```
-
 | 部分 | 内容 | 何时变化 |
 | --- | --- | --- |
 | `CONTEXT.md` | 领域术语：任务、计划和代码里用的名字 | 一个概念被命名或定义得更精确时 |

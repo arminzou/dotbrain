@@ -62,18 +62,6 @@ stays clean, and the context stays private. [Wiring](wiring.md) covers the detai
 
 Each element of a Brain has one purpose:
 
-```mermaid
-treeView-beta
-  accTitle: The files and folders of a Brain
-  .brain/
-    CONTEXT.md ## domain vocabulary
-    adr/ ## decision records
-    designs/ ## one design doc per initiative
-    DOTBRAIN.md ## shared convention, owned by dotbrain
-    project.yaml ## runtime, tracker, skill selection
-    docs/ ## derived runbooks and reference
-```
-
 | Element | Holds | Changes when |
 | --- | --- | --- |
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |

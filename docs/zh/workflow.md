@@ -4,22 +4,6 @@ Dotbrain 保存项目理解和可恢复的工作状态。五个核心 skills 提
 Beads 操作；调查、规划、分派、验证、恢复与交付由你选择的工程工作流负责，并遵守用户和仓库的授权。
 只使用核心能力的项目不需要 pstack。
 
-```mermaid
-flowchart TB
-  accTitle: A selected workflow uses independent Dotbrain capabilities
-  workflow["`**Selected workflow**
-  planning and delivery`"]
-  brain["`**Brain**
-  context and evidence`"]
-  graph["`**Beads**
-  tasks and ownership`"]
-  rules["`***RULES.md***
-  adopted requirements`"]
-  workflow -- reads and maintains --> brain
-  workflow -- records work in --> graph
-  workflow -- follows --> rules
-```
-
 `maintain-brain` 用来记录术语、已采纳的决策、设计、已验证的发现，以及仍未解决的假设和证据。
 `work-graph` 维护任务、依赖、认领和执行证据。初始化仓库要求需要明确请求 `repo-rules`；单纯评估不会采纳新规则。
 规则的代码、测试或 CI 执行机制由工程工作流实现。

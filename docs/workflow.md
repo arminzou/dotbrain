@@ -6,22 +6,6 @@ Beads operations. Your selected engineering workflow decides how to investigate,
 plan, delegate, verify, recover, and deliver work under user and repository authority.
 Core-only projects work without pstack.
 
-```mermaid
-flowchart TB
-  accTitle: A selected workflow uses independent Dotbrain capabilities
-  workflow["`**Selected workflow**
-  planning and delivery`"]
-  brain["`**Brain**
-  context and evidence`"]
-  graph["`**Beads**
-  tasks and ownership`"]
-  rules["`***RULES.md***
-  adopted requirements`"]
-  workflow -- reads and maintains --> brain
-  workflow -- records work in --> graph
-  workflow -- follows --> rules
-```
-
 Use `maintain-brain` to capture vocabulary, accepted decisions, designs, verified
 findings, and unresolved hypotheses with their evidence. Use `work-graph` for
 tasks, dependencies, claims, and execution evidence. Ask `repo-rules` explicitly
