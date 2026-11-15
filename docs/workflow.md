@@ -29,25 +29,16 @@ files in the repository.
 ## Use a skill-based workflow {#skill-workflow}
 
 Select the workflow's skills like any other skills. For example, to use
-[pstack](https://github.com/backnotprop/pstack), clone it into your skill library
-and select its skill bundle for a project:
+[pstack](https://github.com/backnotprop/pstack), add it to your skill library and
+select its skill bundle for the current checkout's project:
 
 ```bash
-git clone https://github.com/backnotprop/pstack.git ~/dotbrain/skills/pstack
-```
-
-```yaml
-# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
-skills:
-  - pstack/skills
-```
-
-```bash
-dotbrain skills link
+dotbrain skills add https://github.com/backnotprop/pstack.git
+dotbrain skills link pstack/skills
 ```
 
 Then invoke the workflow by its own entry point, such as pstack's `poteto-mode`.
-Dotbrain does not install, pin, or update the workflow. Scope, acceptance criteria,
+Dotbrain changes the workflow's version only through `dotbrain skills update`. Scope, acceptance criteria,
 permissions, and delivery authority still come from the user and the repository.
-See [skills](skills.md) for selection rules and [configuration](configuration.md#project-yaml)
-for the `skills:` key.
+See [skills](skills.md#external-repositories) for updating and removing it, and
+[configuration](configuration.md#project-yaml) for the `skills:` key.
