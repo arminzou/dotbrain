@@ -10,8 +10,8 @@ runner at its own source revision; it has not been regenerated or requalified.
 
 The archived suite targets retired packaged workflows and role-composition
 APIs. Its commands and claims are historical. Do not run it against current
-Dotbrain or treat it as the current evaluation route. Current model-free
-calibration and native qualification guidance live in [the native guide](../native/README.md).
+Dotbrain or treat it as the current evaluation route. The current evaluation
+lives in [record placement](../records/README.md).
 Neither archival preservation nor passing calibration promotes an old result to
 qualification for the redesigned product.
 

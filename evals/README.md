@@ -1,26 +1,19 @@
 # Evaluation
 
-Use [the native catalog journey](native/README.md) for current evaluation of the
-workflow-independent core and selected pstack integration. From the repository
-root, run its default model-free calibration:
+[Record placement](records/README.md) evaluates the workflow-independent core
+with a stock skill workflow: plans land in Beads, reasoning in the Brain, nothing
+in the repository, and a cold session resumes from `bd ready`. From the repository
+root, run its model-free calibration:
 
 ```sh
-uv run python -B -m unittest discover -s evals/native -v
+cd evals/records && uv run python -B -m unittest -v test_records
 ```
 
-The calibration uses synthetic native records and injected boundaries. It needs
-no Node.js packages, Promptfoo, Claude SDK, sign-in, or model calls. Optional
-real-backend and process checks are described in the native guide. Calibration
-proves the measurement gate, not native loading, integration behavior, or a
-successful qualification run.
-
-The native guide describes fixture preparation, supported resource delivery,
-explicitly authorized native execution, verification, and evidence export.
-Native calls require its separate authorization gate and preserve prior attempts
-and allowances. Missing or held evidence remains unqualified.
+Calibration needs no sign-in or model calls and proves the grader, not agent
+behavior. Native runs need explicit `--allow-native`; see the guide.
 
 The former packaged-workflow suite is a [frozen historical archive](legacy/README.md).
-Its providers, cases, dependency locks, and original guidance remain inspectable;
-they are not current entrypoints or qualification evidence for the redesigned
-product. Existing ignored `results/` and `node_modules/` remain in place and are
-not migrated or reused by the current calibration.
+The native catalog journey, which qualified the retired pstack adapter's coordinator
+procedure, is available in Git history at revision `3fbafb2`
+(`git show 3fbafb2:evals/native/README.md`). Neither is a current entrypoint.
+Existing ignored `results/` and `node_modules/` remain in place.
