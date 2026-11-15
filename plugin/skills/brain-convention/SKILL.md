@@ -46,6 +46,12 @@ Beads graph operations. `repo-rules` initializes and reconciles repository
 requirements when requested. These capabilities do not select an engineering
 workflow; the selected workflow owns execution procedures.
 
+This contract decides where a workflow's records go, including when the
+workflow names a file. Plans, task lists, progress, and handoff notes become
+Beads issues. Design reasoning, decision logs, and research go to the matching
+Brain record. The code repository receives only code and public guidance.
+Resume work from `bd ready` and the Brain.
+
 Records distinguish observations, inferences, hypotheses, proposals, and accepted
 decisions. A recorded discovery does not adopt a consequential decision. Keep
 source and applicability beside a claim, and distinguish verified outcomes from
