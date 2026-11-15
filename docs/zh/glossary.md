@@ -10,9 +10,8 @@
 | Design | initiative 的意图、约束、未知问题与验证结果；任务状态留在 Beads。 |
 | Work graph | 原生 Beads 任务、依赖、认领、验收标准和执行证据；readiness 表示依赖资格。 |
 | Home sync | 私有 home 文件的 Git 版本管理与交换，独立于 Beads 后端持久化和备份。 |
-| Core skill | `wire-brain`、`brain-convention`、`maintain-brain`、`work-graph`、`repo-rules` 之一，不依赖 pstack。 |
+| Core skill | `wire-brain`、`brain-convention`、`maintain-brain`、`work-graph`、`repo-rules` 之一，可与任何工程工作流配合使用。 |
 | Engineering workflow | 所选的规划、分派、验证、恢复和交付程序，受用户和仓库授权约束。 |
-| Pstack mode | Dotbrain 提供的可选 `dotbrain-pstack` 集成，需要固定的外部 pstack 来源和项目明确启用。 |
 | Runtime | Claude Code、Codex、Hermes、OpenCode、Pi 或 Cursor，各有集成方式和限制。 |
 | Custom subagent | 用户选择的 Claude Code 或 Codex 定义；核心不提供工作流 agents。 |
 | Worktree | 独立 Git checkout，可共用已有 Brainspace，同时单独接收 runtime 资源。 |

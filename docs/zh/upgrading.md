@@ -28,14 +28,8 @@ Beads 通过 Dolt remote 或服务器备份单独保存，home sync 不备份 tr
 
 ## 选择工作流 {#workflow-selection}
 
-核心不需要 pstack。可选的 `dotbrain-pstack` mode 需要单独准备干净的外部来源 checkout，
-并通过项目 `pstack.enabled` / `pstack.source` 明确启用。它由 CLI 交付，不是 marketplace 的第六个核心 skill。
-详见[设置与验证范围](workflow.md#pstack)。首批 native 验证目标是 Windows 本地 Claude Code 和 Codex；
-来源身份和生成资源只是结构证据，不代表 native 通过。实际结果以精确 release 或 PR 的验证记录为准。
-
-mode 链接和 `.dotbrain-pstack.json` 是被 gitignore 的生成资源。改变项目选择后，在各 checkout refresh，
-检查保留资源的提示，再开启新会话。修改过的缓存、发现记录或其他工具的资源不会被静默覆盖或删除。
-外部依赖保持固定，除非另行审阅并验证升级。
+五个核心 skills 可与任何工程工作流配合使用。工作流的 skills 和其他 skills 一样选择；
+见[选择工作流](workflow.md#skill-workflow)。
 
 ## 回滚 {#rollback}
 

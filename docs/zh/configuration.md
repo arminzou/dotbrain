@@ -105,9 +105,6 @@ skills:                       # extra skills for this project's workspaces
 
 subagents:                    # project-only custom subagents
   - some-project-only-subagent
-
-pstack:
-  enabled: false              # explicit opt-in; source required when true
 ```
 
 | 键 | 默认值 | 含义 |
@@ -120,37 +117,9 @@ pstack:
 | `subagents` | `[]` | 只给这个项目用的自定义 subagents |
 
 refresh 会报告已存在但不在 `agents` 解析结果中的工作区，保留其中无关、其他工具或用户拥有的内容。
-该 runtime 不再选中时，同步仍可清理能确认归属且完整的可选 pstack mode 链接；
-修改过或归属不明的 mode 资源会保留并报告。
 
 Codex 项目 skills 使用 `<checkout>/.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。全局 skills 和
 profile 主目录的位置不变。旧链接迁移和冲突处理见[skills 同步](skills.md#select-and-reconcile-skills)。
-
-### 可选的 pstack {#pstack}
-
-核心不依赖 pstack。项目级 `pstack` mapping 接受以下设置：
-
-| 键 | 默认值 | 含义 |
-| --- | --- | --- |
-| `pstack.enabled` | `false` | YAML boolean，选择可选的项目工程 mode，需要已初始化且可连接的 Beads 后端。 |
-| `pstack.source` | — | 显式的外部来源 checkout，必须是绝对路径或以 `~/` 开头；启用时必填。 |
-
-```yaml
-# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
-pstack:
-  enabled: true
-  source: ~/pstack
-```
-
-pstack 未知键、非 boolean 的 `enabled`、相对路径，以及启用时缺少来源都会报可操作的错误。
-来源必须是[工作流设置](workflow.md#dependency)指定的干净完整 checkout。
-`wire`、`refresh` 和项目 `skills link` 同步 mode；`doctor` 检查依赖、后端和交付。
-这些命令都不安装或更新 pstack。
-
-mode 只交付到配置的 Claude Code 和 Codex 项目工作区。被 gitignore 的 `.dotbrain-pstack.json`
-和独立自有集成缓存是生成资源，不是应直接修改的配置。关闭 mode 后 refresh 只移除完整自有资源，
-修改过或其他工具的资源会保留并报告。改变选择后请重启会话。
-结构检查与 native 行为证据的区别见[验证范围](workflow.md#qualification)。
 
 `packaged-subagents`、`retro`、`execution-engine`、`public-tracker` 和 `public-tracker-id`
 已废弃并忽略。refresh 会报告，但不改写用户声明。请阅读[升级说明](upgrading.md)后明确删除这些键，保留无关设置。
@@ -205,4 +174,4 @@ Hermes、OpenCode、Pi 和 Cursor 不接收 subagents。项目链接默认作用
 它合并支持的 profiles、skills 和自定义 subagents 选择，将原件备份到 `~/dotbrain/.cache/config-backups/`，
 并报告退役条目。默认 runtime targets 会删除，自定义 Claude Code/Codex 主目录会转为 profiles。
 旧 `agents/` 来源只在安全时移到 `subagents/`。未知、冲突声明或两个来源目录并存时会停止，不猜测。
-清理完成前全局交付暂停；请检查报告，并用备份手动恢复。这不启用 pstack，也不恢复旧打包角色。
+清理完成前全局交付暂停；请检查报告，并用备份手动恢复。这不会恢复旧打包角色。

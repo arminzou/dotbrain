@@ -17,9 +17,7 @@ convention, it runs [home sync](#home-sync).
 
 The shared convention `.brain/DOTBRAIN.md`, which Dotbrain owns and keeps current through
 `dotbrain refresh`. It covers wiring rules, where execution lives, the public/private boundary, and
-how the Brain is laid out. Opted-in pstack projects also receive a bounded pointer
-to delivered mode locations and the generated dependency record. The workflow
-body and private knowledge are not injected.
+how the Brain is laid out. Private knowledge is not injected.
 
 The project's own files are not injected:
 
@@ -165,7 +163,5 @@ and reported. Doctor inspects delivery; a successful native invocation is separa
 evidence that a runtime consumed a definition.
 
 The selected workflow supplies assignments, context retrieval/capture timing,
-verification and recovery. The optional [pstack mode](workflow.md#pstack) is
-delivered separately into opted-in Claude Code and Codex projects, not as a
-packaged subagent. Startup may name its delivered location and ignored
-`.dotbrain-pstack.json` dependency record. Restart sessions after selection changes.
+verification and recovery; its skills are selected like any other
+[skills](workflow.md#skill-workflow).

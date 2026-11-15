@@ -12,7 +12,7 @@ Use wire-brain to wire this repository with Dotbrain and check its health.
 ```
 
 `wire-brain` handles setup and repair through the CLI. Wiring alone selects no
-pstack mode. See [Getting started](getting-started.md).
+engineering workflow. See [Getting started](getting-started.md).
 
 ## Capture project understanding
 
@@ -61,14 +61,14 @@ mechanism, and verification needs. Assessment itself changes no code, lint or CI
 
 ## Use a selected engineering workflow
 
-After [explicit pstack setup](workflow.md#opt-in), start a fresh session and select
-the displayed `dotbrain-pstack` skill:
+After [selecting your workflow's skills](workflow.md#skill-workflow), invoke it by its own
+entry point, for example pstack's `poteto-mode`:
 
 ```text
-Use this project's dotbrain-pstack mode to implement the approved API change.
-Preserve the existing acceptance criteria and record actual checks and pending work.
+/poteto-mode Implement the approved API change. Preserve the existing acceptance
+criteria and record actual checks and pending work.
 ```
 
-The mode owns execution and recovery procedures. Core-only projects can use
-another workflow with the same context and graph operations. No skill invocation
+The workflow owns execution and recovery procedures; the convention keeps its plans in
+Beads and its reasoning in the Brain. No skill invocation
 alone authorizes publication, messaging, merge or release.

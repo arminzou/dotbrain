@@ -46,7 +46,7 @@ point. Dotbrain leaves project-owned runtime files in place and can work alongsi
 It earns its overhead when context grows beyond a short instruction file: decisions that need
 their rationale preserved, designs spanning sessions, private runbooks, and resource selections
 that need to stay consistent across checkouts. Its core skills maintain context and work records. Your selected engineering
-workflow decides the procedure; the optional pstack mode is a separate project choice. See [The workflow](workflow.md).
+workflow decides the procedure; the convention decides where its records go. See [The workflow](workflow.md).
 
 ## Does dotbrain actually make an agent remember my project?
 

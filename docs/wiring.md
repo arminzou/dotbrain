@@ -21,11 +21,6 @@ TOML files, marked `# dotbrain-managed-agent: v1`. Dotbrain can overwrite and pr
 copies; customize their source in the private home. Unmarked files and foreign links are preserved.
 Each delivered resource is ignored individually.
 
-Explicitly opted-in projects also receive the [pstack mode](workflow.md#opt-in)
-in their configured Claude Code and Codex skill directories. Its links target a
-separate owned integration cache; ignored `.dotbrain-pstack.json` records the
-dependency selection. Core-only wiring creates no pstack selection.
-
 Codex project skills go in `.agents/skills/`; its configuration and agents stay under `.codex/`.
 `wire`, `refresh`, and `skills link` migrate owned legacy `.codex/skills/` links after successful
 replacement, preserving and reporting foreign entries and collisions. See [Skills](skills.md#select-and-reconcile-skills)

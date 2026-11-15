@@ -9,7 +9,7 @@
 Use wire-brain to wire this repository with Dotbrain and check its health.
 ```
 
-`wire-brain` 通过 CLI 完成设置和修复。连接本身不启用 pstack；详见[快速开始](getting-started.md)。
+`wire-brain` 通过 CLI 完成设置和修复。连接本身不选择工程工作流；详见[快速开始](getting-started.md)。
 
 ## 记录项目理解 {#capture-project-understanding}
 
@@ -54,12 +54,12 @@ Report the existing checks and smallest enforcement gap without editing files.
 
 ## 使用所选工程工作流 {#use-a-selected-engineering-workflow}
 
-[明确设置 pstack](workflow.md#opt-in) 后，开启新会话，选择 runtime 展示的 `dotbrain-pstack` skill：
+[选中工作流的 skills](workflow.md#skill-workflow) 后，用它自己的入口调用，例如 pstack 的 `poteto-mode`：
 
 ```text
-Use this project's dotbrain-pstack mode to implement the approved API change.
-Preserve the existing acceptance criteria and record actual checks and pending work.
+/poteto-mode Implement the approved API change. Preserve the existing acceptance
+criteria and record actual checks and pending work.
 ```
 
-mode 负责执行与恢复程序。只用核心能力的项目也可选其他工作流，复用同样的上下文和工作图操作。
+工作流负责执行与恢复程序；约定让它的计划记录在 Beads，推理记录在 Brain。
 调用 skill 本身不授予发布、发消息、合并或 release 权限。

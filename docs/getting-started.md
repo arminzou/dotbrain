@@ -286,9 +286,9 @@ Engineering workflows, packaged agent roles, and the mandatory retrospective
 process are retired. Existing private notes, notebooks, work records and user
 sources remain recoverable. Read [Upgrading](upgrading.md) before a live transition.
 
-The core needs no pstack dependency. To choose the optional project mode, follow
-[pstack setup](workflow.md#pstack); installing or wiring Dotbrain alone does not
-enable it. Repository-rule initialization also needs an explicit request.
+The core needs no workflow dependency. To use your own, select its skills as described in
+[choosing a workflow](workflow.md#skill-workflow). Repository-rule initialization needs an
+explicit request.
 Shared writing, VitePress and Mermaid guidance lives under `maintain-brain/references/`.
 
 ### Update the plugin and CLI
@@ -762,6 +762,6 @@ When you do need configuration:
 
 ## Next
 
-- [The workflow](workflow.md) explains core capabilities and optional pstack selection.
+- [The workflow](workflow.md) explains core capabilities and how to use your own workflow.
 - [Architecture](architecture.md) explains the Brainspace model.
 - [Troubleshooting & FAQ](troubleshooting.md) covers common setup problems.

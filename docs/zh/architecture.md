@@ -111,7 +111,7 @@ flowchart LR
 ## Skills {#skills}
 
 skills 是可复用的 Agent 能力，归工具所有，而不是归某个项目所有。插件提供五个独立于工程工作流的核心 skills，
-还可交付用户选择的资源，以及明确启用的项目 pstack mode。见[工作流选择](workflow.md)。
+还可交付用户选择的资源，包括你的工程工作流的 skills。见[工作流选择](workflow.md)。
 
 链接是幂等的：dotbrain 只创建和清理它自己的链接。它从不删除真实文件，也不删除不是它创建的链接，
 所以内置 skills 可以和私有 skills 在同一台机器上并存。详见[Skills](skills.md)。

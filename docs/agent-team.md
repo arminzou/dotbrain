@@ -38,17 +38,3 @@ see [configuration](configuration.md#global-subagents) and
 Filesystem delivery does not prove that a runtime loaded or spawned an agent.
 Hermes, OpenCode, Pi and Cursor receive core skills and session integrations,
 but Dotbrain does not deliver native custom subagents to them.
-
-## Optional pstack mode
-
-The selected `dotbrain-pstack` mode uses local native general agents and wired
-isolated worktrees for writing delegates. Its coordinator owns task claims,
-records worker identities and candidate revisions, arranges verification, and
-closes accepted work. Workers return evidence within their assignments.
-Recovery requires reconciling work and writer authority; silence alone does not
-establish that a writer stopped. These procedures belong to the mode rather than
-the core or a packaged agent role.
-
-Read [setup and qualification scope](workflow.md#pstack) before selecting the mode.
-Native qualification evidence is required for delegation, ownership and recovery
-claims at a named revision. Mode selection never expands user or repository authority.

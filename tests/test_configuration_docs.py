@@ -45,7 +45,6 @@ def test_configuration_doc_examples_match_runtime_config(tmp_path: Path, page: s
     assert config.load_project_agents(dotbrain_home, "demo") == tuple(project_doc["agents"])
     assert config.load_project_skills(dotbrain_home, "demo") == tuple(project_doc["skills"])
     assert config.load_project_subagents(dotbrain_home, "demo") == tuple(project_doc["subagents"])
-    assert config.load_project_pstack(dotbrain_home, "demo").enabled is project_doc["pstack"]["enabled"]
 
     assert loaded_global.profiles == global_doc["profiles"]
     assert loaded_global.skills == tuple(global_doc["skills"])

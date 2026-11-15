@@ -150,7 +150,7 @@ TOML 文件。连接 Git worktree 时，会复用主 checkout 已有的 Brainspa
 两边共用同一份项目知识和任务记录。
 Hermes、OpenCode、Pi 和 Cursor CLI 支持 skills 和会话集成，但 Dotbrain 不会为它们配置 native subagents。
 
-会话开始时，各 runtime 的集成提供共享约定 `DOTBRAIN.md`；选择 pstack 的项目另附有大小限制的发现指针。不同 runtime 的上下文加载和同步方式，
+会话开始时，各 runtime 的集成提供共享约定 `DOTBRAIN.md`。不同 runtime 的上下文加载和同步方式，
 见[运行时说明](https://arminzou.github.io/dotbrain/zh/session-context#runtime-notes)。
 公开的 `AGENTS.md` 会要求 Agent
 在修改或审阅代码前，读取仓库根目录下由 Git 跟踪的 `RULES.md`；这些规则在没有 Brain 的环境中也适用。
@@ -180,10 +180,8 @@ Brain 使用 Git 管理版本，请将它备份到**私有**远程仓库。Beads
 Brain 保存项目理解，Beads 保存持久任务、归属和执行证据，公开 `RULES.md` 保存已采纳的仓库要求。
 核心提供这些记录的操作，不规定工程执行链。
 
-可选的 `dotbrain-pstack` mode 通过项目的 `pstack.enabled` 和显式外部 `pstack.source` checkout 选择，
-使用固定 pstack 能力开展工程工作，并接入 Brain 与 Beads。安装 Dotbrain 本身不启用或安装 pstack。
-首批 native 验证目标是 Windows 本地 Claude Code 和 Codex；结构交付与观测到的 Agent 行为需要分别证明。
-精确依赖、配置、证据边界、退出和升级方式见[工作流设置与验证范围](docs/zh/workflow.md)。
+你可以把自己的工程工作流（例如 [pstack](https://github.com/backnotprop/pstack)）作为选中的 skills 使用。
+约定决定它的计划、进度和决策记录放在哪里：Beads 和 Brain，而不是代码仓库。见[选择工作流](docs/zh/workflow.md)。
 
 其他工作流也能使用相同的五个核心能力。规划、分派、验证、恢复和交付由所选工作流负责，受用户和仓库授权约束。
 选择 mode 不授予发布、合并或 release 权限。

@@ -264,8 +264,8 @@ dotbrain 发布新版本时，插件和 CLI 要一起更新。
 `maintain-brain`、`work-graph` 和 `repo-rules`。工程工作流、打包 Agent 角色和强制复盘流程已退役。
 现有私有笔记、复盘记录、工作记录与用户来源保持可恢复；实际迁移前请阅读[升级说明](upgrading.md)。
 
-核心不需要 pstack。可选的项目 mode 需按 [pstack 设置](workflow.md#pstack)明确启用，
-安装或连接 Dotbrain 本身不会启用它。初始化仓库规则也需要明确请求。
+核心不依赖任何工作流。要使用自己的工作流，按[选择工作流](workflow.md#skill-workflow)选中它的 skills。
+初始化仓库规则需要明确请求。
 共享写作、VitePress 和 Mermaid 指南位于 `maintain-brain/references/`。
 
 ### 更新插件和 CLI {#update-the-plugin-and-cli}
@@ -709,6 +709,6 @@ dotbrain detach --runtime cursor
 
 ## 下一步 {#next}
 
-- [工作流程](workflow.md)解释核心能力与可选的 pstack 选择。
+- [工作流程](workflow.md)解释核心能力，以及如何使用自己的工作流。
 - [架构](architecture.md)解释 Brainspace 模型。
 - [故障排查与常见问题](troubleshooting.md)覆盖常见的安装问题。

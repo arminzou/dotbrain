@@ -87,7 +87,6 @@ Claude Code 和 Codex 通过 marketplace 插件加载核心 skills。Hermes、Op
 和历史保持可恢复。修改过或归属不明确的旧资源保留并报告。
 更新前请阅读[升级说明](upgrading.md)，检查备份和当前工作状态。
 
-## 可选工程 mode {#optional-engineering-mode}
+## 你的工程工作流 {#your-engineering-workflow}
 
-CLI 只向明确启用的项目交付 `dotbrain-pstack`，它不是 marketplace 的第六个核心 skill。
-详见[设置与验证范围](workflow.md#pstack)。
+基于 skills 的工作流，其 skills 和其他 skills 一样选择；见[选择工作流](workflow.md#skill-workflow)。

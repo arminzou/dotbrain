@@ -41,16 +41,5 @@ state. Rolling back software must not overwrite newer work records.
 
 ## Workflow selection
 
-The five core skills work without pstack. The optional `dotbrain-pstack` mode
-requires a separately prepared clean external source checkout and explicit
-project `pstack.enabled` / `pstack.source` settings. It is delivered by the CLI,
-not as a sixth marketplace skill. Follow [setup and qualification scope](workflow.md#pstack).
-The initial native qualification targets are local Windows Claude Code and Codex;
-source identity and generated resources are structural evidence, not a native pass.
-Observed results belong to the exact release or PR verification record.
-
-Mode links and `.dotbrain-pstack.json` are generated and ignored. Change project
-selection, refresh each checkout, inspect preserved-resource notices, and start
-fresh sessions. Modified caches, discovery records or foreign resources are
-preserved rather than silently replaced or deleted. Keep the external dependency
-pinned unless separately reviewing and qualifying its upgrade.
+The five core skills work with any engineering workflow. Select its skills like any other
+skills; see [choosing a workflow](workflow.md#skill-workflow).

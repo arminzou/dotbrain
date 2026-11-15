@@ -30,13 +30,3 @@ Claude 定义使用链接；Codex 使用带 `# dotbrain-managed-agent: v1` 标�
 
 文件交付不代表 runtime 已加载或成功启动 Agent。Hermes、OpenCode、Pi 和 Cursor 接收核心 skills 和会话集成，
 但 Dotbrain 不向它们交付原生自定义 subagents。
-
-## 可选的 pstack mode {#optional-pstack-mode}
-
-选中的 `dotbrain-pstack` mode 使用本地原生通用 agents，并为写入 delegates 使用已连接的独立 worktrees。
-coordinator 持有任务认领，记录 worker 身份与 candidate revision，安排验证，并关闭已验收工作。
-worker 只在分派范围内返回证据。恢复时必须协调现有工作和写入权限；没有回应不代表 writer 已停止。
-这些程序属于 mode，而不是核心或打包 Agent 角色。
-
-启用前请阅读[设置与验证范围](workflow.md#pstack)。分派、归属和恢复行为需要指定 revision 的 native 证据。
-选择 mode 不会扩大用户或仓库授权。

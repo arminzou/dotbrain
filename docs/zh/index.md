@@ -89,7 +89,7 @@ skills 只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要�
 
 ## 用图规划，循环推进 {#plan-as-a-graph-work-in-a-loop}
 
-五个核心 skills 维护连接、项目理解、仓库要求和 Beads 记录。执行由所选工作流负责；需要 pstack 工程程序时，可明确启用项目 mode。[查看工作流](./workflow)。
+五个核心 skills 维护连接、项目理解、仓库要求和 Beads 记录。执行由所选工作流负责；可使用任何基于 skills 的工作流，它的计划和决策仍记录在 Beads 和 Brain 中。[查看工作流](./workflow)。
 
 </section>
 

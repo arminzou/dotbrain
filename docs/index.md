@@ -89,7 +89,7 @@ Write skills once in `~/dotbrain/` and give each project the set it needs. Dotbr
 
 ## Plan as a graph. Work in a loop.
 
-Five core skills maintain wiring, project understanding, repository requirements and Beads records. Your chosen workflow owns execution. Select the optional project pstack mode when you want its engineering procedures. [See the workflow](./workflow).
+Five core skills maintain wiring, project understanding, repository requirements and Beads records. Your chosen workflow owns execution. Bring any skill-based workflow; its plans and decisions still land in Beads and the Brain. [See the workflow](./workflow).
 
 </section>
 

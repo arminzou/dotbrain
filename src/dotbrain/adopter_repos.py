@@ -551,12 +551,8 @@ def unwire_repo(
 
     managed_links = _managed_workspace_links(repo, dotbrain_home) if dotbrain_home else []
     # Agent ownership is the delivery owner's contract, not a second marker implementation.
-    from dotbrain import pstack, skills, subagents
+    from dotbrain import skills, subagents
     from dotbrain.subagents import is_managed_copy
-    if dotbrain_home is not None:
-        integration = pstack.unwire(Path(dotbrain_home), Path(repo), run=run)
-        result.warnings += integration.warnings
-        result.logs += [f"{verb} workflow resource {entry}" for entry in integration.pruned]
     codex_agents = repo / ".codex" / "agents"
     if not skills.project_directory_conflict(Path(repo), ".codex/agents") and codex_agents.is_dir():
         managed_links += [entry for entry in codex_agents.iterdir()

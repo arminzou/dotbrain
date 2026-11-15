@@ -15,7 +15,7 @@ Agent 会自己去读哪些内容，以及会话的 hook 怎样同步 dotbrain �
 ## 注入了什么 {#what-is-injected}
 
 共享约定 `.brain/DOTBRAIN.md` 由 Dotbrain 维护，通过 `dotbrain refresh` 保持最新。
-选择 pstack 的项目另附有大小限制的 mode 位置和依赖记录指针；工作流正文与私有知识不注入。
+私有知识不注入。
 它涵盖连接规则、执行状态放在哪里、公开/私有的边界，以及 Brain 的目录结构。
 
 项目自己的文件不会被注入：
@@ -135,6 +135,5 @@ Claude 定义使用符号链接；Codex 定义使用带 `# dotbrain-managed-agen
 请修改私有来源，而不是生成副本。`dotbrain subagents link` 同步当前 checkout，`--scope global` 同步全局主目录。
 其他工具的资源与冲突会保留并报告。doctor 检查交付状态，runtime 实际消费定义需要成功的原生调用另行证明。
 
-任务分派、上下文读取与记录的时机、验证及恢复由所选工作流决定。
-可选的 [pstack mode](workflow.md#pstack) 单独交付到启用它的 Claude Code 和 Codex 项目，不是打包 subagent。
-启动上下文可列出交付位置和被 gitignore 的 `.dotbrain-pstack.json` 依赖记录；改变选择后请重启会话。
+任务分派、上下文读取与记录的时机、验证及恢复由所选工作流决定；它的 skills 和其他
+[skills](workflow.md#skill-workflow) 一样选择。

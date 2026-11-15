@@ -157,8 +157,7 @@ TOML files. Wiring a Git worktree connects it to the main checkout's existing Br
 both use the same knowledge and tracker.
 Hermes, OpenCode, Pi, and Cursor CLI receive skills and session integrations, but no Dotbrain native subagents.
 
-At session start, the runtime integration supplies `DOTBRAIN.md`, the shared convention,
-and a bounded discovery pointer when the project selects pstack.
+At session start, the runtime integration supplies `DOTBRAIN.md`, the shared convention.
 See [Runtime notes](https://arminzou.github.io/dotbrain/session-context#runtime-notes)
 for how context loading and sync differ between runtimes.
 Public `AGENTS.md` routes making or reviewing changes to tracked root `RULES.md`, usable
@@ -192,13 +191,9 @@ The Brain holds project understanding; Beads holds durable tasks, ownership and
 execution evidence; public `RULES.md` holds adopted repository requirements.
 The core supplies operations for these records without an engineering execution chain.
 
-The optional `dotbrain-pstack` mode is selected per project through `pstack.enabled`
-and an explicit external `pstack.source` checkout. It uses pinned pstack capabilities
-for engineering work and integrates the Brain and Beads. Installing Dotbrain alone
-does not enable or install pstack. Its initial native qualification targets are local
-Windows Claude Code and Codex; structural delivery is distinct from observed agent behavior.
-See [workflow setup and qualification](docs/workflow.md) for the exact dependency,
-configuration, evidence boundary, opt-out and upgrade process.
+Bring your own engineering workflow, such as [pstack](https://github.com/backnotprop/pstack),
+as selected skills. The convention decides where its plans, progress and decision logs go:
+Beads and the Brain, not the code repository. See [choosing a workflow](docs/workflow.md).
 
 Other workflows can use the same five core capabilities. The selected workflow
 owns planning, delegation, verification, recovery and delivery under user and

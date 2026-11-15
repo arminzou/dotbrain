@@ -121,8 +121,8 @@ shared server. See [Beads backend](beads-backend.md).
 ## Skills
 
 Skills are reusable agent capabilities owned by the tool, not by a project. The plugin ships five
-workflow-independent core skills; Dotbrain also delivers operator-selected resources
-and the explicitly enabled project pstack mode. See [workflow selection](workflow.md).
+workflow-independent core skills; Dotbrain also delivers operator-selected resources,
+including the skills of your engineering workflow. See [workflow selection](workflow.md).
 
 Linking is idempotent: dotbrain creates and prunes only the links it owns. It never deletes a real
 file or a link it did not create, which lets bundled skills coexist with private ones on the same

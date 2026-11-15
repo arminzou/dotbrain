@@ -110,9 +110,6 @@ skills:                       # extra skills for this project's workspaces
 
 subagents:                    # project-only custom subagents
   - some-project-only-subagent
-
-pstack:
-  enabled: false              # explicit opt-in; source required when true
 ```
 
 | Key | Default | Meaning |
@@ -125,53 +122,11 @@ pstack:
 | `subagents` | `[]` | Project-only custom subagents |
 
 Refresh warns about existing workspaces outside the resolved `agents` set.
-Their unrelated, foreign and user-owned content is preserved. Reconciliation can
-still prune attributable, intact optional pstack mode links when that runtime is
-no longer selected; modified or ambiguous mode resources are preserved and reported.
+Their unrelated, foreign and user-owned content is preserved.
 
 Codex project skills use `<checkout>/.agents/skills/`, independently of its `.codex/`
 configuration and subagents. Global skills and profiles retain their existing homes.
 See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-link migration and collisions.
-
-### Optional pstack {#pstack}
-
-The core works without pstack. The project-only `pstack` mapping accepts:
-
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `pstack.enabled` | `false` | YAML boolean selecting the optional project engineering mode. Requires an initialized, reachable Beads backend. |
-| `pstack.source` | — | Explicit external source checkout, absolute or starting with `~/`; required when enabled. |
-
-```yaml
-# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
-pstack:
-  enabled: true
-  source: ~/pstack
-```
-
-Unknown pstack keys, non-boolean `enabled`, and relative or missing enabled source
-paths fail with actionable errors. Source validation requires the clean complete
-pstack checkout pinned in [workflow setup](workflow.md#dependency). `wire`,
-`refresh`, and project `skills link` reconcile the selected mode; `doctor` checks
-its dependency, backend and delivery. No command installs or updates pstack.
-
-Delivery is limited to configured Claude Code and Codex project workspaces. The
-ignored `.dotbrain-pstack.json` and separate owned integration cache are generated
-resources, not configuration to edit. Disabling the mode and refreshing removes
-intact owned delivery; modified and foreign resources are preserved and reported.
-Restart sessions after changes. See [qualification scope](workflow.md#qualification)
-for the boundary between structural checks and native behavior evidence.
-
-`packaged-subagents`, `retro`, `execution-engine`, `public-tracker`, and
-`public-tracker-id` are obsolete and ignored. Refresh reports them without
-rewriting user declarations. Remove them explicitly after reviewing
-[upgrade guidance](upgrading.md), preserving unrelated settings.
-
-::: info
-`dotbrain refresh` preserves project declarations byte-for-byte. Intentional Beads configuration
-updates preserve unrelated keys, unknown nested values, and explicit empty selections; YAML
-comments may be reformatted during those explicit updates.
-:::
 
 ## Global skills and profiles {#global-skills}
 
@@ -229,4 +184,4 @@ homes become profiles. Sources under old `agents/` move to `subagents/` only whe
 safe. Unknown or conflicting declarations and competing source folders stop
 migration rather than guessing. Global delivery waits until cleanup completes.
 Use the reported backups for manual recovery and inspect notices before retrying.
-This migration neither selects pstack nor restores retired packaged roles.
+This migration does not restore retired packaged roles.

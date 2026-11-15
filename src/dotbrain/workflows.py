@@ -19,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, hermes, paths, pstack, run_cache, runtimes, skills, subagents
+from dotbrain import assets, projects as project_selection, adopter_repos, beads, bootstrap, config, brainspaces, hermes, paths, run_cache, runtimes, skills, subagents
 from dotbrain.adopter_repos import UnwireResult, unwire_repo
 from dotbrain.results import CommandResult, TargetResult
 
@@ -197,7 +197,6 @@ def wire_project(
         if entry.exists() and not entry.is_symlink():
             raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
-    integration = pstack.preflight(dotbrain_home, project, run=run)
     obsolete = []
     if existing:
         obsolete = config.obsolete_project_settings(dotbrain_home, project)
@@ -248,8 +247,7 @@ def wire_project(
     result.errors += workspace_warnings
     result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs]
     target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
-    # Core resources and mode opt-out remain independent of tracker synchronization.
-    if not result.errors and not integration.enabled:
+    if not result.errors:
         for kind in ("skills", "agents"):
             linked = assets.link_project(dotbrain_home, target, kind, run=run)
             result.errors += linked.warnings
@@ -286,14 +284,6 @@ def wire_project(
         config.record_project_beads(dotbrain_home, project, config.ProjectBeads(mode="none"))
     if not existing:
         result.logs.append(f"created Brainspace at {rel}/{project}")
-
-    if not result.errors and integration.enabled:
-        for kind in ("skills", "agents"):
-            linked = assets.link_project(dotbrain_home, target, kind, run=run)
-            result.errors += linked.warnings
-            result.warnings += linked.notices
-            result.logs += [f"linked {entry}" for entry in linked.linked]
-            result.logs += [f"pruned {entry}" for entry in linked.pruned]
 
     result.warnings += adopter_repos.wire_repo(
         resolved_repo,
@@ -332,7 +322,6 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
     if legacy.exists():
         raise RuntimeError(f'{legacy}: move skills into .brain/project.yaml before refresh')
     workspaces = assets.project_workspaces(dotbrain_home, target, runtime)
-    pstack.preflight(dotbrain_home, target.project, run=run)
     skills.resolve_selection(dotbrain_home, config.load_project_skills(dotbrain_home, target.project))
     names = config.load_project_subagents(dotbrain_home, target.project)
     capable = subagents.workspace_runtimes()
@@ -448,14 +437,14 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                         raise RuntimeError(warning)
                     if not was_local:
                         target.data['checkout_changes'].append(f'materialized {ws}')
-                if not config.load_project_pstack(dotbrain_home, selected.project).enabled:
-                    kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
-                    for kind in kinds:
-                        linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
-                        target.errors += linked.warnings
-                        target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
-                        target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
-                        target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
+                # An explicit runtime without native subagents has no agents to link.
+                kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
+                for kind in kinds:
+                    linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
+                    target.errors += linked.warnings
+                    target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
+                    target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
+                    target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
                 before = {name: (repo / name).is_symlink() for name in paths.BRAINSPACE_LINKS}
                 mode = config.load_project_config(dotbrain_home, selected.project).mode
                 errors = adopter_repos.wire_repo(repo, selected.brainspace, dotbrain_home, run,
@@ -478,15 +467,6 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                                                         skip_beads_link=mode == 'none')
                 if missing and (repo / '.beads').is_symlink():
                     target.data['checkout_changes'].append('attached .beads')
-                # Publish workflow discovery only after tracker synchronization succeeds.
-                if config.load_project_pstack(dotbrain_home, selected.project).enabled:
-                    kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)
-                    for kind in kinds:
-                        linked = assets.link_project(dotbrain_home, selected, kind, runtime, run=run)
-                        target.errors += linked.warnings
-                        target.findings += [{'severity': 'warning', 'message': m} for m in linked.notices]
-                        target.data['checkout_changes'] += [f'linked {entry}' for entry in linked.linked]
-                        target.data['checkout_changes'] += [f'pruned {entry}' for entry in linked.pruned]
         except (ValueError, RuntimeError, OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
             target.errors.append(str(exc))
         target.changes += [f'checkout: {entry}' for entry in target.data['checkout_changes']]

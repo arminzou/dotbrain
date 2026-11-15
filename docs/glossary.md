@@ -10,9 +10,8 @@
 | Design | Initiative intent, constraints, uncertainties and verification outcomes. Task status remains in Beads. |
 | Work graph | Native Beads tasks, dependencies, claims, acceptance criteria and execution evidence. Readiness expresses dependency eligibility. |
 | Home sync | Git versioning and exchange of private home files; separate from Beads backend persistence and backup. |
-| Core skill | One of `wire-brain`, `brain-convention`, `maintain-brain`, `work-graph`, or `repo-rules`, usable without pstack. |
+| Core skill | One of `wire-brain`, `brain-convention`, `maintain-brain`, `work-graph`, or `repo-rules`, usable with any engineering workflow. |
 | Engineering workflow | The selected procedures for planning, delegation, verification, recovery and delivery, subject to user/repository authority. |
-| Pstack mode | Optional Dotbrain-owned `dotbrain-pstack` integration using a pinned external pstack source and project opt-in. |
 | Runtime | Claude Code, Codex, Hermes, OpenCode, Pi or Cursor; each has its own integration and limitations. |
 | Custom subagent | An operator-selected Claude Code or Codex definition; the core ships no workflow agents. |
 | Worktree | An isolated Git checkout that can share the existing Brainspace while receiving checkout-local runtime resources. |

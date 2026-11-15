@@ -12,7 +12,7 @@ fine on GitHub.
 
 ## Use Cases
 
-- [workflow.md](workflow.md) — choose an engineering workflow and configure the optional pstack mode.
+- [workflow.md](workflow.md) — choose an engineering workflow and where its records go.
 - [agent-team.md](agent-team.md) — shared work state, custom agents and selected workflow delegation.
 
 ## How It Works

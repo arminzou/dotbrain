@@ -101,7 +101,7 @@ process are removed. Existing `RETRO.md` notebooks, private sources, work record
 and history remain recoverable. Modified or ambiguous old resources are preserved
 and reported. Read [upgrade guidance](upgrading.md) before updating a live setup.
 
-## Optional engineering mode
+## Your engineering workflow
 
-The CLI delivers `dotbrain-pstack` only to explicitly opted-in projects; it is
-not a sixth marketplace core skill. See [setup and qualification](workflow.md#pstack).
+Select a skill-based workflow's skills like any other skills; see
+[choosing a workflow](workflow.md#skill-workflow).
