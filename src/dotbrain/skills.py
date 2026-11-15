@@ -347,3 +347,8 @@ def _prune_codex_legacy(home: Path, base: Path, destination: Path,
             continue
         entry.unlink()
         result.pruned.append(entry.relative_to(base).as_posix())
+    legacy = base / ".codex/skills"
+    # Codex reads project skills from .agents/skills; an emptied legacy receiver is not kept.
+    if not project_directory_conflict(base, ".codex/skills") and legacy.is_dir() and not any(legacy.iterdir()):
+        legacy.rmdir()
+        result.pruned.append(".codex/skills")
