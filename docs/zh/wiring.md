@@ -12,7 +12,7 @@
 | `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有 skills |
 | `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有 skills |
 | `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/subagents/` 下选中的私有 Claude Agent |
-| `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 内置角色和选中的私有 Codex Agent |
+| `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 选中的私有 Codex Agent |
 
 `.claude` 和 `.codex` 保持为真实目录，这样项目原本放在里面的东西（设置、命令）都不受影响。skills 和 Claude
 Agent 是符号链接。Codex Agent 是生成的真实 TOML 文件，带有 `# dotbrain-managed-agent: v1` 标记。

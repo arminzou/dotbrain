@@ -13,8 +13,11 @@ Runtime selection shares the asset delivery resolver.
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
+import json
+import tempfile
 
-from dotbrain import assets, paths, resource_loader, runtimes
+from dotbrain import assets, paths, resource_loader, runtimes, skills
 
 # --------------------------------------------------------------------------- brain & gitignore
 
@@ -22,7 +25,8 @@ from dotbrain import assets, paths, resource_loader, runtimes
 MANAGED_BRAIN_PATHS = {"DOTBRAIN.md", "adr/README.md", "designs/README.md", "docs/README.md"}
 
 
-def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = True) -> list[str]:
+def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = True,
+               notices: list[str] | None = None) -> list[str]:
     """Seed a brain skeleton from packaged dotbrain resources.
 
     Designated conventions and scaffold README paths are dotbrain-owned and overwritten
@@ -43,7 +47,7 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
         if managed:
             ancestor = dest
             while ancestor != brain:
-                if ancestor.is_symlink():
+                if ancestor.is_symlink() or skills._is_junction(ancestor):
                     raise ValueError(f"{ancestor}: managed convention path contains a symlink; restore a real path")
                 ancestor = ancestor.parent
         if not managed and dest.exists():
@@ -60,6 +64,18 @@ def seed_brain(brainspace: Path, dotbrain_home: Path, *, create_missing: bool = 
         dest.parent.mkdir(parents=True, exist_ok=True)
         if dest.is_file() and dest.read_bytes() == content.encode("utf-8"):
             continue
+        if relative in MANAGED_BRAIN_PATHS and dest.is_file():
+            known = json.loads(resource_loader.resource("retired-templates.json").read_text(encoding="utf-8"))
+            previous = dest.read_bytes()
+            if hashlib.sha256(previous.replace(b"\r\n", b"\n")).hexdigest() != known.get(relative):
+                directory = paths.confined_path(brain, ".dotbrain-preserved")
+                if directory.is_symlink() or skills._is_junction(directory):
+                    raise ValueError(f"{directory}: preservation directory must be a real directory")
+                directory.mkdir(exist_ok=True)
+                with tempfile.NamedTemporaryFile(dir=directory, prefix=f"{dest.name}-", delete=False) as saved:
+                    saved.write(previous)
+                if notices is not None:
+                    notices.append(f"{dest}: modified shared resource preserved at {saved.name}; inspect before removing")
         dest.write_text(
             content,
             encoding="utf-8",

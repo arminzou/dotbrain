@@ -1,43 +1,15 @@
-# Per-project identity. Values below are active defaults; edit as needed.
-# The tool reads this file; dotbrain refresh preserves project declarations.
+# Project-owned declarations; dotbrain refresh preserves this file.
+version: 3
 
-version: 2
-execution-engine: beads
-
-# Agent runtimes to wire into this project's checkouts: claude, codex, hermes, opencode, pi, cursor.
-# Leave it commented out to follow this machine (every runtime set up here); a list is exact.
+# Runtime workspaces. Omit to follow runtimes set up on this machine; a list is exact.
 # agents: [claude, codex]
 
-# Public-facing tracker for issue intake and contributor collaboration, never private work tracking.
-# One of: none, gh, linear.
-# Set public-tracker-id when activating a tracker (e.g. "owner/repo" for gh).
-public-tracker: none
-# public-tracker-id: ""
-
-# Read by the run-retro skill; public delivery is disabled when omitted.
-# Existing repository guidance is discovered and suggested without public mutations.
-# retro:
-#   promotion:
-#     auto-deliver: false
-#     destinations: []  # allowed existing repo-relative guides; empty blocks auto-delivery
-
-# beads: deviations from global defaults only — uncomment the keys you need.
-#   mode: embedded     # one of: embedded, server, none
+# Beads deviations from global defaults; embedded, server, or none.
+# beads:
+#   mode: embedded
 #   remote: https://doltremoteapi.dolthub.com/owner/repo
 #   database: custom_name
 
-# Skills linked into this project's agent workspaces. Operator-owned.
-# skills:
-#   - some-collection/some-skill
-#
-# Packaged subagents delivered to this project; the list is exact, so remove a role
-# (or empty the list) and run dotbrain refresh to stop delivering it.
-packaged-subagents:
-  - researcher
-  - reviewer
-  - verifier
-  - worker
-#
-# Project-scoped subagents only.
-# subagents:
-#   - some-project-only-subagent
+# Explicitly selected user skills and custom subagents.
+# skills: [some-collection/some-skill]
+# subagents: [some-project-only-subagent]

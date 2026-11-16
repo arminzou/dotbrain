@@ -71,7 +71,7 @@ def test_global_delivery_copies_the_extension_and_links_skills(dotbrain_home, tm
     assert (agent_dir / "skills/discovery-test").is_symlink()
     copy = pi.plugin_dir(agent_dir)
     assert sorted(p.name for p in copy.iterdir()) == [owned_copy.MARKER, "index.js", "skills"]
-    assert (copy / "skills/run-execution/references/pi.md").is_file()
+    assert (copy / "skills/maintain-brain/references/writing.md").is_file()
     assert pi.state(agent_dir) == "current"
     # Pi discovers the extension on its own; dotbrain writes no Pi settings.
     assert not (agent_dir / "settings.json").exists()
@@ -83,7 +83,7 @@ def test_global_delivery_copies_the_extension_and_links_skills(dotbrain_home, tm
     # A damaged copy is stale despite its marker; update replaces only the owned copy.
     for damage in (lambda: (copy / "index.js").write_text("changed"),
                    lambda: (copy / "skills/stray.txt").write_text("old"),
-                   lambda: shutil.rmtree(copy / "skills/run-execution/references")):
+                   lambda: shutil.rmtree(copy / "skills/maintain-brain/references")):
         damage()
         assert pi.state(agent_dir) == "stale"
         assert assets.link_global(dotbrain_home, "skills", "pi", user_home=user).linked == ["pi/extensions/dotbrain"]

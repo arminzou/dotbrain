@@ -34,7 +34,7 @@ export default defineConfig({
       description: '为 Coding Agent 提供私有的项目上下文，不放进公开代码仓库。',
       themeConfig: {
         nav: [
-          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
+          { text: '指南', link: '/zh/getting-started', activeMatch: '^/zh/(why-dotbrain|getting-started|upgrading|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
           { text: '参考', link: '/zh/cli-reference', activeMatch: '^/zh/(cli-reference|configuration|skills|glossary)' },
           { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
         ],
@@ -45,13 +45,14 @@ export default defineConfig({
               { text: '为什么用 Dotbrain？', link: '/zh/why-dotbrain' },
               { text: '快速开始', link: '/zh/getting-started' },
               { text: '示例提示词', link: '/zh/prompts' },
+              { text: '升级说明', link: '/zh/upgrading' },
             ],
           },
           {
             text: '使用场景',
             items: [
-              { text: '开发项目', link: '/zh/workflow' },
-              { text: '和 Agent 团队一起工作', link: '/zh/agent-team' },
+              { text: '选择工作流', link: '/zh/workflow' },
+              { text: 'Agent 团队与自定义 agents', link: '/zh/agent-team' },
             ],
           },
           {
@@ -118,7 +119,7 @@ export default defineConfig({
       alt: 'Dotbrain',
     },
     nav: [
-      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
+      { text: 'Guide', link: '/getting-started', activeMatch: '^/(why-dotbrain|getting-started|upgrading|prompts|agent-team|architecture|workflow|wiring|session-context|beads-backend|troubleshooting)' },
       { text: 'Reference', link: '/cli-reference', activeMatch: '^/(cli-reference|configuration|skills|glossary)' },
       { text: 'PyPI', link: 'https://pypi.org/project/dotbrain/' },
     ],
@@ -129,13 +130,14 @@ export default defineConfig({
           { text: 'Why Dotbrain?', link: '/why-dotbrain' },
           { text: 'Getting started', link: '/getting-started' },
           { text: 'Example prompts', link: '/prompts' },
+          { text: 'Upgrading', link: '/upgrading' },
         ],
       },
       {
         text: 'Use cases',
         items: [
-          { text: 'Develop a project', link: '/workflow' },
-          { text: 'Work with an agent team', link: '/agent-team' },
+          { text: 'Choose a workflow', link: '/workflow' },
+          { text: 'Agent teams and custom agents', link: '/agent-team' },
         ],
       },
       {

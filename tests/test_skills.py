@@ -22,19 +22,11 @@ def _write(path: Path, text: str) -> None:
 def test_discover_skills_finds_all(dotbrain_home: Path):
     found = skills.discover_skills(dotbrain_home / "skills")
     assert found == [
-        "brain/close-design",
-        "brain/curate-project-context",
-        "brain/find-unknowns",
-        "brain/grill-decisions",
-        "brain/iterate-design",
-        "brain/manage-work-graph",
-        "brain/review-gate",
-        "brain/run-execution",
-        "brain/run-retro",
-        "brain/to-design",
-        "brain/to-issues",
-        "brain/triage-public",
+        "brain/brain-convention",
+        "brain/maintain-brain",
+        "brain/repo-rules",
         "brain/wire-brain",
+        "brain/work-graph",
         "custom/example-workflow",
         "misc/discovery-test",
     ]
@@ -217,7 +209,7 @@ def test_link_into_owned_prune_keeps_foreign_links(dotbrain_home: Path, tmp_path
     assert (dest / "foreign").is_symlink()   # foreign link preserved
 
 
-def test_link_into_removes_legacy_bundled_cache(dotbrain_home: Path, tmp_path: Path):
+def test_link_into_preserves_and_reports_ambiguous_legacy_cache(dotbrain_home: Path, tmp_path: Path):
     dest = tmp_path / "global-skills"
     dest.mkdir()
     cache = dotbrain_home / ".cache" / "skills" / "brain" / "wire-brain"
@@ -225,9 +217,10 @@ def test_link_into_removes_legacy_bundled_cache(dotbrain_home: Path, tmp_path: P
     stale = dest / "wire-brain"
     stale.symlink_to(cache)
 
-    skills.link_into(dotbrain_home, dest, (), prune_owned_only=True)
+    result = skills.link_into(dotbrain_home, dest, (), prune_owned_only=True)
 
-    assert not cache.parents[1].exists()
+    assert cache.is_dir()
+    assert any("legacy skill cache preserved" in notice for notice in result.notices)
     assert not stale.exists()
 
 
@@ -259,12 +252,12 @@ def test_link_into_raises_translated_windows_privilege_error(dotbrain_home: Path
 
 
 def test_skill_is_delivered_with_its_references_and_codex_metadata(dotbrain_home: Path, tmp_path: Path):
-    source = Path("plugin/skills/run-retro")
-    assert "brain/run-retro" in skills.discover_skills(dotbrain_home / "skills")
+    source = Path("plugin/skills/maintain-brain")
+    assert "brain/maintain-brain" in skills.discover_skills(dotbrain_home / "skills")
     for runtime in ("claude", "codex"):
         destination = tmp_path / runtime / "skills"
-        result = skills.link_into(dotbrain_home, destination, ["brain/run-retro"])
+        result = skills.link_into(dotbrain_home, destination, ["brain/maintain-brain"])
         assert not result.warnings
-        assert (destination / "run-retro/SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
-        assert (destination / "run-retro/references/retro.md").is_file()
-        assert (destination / "run-retro/agents/openai.yaml").is_file()
+        assert (destination / "maintain-brain/SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
+        assert (destination / "maintain-brain/references/writing.md").is_file()
+        assert (destination / "maintain-brain/agents/openai.yaml").is_file()

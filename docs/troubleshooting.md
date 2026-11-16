@@ -12,7 +12,7 @@ Doctor also warns about three kinds of drift:
 - The CLI and registered Claude Code plugin versions differ: upgrade both to matching versions.
 - The Brain's `DOTBRAIN.md` differs from the CLI's packaged convention: run `dotbrain refresh`.
 - A design is `lifecycle: active` while every epic linked by `spec: design:<file-stem>` is closed:
-  run `close-design` or correct the lifecycle.
+  use `maintain-brain` to reconcile lifecycle against actual evidence and authority.
 
 These checks only read. When a registry, convention, or tracker input is unavailable, doctor
 explains the skip in `--verbose` and JSON output. These warnings do not change its exit status.

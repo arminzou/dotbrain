@@ -11,7 +11,7 @@ doctor 还会检查以下三种偏差并给出警告：
 - CLI 和已注册的 Claude Code 插件版本不一致：把两者升级到相同版本。
 - Brain 的 `DOTBRAIN.md` 与 CLI 自带的约定不同：运行 `dotbrain refresh`。
 - 设计仍为 `lifecycle: active`，但通过 `spec: design:<文件名去掉扩展名>` 关联的 epic 已全部关闭：
-  运行 `close-design` 或修正 lifecycle。
+  通过 `maintain-brain` 按实际证据和授权核对并更新 lifecycle。
 
 这些检查只读取数据。缺少插件 registry、约定文件或 tracker 数据时，doctor 会跳过检查，
 在 `--verbose` 和 JSON 输出中说明原因。这些警告不影响退出码。

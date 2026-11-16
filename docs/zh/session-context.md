@@ -5,17 +5,8 @@ Agent 会自己去读哪些内容，以及会话的 hook 怎样同步 dotbrain �
 
 ## 会话开始时发生了什么 {#what-happens-at-session-start}
 
-```mermaid
-sequenceDiagram
-  accTitle: What an agent loads when a session starts
-  participant A as Agent
-  participant D as dotbrain hook
-  participant B as .brain/
-  A->>D: Session starts
-  D-->>A: dotbrain convention (wired repos only)
-  A->>B: Lead searches task-relevant retrospective findings
-  B-->>A: Relevant findings for existing assignments
-```
+启动时，runtime hook 在已连接的 checkout 中提供共享约定。
+所选工作流按需读取相关项目记录。
 
 插件的 `SessionStart` hook 运行 `dotbrain hook session-start`。这个 hook 在启动、恢复会话、
 `/clear` 和上下文压缩时都会触发，所以约定在上下文重置后依然存在。注入约定之前，它会先运行
@@ -23,7 +14,8 @@ sequenceDiagram
 
 ## 注入了什么 {#what-is-injected}
 
-只有 `.brain/DOTBRAIN.md`，也就是由 dotbrain 维护、通过 `dotbrain refresh` 保持最新的共享约定。
+共享约定 `.brain/DOTBRAIN.md` 由 Dotbrain 维护，通过 `dotbrain refresh` 保持最新。
+私有知识不注入。
 它涵盖连接规则、执行状态放在哪里、公开/私有的边界，以及 Brain 的目录结构。
 
 项目自己的文件不会被注入：
@@ -32,7 +24,6 @@ sequenceDiagram
 | --- | --- |
 | `.brain/DOTBRAIN.md` | 由 hook 注入 |
 | 公开的 `AGENTS.md` 和根目录 `RULES.md` | 仓库入口指引修改或审阅代码的 Agent 读取 Git 跟踪的规则，没有 Brain 也能用 |
-| `.brain/RETRO.md` | lead 或独立工作的 Agent 在每个任务或每批任务开始实现或审阅前搜索一次相关发现，随任务分派传递；工作完成时，再把可迁移的做法作为复盘候选记录在工作记录上；只有 `run-retro` 写入笔记 |
 | `.brain/CONTEXT.md`、`adr/`、`designs/` | 工作需要时由 Agent 读取 |
 | `.brain/docs/` | Agent 在回答项目如何运作之前先搜索这里 |
 | Beads 工作流入门 | dotbrain 不注入；Agent 需要时运行 `bd prime` |
@@ -43,7 +34,7 @@ dotbrain 不会安装它。
 ::: info 为什么不全部注入？
 dotbrain 用 10,000 字节的预算测试会话启动时注入的内容。这个预算来自对 Claude Code 实际行为的测量：
 9,961 字节到达了模型，而 10,010 字节则被写到了一个文件里。它不是在所有 runtime 上都验证过的上限。
-`DOTBRAIN.md` 的大小是有上限的，而仓库规则和复盘笔记会随项目增长。只注入约定，就能让内容保持在预算以内。
+`DOTBRAIN.md` 的大小是有上限的，而仓库规则和私有知识会随项目增长。只注入约定，就能让内容保持在预算以内。
 :::
 
 ## 主目录同步 {#home-sync}
@@ -64,16 +55,19 @@ Brain 的改动不用手动提交和推送，就能到达你的其他机器。
 （`startup`、`resume`、`clear`）等待完整同步并注入约定；`compaction` 和 `turn-end` 只记录和推送；
 `session-end` 启动一次完整同步。清空会话时只发送 `clear`，不发送 `session-end`。
 
-一次完整同步分四步：
+一次完整同步分五步：
 
 1. **记录。** 所有没提交的改动都变成同步提交：每个有改动的 Brainspace 一个，其余改动合成一个
    `home` 提交。超过大小上限的文件和嵌套的 Git 仓库会被跳过并报告。你自己写的提交保持不变。
+   [skill submodule](skills.md#external-repositories) 是新加的，或者前移到它自己远程仓库里已有的提交时，会被记录。
 2. **Fetch** 主目录当前分支的上游。
 3. **整合。** 把上游 merge 到当前分支。两台机器都改了同一个文件时，
    这台机器的版本留在原处，另一台机器的版本存到旁边，成为冲突副本。一边删了文件、另一边改了它时，
    保留改动。如果传入的改动会覆盖未提交或被忽略的本地文件，Git 会拒绝 merge，同步会报告 Git 的
    原始诊断信息，不再推送。
 4. **推送。** 如果远程仓库在此期间有了新提交，同步会重新 fetch 再试，最多三次。从不强制推送。
+5. **更新 submodule。** merge 带来了改动、有 submodule 缺失，或者有 submodule 不在记录的提交上时，
+   同步会 checkout 每个记录的提交，并克隆新的 submodule。上下文压缩和每轮结束时的同步跳过这一步。
 
 主目录同步不出声，并且失败时放行。它不往 Agent 的上下文里写任何内容，失败也不会阻塞会话。离线的机器和
 没有远程仓库的主目录，会把同步提交留在本地，等之后的同步再推送。hook 只在连接了 Brainspace 的
@@ -132,34 +126,17 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   会话的每次请求发送，所以压缩不会丢掉它。恢复的会话保留开始时的约定；Cursor 不会为它运行 `sessionStart`，所以也没有启动同步。
   每次 `stop` 在后台启动 `turn-end` 推送，`sessionEnd` 运行 `session-end`。直接关掉控制台窗口很可能会跳过这一步，
   下次会话启动时的同步会补上。
-- 在不支持 hook 的 runtime 里，调用 `dotbrain` skill 手动加载约定，并自己运行 `dotbrain sync`。
+- 在不支持 hook 的 runtime 里，调用 `brain-convention` skill 手动加载约定，并自己运行 `dotbrain sync`。
 
-## subagents {#subagents}
+## 自定义 subagents {#subagents}
 
-各角色的适用场景、提示词和 lead 如何协调结果，见[和 Agent 团队一起工作](agent-team.md#the-packaged-subagents)。
+Dotbrain 交付选中的自定义 Claude Code 和 Codex 定义，不附带工作流 agents。
+通过全局 `config.yaml` 或项目 `project.yaml` 中的 `subagents:` 选择。
+`dotbrain-` 前缀保留，以保护需检查的旧版资源。Hermes、OpenCode、Pi 和 Cursor 不接收 Dotbrain 原生自定义 subagents。
 
-dotbrain 自带一组 subagents。项目在 `project.yaml` 的 [`packaged-subagents`](configuration.md#project-yaml)
-里列出需要的角色；`dotbrain wire` 会写入全部四个。`wire` 和 `refresh` 把列出的角色分发到已连接 checkout 的
-Claude Code 和 Codex 工作区，名字是 `dotbrain-<role>`，比如 `dotbrain-worker`。没有全局分发，插件也不带 Agent。
-不想要某个角色，就把它从列表里删掉（或清空列表），再运行 `dotbrain refresh`。有没有它们，工作流都能跑：
-缺少某个角色时，lead 会把同样的角色约定交给通用 subagents。Hermes、OpenCode、Pi 和 Cursor 都没有 dotbrain subagents。它们按任务读取相关依据；worker 和 reviewer 复用分派时提供的发现，
-不必通读复盘笔记。笔记缺失不会阻塞工作，也不会触发创建：
+Claude 定义使用符号链接；Codex 定义使用带 `# dotbrain-managed-agent: v1` 标记的生成 TOML 文件。
+请修改私有来源，而不是生成副本。`dotbrain subagents link` 同步当前 checkout，`--scope global` 同步全局主目录。
+其他工具的资源与冲突会保留并报告。doctor 检查交付状态，runtime 实际消费定义需要成功的原生调用另行证明。
 
-| subagents | 做什么 |
-| --- | --- |
-| `worker` | 负责写代码的 worker：在你的 checkout 或它自己的 worktree 里完成分配的改动，并提交 |
-| `reviewer` | 审阅改动的正确性、回归、安全性和缺失的测试 |
-| `verifier` | 运行验证关卡，返回带提交标记的证据，从不给主观意见 |
-| `researcher` | 根据 Brain、代码库和网络回答问题，并指出外部来源和 Brain 不一致的地方。在 Codex 上，它在主会话的权限下用 shell 命令读取本地文件；它的指令禁止写入和网络命令，但如果主会话权限更宽，这些权限也会传给它 |
-
-自带的 subagents 不能被覆盖：自定义 subagents 的名字不能以 `dotbrain-` 开头。要自定义，请用不同的名字写你自己的 Agent。
-在 [`project.yaml`](configuration.md#project-yaml) 的 `subagents:` 下，或 [`config.yaml`](configuration.md#global-subagents) 的 `subagents:`
-下添加你自己的 subagents；`dotbrain bootstrap` 会把全局的那些准备到各 runtime 的主目录里。
-
-你自己的 Claude 定义以符号链接的形式分发。Codex 定义是生成的真实 TOML 副本，带有
-`# dotbrain-managed-agent: v1` 标记；dotbrain 可以覆盖或清理它们。`dotbrain subagents link` 在当前已连接的
-checkout 里同步你的自定义 subagents；全局主目录请用 `--scope global`。doctor 会检查文件类型和分发的内容，而成功启动一个角色才能确认
-runtime 确实用上了这个定义。
-
-打包的 Codex reviewer 会关闭跨会话记忆。它仍会收到项目指令，并读取相关的 Brain 记录和指定的 skill。
-分派时要给出明确的改动范围、验收标准和相关依据。它仍使用 high 推理强度；主会话和其他角色的记忆设置不受影响。
+任务分派、上下文读取与记录的时机、验证及恢复由所选工作流决定；它的 skills 和其他
+[skills](workflow.md#skill-workflow) 一样选择。

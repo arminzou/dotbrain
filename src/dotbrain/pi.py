@@ -58,6 +58,8 @@ def deliver(agent_dir: Path, *, run=None) -> LinkResult:
     if current == "foreign":
         result.warnings.append(f"{target} exists and was not created by dotbrain; skipping")
     elif current != "current":
-        owned_copy.install(target, resource_loader.PI_EXTENSION_FILES)
+        preserved = owned_copy.install(target, resource_loader.PI_EXTENSION_FILES)
+        if preserved:
+            result.notices.append(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
         result.linked.append(f"pi/extensions/{EXTENSION}")
     return result

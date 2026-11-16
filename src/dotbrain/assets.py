@@ -33,9 +33,8 @@ def project_workspaces(home: Path, target: projects.ProjectTarget, runtime: str)
     return tuple(rt.workspace for rt in (declared if runtime == "all" else wanted))
 
 
-def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run,
-                 packaged: bool = False) -> skills.LinkResult:
-    """Deliver project skills or custom subagents; ``packaged`` also reconciles packaged subagents."""
+def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime: str = "all", *, run=adopter_repos._default_run) -> skills.LinkResult:
+    """Deliver project skills or custom subagents."""
     workspaces = project_workspaces(home, target, runtime)
     if kind == "agents":
         # Only runtimes with native subagent delivery receive agents; skills go to every runtime.
@@ -69,9 +68,8 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
                 getattr(result, field).extend(getattr(cursor_result, field))
     else:
         names = config.load_project_subagents(home, target.project)
-        roles = config.load_project_packaged(home, target.project)[1] if packaged else None
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names,
-                                                  workspace_dirs=workspace_dirs, packaged=roles)
+                                                  workspace_dirs=workspace_dirs)
     linked_entries = []
     for workspace in workspaces:
         relative = runtimes.for_workspace(workspace).skill_path if kind == "skills" else f"{workspace}/agents"
@@ -184,10 +182,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             return result
     resolved = {}
     if kind == "agents":
-        names = [name for name in cfg.global_names if name not in config.PACKAGED_ROLES]
-        if len(names) < len(cfg.global_names):
-            result.notices.append("config.yaml subagents: packaged subagents have no global scope; skipped "
-                                  + ", ".join(name for name in cfg.global_names if name not in names))
+        names = cfg.global_names
         errors = subagents.validate_selection(home, names, keys)
         if errors:
             result.warnings.extend(errors)
@@ -207,13 +202,9 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
         for field in ("linked", "pruned", "stashed", "warnings", "notices"):
             getattr(result, field).extend(getattr(linked, field))
         if kind == "agents":
-            # Packaged subagents have no global scope: remove copies an older version left here.
-            for entry in sorted(dest.glob(f"{subagents.PACKAGED_PREFIX}*")):
-                if subagents.is_managed_copy(entry) or (entry.is_symlink() and skills._points_into(entry, home / ".cache")):
-                    entry.unlink()
-                    result.pruned.append(f"{k}/{entry.name}")
-                else:
-                    result.notices.append(f"{entry} is not managed by dotbrain; left in place")
+            retired = subagents.retire_packaged(dest, k, label=k)
+            result.pruned += retired.pruned
+            result.notices += retired.notices
         if kind == "skills" and k == "cursor":
             delivered_hooks = cursor.reconcile_hooks(user_home)
             result.linked += delivered_hooks.linked
@@ -228,6 +219,7 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
                 continue
             result.linked += delivered.linked
             result.warnings += delivered.warnings
+            result.notices += delivered.notices
     return result
 
 

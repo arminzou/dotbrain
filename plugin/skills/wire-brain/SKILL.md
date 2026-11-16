@@ -95,15 +95,11 @@ Per-project identity lives in `~/dotbrain/brainspaces/<name>/.brain/project.yaml
 - `beads.mode`: `embedded`, `server`, or `none`.
 - `agents`: active workspaces, usually `claude` and/or `codex`.
 - `skills`: project skill selection linked into the active workspaces.
-- `packaged-subagents`: packaged roles delivered as `dotbrain-<role>`; exact list, absent or empty means none. Edit it and run `dotbrain refresh` to opt out.
 - `subagents`: project custom subagent extras.
-- `public-tracker` and `public-tracker-id`: public intake and contributor-collaboration metadata,
-  never a mirror of private execution.
 
 The CLI seeds missing Brain scaffolding and links runtime assets. Agents maintain Brain knowledge
-through the relevant Brain skills: context health through `curate-project-context`, execution
-through `manage-work-graph` and design through `to-design`. Requested public intake goes through
-the packaged `triage-public` skill; wiring never starts intake.
+through `maintain-brain`; use `work-graph` for native Beads operations and `repo-rules`
+for adopted repository requirements. Consult the CLI upgrade guidance for obsolete configuration and preserved retired resources.
 
 ## Wiring contract
 
@@ -114,8 +110,7 @@ A wired adopter repo points at its Brainspace through local, gitignored symlinks
 - `.claude` is a real directory when the `claude` agent workspace is active.
 - `.codex` is a real directory when the `codex` agent workspace is active.
 
-Skills and custom Claude agents use symlinks. Codex agent TOML definitions and packaged
-`dotbrain-<role>` definitions are generated real files with the marker `# dotbrain-managed-agent: v1`; customize their source in the private home. Dotbrain
+Skills and custom Claude agents use symlinks. Codex custom-agent TOML definitions are generated real files with the marker `# dotbrain-managed-agent: v1`; customize their source in the private home. Dotbrain
 overwrites or prunes marked copies and preserves unmarked files and foreign links.
 
 The Git exclusion file ignores `/.brain`, `/.beads`, and each workspace resource dotbrain creates. The public

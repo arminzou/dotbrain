@@ -132,7 +132,7 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
     assert (repo / ".brain").is_symlink()
     for workspace, suffix in ((".claude", ".md"), (".codex", ".toml")):
         delivered = list((repo / workspace / "agents").glob("dotbrain-*"))
-        assert sorted(p.name for p in delivered) == sorted(f"dotbrain-{role}{suffix}" for role in config.PACKAGED_ROLES)
+        assert delivered == []
         assert all(not p.is_symlink() and subagents.is_managed_copy(p) for p in delivered)
 
     workflows.unwire_project(
@@ -153,8 +153,10 @@ def test_wire_then_unwire_round_trip(tmp_path: Path, dotbrain_home: Path):
     assert paths.brainspace(dotbrain_home, "roundtrip").is_dir()
 
 
+@pytest.mark.parametrize("workspace", [".claude", ".agents", ".codex"])
+@pytest.mark.parametrize("skill_name", ["managed", "dotbrain-notes"])
 def test_unwire_removes_managed_workspace_links_and_preserves_project_files(
-    tmp_path: Path, dotbrain_home: Path
+    tmp_path: Path, dotbrain_home: Path, workspace: str, skill_name: str
 ):
     repo = tmp_path / "workspace-unwire"
     repo.mkdir()
@@ -168,17 +170,19 @@ def test_unwire_removes_managed_workspace_links_and_preserves_project_files(
     project_file = repo / ".claude" / "project.json"
     project_file.parent.mkdir()
     project_file.write_text("project-owned\n")
-    managed_skill = repo / ".claude" / "skills" / "managed"
-    managed_skill.parent.mkdir()
-    managed_target = dotbrain_home / "skills" / "managed"
+    managed_skill = repo / workspace / "skills" / skill_name
+    managed_skill.parent.mkdir(parents=True)
+    managed_target = dotbrain_home / "skills" / skill_name
     managed_target.mkdir(parents=True)
+    source = managed_target / "SKILL.md"
+    source.write_bytes(b"Private custom skill\n")
     managed_skill.symlink_to(managed_target)
     managed_agent = repo / ".codex" / "agents" / "managed.toml"
     managed_agent.parent.mkdir(parents=True)
     managed_agent.symlink_to(dotbrain_home / "subagents" / "codex" / "managed.toml")
     exclude = repo / ".git" / "info" / "exclude"
     exclude.write_text(
-        "\n".join((*paths.EXCLUDE_ENTRIES, "/.claude/skills/managed", "/.codex/agents/managed.toml")) + "\n"
+        "\n".join((*paths.EXCLUDE_ENTRIES, f"/{workspace}/skills/{skill_name}", "/.codex/agents/managed.toml")) + "\n"
     )
     subprocess.run(["git", "add", ".claude/project.json"], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-q", "-m", "project workspace"], cwd=repo, check=True)
@@ -187,12 +191,14 @@ def test_unwire_removes_managed_workspace_links_and_preserves_project_files(
 
     assert project_file.read_text() == "project-owned\n"
     assert not managed_skill.exists()
+    assert not managed_skill.is_symlink()
+    assert source.read_bytes() == b"Private custom skill\n"
     assert (repo / ".codex").is_dir()
     assert subprocess.run(
         ["git", "diff", "--exit-code", "--", ".claude/project.json"], cwd=repo, check=False
     ).returncode == 0
     excludes = exclude.read_text().splitlines()
-    assert "/.claude/skills/managed" not in excludes
+    assert f"/{workspace}/skills/{skill_name}" not in excludes
     assert "/.codex/agents/managed.toml" not in excludes
     assert not any("removed empty workspace" in log for log in result.logs)
 
@@ -309,8 +315,12 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
         "agents:\n"
         "  - claude\n"
         "  - codex\n"
-        "subagents: []\n"
+        "subagents: [custom]\n"
     )
+    for directory, suffix in (("claude", ".md"), ("codex", ".toml")):
+        source = dotbrain_home / "subagents" / directory / f"custom{suffix}"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text('name = "custom"\n' if suffix == ".toml" else "---\nname: custom\n---\n", encoding="utf-8")
     fake_home = tmp_path / "home"
     fake_home.mkdir()
 
@@ -323,12 +333,10 @@ def test_refresh_project_links_subagents(tmp_path: Path, dotbrain_home: Path, mo
     result = workflows.refresh_project(dotbrain_home, "refresh-subagents")
 
     assert result.refreshed == ["refresh-subagents"]
-    assert not (repo / ".claude" / "agents" / "reviewer.md").exists()
-    assert not (repo / ".claude" / "agents" / "verifier.md").exists()
-    assert (repo / ".codex" / "agents" / "dotbrain-reviewer.toml").is_file()
-    assert (repo / ".codex" / "agents" / "dotbrain-verifier.toml").is_file()
-    assert (repo / ".claude/agents/dotbrain-reviewer.md").is_file()
-    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 2 * len(config.PACKAGED_ROLES)
+    assert (repo / ".claude/agents/custom.md").is_symlink()
+    assert subagents.is_managed_copy(repo / ".codex/agents/custom.toml")
+    assert not list((repo / ".codex/agents").glob("dotbrain-*"))
+    assert len([entry for entry in result.targets[0].data["checkout_changes"] if entry.startswith("linked ")]) == 2
 
 
 def test_refresh_project_honors_declared_agent_workspaces(

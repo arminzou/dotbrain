@@ -554,3 +554,25 @@ def test_installed_runtimes_are_not_seeded_and_are_named(tmp_path: Path, monkeyp
     linked = bootstrap_mod.link_global_skills(home, "all", home=other)
     assert linked.notices == ["OpenCode is installed; run `dotbrain bootstrap --runtime opencode` to deliver dotbrain to it"]
     assert not (other / ".config/opencode").exists()
+
+
+@pytest.mark.usefixtures("claude_codex_on_path")
+def test_skills_link_entries_record_the_project_selection(
+    dotbrain_home: Path, fake_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("DOTBRAIN_HOME", str(dotbrain_home))
+    repo = _fresh_repo(tmp_path, "entrytest")
+    _wire(dotbrain_home, repo, fake_home)
+    project_yaml = paths.brainspace(dotbrain_home, "entrytest") / ".brain" / "project.yaml"
+    before = project_yaml.read_text(encoding="utf-8")
+
+    result = runner.invoke(app, ["skills", "link", "misc/discovery-test", "--repo", str(repo)])
+
+    assert result.exit_code == 0, result.output
+    assert project_yaml.read_text(encoding="utf-8") == before + "skills:\n  - misc/discovery-test\n"
+    assert (repo / ".claude" / "skills" / "discovery-test").is_symlink()
+
+    result = runner.invoke(app, ["skills", "unlink", "misc/discovery-test", "--repo", str(repo)])
+
+    assert result.exit_code == 0, result.output
+    assert not (repo / ".claude" / "skills" / "discovery-test").is_symlink()

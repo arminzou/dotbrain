@@ -337,7 +337,8 @@ def test_wire_project_materializes_workspaces_without_touching_tracked_files(
     assert not (claude / "skills" / "manage-work-graph").exists()
     assert not (claude / "agents" / "reviewer.md").exists()
     assert not (codex / "skills" / "manage-work-graph").exists()
-    assert (codex / "agents" / "dotbrain-reviewer.toml").is_file()
+    for workspace in (claude, codex):
+        assert not list((workspace / "agents").glob("dotbrain-*"))
     status = subprocess.run(
         ["git", "status", "--porcelain", "--untracked-files=all"],
         cwd=repo,

@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Dotbrain",
     "shortDescription": "Private project context across agents and worktrees",
-    "longDescription": "Keep your project's decisions, vocabulary, working rules, and designs in a private, versioned Brain outside the code repo. Connect coding agents and worktrees to the same project context and optional Beads execution store. The session-start hook loads dotbrain's shared convention; agents read relevant project knowledge as needed. Bundled skills guide wiring, planning, execution, review, and context maintenance.",
+    "longDescription": "Keep project vocabulary, decisions, designs, and findings in a private, versioned Brain outside the code repo. Five core skills provide wiring, the shared convention, context maintenance, native Beads operations, and repository requirements. Engineering execution belongs to your selected workflow.",
     "developerName": "Armin Zou",
     "category": "Productivity",
     "capabilities": [
@@ -32,9 +32,8 @@
     "websiteURL": "https://arminzou.github.io/dotbrain/",
     "defaultPrompt": [
       "Wire this repo with dotbrain.",
-      "What am I missing before I start?",
-      "Turn this plan into a design doc and issues.",
-      "What's ready to work on?"
+      "Maintain this project decision in the Brain.",
+      "Inspect the Beads work graph."
     ],
     "brandColor": "#0F766E",
     "composerIcon": "./assets/dotbrain-icon-dark.png",

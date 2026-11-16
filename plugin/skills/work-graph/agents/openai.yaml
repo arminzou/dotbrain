@@ -1,0 +1,3 @@
+interface:
+  display_name: Work Graph
+  short_description: Inspect and maintain private Beads work state

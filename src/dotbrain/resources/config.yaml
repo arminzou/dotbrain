@@ -22,7 +22,7 @@ version: 4
 
 # Global skills and custom subagents, delivered to your personal runtime homes by
 # ``dotbrain bootstrap``. Skills are paths under ~/dotbrain/skills/; subagents are names of
-# sources under ~/dotbrain/subagents/. Packaged subagents are selected per project instead.
+# sources under ~/dotbrain/subagents/. The core ships no workflow agents.
 #
 # skills:
 #   - some-collection/some-skill

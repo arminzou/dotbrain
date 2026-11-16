@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 import pytest
 
@@ -11,6 +12,43 @@ from dotbrain.cli import app
 def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+@pytest.mark.parametrize("runtime,skill_path", [
+    ("claude", ".claude/skills"),
+    ("codex", ".agents/skills"),
+    ("hermes", ".hermes/skills"),
+    ("opencode", ".opencode/skills"),
+    ("pi", ".pi/skills"),
+    ("cursor", ".cursor/skills"),
+])
+def test_project_skill_destination_smoke(tmp_path, runtime, skill_path):
+    home = tmp_path / "home"
+    brainspace = home / "brainspaces/example"
+    write(brainspace / ".brain/project.yaml", f"agents: [{runtime}]\nskills: [one]\n")
+    write(home / "skills/one/SKILL.md", "# one\n")
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    (checkout / ".brain").symlink_to(brainspace / ".brain", target_is_directory=True)
+    target = projects.ProjectTarget("example", brainspace, checkout)
+    rt = runtimes.find(runtime)
+    receiver = checkout / skill_path
+    write(receiver / "mine/SKILL.md", "user-owned")
+
+    def run(argv, **kwargs):
+        assert argv[0] == "git" and "--git-common-dir" in argv
+        return subprocess.CompletedProcess(argv, 0, str(checkout / ".git") + "\n", "")
+
+    result = assets.link_project(home, target, "skills", runtime, run=run)
+
+    assert not result.warnings
+    assert (receiver / "one").is_symlink()
+    assert (receiver / "one").resolve() == home / "skills/one"
+    assert (receiver / "mine/SKILL.md").read_text() == "user-owned"
+    assert f"/{skill_path}/one" in (checkout / ".git/info/exclude").read_text().splitlines()
+    if not rt.subagents:
+        with pytest.raises(ValueError, match="no native subagent delivery"):
+            assets.link_project(home, target, "agents", runtime, run=run)
 
 
 @pytest.mark.parametrize("name", ["hermes", "opencode", "pi", "cursor"])
@@ -160,5 +198,5 @@ def test_skill_cache_parent_escape_preserves_external_data_and_destination(tmp_p
     assert protected.read_text() == "user content"
     assert not destination.exists()
     with pytest.raises(ValueError, match="escapes"):
-        skills._remove_legacy_skill_cache(home)
+        skills._legacy_skill_cache_notice(home)
     assert protected.is_file()
