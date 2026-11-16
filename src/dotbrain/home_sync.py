@@ -599,7 +599,7 @@ def sync(home: Path, *, push_only: bool = False, wait_for_lock: float = 0,
                  if flags[1] == "C" and path in declared} - gitlinks - set(report.held)
 
         def update_submodules(env: dict | None = None) -> None:
-            if declared and not push_only and (report.merged or stale or uninitialized_submodules(home)):
+            if not push_only and declared_submodules(home) and (report.merged or stale or uninitialized_submodules(home)):
                 _update_submodules(home, run, env or {"GIT_SSH_COMMAND": _ssh_command(home, run)}, report.held, report)
 
         if state.upstream is None:

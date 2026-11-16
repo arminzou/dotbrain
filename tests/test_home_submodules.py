@@ -103,6 +103,19 @@ def test_fresh_clone_initializes_submodules(root: Path):
     assert home_sync.uninitialized_submodules(fresh) == []
 
 
+def test_sync_initializes_the_first_incoming_submodule(root: Path):
+    fresh = root / "fresh"
+    git(fresh, "reset", "--hard", "HEAD^")
+    assert home_sync.declared_submodules(fresh) == []
+
+    report = home_sync.sync(fresh)
+
+    assert report.merged and report.submodules == "updated"
+    assert head(fresh / SUB) == pinned(fresh)
+    assert (fresh / SUB / "how/SKILL.md").is_file()
+    assert git(fresh, "status", "--porcelain") == ""
+
+
 def test_init_submodules_clones_only_missing_ones(root: Path):
     fresh = root / "fresh"
     assert home_sync.init_submodules(fresh).submodules == "updated"
@@ -334,4 +347,28 @@ def test_skills_remove_refuses_local_work(root: Path):
 
     with pytest.raises(ValueError, match="commits not on its remote"):
         skill_sources.remove(home, "ext")
+    assert home_sync.declared_submodules(home) == [SUB]
+
+
+@pytest.mark.parametrize("ignored", [False, True])
+def test_skills_remove_preserves_untracked_and_ignored_files(root: Path, ignored: bool):
+    home = root / "home"
+    repository = home / SUB
+    if ignored:
+        exclude = Path(git(repository, "rev-parse", "--path-format=absolute", "--git-path", "info/exclude"))
+        exclude.write_text("notes.txt\n", encoding="utf-8")
+    notes = repository / "notes.txt"
+    notes.write_bytes(b"local work\xff\n")
+    selection = home / "config.yaml"
+    selection.write_text("version: 4\nskills: [ext/how]\n", encoding="utf-8")
+    git(home, "add", "config.yaml")
+    git(home, "commit", "-q", "-m", "select")
+    before = {path: path.read_bytes() for path in (selection, home / ".gitmodules", notes)}
+    tip = head(home)
+
+    with pytest.raises(ValueError, match="untracked or ignored files"):
+        skill_sources.remove(home, "ext")
+
+    assert {path: path.read_bytes() for path in before} == before
+    assert head(home) == tip
     assert home_sync.declared_submodules(home) == [SUB]

@@ -97,7 +97,8 @@ dotbrain skills remove pstack                                   # deselect every
   the submodule and its cloned data, and commits all of it together, then relinks.
 
 `update` skips, and `remove` refuses, a repository with uncommitted changes or unpushed commits.
-Push or discard that work first.
+Push or discard that work first. Removal also refuses repositories containing untracked or
+ignored files; move those files out before removing the repository.
 
 Home sync keeps machines in step:
 

@@ -240,6 +240,8 @@ def remove(home: Path, name: str, *, run: Runner = home_sync.run_bounded) -> lis
         reason = home_sync.hold_reason(home / path, run)
         if reason:
             raise ValueError(f"{path} has {reason}; push or discard them first, nothing was removed")
+        if home_sync._git(run, home / path, "ls-files", "--others", "-z").stdout:
+            raise ValueError(f"{path} has untracked or ignored files; move them out first, nothing was removed")
     changes: list[str] = []
     selections = _deselection(home, name)
     for selection, entries in selections:
