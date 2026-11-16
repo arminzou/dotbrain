@@ -35,7 +35,11 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`projects list`](#dotbrain-projects-list) | List every registered project using local declarations and wiring. |
 | [`projects show`](#dotbrain-projects-show) | Inspect the current wired project or a named project's registered checkout. |
 | [`skills list`](#dotbrain-skills-list) | Discover locally available skills. |
-| [`skills link`](#dotbrain-skills-link) | Reconcile selected skills in project or explicit global scope. |
+| [`skills link`](#dotbrain-skills-link) | Reconcile selected skills in project or explicit global scope, selecting ENTRIES first. |
+| [`skills unlink`](#dotbrain-skills-unlink) | Remove ENTRIES from the project or global selection, then reconcile, pruning their links. |
+| [`skills add`](#dotbrain-skills-add) | Add a skill repository to ~/dotbrain/skills as a submodule of the home and commit it. |
+| [`skills update`](#dotbrain-skills-update) | Move skill repositories to their remote's latest commit, commit each move, and relink. |
+| [`skills remove`](#dotbrain-skills-remove) | Deselect a skill repository's skills everywhere, remove it, commit, and relink. |
 | [`subagents list`](#dotbrain-subagents-list) | Discover locally available custom subagents. |
 | [`subagents link`](#dotbrain-subagents-link) | Reconcile selected custom subagents in project or explicit global scope. |
 | [`beads sync`](#dotbrain-beads-sync) | Sync declared local tracker bindings and pull configured remotes; never push. |
@@ -181,7 +185,7 @@ dotbrain projects show [OPTIONS]
 
 ## Skills and subagents
 
-Link skills and custom vendor-native subagents into agent runtimes. See [Skills](skills.md).
+Manage the skill library and link skills and custom vendor-native subagents into agent runtimes. See [Skills](skills.md).
 
 ### `dotbrain skills list` {#dotbrain-skills-list}
 
@@ -200,11 +204,15 @@ dotbrain skills list [OPTIONS]
 
 ### `dotbrain skills link` {#dotbrain-skills-link}
 
-Reconcile selected skills in project or explicit global scope.
+Reconcile selected skills in project or explicit global scope, selecting ENTRIES first.
 
 ```text
-dotbrain skills link [OPTIONS]
+dotbrain skills link [OPTIONS] [ENTRIES]
 ```
+
+| Argument | Description |
+| --- | --- |
+| `ENTRIES` | Skills or bundles under ~/dotbrain/skills to add to the scope's selection first. |
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -214,6 +222,81 @@ dotbrain skills link [OPTIONS]
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
 | `--all` | — | Reconcile every registered project. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain skills unlink` {#dotbrain-skills-unlink}
+
+Remove ENTRIES from the project or global selection, then reconcile, pruning their links.
+
+```text
+dotbrain skills unlink [OPTIONS] ENTRIES
+```
+
+| Argument | Description |
+| --- | --- |
+| `ENTRIES` | Selected skills or bundles to remove from the scope's selection. |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--home` *path* | — | Override the private data root. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--scope` *text* | `project` | Delivery scope: project or global. |
+| `--project` *text* | — | Select a named Brainspace. |
+| `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain skills add` {#dotbrain-skills-add}
+
+Add a skill repository to ~/dotbrain/skills as a submodule of the home and commit it.
+
+```text
+dotbrain skills add [OPTIONS] URL
+```
+
+| Argument | Description |
+| --- | --- |
+| `URL` | Git URL of the skill repository. |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--name` *text* | — | Folder under ~/dotbrain/skills; defaults to the repository name. |
+| `--ref` *text* | — | Tag, branch or commit to pin instead of the default branch. |
+| `--home` *path* | — | Override the private data root. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain skills update` {#dotbrain-skills-update}
+
+Move skill repositories to their remote's latest commit, commit each move, and relink.
+
+```text
+dotbrain skills update [OPTIONS] [NAMES]
+```
+
+| Argument | Description |
+| --- | --- |
+| `NAMES` | Skill repositories to update; defaults to all. |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--ref` *text* | — | Move one repository to this tag, branch or commit, including an older one. |
+| `--home` *path* | — | Override the private data root. |
+| `--json` | — | Emit one structured result. |
+
+### `dotbrain skills remove` {#dotbrain-skills-remove}
+
+Deselect a skill repository's skills everywhere, remove it, commit, and relink.
+
+```text
+dotbrain skills remove [OPTIONS] NAME
+```
+
+| Argument | Description |
+| --- | --- |
+| `NAME` | Skill repository under ~/dotbrain/skills. |
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain subagents list` {#dotbrain-subagents-list}
@@ -337,7 +420,7 @@ Record the dotbrain home's changes and exchange them with its remote.
 
 Record uncommitted home changes as sync commits, integrate the upstream, and push.
 
-Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. A full sync then fetches and merges the upstream, keeping this machine's version of a file both sides changed and writing the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. If incoming changes would overwrite an uncommitted or ignored local file, Git refuses the merge; sync reports Git's diagnostic, pushes nothing, and fails. Offline, rejected, and remote-less homes exit 0 and keep the commits. Nested Git repositories are never recorded. Recording is refused during a merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. Turn sync off with sync.enabled: false. Known limit: sync unstages everything before recording, so index-only state (partially staged hunks, git rm `--cached`, a staged mode change) is replaced by the working tree.
+Acts on the whole home: one commit per changed Brainspace, then one home commit for the rest. A full sync then fetches and merges the upstream, keeping this machine's version of a file both sides changed and writing the other as NAME.sync-conflict-DATE-HOST.ext beside it (an edit wins over a delete). A push rejected because the remote moved is retried at most 3 times; sync never force-pushes. Files over sync.max-file-size in config.yaml (bytes, or a size such as 500KB or 1MB; default 1MB) stay uncommitted and are reported. If incoming changes would overwrite an uncommitted or ignored local file, Git refuses the merge; sync reports Git's diagnostic, pushes nothing, and fails. Offline, rejected, and remote-less homes exit 0 and keep the commits. Nested Git repositories are never recorded. A submodule declared in .gitmodules is recorded when new or moved forward to a commit its remote holds; after integrating, a full sync checks out every recorded submodule commit, cloning new ones. A submodule with uncommitted changes or unpublished commits is reported and left alone; to move one back, commit that yourself. Recording is refused during a merge, rebase, cherry-pick, or revert, with unmerged paths, or on a detached HEAD. Turn sync off with sync.enabled: false. Known limit: sync unstages everything before recording, so index-only state (partially staged hunks, git rm `--cached`, a staged mode change) is replaced by the working tree.
 
 ```text
 dotbrain sync [OPTIONS]

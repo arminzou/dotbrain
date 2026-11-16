@@ -88,6 +88,8 @@ Brainspace 的 git 仓库。先把它克隆下来，这样这台机器会用上�
 git clone <your-remote> ~/dotbrain
 ```
 
+之后 `dotbrain bootstrap` 会克隆主目录声明的 [skill submodule](skills.md#external-repositories)。
+
 `wire-brain` 找不到 dotbrain 主目录时也会问你这件事，但先克隆可以省一轮来回。
 
 **让 Agent 来做。** 让它连接仓库，或者直接调用 `wire-brain`。这个 skill 会检查 `PATH` 上有没有

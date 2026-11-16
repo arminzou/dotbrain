@@ -80,20 +80,6 @@ def test_bootstrap_json_repeat_is_unchanged(tmp_path, fake_home):
     assert not (root / "brainspaces").exists()
 
 
-def test_bootstrap_invalid_runtime_json_no_writes(tmp_path):
-    root = tmp_path / "data"
-    result = runner.invoke(app, ["bootstrap", "--home", str(root), "--runtime", "invalid", "--json"])
-    assert result.exit_code == 2
-    assert json.loads(result.stdout)["status"] == "failure"
-    assert not root.exists()
-
-
-def test_parser_failure_json():
-    result = runner.invoke(app, ["bootstrap", "--obsolete", "--json"])
-    assert result.exit_code == 2, result.output
-    assert json.loads(result.stdout)["errors"]
-
-
 def test_bootstrap_escaping_seed_receiver_has_no_writes(tmp_path):
     root = tmp_path / "data"
     root.mkdir()

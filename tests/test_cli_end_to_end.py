@@ -97,6 +97,13 @@ def test_main_worktree_maintenance_and_detachment(tmp_path, monkeypatch, claude_
     selected = next(target for target in diagnosis["targets"] if target["project"] == "sample")
     assert selected["checkout"] == str(worktree)
     assert snapshot() == before_diagnosis
+    settings["skills"] = ["bundle/alpha"]
+    declaration.write_text(yaml.safe_dump(settings, sort_keys=False), encoding="utf-8")
+    before[declaration] = declaration.read_bytes()
+    invoke("refresh")
+    for workspace in (".claude", ".agents"):
+        assert (worktree / workspace / "skills/alpha").is_symlink()
+        assert not (worktree / workspace / "skills/beta").exists()
     invoke("unwire")
     assert user_file.read_text(encoding="utf-8") == 'personality = "pragmatic"\n'
     assert user_dir.is_dir()

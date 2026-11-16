@@ -35,12 +35,12 @@ Report ready work without starting implementation or changing claims.
 
 ```text
 Use repo-rules to initialize RULES.md and its AGENTS.md routing.
-Adapt the baseline to this repository, preserve existing requirements,
-and report conflicts without adopting a resolution.
+Document this repository's adopted requirements and their sources, preserve
+local exceptions, and report conflicts without adopting a resolution.
 ```
 
 初始化需要明确请求。单独调用只评估，不采纳提案，也不创建规则文件。
-公开 `AGENTS.md` 应指向要求，不重复规则正文。
+公开 `AGENTS.md` 应指向要求，不重复规则正文。Dotbrain 提供维护示例，不提供默认工程规则；推断出的做法仍是提案。
 
 ## 评估执行机制 {#assess-enforcement}
 

@@ -150,11 +150,20 @@ def test_owned_legacy_links_migrate_and_prune_stale(delivery, operation):
     new = repo / ".agents/skills/discovery-test"
     assert new.is_symlink() and new.resolve() == (home / "skills/misc/discovery-test").resolve()
     assert all(not entry.is_symlink() for entry in (old, stale, retired))
+    assert not (repo / ".codex/skills").exists()
     excludes = adopter_repos.git_exclude_file(repo).read_text().splitlines()
     assert "/.agents/skills/discovery-test" in excludes
     assert not any(line.startswith("/.codex/skills/") for line in excludes)
     again = link(delivery)
     assert not again.warnings and again.linked == again.pruned == []
+
+
+def test_empty_legacy_receiver_is_removed(delivery):
+    _, _, repo = delivery
+    (repo / ".codex/skills").mkdir(parents=True)
+    result = link(delivery)
+    assert not result.warnings and ".codex/skills" in result.pruned
+    assert not (repo / ".codex/skills").exists() and (repo / ".codex").is_dir()
 
 
 @pytest.mark.parametrize("kind", ["file", "directory", "foreign-link", "dangling-link", "loop"])

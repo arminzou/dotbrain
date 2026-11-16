@@ -23,22 +23,13 @@ Dotbrain 不自带工作流，也不需要为你的工作流提供适配器。
 ## 使用基于 skills 的工作流 {#skill-workflow}
 
 工作流的 skills 和其他 skills 一样选择。例如要使用 [pstack](https://github.com/backnotprop/pstack)，
-把它 clone 到你的 skill 库，再为项目选中它的 skill bundle：
+把它加入你的 skill 库，再为当前 checkout 的项目选中它的 skill bundle：
 
 ```bash
-git clone https://github.com/backnotprop/pstack.git ~/dotbrain/skills/pstack
+dotbrain skills add https://github.com/backnotprop/pstack.git
+dotbrain skills link pstack/skills
 ```
 
-```yaml
-# ~/dotbrain/brainspaces/my-app/.brain/project.yaml
-skills:
-  - pstack/skills
-```
-
-```bash
-dotbrain skills link
-```
-
-然后用工作流自己的入口调用它，例如 pstack 的 `poteto-mode`。Dotbrain 不安装、固定或更新工作流。
-范围、验收标准、权限和交付授权仍来自用户和仓库。选择规则见 [skills](skills.md)，`skills:` 键见
+然后用工作流自己的入口调用它，例如 pstack 的 `poteto-mode`。Dotbrain 只通过 `dotbrain skills update` 改变工作流的版本。
+范围、验收标准、权限和交付授权仍来自用户和仓库。更新和移除见 [skills](skills.md#external-repositories)，`skills:` 键见
 [配置](configuration.md#project-yaml)。

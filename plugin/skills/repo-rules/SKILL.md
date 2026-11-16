@@ -6,21 +6,21 @@ description: Initializes and reconciles repository requirements in RULES.md and 
 # Repository rules
 
 Maintain adopted public repository requirements and their agent routing.
-[assets/RULES.md](assets/RULES.md) is Dotbrain's standalone engineering baseline.
-It needs no private library or engineering workflow to be read or adapted.
-Changes to the packaged baseline follow normal product review; repository-specific
-requirements belong in the target repository.
+Requirements come from the repository's accepted guidance, configuration, and
+authorized decisions. Dotbrain supplies no engineering baseline. When writing or
+revising a rule, read the [rules maintenance examples](references/rules-maintenance.md)
+for how to preserve authority, scope, and exceptions; their rules are illustrative.
 
 ## Select the operation
 
 | Request | Operation |
 | --- | --- |
-| Initialize repository rules or reconcile them with the baseline. | Initialize or reconcile rules and routing below. Explicit initialization authorizes applicable baseline and routing edits. |
+| Initialize or reconcile repository rules. | Initialize or reconcile the repository's own requirements and routing below. Explicit initialization authorizes those documentation edits. |
 | Maintain an adopted requirement. | Reconcile the scoped requirement with existing guidance; preserve unrelated content. |
 | Assess coverage or enforcement. | Assess below, without editing files. Missing rules remain proposals. |
 | Implement enforcement of a requirement. | Assess the scoped gap, then hand implementation to the selected engineering workflow. |
 
-A bare invocation assesses the repository. Create or reconcile baseline rules only
+A bare invocation assesses the repository. Create or reconcile requirements only
 when requested; invocation alone does not adopt proposed requirements. Apply user
 and repository authority to every edit. Conflicting requirements need resolution;
 continue independent authorized work without silently choosing a side.
@@ -32,16 +32,17 @@ continue independent authorized work without silently choosing a side.
    for actual conventions and dependency boundaries. Find the authoritative public
    destination before editing; retain an existing standards or contributor guide
    rather than introducing competing requirements.
-2. For requested initialization or baseline reconciliation, read
-   [assets/RULES.md](assets/RULES.md). Adapt application guidance to inspected
-   conventions, paths, and tools while preserving each rule's intent. Keep
-   applicable rules even when they need human review. Invent no architecture,
-   commands, platforms, or adoption of repository-specific constraints.
+2. Identify the source and scope of each requirement to document. Use accepted
+   guidance, explicit configuration, and authorized decisions; inspect code to
+   clarify application, not to turn incidental patterns into policy. If no adopted
+   requirements can be established, report the gap and propose candidates rather
+   than filling a rules file with generic practices. Invent no architecture,
+   commands, platforms, or adoption of new constraints.
 3. Reconcile by meaning with the current content, rereading before saving if
    another writer may have changed it. Preserve local amendments, existing
    requirements, exceptions, rationale, and unrelated guidance. Account for each
-   baseline rule as included, already covered, inapplicable with a reason, or
-   conflicting. Improve the existing application guidance when it already covers
+   scoped requirement as included, already covered, or conflicting, with its
+   adoption source. Improve existing application guidance when it already covers
    the decision; add a rule only for a distinct adopted requirement. Keep proposals
    and unresolved conflicts out of the adopted requirements.
 4. Add or reuse a concise root `AGENTS.md` pointer directing agents making or
@@ -54,7 +55,7 @@ continue independent authorized work without silently choosing a side.
    preserve local amendments.
 
 Completion: the requested requirements and routing are reconciled, every scoped
-baseline rule is accounted for, and conflicts remain explicitly unresolved.
+requirement is accounted for, and conflicts remain explicitly unresolved.
 
 ## Rule format and authority
 
@@ -64,25 +65,25 @@ boundary or command; discover and name the accepted constraint. Personal
 preferences and supported findings remain proposals until adopted. A recurring
 failure alone does not authorize a new requirement or permanent workaround.
 
-Use work-area groups and `Rule` / `How to apply` tables for a new `RULES.md`.
-Preserve an established requirements format when reconciling. Write each rule as
-a short plain sentence without bold formatting. Keep each row self-contained:
-put scope, application, observable checks, necessary rationale, exceptions, and
-links in `How to apply`; escape literal pipes in cells.
+For a new `RULES.md`, use a concise format suited to the repository; the examples
+show `Rule` / `How to apply` tables. Preserve an established requirements format
+when reconciling. State each requirement clearly, keeping its scope, application,
+observable checks, necessary rationale, exceptions, and links together. Escape
+literal pipes when using table cells.
 
 Keep each requirement in one authoritative location. Link specialist guides and
 configuration for details instead of duplicating them, and check overlapping
-guidance agrees. Derive commit conventions from accepted guidance and history;
-do not impose a generic convention. Public wording must stand alone in an ordinary
+guidance agrees. Public wording must stand alone in an ordinary
 clone. Keep private evidence, personal paths, finding identifiers, and incident
 history private when deriving an adopted public requirement.
 
 ## Assess enforcement
 
-Read the scoped requirements, affected code, existing checks, and supplied failure
-examples. Compare coverage with the baseline; missing or conflicting requirements
-are proposals, not newly adopted policy. If no requirements file exists, recommend
-initialization rather than performing it.
+Read the scoped requirements, their adoption sources, affected code, existing
+checks, and supplied failure examples. Assess coverage against the repository's
+adopted requirements. Suggested additions remain proposals; absence of a generic
+practice or an example rule is not a gap. If no requirements file exists,
+recommend initialization rather than performing it.
 
 For each scoped adopted rule, locate existing enforcement and identify the concrete
 gap. Prefer an existing type or API boundary that prevents invalid choices, then
@@ -114,6 +115,6 @@ selected, return the concrete assessment and handoff without claiming execution.
 
 ## Report
 
-Identify changed files, baseline coverage and omissions, unresolved conflicts,
+Identify changed files, requirement sources and coverage, unresolved conflicts,
 checks actually performed, and remaining proposals. Distinguish written
 requirements from demonstrated enforcement and work handed to the workflow.

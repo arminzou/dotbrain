@@ -402,6 +402,17 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
                                 "commit it yourself, ignore it, or raise sync.max-file-size")
                         for path in state.changed
                         if not home_sync._is_nested_repo(root, path) and home_sync._too_large(root, path, settings.max_file_size))
+        findings.extend(Finding("warn", f"home sync: submodule {path} is not cloned on this machine",
+                                "run dotbrain sync")
+                        for path in home_sync.uninitialized_submodules(root))
+        for path, (flags, _) in sorted(state.submodules.items()):
+            if flags[2] == "M":
+                findings.append(Finding("warn", f"home sync: submodule {path} has uncommitted changes, so sync neither "
+                                        "records nor updates it", "commit and push them in the submodule, or discard them"))
+            elif flags[1] == "C":
+                findings.append(Finding("info", f"home sync: submodule {path} is not at its recorded commit",
+                                        "run dotbrain sync; it records a newer commit its remote holds, otherwise it "
+                                        "returns to the recorded one, and reports unpushed commits"))
         return findings
     except DIAGNOSIS_ERRORS as exc:
         return [Finding("warn", f"home sync check unavailable: {exc}", "check Git in the dotbrain home")]

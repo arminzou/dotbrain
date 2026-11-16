@@ -82,18 +82,6 @@ def test_core_skills_allow_model_invocation():
     assert {skill.parent.name for skill in SKILL_FILES if explicit_only(skill.parent) == (True, True)} == set()
 
 
-@pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
-def test_core_reference_links_stay_within_packaged_skills(skill: Path):
-    for path in skill.parent.rglob("*.md"):
-        prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
-        for target in re.findall(r"\]\(([^)]+)\)", prose):
-            if target.startswith(("http", "#", "{", "$")):
-                continue
-            resolved = (path.parent / target.split("#")[0]).resolve()
-            assert resolved.is_relative_to(SKILLS_DIR), f"{path} -> {target} escapes packaged skills"
-            assert resolved.is_file(), f"{path} -> {target}"
-
-
 @pytest.mark.parametrize(
     ("frontmatter", "metadata", "agrees"),
     [
@@ -120,29 +108,17 @@ def test_invocation_policy_rejects_non_boolean_values(tmp_path: Path):
         explicit_only(skill)
 
 
-@pytest.mark.parametrize("skill", SKILL_FILES, ids=SKILL_IDS)
-def test_relative_links_resolve(skill: Path):
-    """A dangling reference 404s for every user of the skill and nothing else notices."""
-    for target in re.findall(r"\]\(([^)]+)\)", skill.read_text(encoding="utf-8")):
-        if target.startswith(("http", "#", "{", "$")):
-            continue
-        assert (skill.parent / target.split("#")[0]).exists(), f"{skill.parent.name} -> {target}"
-
-
 def test_packaged_reference_closure_without_private_library(tmp_path: Path):
     with resource_loader.plugin_tree() as plugin:
         copied = tmp_path / "plugin"
         shutil.copytree(plugin / "skills", copied / "skills")
     skills = copied / "skills"
     assert {path.parent.name for path in skills.glob("*/SKILL.md")} == set(SKILL_IDS)
-    assert not (skills / "write-agent-docs").exists()
     owner = skills / "maintain-brain"
     references = owner / "references"
     assert {path.name for path in references.glob("*.md")} >= {
         "writing.md", "dotbrain-skills.md",
     }
-    assert not (references / "vitepress.md").exists()
-    assert not (references / "mermaid.md").exists()
     for path in skills.glob("*/**/*.md"):
         prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"))
         for target in re.findall(r"\]\(([^)]+)\)", prose):

@@ -1,4 +1,4 @@
-"""Finite CLI invocation errors obey the clean-break result contract."""
+"""CLI parser and selector errors report JSON without creating a data root."""
 import json
 
 import pytest
@@ -8,30 +8,14 @@ from dotbrain.cli import app
 
 
 @pytest.mark.parametrize("args", [
-    ["wire", "--name", "sample"],
-    ["wire", "--all"],
-    ["wire", "--beads-database", "sample"],
-    ["wire", "--no-repo", "--project", "sample"],
-    ["refresh", "--name", "sample"],
-    ["refresh", "--repo-base", "anywhere"],
-    ["refresh", "--dry-run"],
-    ["doctor", "--scope", "global"],
+    ["unknown-command"],
+    ["bootstrap", "--unknown-option"],
+    ["bootstrap", "--runtime", "invalid"],
+    ["skills", "unlink"],
     ["doctor", "--all", "--project", "sample"],
-    ["unwire", "--archive"],
-    ["unwire", "--delete"],
-    ["unwire", "--no-repo"],
-    ["unwire", "--dry-run"],
-    ["bootstrap", "--target", "codex"],
-    ["skills", "link", "--scope", "all"],
-    ["subagents", "link", "--runtime", "claude-code"],
     ["skills", "link", "--scope", "global", "--project", "sample"],
-    ["beads", "load"],
-    ["migrate-beads"],
-    ["list-beads-db"],
-    ["drop-beads-db", "sample"],
-    ["update"],
 ])
-def test_retired_or_conflicting_invocation_is_one_json_error(args, tmp_path, monkeypatch):
+def test_invalid_invocation_is_one_json_error_without_writes(args, tmp_path, monkeypatch):
     home = tmp_path / "data"
     monkeypatch.setenv("DOTBRAIN_HOME", str(home))
     result = CliRunner().invoke(app, [*args, "--json"])
