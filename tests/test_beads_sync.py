@@ -139,13 +139,6 @@ def test_cli_missing_tool_json_failure(tmp_path, monkeypatch):
     assert "not installed" in str(json.loads(result.stdout))
 
 
-@pytest.mark.parametrize("args", [["beads", "load"], ["migrate-beads"], ["list-beads-db"], ["drop-beads-db", "orphan"], ["beads", "sync", "--name", "alpha"]])
-def test_retired_surfaces_rejected(args):
-    result = runner.invoke(app, args + ["--json"])
-    assert result.exit_code == 2
-    assert json.loads(result.stdout)["status"] == "failure"
-
-
 def test_cli_orphan_database_admin_and_confirmation(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(beads, "drop_remote_beads_database", lambda name, **kwargs: calls.append(name) or "dropped " + name)

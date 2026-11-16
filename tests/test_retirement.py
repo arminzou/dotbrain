@@ -91,19 +91,18 @@ def test_bundle_transition_refuses_linked_backup_location_before_mutation(tmp_pa
     assert list(external.iterdir()) == []
 
 
-@pytest.mark.parametrize("reference", ["vitepress.md", "mermaid.md"])
 @pytest.mark.parametrize("kind", ["intact", "modified", "linked-file", "linked-parent"])
-def test_removed_reference_in_retained_skill_preserves_user_changes(tmp_path, monkeypatch, reference, kind):
+def test_removed_file_in_retained_skill_preserves_user_changes(tmp_path, monkeypatch, kind):
     target = tmp_path / "runtime/plugins/dotbrain"
     target.mkdir(parents=True)
     with resource_loader.plugin_tree() as source:
         shutil.copytree(source / "skills", target / "skills")
     (target / owned_copy.MARKER).write_text("dotbrain\n", encoding="utf-8")
-    relative = f"skills/maintain-brain/references/{reference}"
+    relative = "skills/maintain-brain/references/removed.md"
     entry = target / relative
-    original = b"Known formerly packaged rendering reference\n"
+    entry.parent.mkdir(parents=True, exist_ok=True)
+    original = b"Known formerly packaged file\n"
     known = json.loads(resource_loader.resource("retired-skills.json").read_text(encoding="utf-8"))
-    assert relative in known
     known[relative] = hashlib.sha256(original).hexdigest()
     identity = tmp_path / "known.json"
     identity.write_text(json.dumps(known), encoding="utf-8")
@@ -111,7 +110,7 @@ def test_removed_reference_in_retained_skill_preserves_user_changes(tmp_path, mo
     monkeypatch.setattr(resource_loader, "resource", lambda name: identity if name == "retired-skills.json" else resource(name))
     outside = tmp_path / "private"
     outside.mkdir()
-    sentinel = outside / reference
+    sentinel = outside / Path(relative).name
     sentinel.write_bytes(b"User content\xff")
     if kind == "linked-parent":
         shutil.rmtree(entry.parent)

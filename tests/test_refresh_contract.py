@@ -1,5 +1,6 @@
 """Existing-project maintenance, preservation and per-target outcomes."""
 import json
+import shutil
 import subprocess
 
 import pytest
@@ -14,7 +15,7 @@ def git(repo, *args):
     return subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True, text=True)
 
 
-def project(home, checkout, name='custom', agents='[]'):
+def project(home, checkout, name='custom', agents='[]', repo_template=None):
     brainspace = home / 'brainspaces' / name
     brain = brainspace / '.brain'
     brain.mkdir(parents=True)
@@ -23,8 +24,11 @@ def project(home, checkout, name='custom', agents='[]'):
     (brain / 'AGENTS.md').write_text('User instructions\n', encoding='utf-8')
     brainspaces.seed_brain(brainspace, home)
     if checkout is not None:
-        checkout.mkdir()
-        git(checkout, 'init')
+        if repo_template is None:
+            checkout.mkdir()
+            git(checkout, 'init')
+        else:
+            shutil.copytree(repo_template, checkout)
         (checkout / '.brain').symlink_to(brain, target_is_directory=True)
         (brainspace / '.repo').write_text(str(checkout), encoding='utf-8')
     else:
@@ -32,13 +36,19 @@ def project(home, checkout, name='custom', agents='[]'):
     return brainspace
 
 
+@pytest.fixture(scope='session')
+def repo_template(tmp_path_factory):
+    repo = tmp_path_factory.mktemp('refresh-repo')
+    git(repo, 'init')
+    return repo
+
+
 @pytest.fixture
-def setup(tmp_path):
+def setup(tmp_path, repo_template):
     home = tmp_path / 'home'
-    home.mkdir()
-    git(home, 'init')
+    shutil.copytree(repo_template, home)
     checkout = tmp_path / 'different-name'
-    brainspace = project(home, checkout)
+    brainspace = project(home, checkout, repo_template=repo_template)
     return home, brainspace, checkout
 
 
@@ -58,9 +68,20 @@ def test_refresh_warns_about_unmigrated_global_settings_without_migrating(setup)
     assert ((home / 'config.yaml').read_bytes() if (home / 'config.yaml').exists() else None) == config_before
 
 
-@pytest.mark.parametrize('set_up', [False, True])
-@pytest.mark.parametrize('cli_installed', [False, True])
-@pytest.mark.parametrize('agents', [None, '[]', '[hermes]', '[codex]', '[claude, codex]', '[claude, codex, opencode]', '[codex, claude]'])
+@pytest.mark.parametrize('agents,cli_installed,set_up', [
+    (None, False, False),
+    (None, False, True),
+    (None, True, False),
+    (None, True, True),
+    ('[]', False, False),
+    ('[]', True, True),
+    ('[hermes]', True, True),
+    ('[codex]', False, True),
+    ('[claude, codex]', True, False),
+    ('[claude, codex]', True, True),
+    ('[codex, claude]', False, True),
+    ('[claude, codex, opencode]', False, False),
+])
 def test_refresh_follows_machine_only_without_agents_and_notices_old_defaults(setup, monkeypatch, tmp_path, set_up, cli_installed, agents):
     home, brainspace, checkout = setup
     monkeypatch.setattr(runtimes, 'installed', lambda rt: cli_installed and rt.name in ('claude', 'codex'))

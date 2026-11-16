@@ -1,6 +1,7 @@
 """Doctor diagnoses declared truth without touching project or tracker state."""
 import io
 import json
+import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -586,12 +587,12 @@ def git(cwd, *args):
     return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, encoding="utf-8").stdout.strip()
 
 
-@pytest.fixture
-def synced_home(tmp_path):
-    """A dotbrain home under Git, pushed to a bare remote and clean."""
-    remote = tmp_path / "remote.git"
-    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
-    root = tmp_path / "home"
+@pytest.fixture(scope="session")
+def synced_home_seed(tmp_path_factory):
+    seed = tmp_path_factory.mktemp("doctor-sync")
+    remote = seed / "remote.git"
+    git(seed, "init", "-q", "--bare", "-b", "main", str(remote))
+    root = seed / "home"
     root.mkdir()
     git(root, "init", "-q", "-b", "main")
     for key, value in (("user.name", "Test"), ("user.email", "test@example.com"), ("core.autocrlf", "false")):
@@ -599,8 +600,23 @@ def synced_home(tmp_path):
     write(root / "brainspaces/alpha/.brain/CONTEXT.md", "base\n")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "initial")
-    git(root, "remote", "add", "origin", str(remote))
+    git(root, "remote", "add", "origin", remote.as_posix())
     git(root, "push", "-q", "-u", "origin", "main")
+    return seed
+
+
+@pytest.fixture
+def synced_home(tmp_path, synced_home_seed):
+    """An isolated copy of a clean home and its remote, built once per worker."""
+    for name in ("home", "remote.git"):
+        shutil.copytree(synced_home_seed / name, tmp_path / name)
+    root = tmp_path / "home"
+    config_path = root / ".git/config"
+    text = config_path.read_text(encoding="utf-8")
+    seed_remote = (synced_home_seed / "remote.git").as_posix()
+    assert seed_remote in text
+    config_path.write_text(text.replace(seed_remote, (tmp_path / "remote.git").as_posix()),
+                           encoding="utf-8", newline="\n")
     return root
 
 
