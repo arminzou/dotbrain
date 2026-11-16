@@ -109,6 +109,8 @@ dotbrain skills remove pstack                                   # 处处取消�
 | `work-graph` | 查看和维护原生 Beads 工作记录、依赖和归属 |
 | `repo-rules` | 按要求初始化和协调已采纳的仓库要求，评估执行机制 |
 
+`repo-rules` 维护各仓库自己已采纳的要求。它提供维护示例，不提供默认工程规则。
+
 五个 skills 均允许模型按其职责调用。工程规划、执行、审阅和交付由所选工作流负责。
 写作和语法参考位于 `maintain-brain/references/`。
 

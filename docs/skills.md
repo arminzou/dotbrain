@@ -127,6 +127,9 @@ uncommitted changes, or are not at their recorded commit.
 | `work-graph` | Inspect and maintain native Beads records, dependencies, and ownership |
 | `repo-rules` | Initialize and reconcile adopted repository requirements and assess enforcement |
 
+`repo-rules` maintains each repository's own adopted requirements. It includes a
+maintenance example, not a default engineering policy.
+
 All five allow model invocation for their stated operations. Engineering planning,
 execution, review, and delivery belong to your selected workflow. Shared writing
 and syntax references live under `maintain-brain/references/`.

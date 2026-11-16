@@ -40,13 +40,14 @@ capacity and acceptance. See [Beads backend](beads-backend.md).
 
 ```text
 Use repo-rules to initialize RULES.md and its AGENTS.md routing.
-Adapt the baseline to this repository, preserve existing requirements,
-and report conflicts without adopting a resolution.
+Document this repository's adopted requirements and their sources, preserve
+local exceptions, and report conflicts without adopting a resolution.
 ```
 
 Initialization is requested explicitly. A bare invocation assesses; it does not
 adopt proposed requirements or create a rules file. Public `AGENTS.md` routes to
-the requirements rather than duplicating them.
+the requirements rather than duplicating them. Dotbrain supplies a maintenance
+example, not a default engineering policy; inferred practices remain proposals.
 
 ## Assess enforcement
 
