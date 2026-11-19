@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.16.0](https://github.com/arminzou/dotbrain/compare/v0.15.1...v0.16.0) (2026-11-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Retire packaged engineering workflow skills and agents, and replace pstack mode settings with selected workflow skills. Review docs/upgrading.md before updating existing installations.
+* teach-me, brain-site, triage-public, and review-architecture are no longer bundled. Select user-supplied sources to keep these optional workflows; shared writing guidance remains in curate-project-context references.
+
+### Documentation
+
+* polish public guides and clarify runtime support ([a29b3f3](https://github.com/arminzou/dotbrain/commit/a29b3f362df99505335651c35ee9dfa092e6d0ff))
+
+
+### Code Refactoring
+
+* focus packaged workflows and retire private Brain conventions ([#82](https://github.com/arminzou/dotbrain/issues/82)) ([2705078](https://github.com/arminzou/dotbrain/commit/2705078474de0cbdb92beb7c2db9dd97f2e08fc8))
+* separate project workspace capabilities from engineering workflows ([#83](https://github.com/arminzou/dotbrain/issues/83)) ([6e78863](https://github.com/arminzou/dotbrain/commit/6e78863e4b6c7a1de4e50a5f6bb9508fa8875cbc))
+
 ## [0.15.1](https://github.com/arminzou/dotbrain/compare/v0.15.0...v0.15.1) (2026-10-29)
 
 
