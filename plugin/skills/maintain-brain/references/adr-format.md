@@ -5,7 +5,8 @@ For a new record, inspect the highest existing prefix and increment it, starting
 `0001`. Recheck immediately before creation to avoid a concurrent numbering collision.
 
 Ask: what would a future reader get wrong with the code and current docs, but without
-the reason for this choice?
+the reason for this choice? Does that understanding need an independently discoverable
+record, or can it be reliably recovered from existing sources when needed?
 
 - Keep unresolved options in the relevant design or findings record until adopted.
 - Keep routine, readily reconstructable choices in their existing explanation.
@@ -13,9 +14,17 @@ the reason for this choice?
   mistake: repeating a failed approach, violating an external commitment, or removing a
   deliberate constraint. Support that consequence with evidence or an adopted commitment;
   code-change difficulty alone does not determine its importance.
-- If the existing design already preserves the rationale where future readers will find
-  it, leave it there. Extract an ADR when the rationale needs to remain discoverable
-  independently of the initiative.
+- If a design, commit, PR, or discussion already preserves the rationale and future
+  readers can reliably find and access it, leave it there. Extract a short ADR when
+  consequential rationale would otherwise be repeatedly reconstructed or easily lost;
+  link its evidence instead of copying the source history.
+
+Use relevant existing pointers to assess recoverability; no exhaustive history search is
+required for every choice. Code and executable checks establish behavior; a feature map,
+when present, locates capabilities and verification paths. Historical evidence supplies
+reasons. Recalled conversations can recover recent work and unfinished thinking; retain
+their uncertainty and distinguish proposals from adopted choices. A source that is
+inaccessible, hard to find, or never captured is not reliable recovery.
 
 When the user asks for an ADR, assess whether a separate record earns its cost. If the
 choice is unresolved, routine, or already adequately recorded, briefly explain why and
