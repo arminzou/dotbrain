@@ -48,6 +48,12 @@ pending checks. Design lifecycle describes the initiative's document state;
 Beads remains the authority for durable execution state. Terminal lifecycle
 updates require evidence for the claimed outcome.
 
+Before using a decision as a constraint, check its status, scope, and linked
+amendments or replacement. Proposals and retired decisions provide context.
+Code establishes current behavior; applicable adopted decisions establish intended
+constraints. Surface material conflicts without assuming either source silently
+revokes the other. Check the relevant decision, not the whole archive.
+
 ## Safe maintenance and privacy
 
 Maintain the appropriate existing record. Reconcile the latest contents before

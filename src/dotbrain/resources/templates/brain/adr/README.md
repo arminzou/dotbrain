@@ -2,7 +2,10 @@
 
 Architecture Decision Records — one decision per file.
 
-Each ADR captures the context, decision, consequences, and alternatives considered
-for a design choice that affects this project's architecture or conventions.
+Keep a short ADR for an adopted choice when losing its rationale could lead to a
+consequential mistake. Preserve the tradeoff, important rejected alternatives, and
+authority; leave routine choices and exploration in their existing records.
 
-See `DOTBRAIN.md` for the read order and operating rules.
+Use `maintain-brain` for ADR selection and writing guidance. Before applying a
+record, check its status, scope, and amendments. See `DOTBRAIN.md` for shared
+record meanings and operating rules.

@@ -65,16 +65,25 @@ Each element of a Brain has one purpose:
 | Element | Holds | Changes when |
 | --- | --- | --- |
 | `CONTEXT.md` | Domain vocabulary: the names issues, plans, and code use | A concept is named or sharpened |
-| `adr/` | Architecture Decision Records, one per decision | A hard-to-reverse choice with a real trade-off is made |
+| `adr/` | Short Architecture Decision Records, one per qualifying decision | An adopted choice has consequential rationale that needs independent preservation |
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
 | `docs/` | Derived runbooks and reference | Anytime; never authoritative |
 
-ADRs record decisions that are hard to reverse, surprising without context, and the result of a
-real trade-off. An **active** design is the living authority for its initiative; once it is
-**shipped**, **abandoned**, or **superseded** it freezes as a record, and what should outlive it
-moves to `adr/` and `CONTEXT.md`. [The workflow](workflow.md) walks through that lifecycle.
+An ADR earns its cost when a future reader with the code and current docs could still make
+a consequential mistake without the rationale: repeat a failed approach, violate an external
+commitment, or remove a deliberate constraint. Code-change difficulty alone is not the test.
+Routine choices stay in their existing explanation; unresolved options stay explicitly tentative
+in a design or findings record. `maintain-brain` provides the selection and writing guidance.
+
+An **active** design is the living initiative record and can still contain unresolved choices.
+Once **shipped**, **abandoned**, or **superseded**, it freezes as history. Extract only adopted
+decisions that meet the ADR criteria and need independent discovery; link existing ADRs instead
+of duplicating rationale. Lasting vocabulary belongs in `CONTEXT.md`. Before applying a decision,
+check its status, scope, and amendments. Code shows current behavior; adopted decisions describe
+intended constraints. Surface conflicts rather than silently treating either as revoking the other.
+[The workflow](workflow.md) describes record ownership.
 
 The chosen engineering workflow owns planning, task selection, delegation,
 verification, recovery and delivery procedures. Core record operations preserve

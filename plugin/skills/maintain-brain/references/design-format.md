@@ -65,6 +65,8 @@ Use `lifecycle` with `draft`, `active`, `shipped`, `abandoned`, or `superseded`.
 `draft` is a proposed initiative; `active` is the current living initiative design.
 The applicable user or project authority determines adoption and terminal transitions.
 Reuse already recorded approval; missing authority remains explicit.
+An `active` design can contain unresolved choices. Label them beside the relevant text;
+initiative adoption does not accept every option described within it.
 
 Use `started` and `ended` for dates, `extends` for a design this one builds on, and
 `residue` for decision records produced. Use the existing project's value representation
@@ -94,10 +96,13 @@ in `Verification Evidence`. Criteria changes require their own authority and dev
 record, not a rewrite to fit the result. Include the revision and environment so evidence
 does not become a timeless guarantee.
 
-Promote lasting vocabulary to `CONTEXT.md`, decisions to `adr/`, and maintained findings
-or explanations to `docs/`, with backlinks for provenance. Pending improvements belong in
-Beads. Keep item-local evidence in its existing work record. Preserve existing notebooks
-and historical evidence; lifecycle recording imposes no retrospective notebook process.
+Promote lasting vocabulary to `CONTEXT.md` and maintained findings or explanations to
+`docs/`, with backlinks for provenance. Extract only adopted decisions that meet the
+[ADR criteria](adr-format.md) and need independent discovery beyond this initiative.
+Link an existing ADR when it already preserves the rationale; other choices can remain
+in the historical design. Pending improvements belong in Beads. Keep item-local evidence
+in its existing work record. Preserve existing notebooks and historical evidence;
+lifecycle recording imposes no retrospective notebook process.
 
 Set `ended` to when the initiative actually ended, naming uncertainty if the date is
 unknown. A terminal design is a historical record: later corrections retain the original

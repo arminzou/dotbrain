@@ -17,7 +17,7 @@ Use the project's established vocabulary and preserve consequential rationale an
 | Information | Destination | Reference to read for this operation |
 | --- | --- | --- |
 | Settled domain terms and relationships | `.brain/CONTEXT.md` | [Vocabulary](references/context-format.md) |
-| Consequential decisions and rationale | `.brain/adr/` | [Decisions](references/adr-format.md) |
+| Adopted decisions whose rationale needs independent preservation | `.brain/adr/` | [ADR selection and decisions](references/adr-format.md) |
 | Initiative intent, design, uncertainty, and outcome | `.brain/designs/` | [Designs and lifecycle](references/design-format.md) |
 | Verified findings, supporting sources, maintained explanations | `.brain/docs/` | [Findings and references](references/findings.md) |
 | Tasks, dependencies, assignments, acceptance, execution evidence, pending improvements | Beads | Use `work-graph` for graph operations |
