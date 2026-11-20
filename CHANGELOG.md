@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.16.1](https://github.com/arminzou/dotbrain/compare/v0.16.0...v0.16.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **skills:** make ADR capture selective and clarify decision authority ([1f908ac](https://github.com/arminzou/dotbrain/commit/1f908acd75230916a59688669eadafa3e4085177))
+* **skills:** make Brain capture and cleanup selective ([197271c](https://github.com/arminzou/dotbrain/commit/197271c97a38ae52d43010ad8ccf499022dfd25f))
+* **skills:** recover decision rationale from existing sources ([94cdaa0](https://github.com/arminzou/dotbrain/commit/94cdaa01c898d5f98f12cce872816e9f7f197fc4))
+
 ## [0.16.0](https://github.com/arminzou/dotbrain/compare/v0.15.1...v0.16.0) (2026-11-16)
 
 
