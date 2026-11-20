@@ -1,3 +1,3 @@
 interface:
   display_name: "Maintain Brain"
-  short_description: "Capture and maintain private project understanding"
+  short_description: "Capture useful context and clean up obsolete Brain records"

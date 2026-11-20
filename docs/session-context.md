@@ -26,8 +26,13 @@ The project's own files are not injected:
 | `.brain/DOTBRAIN.md` | Injected by the hook |
 | Public `AGENTS.md` and root `RULES.md` | Repository entry point routes making/reviewing changes to tracked rules, usable without a Brain |
 | `.brain/CONTEXT.md`, `adr/`, `designs/` | Read by the agent when the work needs them |
-| `.brain/docs/` | Searched by the agent before it answers how the project works |
+| `.brain/docs/` | Relevant records read when their domain meaning, rationale, or evidence is needed |
 | Beads workflow primer | Not injected by dotbrain; the agent runs `bd prime` when it needs it |
+
+Use the owning implementation or maintained documentation for current mechanics.
+Check a historical record's applicability before relying on it. Reading a record
+does not itself require repairing it; scoped maintenance may remove obsolete
+records rather than keeping them in normal retrieval.
 
 To have the Beads primer injected too, add Beads' own hook with `bd setup claude` or
 `bd setup codex`. Dotbrain does not install it.

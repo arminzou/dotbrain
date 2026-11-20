@@ -106,7 +106,7 @@ dotbrain skills remove pstack                                   # 处处取消�
 | --- | --- |
 | `wire-brain` | 创建、连接、检查和修复 Brainspace 与 runtime 资源 |
 | `brain-convention` | 解释共享的工作区身份、资源归属、记录含义和隐私约定 |
-| `maintain-brain` | 记录和维护私有的术语、决策、设计、发现和参考资料 |
+| `maintain-brain` | 保存有用的项目理解，清理过时的 Brain 材料 |
 | `work-graph` | 查看和维护原生 Beads 工作记录、依赖和归属 |
 | `repo-rules` | 按要求初始化和协调已采纳的仓库要求，评估执行机制 |
 

@@ -37,9 +37,11 @@ and acceptance fields. An initiative's design is linked through `spec_id`.
 The design contains intent and architecture, while the graph contains durable
 task state. Keep initiative prose in its owning record.
 
-Temporary checklists may describe procedural steps within a task. Record work
-that must survive a handoff, dependencies, ownership, and pending improvements
-in Beads. Decision trails can explain choices and link their evidence.
+Temporary checklists may describe procedural steps within a task. Use Beads for
+work needing durable continuation or coordination, and maintain existing tracked
+work. Record deferred follow-up when agreed or needed to satisfy existing scope;
+incidental possibilities need not become tasks. Decision trails can explain choices
+and link their evidence.
 
 Establish outcome-focused acceptance criteria from the adopted scope. A change
 to user-owned acceptance or authority requires the corresponding decision.

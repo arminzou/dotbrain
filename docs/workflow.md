@@ -6,25 +6,30 @@ Beads operations. Your selected engineering workflow decides how to investigate,
 plan, delegate, verify, recover, and deliver work under user and repository authority.
 Dotbrain ships no workflow of its own and needs no adapter for yours.
 
-Use `maintain-brain` to capture vocabulary, accepted decisions, designs, verified
-findings, and unresolved hypotheses with their evidence. Use `work-graph` for
+Use `maintain-brain` to preserve useful project understanding and clean up obsolete
+Brain material within the requested scope. Use `work-graph` for
 tasks, dependencies, claims, and execution evidence. Ask `repo-rules` explicitly
 to initialize repository requirements; its assessment alone adopts no policy.
 Enforcement implementation belongs to your engineering workflow.
 
 ## Where a workflow's records go {#records}
 
-The convention that the session-start hook delivers decides where any workflow's
-records go, even when the workflow's own instructions name a file:
+The convention that the session-start hook delivers routes information needing
+durable preservation, even when the workflow's own instructions name a file.
+Session reasoning, temporary checklists, and disposable experiments may remain
+temporary. A task may finish without creating a Brain record or Beads issue.
 
 | Workflow output | Destination |
 | --- | --- |
-| Plans, task lists, progress, and handoff notes | Beads issues |
-| Design reasoning, decision logs, and research | The matching Brain record |
+| Work needing durable continuation or coordination | Beads issues; keep existing tracked work current |
+| Understanding later work needs that existing sources do not adequately retain | The matching Brain record |
 | Code and public guidance | The code repository |
 
-A later session resumes from `bd ready` and the Brain, not from transcripts or
-files in the repository.
+Honor explicit capture requests. Preserve useful experimental conclusions without
+retaining every prototype; keep artifacts when reproduction, consequential evidence,
+review, or continuation needs them. Resume tracked work from Beads and relevant
+project sources. Engineering workflows choose planning and capture timing; ordinary
+work does not require a Brain-wide cleanup or retrospective.
 
 ## Use a skill-based workflow {#skill-workflow}
 

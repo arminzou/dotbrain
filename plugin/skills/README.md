@@ -7,7 +7,7 @@ library or engineering workflow installation.
 | --- | --- |
 | [wire-brain](wire-brain/SKILL.md) | Provision, attach, inspect, and repair Brainspace wiring and selected resources |
 | [brain-convention](brain-convention/SKILL.md) | Explain shared workspace ownership, records, and privacy |
-| [maintain-brain](maintain-brain/SKILL.md) | Capture and maintain private project understanding |
+| [maintain-brain](maintain-brain/SKILL.md) | Preserve useful project understanding and clean up obsolete Brain material |
 | [work-graph](work-graph/SKILL.md) | Inspect and maintain native Beads work records |
 | [repo-rules](repo-rules/SKILL.md) | Initialize and reconcile adopted repository requirements |
 

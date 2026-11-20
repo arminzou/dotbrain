@@ -1,9 +1,11 @@
 # Evaluation
 
-[Record placement](records/README.md) evaluates the workflow-independent core
-with a stock skill workflow: plans land in Beads, reasoning in the Brain, nothing
-in the repository, and a cold session resumes from `bd ready`. From the repository
-root, run its model-free calibration:
+[Selective records and continuation](records/README.md) evaluates the
+workflow-independent core with a stock skill workflow. Cases cover appropriate
+noncapture, disposable experiments, interrupted work, and removal of obsolete
+records. Independent behavioral probes and an evidence-backed review assess
+useful continuation, clutter, and preserved scope. From the repository root,
+run its model-free calibration:
 
 ```sh
 cd evals/records && uv run python -B -m unittest -v test_records

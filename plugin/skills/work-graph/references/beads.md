@@ -58,8 +58,8 @@ does not establish a native-agent journey, a passing review, or a merge.
 Link consequential evidence to the candidate revision and environment. Preserve
 failed attempts, superseded conclusions, remaining limits, and unresolved gaps.
 Update notes with the current resume state rather than replacing evidence
-history. Discoveries with durable project meaning also belong in the Brain,
-using `maintain-brain`.
+history. Use `maintain-brain` when later work needs understanding that the existing
+work record and sources do not adequately preserve; link rather than duplicate evidence.
 
 Beads owns the execution database. Dotbrain home sync versions private files
 through Git. Tracker backup or sharing uses the configured Beads backend and

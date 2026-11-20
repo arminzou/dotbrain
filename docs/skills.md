@@ -124,7 +124,7 @@ uncommitted changes, or are not at their recorded commit.
 | --- | --- |
 | `wire-brain` | Provision, attach, inspect, and repair Brainspaces and runtime resources |
 | `brain-convention` | Explain shared workspace identity, resource ownership, records, and privacy |
-| `maintain-brain` | Capture and maintain private vocabulary, decisions, designs, findings, and references |
+| `maintain-brain` | Preserve useful project understanding and clean up obsolete Brain material |
 | `work-graph` | Inspect and maintain native Beads records, dependencies, and ownership |
 | `repo-rules` | Initialize and reconcile adopted repository requirements and assess enforcement |
 

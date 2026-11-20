@@ -25,8 +25,11 @@ Agent 会自己去读哪些内容，以及会话的 hook 怎样同步 dotbrain �
 | `.brain/DOTBRAIN.md` | 由 hook 注入 |
 | 公开的 `AGENTS.md` 和根目录 `RULES.md` | 仓库入口指引修改或审阅代码的 Agent 读取 Git 跟踪的规则，没有 Brain 也能用 |
 | `.brain/CONTEXT.md`、`adr/`、`designs/` | 工作需要时由 Agent 读取 |
-| `.brain/docs/` | Agent 在回答项目如何运作之前先搜索这里 |
+| `.brain/docs/` | 需要其中的领域含义、理由或证据时读取相关记录 |
 | Beads 工作流入门 | dotbrain 不注入；Agent 需要时运行 `bd prime` |
+
+当前实现机制应从负责它的代码或持续维护的文档中确认。采用历史记录前先检查适用范围。
+读取记录本身不要求修复它；在授权范围内维护时，可以删除过时记录，让它们退出日常检索。
 
 如果也想注入 Beads 的入门说明，可以用 `bd setup claude` 或 `bd setup codex` 添加 Beads 自己的 hook。
 dotbrain 不会安装它。

@@ -11,8 +11,8 @@ Use established vocabulary and link consequential decisions to their ADRs.
 
 ## Record structure
 
-Keep only sections the initiative needs. Existing content and adopted criteria survive
-maintenance; this outline is an authoring aid, not a migration requirement.
+Keep only sections the initiative needs. Formatting does not authorize changing adopted
+criteria or discarding user content; this outline is an authoring aid, not a migration requirement.
 
 ```md
 ---
@@ -96,14 +96,17 @@ in `Verification Evidence`. Criteria changes require their own authority and dev
 record, not a rewrite to fit the result. Include the revision and environment so evidence
 does not become a timeless guarantee.
 
-Promote lasting vocabulary to `CONTEXT.md` and maintained findings or explanations to
-`docs/`, with backlinks for provenance. Extract only adopted decisions that meet the
+Extract vocabulary, findings, or explanations only when they need discovery or maintenance
+independently of this design. Otherwise leave useful conclusions and evidence in their
+existing record. Extract only adopted decisions that meet the
 [ADR criteria](adr-format.md) and need independent discovery beyond this initiative.
 Link an existing ADR when it already preserves the rationale; other choices can remain
-in the historical design. Pending improvements belong in Beads. Keep item-local evidence
-in its existing work record. Preserve existing notebooks and historical evidence;
-lifecycle recording imposes no retrospective notebook process.
+in the historical design. Agreed follow-up needing durable continuation belongs in Beads.
+Keep item-local evidence in its existing work record. Lifecycle recording imposes no
+retrospective notebook process.
 
 Set `ended` to when the initiative actually ended, naming uncertainty if the date is
-unknown. A terminal design is a historical record: later corrections retain the original
+unknown. A retained terminal design is historical: later corrections retain the original
 outcome and explain the correction. A replacement can name its predecessor in `extends`.
+Terminal status does not require permanent retention; scoped cleanup may remove a design
+that no longer supports current understanding or unfinished work.

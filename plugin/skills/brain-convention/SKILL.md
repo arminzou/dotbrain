@@ -46,11 +46,13 @@ Beads graph operations. `repo-rules` initializes and reconciles repository
 requirements when requested. These capabilities do not select an engineering
 workflow; the selected workflow owns execution procedures.
 
-This contract decides where a workflow's records go, including when the
-workflow names a file. Plans, task lists, progress, and handoff notes become
-Beads issues. Design reasoning, decision logs, and research go to the matching
-Brain record. The code repository receives only code and public guidance.
-Resume work from `bd ready` and the Brain.
+These destinations apply when information needs durable preservation, including
+when a workflow names a file. Session reasoning, temporary checklists, and
+disposable experiments may remain temporary. Preserve Brain understanding when
+later work needs information that existing sources do not adequately retain.
+Use Beads for work needing durable continuation or coordination, and keep existing
+tracked work current. Honor explicit capture requests. A task may finish without
+creating either record. Resume tracked work from Beads and relevant project sources.
 
 Records distinguish observations, inferences, hypotheses, proposals, and accepted
 decisions. A recorded discovery does not adopt a consequential decision. Keep
@@ -67,11 +69,14 @@ revokes the other. Check the relevant decision, not the whole archive.
 
 ## Safe maintenance and privacy
 
-Maintain the appropriate existing record. Reconcile the latest contents before
-saving concurrent edits, preserving consequential rationale and evidence. Keep
-existing notebooks, decisions, designs, work records, claims, dependencies, and
-history recoverable. Retiring a workflow does not accept results, close work,
-or reset consumed limits.
+Reconcile the latest contents before saving concurrent edits. Within authorized
+maintenance, remove obsolete or redundant records that no longer support current
+understanding or unfinished work, retaining independently useful rationale and
+evidence where needed and repairing pointers. Version history can provide recovery
+without keeping obsolete files in the Brain. Preserve unrelated user content,
+active requirements, work records, claims, dependencies, and remaining limits.
+Reading a record does not itself require repairing it. Retiring a workflow does
+not accept results, close work, or reset consumed limits.
 
 Private Brain content and provenance stay private. Derive public guidance for its
 audience without exposing private identifiers, paths, or source excerpts. Public

@@ -1,9 +1,10 @@
 # Findings and references
 
-Use `.brain/docs/` for durable findings, supporting references, and maintained explanations.
-Prefer an existing relevant document; choose a descriptive filename for a new one.
-Initiative-specific uncertainty belongs in its design, and actionable follow-up work and
-execution evidence belong in Beads. Link the supporting understanding from those records.
+Use `.brain/docs/` when a finding, reference, or explanation needs continuing discovery
+that existing sources do not adequately support. Prefer a source link or an existing
+relevant document; choose a descriptive filename only when a new record earns its upkeep.
+Retained initiative-specific uncertainty belongs in its design. Use Beads for work and
+execution evidence needing durable continuation or coordination.
 
 A useful finding carries:
 
@@ -15,7 +16,7 @@ A useful finding carries:
 | Implication | Why the finding matters, separately from the observed fact |
 | Open question | What remains unknown and what would resolve it, if relevant |
 
-Record enough check detail to assess the claim without rerunning it: command, revision,
+Record enough check detail to assess a retained claim: command, revision,
 environment, result, and evidence location. A passing source check does not establish
 runtime behavior. A source's assertion is not an independently verified observation;
 attribute it and retain conflicting evidence. Current behavior alone does not establish
@@ -27,8 +28,8 @@ from a paraphrase and your inference. Preserve user-provided wording and literal
 when reorganizing source material. Keep sensitive source contents private and never store
 credentials in a note.
 
-For maintained explanations, update the account of how the system currently works while
-preserving consequential earlier evidence through links or a dated historical section.
-Mark obsolete applicability rather than allowing a historical finding to read as a current
-guarantee. Unresolved improvement proposals remain private records or Beads; an adopted
-public repository requirement is maintained through `repo-rules` with standalone wording.
+For maintained explanations, update current behavior and retain earlier evidence only
+when it still informs current understanding or unfinished work. During authorized cleanup,
+remove obsolete records and repair their pointers; historical value alone need not keep
+them in the Brain. Give retained historical findings their applicability rather than a
+current guarantee. An adopted public requirement is maintained through `repo-rules`.
