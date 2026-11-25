@@ -326,6 +326,14 @@ def test_root_gitignore_gains_the_scratch_rule_once_and_keeps_operator_entries(t
     assert gitignore.read_text() == once
 
 
+def test_root_gitignore_without_seeding_leaves_a_missing_file_for_bootstrap(tmp_path: Path):
+    root = tmp_path / "dr"
+    root.mkdir()
+
+    assert bootstrap_mod.ensure_root_gitignore(root, seed=False) == []
+    assert not (root / ".gitignore").exists()
+
+
 def test_seeded_root_gitignore_ignores_brain_scratch(tmp_path: Path):
     root = tmp_path / "dr"
     root.mkdir()

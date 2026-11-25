@@ -47,15 +47,18 @@ class DataRootResult:
     logs: list[str] = field(default_factory=list)
 
 
-def ensure_root_gitignore(dotbrain_home: Path) -> list[str]:
+def ensure_root_gitignore(dotbrain_home: Path, *, seed: bool = True) -> list[str]:
     """Seed the data-root gitignore, or add the scratch rule an existing one lacks.
 
     Operator-owned entries are never replaced. Home sync commits everything not ignored,
     so every home needs the scratch rule, including homes seeded before it existed.
+    With ``seed`` off, a missing file is left for bootstrap to create.
     """
 
     path = paths.confined_path(Path(dotbrain_home), ".gitignore")
     if not (path.exists() or path.is_symlink()):
+        if not seed:
+            return []
         desired = resource_loader.resource("templates/gitignore").read_text(encoding="utf-8")
         path.write_text(desired, encoding="utf-8", newline="\n")
         return [f"seeded .gitignore into {dotbrain_home}"]
