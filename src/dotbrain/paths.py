@@ -14,9 +14,8 @@ from pathlib import Path
 # The Brainspace links an adopter repo symlinks into its root, in convention order.
 BRAINSPACE_LINKS: tuple[str, ...] = (".brain", ".beads")
 
-# Data-root directory holding the project Brainspaces, in preference order. ``brainspaces`` is
-# the current name; ``projects`` is the legacy name still accepted for back-compat.
-DATA_DIRS: tuple[str, ...] = ("brainspaces", "projects")
+# Data-root directory holding the project Brainspaces.
+DATA_DIR = "brainspaces"
 
 # Data-root directory holding custom subagent sources. Bootstrap renames the legacy ``agents``
 # directory; links delivered from it are still recognized as dotbrain-owned so they are replaced.
@@ -108,22 +107,14 @@ def resolve_dotbrain_home() -> Path:
     if env:
         return Path(env)
     inferred = Path(__file__).resolve().parents[2]
-    if (inferred / ".git").exists() and any((inferred / d).is_dir() for d in DATA_DIRS):
+    if (inferred / ".git").exists() and (inferred / DATA_DIR).is_dir():
         return inferred
     return Path.home() / "dotbrain"
 
 
 def data_dir(dotbrain_home: Path) -> Path:
-    """The data-root directory holding Brainspaces.
-
-    Prefers ``brainspaces/`` and falls back to a legacy ``projects/`` when only that exists; a
-    fresh root with neither defaults to ``brainspaces/``.
-    """
-    root = Path(dotbrain_home)
-    for name in DATA_DIRS:
-        if (root / name).is_dir():
-            return confined_path(root, name)
-    return confined_path(root, DATA_DIRS[0])
+    """The data-root directory holding Brainspaces."""
+    return confined_path(Path(dotbrain_home), DATA_DIR)
 
 
 def validate_project_name(name: str) -> str:

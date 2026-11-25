@@ -23,8 +23,7 @@ Codex 项目 skills 放在 `.agents/skills/`，配置和 subagents 仍在 `.code
 `skills link` 会在新链接分发成功后移除自有的 `.codex/skills/` 旧链接，保留并报告其他来源的条目和冲突。
 迁移细节见[Skills](skills.md#select-and-reconcile-skills)。全局 skills 主目录的位置不变。
 
-Brainspace 放在 `~/dotbrain/brainspaces/<name>/` 下。旧的 `~/dotbrain/projects/<name>/` 布局仍然能识别；
-新的 Brainspace 会建在 `brainspaces/` 下。
+Brainspace 放在 `~/dotbrain/brainspaces/<name>/` 下。
 
 ## 该用哪个命令 {#which-command-to-use}
 

@@ -73,7 +73,7 @@ def test_normalize_server_beads_metadata_drops_port_key_keeps_identity(tmp_path:
 
 
 def test_init_beads_preserves_repo_root_beads_symlink(dotbrain_home: Path):
-    # project #0's repo-root .beads is gitignored local wiring pointing at projects/dotbrain/.beads
+    # project #0's repo-root .beads is gitignored local wiring pointing at brainspaces/dotbrain/.beads
     proj0_beads = dotbrain_home / "brainspaces" / "dotbrain" / ".beads"
     proj0_beads.mkdir(parents=True)
     root_beads = dotbrain_home / ".beads"

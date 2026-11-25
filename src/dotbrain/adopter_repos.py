@@ -186,7 +186,7 @@ def foreign_dotbrain_home_for_symlink(path: Path, link_name: str, dotbrain_home:
         return None
     project_dir = target.parent
     data_dir = project_dir.parent
-    if data_dir.name not in paths.DATA_DIRS:
+    if data_dir.name != paths.DATA_DIR:
         return None
     inferred_root = data_dir.parent.resolve()
     if inferred_root == Path(dotbrain_home).resolve():

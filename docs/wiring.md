@@ -26,8 +26,7 @@ Codex project skills go in `.agents/skills/`; its configuration and agents stay 
 replacement, preserving and reporting foreign entries and collisions. See [Skills](skills.md#select-and-reconcile-skills)
 for migration behavior. Global skill homes keep their existing destinations.
 
-Brainspaces live under `~/dotbrain/brainspaces/<name>/`. An older `~/dotbrain/projects/<name>/`
-layout is still recognized; new Brainspaces are created under `brainspaces/`.
+Brainspaces live under `~/dotbrain/brainspaces/<name>/`.
 
 ## Which Command to Use
 
