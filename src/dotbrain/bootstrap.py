@@ -47,15 +47,25 @@ class DataRootResult:
     logs: list[str] = field(default_factory=list)
 
 
-def ensure_root_gitignore(dotbrain_home: Path) -> bool:
-    """Seed the data-root gitignore without replacing operator-owned entries."""
+def ensure_root_gitignore(dotbrain_home: Path) -> list[str]:
+    """Seed the data-root gitignore, or add the scratch rule an existing one lacks.
+
+    Operator-owned entries are never replaced. Home sync commits everything not ignored,
+    so every home needs the scratch rule, including homes seeded before it existed.
+    """
 
     path = paths.confined_path(Path(dotbrain_home), ".gitignore")
-    desired = resource_loader.resource("templates/gitignore").read_text(encoding="utf-8")
-    if path.exists() or path.is_symlink():
-        return False
-    path.write_text(desired, encoding="utf-8", newline="\n")
-    return True
+    if not (path.exists() or path.is_symlink()):
+        desired = resource_loader.resource("templates/gitignore").read_text(encoding="utf-8")
+        path.write_text(desired, encoding="utf-8", newline="\n")
+        return [f"seeded .gitignore into {dotbrain_home}"]
+    current = path.read_text(encoding="utf-8")
+    if paths.BRAIN_SCRATCH_IGNORE in current.splitlines():
+        return []
+    separator = "" if not current or current.endswith("\n") else "\n"
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(f"{separator}{paths.BRAIN_SCRATCH_IGNORE}\n")
+    return [f"added {paths.BRAIN_SCRATCH_IGNORE} to {path}"]
 
 
 def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_home: Path | None = None) -> DataRootResult:
@@ -94,8 +104,7 @@ def ensure_data_root(dotbrain_home: Path, *, run: Runner = _default_run, user_ho
         result.git_initialized = True
         result.logs.append(f"initialized git checkout: {root}")
 
-    if ensure_root_gitignore(root):
-        result.logs.append(f"seeded .gitignore into {root}")
+    result.logs += ensure_root_gitignore(root)
 
     if migration is not None:
         result.logs += profile_migration.apply(root, migration)

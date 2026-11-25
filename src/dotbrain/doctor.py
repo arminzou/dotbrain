@@ -533,7 +533,7 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
                         for message in config.obsolete_project_settings(root, target.project))
         findings.extend(Finding("error", f"custom subagent '{name}' uses the reserved {subagents.PACKAGED_PREFIX} prefix",
                                 "rename the custom subagent") for name in agents if name.startswith(subagents.PACKAGED_PREFIX))
-        entries = ["/.brain", paths.RETIRED_AGENT_TMP_EXCLUDE] + (["/.beads"] if beads.mode != "none" else [])
+        entries = ["/.brain"] + (["/.beads"] if beads.mode != "none" else [])
         for workspace in workspaces:
             directory = repo / workspace
             if directory.is_symlink() or not directory.is_dir():

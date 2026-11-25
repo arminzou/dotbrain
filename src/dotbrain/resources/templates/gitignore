@@ -17,3 +17,6 @@ brainspaces/*/.agents/skills/
 brainspaces/*/.claude/agents/
 brainspaces/*/.codex/agents/
 brainspaces/*/.repo.local
+
+# Disposable run output inside each Brain: trails, reports, evidence, prototypes.
+brainspaces/*/.brain/scratch/

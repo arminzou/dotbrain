@@ -458,8 +458,6 @@ def wire_repo(
         for name in targets:
             ensure_local_exclude_line(repo, f"/{name}", run)
     warnings += warn_if_tracked_external_symlinks(repo, tuple(targets), run)
-    if use_local_excludes:
-        ensure_local_exclude_line(repo, paths.RETIRED_AGENT_TMP_EXCLUDE, run)
     return warnings
 
 
