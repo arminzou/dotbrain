@@ -401,7 +401,8 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
                                     f"add the line {paths.BRAIN_SCRATCH_IGNORE} to {ignore}"))
         tracked = home_sync._git(git, root, "ls-files", "-z", "--cached").stdout
         findings.extend(Finding("warn", f"home sync: {path} is tracked run output that sync no longer updates",
-                                "untrack it with git rm --cached in the dotbrain home")
+                                "in the dotbrain home, run git rm -r --cached on it and commit at once, "
+                                "before the next sync restores it")
                         for path in sorted(set(tracked.split("\0"))) if path and paths.is_brain_scratch(path))
         listed = home_sync._git(git, root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").stdout
         findings.extend(Finding("warn", f"home sync: open conflict copy {path}",
@@ -411,7 +412,8 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
         findings.extend(Finding("warn", f"home sync: {path} is over the size limit and stays uncommitted",
                                 "commit it yourself, ignore it, or raise sync.max-file-size")
                         for path in state.changed
-                        if not home_sync._is_nested_repo(root, path) and home_sync._too_large(root, path, settings.max_file_size))
+                        if not paths.is_brain_scratch(path) and not home_sync._is_nested_repo(root, path)
+                        and home_sync._too_large(root, path, settings.max_file_size))
         findings.extend(Finding("warn", f"home sync: submodule {path} is not cloned on this machine",
                                 "run dotbrain sync")
                         for path in home_sync.uninitialized_submodules(root))

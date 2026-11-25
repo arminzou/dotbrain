@@ -58,8 +58,10 @@ so a moved and deleted copy cannot be recovered. Then move run output already in
 dated logs, verification reports, and evidence folders under `docs/`, into a run folder under
 `scratch/`. Home sync records the moved files as deleted; earlier commits keep them. Rewrite any
 record that cites one of the moved paths so it states the conclusion instead. If an earlier release
-committed files under `scratch/`, untrack them with `git rm -r --cached` in the dotbrain home;
-`dotbrain doctor` lists any that remain.
+committed files under `scratch/`, run `git rm -r --cached` on them in the dotbrain home and commit
+at once: the next sync resets the index, so an uncommitted removal is undone. Other machines delete
+their copies when they pull that commit, so back up anything you want to keep first.
+`dotbrain doctor` lists any tracked scratch files that remain.
 
 `wire` no longer creates a `.dotbrain-tmp/` exclude in checkouts. Move anything you still need out of
 an existing `.dotbrain-tmp/` folder, then delete the folder; `unwire` removes its old exclude entry.

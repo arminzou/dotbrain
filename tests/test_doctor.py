@@ -656,6 +656,14 @@ def test_home_gitignore_without_the_scratch_rule_is_reported(synced_home):
     assert any(paths.BRAIN_SCRATCH_IGNORE in message for message in warnings)
 
 
+def test_large_scratch_files_get_no_size_limit_advice(synced_home):
+    (synced_home / ".gitignore").write_text("*.tmp\n", encoding="utf-8")
+    write(synced_home / "config.yaml", "sync:\n  max-file-size: 10\n")
+    write(synced_home / "brainspaces/alpha/.brain/scratch/2026-01-02-probe/trace.json", "x" * 100)
+    findings = sync_findings(synced_home)
+    assert not any("over the size limit" in message and "/scratch/" in message for _, message in findings)
+
+
 def test_tracked_scratch_files_are_reported(synced_home):
     write(synced_home / "brainspaces/alpha/.brain/scratch/2026-01-02-probe/trail.tsv", "x\n")
     git(synced_home, "add", "-f", "brainspaces/alpha/.brain/scratch")

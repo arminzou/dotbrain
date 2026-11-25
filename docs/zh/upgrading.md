@@ -47,8 +47,9 @@ Beads 通过 Dolt remote 或服务器备份单独保存，home sync 不备份 tr
 home sync 因体积过大而跳过的文件从未被提交，移走并删除后就无法恢复。然后把 Brain 中已有的运行产出
 移入 `scratch/` 下的某个运行文件夹，例如 `docs/` 里带日期的日志、验证报告和证据文件夹。home sync
 会把移走的文件记录为删除，之前的提交仍保留它们。如果某条记录引用了被移走的路径，把它改写为直接陈述结论。
-如果早期版本已经提交了 `scratch/` 下的文件，在 dotbrain home 中用 `git rm -r --cached` 取消跟踪；
-`dotbrain doctor` 会列出剩余的文件。
+如果早期版本已经提交了 `scratch/` 下的文件，在 dotbrain home 中对它们运行 `git rm -r --cached`，
+并立即提交：下一次 sync 会重置索引，未提交的移除会被撤销。其他机器拉取这次提交时会删除它们本地的副本，
+需要保留的内容请先备份。`dotbrain doctor` 会列出仍被跟踪的 scratch 文件。
 
 `wire` 不再为 checkout 创建 `.dotbrain-tmp/` 的 exclude 条目。先把仍需要的内容移出现有的
 `.dotbrain-tmp/` 文件夹，再删除该文件夹；`unwire` 会移除旧的 exclude 条目。
