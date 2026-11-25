@@ -39,13 +39,16 @@ Beads 通过 Dolt remote 或服务器备份单独保存，home sync 不备份 tr
 ## scratch 中的运行产出 {#run-output-in-scratch}
 
 工作流现在把每次运行的 trail、计划、brief、报告、证据和原型写入
-`.brain/scratch/<yyyy-mm-dd>-<slug>/`，`docs/` 只保存持续维护的记录。运行一次
-`dotbrain refresh`：如果 home 的 `.gitignore` 缺少 `brainspaces/*/.brain/scratch/` 规则，它会补上，
-其他条目保持不变。
+`.brain/scratch/<yyyy-mm-dd>-<slug>/`，`docs/` 只保存持续维护的记录。home sync 从不提交 Brain 的
+`scratch/` 下的任何路径。另外请在 home 的 `.gitignore` 中加入 `brainspaces/*/.brain/scratch/`，
+让 home 里的其他 Git 命令也跳过它；在加上这一行之前，`dotbrain doctor` 会一直给出警告。
 
-然后把 Brain 中已有的运行产出移入 `scratch/` 下的某个运行文件夹，例如 `docs/` 里带日期的日志、
-验证报告和证据文件夹。home sync 会把移走的文件记录为删除，之前的提交仍保留它们。如果某条记录引用了
-被移走的路径，把它改写为直接陈述结论。
+移动已有的运行产出之前，先把后续工作仍需要的私有证据保存到任务跟踪或某条持续维护的记录中。
+home sync 因体积过大而跳过的文件从未被提交，移走并删除后就无法恢复。然后把 Brain 中已有的运行产出
+移入 `scratch/` 下的某个运行文件夹，例如 `docs/` 里带日期的日志、验证报告和证据文件夹。home sync
+会把移走的文件记录为删除，之前的提交仍保留它们。如果某条记录引用了被移走的路径，把它改写为直接陈述结论。
+如果早期版本已经提交了 `scratch/` 下的文件，在 dotbrain home 中用 `git rm -r --cached` 取消跟踪；
+`dotbrain doctor` 会列出剩余的文件。
 
 `wire` 不再为 checkout 创建 `.dotbrain-tmp/` 的 exclude 条目。先把仍需要的内容移出现有的
 `.dotbrain-tmp/` 文件夹，再删除该文件夹；`unwire` 会移除旧的 exclude 条目。

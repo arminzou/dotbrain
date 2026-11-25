@@ -47,14 +47,19 @@ skills; see [choosing a workflow](workflow.md#skill-workflow).
 ## Run output in scratch
 
 Workflows now write each run's trails, plans, briefs, reports, evidence, and prototypes in
-`.brain/scratch/<yyyy-mm-dd>-<slug>/`, and `docs/` holds maintained records only. Run
-`dotbrain refresh` once: it adds `brainspaces/*/.brain/scratch/` to the home `.gitignore` when the
-rule is missing, leaving your other entries as they are.
+`.brain/scratch/<yyyy-mm-dd>-<slug>/`, and `docs/` holds maintained records only. Home sync never
+commits a path under a Brain's `scratch/`. Add `brainspaces/*/.brain/scratch/` to the home
+`.gitignore` as well, so other Git commands in the home skip it; `dotbrain doctor` warns until the
+line is there.
 
-Then move run output already in a Brain, such as dated logs, verification reports, and evidence
-folders under `docs/`, into a run folder under `scratch/`. Home sync records the moved files as
-deleted from history going forward; earlier commits keep them. Rewrite any record that cites one of
-the moved paths so it states the conclusion instead.
+Before moving existing run output, keep any private evidence that later work still needs in the
+tracker or a maintained record. Files that home sync skipped for their size were never committed,
+so a moved and deleted copy cannot be recovered. Then move run output already in a Brain, such as
+dated logs, verification reports, and evidence folders under `docs/`, into a run folder under
+`scratch/`. Home sync records the moved files as deleted; earlier commits keep them. Rewrite any
+record that cites one of the moved paths so it states the conclusion instead. If an earlier release
+committed files under `scratch/`, untrack them with `git rm -r --cached` in the dotbrain home;
+`dotbrain doctor` lists any that remain.
 
 `wire` no longer creates a `.dotbrain-tmp/` exclude in checkouts. Move anything you still need out of
 an existing `.dotbrain-tmp/` folder, then delete the folder; `unwire` removes its old exclude entry.

@@ -62,8 +62,9 @@ instead of duplicating their rationale. Missing evidence stays a named gap.
 Preserve a useful conclusion with enough evidence to assess it. Its prototype and raw
 artifacts stay in the run's scratch folder; a record states the conclusion and how it was
 checked rather than citing a scratch path. When reproduction, review, or unfinished work
-needs an artifact to outlive the run, attach it to the pull request or tracked item, or move it
-into the repository. Preserving a conclusion does not require preserving every experimental variant.
+needs an artifact to outlive the run, keep private material with the tracked item or the
+promoted record, and put only public material in a pull request or the repository. Preserving
+a conclusion does not require preserving every experimental variant.
 
 Before saving, reread the current target and reconcile concurrent edits. Check numbering
 again when creating a numbered record; do not overwrite an existing file. If competing

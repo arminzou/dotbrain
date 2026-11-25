@@ -70,18 +70,20 @@ revokes the other. Check the relevant decision, not the whole archive.
 
 ## Run output in scratch
 
-Write each run's files in `.brain/scratch/<yyyy-mm-dd>-<slug>/`, one folder per run,
-with the slug naming its task or tracked item. Use `trail.tsv`, `plan.md`, `briefs/`,
-`reports/`, `evidence/`, `measurements/`, and `prototype/`, adding another name only
-when none fits. The home ignores `scratch/`: home sync never commits it, so it is
-neither backed up nor shared between machines, and any run folder may be deleted.
+Write each run's files in `.brain/scratch/<yyyy-mm-dd>-<slug>/`, with the slug naming
+its task or tracked item. Create a new folder for every run, adding `-2`, `-3`, and so
+on when the name is taken. Use `trail.tsv`, `plan.md`, `briefs/`, `reports/`,
+`evidence/`, `measurements/`, and `prototype/`, adding another name only when none
+fits. Home sync never commits `scratch/`, so it is neither backed up nor shared
+between machines, and any run folder may be deleted.
 
 Durable understanding leaves a run only by updating `CONTEXT.md`, an ADR, a design,
 or a `docs/` record; otherwise nothing is kept. No record, pull request, or tracked
-item cites a scratch path, so evidence that must outlive the run goes into the pull
-request, the tracker, or the promoted record. Move reusable tools, models, and
-baselines to the repository or a skill. Read scratch only through a path the current
-run or a brief names; Brain maintenance and audits skip it.
+item cites a scratch path. Private evidence that must outlive the run goes into the
+tracker or the promoted record; a pull request or the repository holds only public
+material. Move reusable tools, models, and baselines to the repository or a skill.
+Read scratch only through a path the current run or a brief names; Brain maintenance
+and audits skip it.
 
 ## Safe maintenance and privacy
 
