@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.17.0](https://github.com/arminzou/dotbrain/compare/v0.16.1...v0.17.0) (2026-11-25)
+
+
+### Features
+
+* **convention:** keep run output in each Brain's scratch folder ([862a193](https://github.com/arminzou/dotbrain/commit/862a193fbb67706a163720a51059c47f317131d0))
+* ignore Brain scratch in the home and retire the checkout tmp folder ([68f755d](https://github.com/arminzou/dotbrain/commit/68f755d923da75e05a3d75f6e451a7734e9ca34b))
+
+
+### Bug Fixes
+
+* **doctor:** give scratch files no size-limit advice and untrack them safely ([e45bdac](https://github.com/arminzou/dotbrain/commit/e45bdac7ee61fc0f28d79f2dba4a78c9637274fa))
+* keep scratch out of home sync itself instead of editing the home gitignore ([d9e6651](https://github.com/arminzou/dotbrain/commit/d9e6651c463a59d00ef501d53a98366518c249cd))
+* leave a missing home gitignore to bootstrap during refresh ([26fff04](https://github.com/arminzou/dotbrain/commit/26fff0460f686e5730919dffcbc5b429ad0eccc6))
+
+
+### Documentation
+
+* **convention:** give every run its own folder and keep private evidence private ([719c995](https://github.com/arminzou/dotbrain/commit/719c995d7687920fd3704b3d4cb807ef3a6fed5e))
+
 ## [0.16.1](https://github.com/arminzou/dotbrain/compare/v0.16.0...v0.16.1) (2026-11-20)
 
 
