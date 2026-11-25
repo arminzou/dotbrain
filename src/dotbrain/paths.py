@@ -38,8 +38,10 @@ def legacy_global_settings(dotbrain_home: Path) -> list[str]:
 
 # Matching anchored entries written to an adopter repo's .git/info/exclude.
 EXCLUDE_ENTRIES: tuple[str, ...] = ("/.brain", "/.beads")
-# Agent working files (comment files, scratch scripts) that live in a checkout but are never committed.
-AGENT_TMP_EXCLUDE = "/.dotbrain-tmp/"
+# Retired checkout folder for agent working files; unwire still removes its old exclude entry.
+RETIRED_AGENT_TMP_EXCLUDE = "/.dotbrain-tmp/"
+# Run output lives in each Brain's scratch folder, which home sync must never commit.
+BRAIN_SCRATCH_IGNORE = "brainspaces/*/.brain/scratch/"
 
 # Reported for a Brainspace with no registered checkout, such as a retired Brain-only one.
 NO_CHECKOUT = "no registered checkout"

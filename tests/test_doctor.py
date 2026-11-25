@@ -317,13 +317,13 @@ def test_current_nested_checkout_and_shared_excludes(tmp_path):
     assert not any(argv[0] == "bd" for argv, _ in calls)
 
 
-def test_missing_agent_tmp_exclude_is_reported(tmp_path):
+def test_missing_retired_agent_tmp_exclude_is_not_reported(tmp_path):
     root = tmp_path / "home"
     repo = tmp_path / "repo"
     make_project(root, repo=repo)
     write(repo / ".git/info/exclude", "/.brain\n/.beads\n")
     report = doctor.run_doctor(root, home=tmp_path / "user", cwd=repo, run=recording_run(repo, []))
-    assert any("missing /.dotbrain-tmp/" in message for message in errors(report.projects["example"]))
+    assert not any(".dotbrain-tmp" in message for message in errors(report.projects["example"]))
 
 
 def test_real_worktree_uses_git_shared_excludes_read_only(tmp_path):
