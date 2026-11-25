@@ -49,7 +49,10 @@ if (fastTimers) {
     if (fastTimers !== "cli") return real(fn, Math.min(ms, 1500), ...rest)
     // Expire the CLI cap only after the fake has recorded its call, regardless of startup speed.
     const timer = setInterval(() => {
-      if (!fs.existsSync(new URL("./bin/calls.log", import.meta.url))) return
+      // A complete line, not just the file: Windows can kill the fake between creating and writing it.
+      let text = ""
+      try { text = fs.readFileSync(new URL("./bin/calls.log", import.meta.url), "utf8") } catch {}
+      if (!text.endsWith("\n")) return
       clearInterval(timer)
       cliTimedOut = true
       fn(...rest)
