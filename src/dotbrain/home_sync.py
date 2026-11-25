@@ -331,6 +331,9 @@ def record(home: Path, max_file_size: int, run: Runner = subprocess.run,
     skipped: list[str] = []
     nested: list[str] = []
     for path in unstaged:
+        # Run output is disposable by contract, so a missing or overridden ignore rule cannot publish it.
+        if paths.is_brain_scratch(path):
+            continue
         repository = _nested_repo_path(home, path)
         if repository in gitlinks:
             name, shown = _group(repository, data_dir)

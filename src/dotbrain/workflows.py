@@ -389,7 +389,6 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                 continue
             assets.project_workspaces(dotbrain_home, target, runtime)
     result = RefreshResult()
-    result.logs += bootstrap.ensure_root_gitignore(dotbrain_home, seed=False)
     # Refresh never migrates global settings: bootstrap owns that and may relink runtime homes.
     leftover = paths.legacy_global_settings(dotbrain_home)
     for index, selected in enumerate(targets, 1):

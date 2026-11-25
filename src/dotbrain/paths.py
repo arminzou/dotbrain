@@ -43,6 +43,12 @@ RETIRED_AGENT_TMP_EXCLUDE = "/.dotbrain-tmp/"
 # Run output lives in each Brain's scratch folder, which home sync must never commit.
 BRAIN_SCRATCH_IGNORE = "brainspaces/*/.brain/scratch/"
 
+
+def is_brain_scratch(relative: str) -> bool:
+    """Whether a home-relative path lies in a Brain's scratch folder."""
+    parts = relative.replace("\\", "/").split("/")
+    return len(parts) >= 4 and parts[0] == "brainspaces" and parts[2:4] == [".brain", "scratch"]
+
 # Reported for a Brainspace with no registered checkout, such as a retired Brain-only one.
 NO_CHECKOUT = "no registered checkout"
 

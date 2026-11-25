@@ -449,25 +449,6 @@ def test_refresh_projects_warns_for_missing_repo_and_still_loads_beads(
     assert result.refreshed == []
 
 
-def test_refresh_projects_adds_the_scratch_rule_to_an_existing_home_gitignore(
-    dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
-):
-    brainspace = paths.brainspace(dotbrain_home, "brain-only")
-    (brainspace / ".brain").mkdir(parents=True)
-    (brainspace / ".repo").write_text("(brain-only)\n")
-    (brainspace / ".brain" / "project.yaml").write_text("agents: []\nbeads: {mode: none}\n", encoding="utf-8")
-    (dotbrain_home / ".gitignore").write_text("/.cache/\n", encoding="utf-8")
-    monkeypatch.setattr(
-        workflows.beads,
-        "pull_beads_for_all",
-        lambda dotbrain_home_arg, *, run, projects: beads.BootstrapResult(logs=[]),
-    )
-
-    workflows.refresh_projects(dotbrain_home, project="brain-only")
-
-    assert (dotbrain_home / ".gitignore").read_text().splitlines() == ["/.cache/", paths.BRAIN_SCRATCH_IGNORE]
-
-
 def test_refresh_projects_silent_for_brain_only_project(
     dotbrain_home: Path, monkeypatch: pytest.MonkeyPatch
 ):

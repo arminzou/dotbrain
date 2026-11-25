@@ -393,6 +393,16 @@ def _check_home_sync(root: Path, run: Runner) -> list[Finding]:
                                         f"to be pushed to {state.upstream}", "run dotbrain sync"))
             else:
                 findings.append(Finding("ok", f"home sync: nothing waiting for {state.upstream} (as last fetched)"))
+        ignore = root / ".gitignore"
+        rules = ignore.read_text(encoding="utf-8", errors="replace").splitlines() if ignore.is_file() else []
+        if paths.BRAIN_SCRATCH_IGNORE not in rules:
+            findings.append(Finding("warn", f"home .gitignore lacks {paths.BRAIN_SCRATCH_IGNORE}; home sync skips "
+                                    "scratch, but other Git commands in the home would commit it",
+                                    f"add the line {paths.BRAIN_SCRATCH_IGNORE} to {ignore}"))
+        tracked = home_sync._git(git, root, "ls-files", "-z", "--cached").stdout
+        findings.extend(Finding("warn", f"home sync: {path} is tracked run output that sync no longer updates",
+                                "untrack it with git rm --cached in the dotbrain home")
+                        for path in sorted(set(tracked.split("\0"))) if path and paths.is_brain_scratch(path))
         listed = home_sync._git(git, root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").stdout
         findings.extend(Finding("warn", f"home sync: open conflict copy {path}",
                                 "reconcile it with the original file, then delete the copy")

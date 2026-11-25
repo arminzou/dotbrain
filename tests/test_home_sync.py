@@ -636,6 +636,18 @@ def test_files_skipped_by_the_size_limit_survive_the_merge(home: Path, other: Pa
     assert git(home, "status", "--porcelain") == "M brainspaces/alpha/.brain/CONTEXT.md"
 
 
+def test_brain_scratch_is_never_committed_even_without_an_ignore_rule(home: Path):
+    write(home / ALPHA / "scratch" / "2026-01-02-probe" / "trail.tsv")
+    write(home / ALPHA / "notes.md")
+
+    report = home_sync.sync(home)
+
+    assert report.push == "pushed"
+    tracked = git(home, "ls-files").splitlines()
+    assert "brainspaces/alpha/.brain/notes.md" in tracked
+    assert not any("/.brain/scratch/" in path for path in tracked)
+
+
 def moving_remote(other: Path, moves: int):
     """A runner where the other machine pushes just before each of the first ``moves`` pushes."""
     calls: list[list[str]] = []

@@ -598,6 +598,7 @@ def synced_home_seed(tmp_path_factory):
     for key, value in (("user.name", "Test"), ("user.email", "test@example.com"), ("core.autocrlf", "false")):
         git(root, "config", key, value)
     write(root / "brainspaces/alpha/.brain/CONTEXT.md", "base\n")
+    write(root / ".gitignore", "brainspaces/*/.brain/scratch/\n")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "initial")
     git(root, "remote", "add", "origin", remote.as_posix())
@@ -647,6 +648,20 @@ def test_clean_synced_home_reports_no_sync_problems(synced_home, tmp_path):
     assert snapshot(synced_home) == before
     report = doctor.run_doctor(synced_home, home=tmp_path / "user", all_projects=True)
     assert not [f for f in report.machine if f.message.startswith("home sync") and f.status in {"warn", "error"}]
+
+
+def test_home_gitignore_without_the_scratch_rule_is_reported(synced_home):
+    (synced_home / ".gitignore").write_text("*.tmp\n", encoding="utf-8")
+    warnings = [message for status, message in sync_findings(synced_home) if status == "warn"]
+    assert any(paths.BRAIN_SCRATCH_IGNORE in message for message in warnings)
+
+
+def test_tracked_scratch_files_are_reported(synced_home):
+    write(synced_home / "brainspaces/alpha/.brain/scratch/2026-01-02-probe/trail.tsv", "x\n")
+    git(synced_home, "add", "-f", "brainspaces/alpha/.brain/scratch")
+    git(synced_home, "commit", "-q", "-m", "tracked by an older release")
+    warnings = [message for status, message in sync_findings(synced_home) if status == "warn"]
+    assert any("brainspaces/alpha/.brain/scratch/2026-01-02-probe/trail.tsv" in message for message in warnings)
 
 
 def test_sync_disabled_and_home_outside_git_are_informational(synced_home, tmp_path):
