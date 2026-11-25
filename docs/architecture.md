@@ -69,7 +69,8 @@ Each element of a Brain has one purpose:
 | `designs/` | Design docs, one initiative per file | An initiative is planned, built, or closed |
 | `DOTBRAIN.md` | The shared convention, owned by dotbrain | `dotbrain refresh` updates it |
 | `project.yaml` | Runtime, tracker, skill, and subagent selection | You change what the project uses |
-| `docs/` | Derived runbooks and reference | Anytime; never authoritative |
+| `docs/` | Maintained findings, references, and explanations | The understanding changes; never authoritative |
+| `scratch/` | Run output: trails, plans, briefs, reports, evidence, prototypes; git-ignored | Every run; delete any time |
 
 An ADR earns its cost when a future reader with the code and current docs could still make
 a consequential mistake without the rationale: repeat a failed approach, violate an external

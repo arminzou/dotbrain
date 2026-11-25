@@ -37,7 +37,8 @@ does not delete the Brainspace or its work history.
 | `CONTEXT.md` | Settled project vocabulary and domain model |
 | `adr/` | Consequential accepted decisions and their rationale |
 | `designs/` | Initiative intent, constraints, criteria, uncertainty, and lifecycle |
-| `docs/` | Findings, references, maintained explanations, and supporting evidence |
+| `docs/` | Maintained findings, references, and explanations |
+| `scratch/` | Run output: trails, plans, briefs, reports, evidence, measurements, prototypes; never committed |
 | Beads | Tasks, dependencies, ownership, criteria, work state, and execution evidence |
 | Repository `RULES.md` | Adopted public repository requirements |
 
@@ -46,9 +47,9 @@ Beads graph operations. `repo-rules` initializes and reconciles repository
 requirements when requested. These capabilities do not select an engineering
 workflow; the selected workflow owns execution procedures.
 
-These destinations apply when information needs durable preservation, including
-when a workflow names a file. Session reasoning, temporary checklists, and
-disposable experiments may remain temporary. Preserve Brain understanding when
+These destinations apply when information needs durable preservation. Session
+reasoning, temporary checklists, and disposable experiments may remain temporary;
+files a workflow writes for one run go in `scratch/`. Preserve Brain understanding when
 later work needs information that existing sources do not adequately retain.
 Use Beads for work needing durable continuation or coordination, and keep existing
 tracked work current. Honor explicit capture requests. A task may finish without
@@ -66,6 +67,21 @@ amendments or replacement. Proposals and retired decisions provide context.
 Code establishes current behavior; applicable adopted decisions establish intended
 constraints. Surface material conflicts without assuming either source silently
 revokes the other. Check the relevant decision, not the whole archive.
+
+## Run output in scratch
+
+Write each run's files in `.brain/scratch/<yyyy-mm-dd>-<slug>/`, one folder per run,
+with the slug naming its task or tracked item. Use `trail.tsv`, `plan.md`, `briefs/`,
+`reports/`, `evidence/`, `measurements/`, and `prototype/`, adding another name only
+when none fits. The home ignores `scratch/`: home sync never commits it, so it is
+neither backed up nor shared between machines, and any run folder may be deleted.
+
+Durable understanding leaves a run only by updating `CONTEXT.md`, an ADR, a design,
+or a `docs/` record; otherwise nothing is kept. No record, pull request, or tracked
+item cites a scratch path, so evidence that must outlive the run goes into the pull
+request, the tracker, or the promoted record. Move reusable tools, models, and
+baselines to the repository or a skill. Read scratch only through a path the current
+run or a brief names; Brain maintenance and audits skip it.
 
 ## Safe maintenance and privacy
 

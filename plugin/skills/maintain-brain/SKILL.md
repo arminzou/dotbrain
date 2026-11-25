@@ -23,6 +23,7 @@ The destinations below apply to material worth retaining; a task need not produc
 | Adopted decisions whose rationale needs independent preservation | `.brain/adr/` | [ADR selection and decisions](references/adr-format.md) |
 | Initiative intent, design, uncertainty, and outcome | `.brain/designs/` | [Designs and lifecycle](references/design-format.md) |
 | Verified findings, supporting sources, maintained explanations | `.brain/docs/` | [Findings and references](references/findings.md) |
+| Run output: trails, plans, briefs, reports, evidence, measurements, prototypes | `.brain/scratch/<yyyy-mm-dd>-<slug>/`, never committed | `DOTBRAIN.md`, "Run output in scratch" |
 | Work needing durable continuation or coordination, including agreed follow-up | Beads | Use `work-graph` for graph operations |
 | Adopted public repository requirements and their routing | Repository `RULES.md` and `AGENTS.md` | Use `repo-rules` for public requirement changes |
 
@@ -58,9 +59,11 @@ or linking its source over creating a parallel explanation. Keep the source, dat
 revision, applicability, and authority beside the claim they support. Link related records
 instead of duplicating their rationale. Missing evidence stays a named gap.
 
-Preserve a useful conclusion with enough evidence to assess it. Keep its prototype or raw
-artifacts only when reproduction, consequential evidence, review, or unfinished work needs
-them. Preserving a conclusion does not require preserving every experimental variant.
+Preserve a useful conclusion with enough evidence to assess it. Its prototype and raw
+artifacts stay in the run's scratch folder; a record states the conclusion and how it was
+checked rather than citing a scratch path. When reproduction, review, or unfinished work
+needs an artifact to outlive the run, attach it to the pull request or tracked item, or move it
+into the repository. Preserving a conclusion does not require preserving every experimental variant.
 
 Before saving, reread the current target and reconcile concurrent edits. Check numbering
 again when creating a numbered record; do not overwrite an existing file. If competing

@@ -35,3 +35,17 @@ Beads 通过 Dolt remote 或服务器备份单独保存，home sync 不备份 tr
 
 恢复先前 release 及保存的配置和资源。还原旧私有文件或后端状态前，先协调升级后产生的新工作。
 软件回滚不能覆盖更新的工作记录。
+
+## scratch 中的运行产出 {#run-output-in-scratch}
+
+工作流现在把每次运行的 trail、计划、brief、报告、证据和原型写入
+`.brain/scratch/<yyyy-mm-dd>-<slug>/`，`docs/` 只保存持续维护的记录。运行一次
+`dotbrain refresh`：如果 home 的 `.gitignore` 缺少 `brainspaces/*/.brain/scratch/` 规则，它会补上，
+其他条目保持不变。
+
+然后把 Brain 中已有的运行产出移入 `scratch/` 下的某个运行文件夹，例如 `docs/` 里带日期的日志、
+验证报告和证据文件夹。home sync 会把移走的文件记录为删除，之前的提交仍保留它们。如果某条记录引用了
+被移走的路径，把它改写为直接陈述结论。
+
+`wire` 不再为 checkout 创建 `.dotbrain-tmp/` 的 exclude 条目。先把仍需要的内容移出现有的
+`.dotbrain-tmp/` 文件夹，再删除该文件夹；`unwire` 会移除旧的 exclude 条目。

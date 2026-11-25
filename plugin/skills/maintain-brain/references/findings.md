@@ -2,7 +2,9 @@
 
 Use `.brain/docs/` when a finding, reference, or explanation needs continuing discovery
 that existing sources do not adequately support. Prefer a source link or an existing
-relevant document; choose a descriptive filename only when a new record earns its upkeep.
+relevant document; choose a descriptive, stable filename only when a new record earns its
+upkeep, and update that record in place. A date or run identifier in the name marks run output,
+which belongs in `scratch/`.
 Retained initiative-specific uncertainty belongs in its design. Use Beads for work and
 execution evidence needing durable continuation or coordination.
 
@@ -17,7 +19,8 @@ A useful finding carries:
 | Open question | What remains unknown and what would resolve it, if relevant |
 
 Record enough check detail to assess a retained claim: command, revision,
-environment, result, and evidence location. A passing source check does not establish
+environment, result, and an evidence location that outlives the run, such as a pull request,
+tracked item, or repository path, never a scratch path. A passing source check does not establish
 runtime behavior. A source's assertion is not an independently verified observation;
 attribute it and retain conflicting evidence. Current behavior alone does not establish
 historical intent.
