@@ -3,8 +3,6 @@
 
 Usage: python scripts/bump.py 0.1.4
 
-The version lives in six places because each consumer reads it differently
-(build backend, runtime, two plugin manifests, two first-run installers).
 tests/test_plugin_build.py asserts they stay in lockstep.
 """
 
@@ -19,6 +17,7 @@ SITES = [
     ("pyproject.toml", r'^version = "([^"]+)"'),
     ("src/dotbrain/__init__.py", r'^__version__ = "([^"]+)"'),
     ("plugin/.claude-plugin/plugin.json", r'"version": "([^"]+)"'),
+    ("plugin/.antigravity-plugin/plugin.json", r'"version": "([^"]+)"'),
     ("plugin/.codex-plugin/plugin.json", r'"version": "([^"]+)"'),
     ("plugin/scripts/install.sh", r'DOTBRAIN_VERSION="([^"]+)"'),
     ("plugin/scripts/install.ps1", r'DotbrainVersion = "([^"]+)"'),

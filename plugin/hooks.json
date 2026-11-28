@@ -1,0 +1,18 @@
+{
+  "dotbrain": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "dotbrain hook antigravity --event startup || echo {}",
+        "timeout": 15
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "dotbrain hook antigravity --event turn-end || echo {}",
+        "timeout": 15
+      }
+    ]
+  }
+}
