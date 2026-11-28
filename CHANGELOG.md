@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.0](https://github.com/arminzou/dotbrain/compare/v0.17.0...v0.18.0) (2026-11-28)
+
+
+### Features
+
+* **plugin:** add Antigravity plugin manifest, hooks, and packaging ([b7ede70](https://github.com/arminzou/dotbrain/commit/b7ede70c6e7cbae4ac350790e85f1fdbf5862519))
+* **runtime:** add Antigravity delivery, hooks, and shared skills support ([ad6a27d](https://github.com/arminzou/dotbrain/commit/ad6a27d082c4020a3d47939200727054ee0d77d6))
+
+
+### Documentation
+
+* document Google Antigravity setup, hooks, and shared skills ([28acb03](https://github.com/arminzou/dotbrain/commit/28acb03201177b3b0fadd7ae1dd56d666a2914c2))
+
 ## [0.17.0](https://github.com/arminzou/dotbrain/compare/v0.16.1...v0.17.0) (2026-11-25)
 
 
