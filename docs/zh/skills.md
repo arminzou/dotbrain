@@ -6,8 +6,11 @@ Dotbrain 插件内置五个独立于工程工作流的核心 skills。它们不�
 
 ## 选择和同步 skills {#select-and-reconcile-skills}
 
-Codex 项目 skills 链接到 `<checkout>/.agents/skills/`。配置和 subagents 仍放在 `.codex/` 下；全局 skills 继续
-使用 `~/.codex/skills/` 和配置的 profile 主目录。Claude Code 和其他 runtime 的目标位置不变。
+Codex 和 Antigravity 共用 `<checkout>/.agents/skills/` 中的项目 skills 链接。Codex 的配置和 subagents 放在
+`.codex/` 下。Codex 从 `~/.codex/skills/` 和配置的 profile 主目录加载全局 skills。
+Antigravity 从 `~/.gemini/config/plugins/dotbrain/skills/` 加载核心 skills，从 `~/.gemini/config/skills/`
+加载选定的全局 skills。在 `SKILL.md` 的 frontmatter 中设置 `disable-model-invocation: true` 后，
+Antigravity 只在你按名称调用时运行该 skill。
 
 `wire`、`refresh` 和 `skills link` 会根据链接目标判断归属，迁移 `.codex/skills/` 下 dotbrain 自己的旧链接。
 选中的旧链接会在新链接分发成功后移除，不再选中的自有链接会被清理。无法确认归属的文件、目录和链接都会保留并
@@ -129,8 +132,7 @@ Codex 定义使用生成的 TOML 文件；源文件保存在私有 home 中。
 
 ## 安装 {#installing-them}
 
-Claude Code 和 Codex 通过 marketplace 插件加载核心 skills。Hermes、OpenCode、Pi
-和 Cursor 使用各自的插件或资源交付路径；安装命令见[快速开始](getting-started.md)。
+Claude Code 和 Codex 通过 marketplace 插件加载核心 skills。Hermes、OpenCode、Pi、Cursor 和 Antigravity 使用各自的插件或资源交付路径；安装命令见[快速开始](getting-started.md)。
 
 ## 旧版资源与复盘笔记 {#retrospectives}
 

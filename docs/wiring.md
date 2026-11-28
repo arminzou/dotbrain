@@ -11,7 +11,7 @@ private, and when to use `wire`, `refresh`, or `unwire`. For a first run, start 
 | `.brain` | Symlink | The Brainspace's Brain |
 | `.beads` | Symlink | The Brainspace's execution store |
 | `.claude/skills/` | Real directory containing symlinks | Selected private skills under `~/dotbrain/skills/` |
-| `.agents/skills/` | Real directory containing symlinks | Codex's selected private skills under `~/dotbrain/skills/` |
+| `.agents/skills/` | Real directory containing symlinks | Selected private skills for Codex and Antigravity under `~/dotbrain/skills/` |
 | `.claude/agents/` | Real directory containing symlinks | Selected private Claude agents under `~/dotbrain/subagents/` |
 | `.codex/agents/` | Real directory containing generated TOML files | Selected private Codex agents |
 
@@ -21,7 +21,10 @@ TOML files, marked `# dotbrain-managed-agent: v1`. Dotbrain can overwrite and pr
 copies; customize their source in the private home. Unmarked files and foreign links are preserved.
 Each delivered resource is ignored individually.
 
-Codex project skills go in `.agents/skills/`; its configuration and agents stay under `.codex/`.
+Codex and Antigravity share `<checkout>/.agents/skills/`. Dotbrain reconciles this directory once
+per checkout and adds an exact rule to `.git/info/exclude` for each managed link.
+`dotbrain unwire` removes the managed links and their rules. It preserves other entries and the
+`.agents` directory. Codex stores its configuration and agents under `.codex/`.
 `wire`, `refresh`, and `skills link` migrate owned legacy `.codex/skills/` links after successful
 replacement, preserving and reporting foreign entries and collisions. See [Skills](skills.md#select-and-reconcile-skills)
 for migration behavior. Global skill homes keep their existing destinations.

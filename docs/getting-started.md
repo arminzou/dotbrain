@@ -1,11 +1,11 @@
 # Getting Started
 
-Dotbrain supports Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI.
+Dotbrain supports Claude Code, Codex, Hermes, OpenCode, Pi, Cursor CLI, and Antigravity.
 For Claude Code and Codex, install the marketplace plugin first; its `wire-brain` skill installs
 the CLI for you on first use. The steps below follow that path.
 
 For CLI-based setup, follow the guide for [Hermes](#hermes), [OpenCode](#opencode),
-[Pi](#pi), or [Cursor CLI](#cursor).
+[Pi](#pi), [Cursor CLI](#cursor), or [Antigravity](#antigravity).
 
 1. Install the plugin.
 2. Get the CLI.
@@ -15,7 +15,7 @@ For CLI-based setup, follow the guide for [Hermes](#hermes), [OpenCode](#opencod
 
 | You need | Notes |
 | --- | --- |
-| A supported coding agent | Claude Code, Codex, Hermes, OpenCode, Pi, or Cursor CLI |
+| A supported coding agent | Claude Code, Codex, Hermes, OpenCode, Pi, Cursor CLI, or Antigravity |
 | Git | The dotbrain home is a Git repository |
 | `uv` and `bd` (Beads) | Installed for you by the plugin's installer |
 | Windows only: Developer Mode | Lets dotbrain create directory symlinks without Administrator |
@@ -145,8 +145,9 @@ Either script installs `uv` and `bd` if they are missing, installs the pinned CL
 selected global skills and subagents. The plugin supplies the session-start hook. Running the
 installer a second time is safe.
 
-On this machine's first bootstrap, dotbrain checks Hermes, OpenCode, Pi, and Cursor by running
-their CLI's `--version` (`agent --version` for Cursor) with a short timeout. It lists each runtime
+On this machine's first bootstrap, dotbrain checks Hermes, OpenCode, Pi, Cursor, and Antigravity by running
+each CLI with `--version` and a short timeout. The commands for Cursor and Antigravity
+are `agent --version` and `agy --version`. It lists each runtime
 found and skips commands that fail or time out, leaving their homes untouched. With stdin and
 stdout both at a terminal, it asks once whether to set up every working runtime; Enter accepts,
 and `n` skips setup and prints a command for each runtime. Without a terminal, or with `--json`,
@@ -279,7 +280,8 @@ the project's vocabulary and standing decisions without being told.
 
 ## Staying Current
 
-When a new dotbrain release lands, update the plugin and the CLI together.
+When a new Dotbrain release lands, update the plugin and the CLI together.
+For Antigravity, upgrade the CLI first and follow the [Antigravity update steps](#antigravity).
 
 ### Skill set upgrade
 
@@ -768,3 +770,30 @@ When you do need configuration:
 - [The workflow](workflow.md) explains core capabilities and how to use your own workflow.
 - [Architecture](architecture.md) explains the Brainspace model.
 - [Troubleshooting & FAQ](troubleshooting.md) covers common setup problems.
+
+## Antigravity {#antigravity}
+
+On the first `dotbrain bootstrap` run, Dotbrain checks `agy --version` and offers to set up
+Antigravity if the probe succeeds. To set up only Antigravity, run `dotbrain bootstrap --runtime antigravity`.
+
+If you use the Antigravity IDE or app without `agy` on your PATH, run
+`dotbrain skills link --scope global --runtime antigravity`.
+
+Dotbrain installs its plugin at `~/.gemini/config/plugins/dotbrain`. The plugin supplies the five
+[core skills](skills.md) and the [SessionStart and Stop hooks](session-context.md#runtime-notes).
+Antigravity enables the plugin by default. Dotbrain links the global skills you select in
+`config.yaml` into `~/.gemini/config/skills/`.
+
+For a project with an explicit `agents:` list, add `antigravity` to the list. Projects that follow
+machine setup pick up Antigravity once its plugin is installed. In a wired checkout, run
+`dotbrain refresh` to link the selected project skills into `<checkout>/.agents/skills/`.
+Antigravity and Codex both read that directory.
+
+With the CLI, run `agy plugin list --json` to check for the Dotbrain plugin, its skills, and its hooks.
+Plugin discovery and activation were checked with `agy` 1.5.18 on Windows. Run `dotbrain doctor`
+to check the files on disk. If `~/.gemini/config/config.json` disables the plugin, run
+`agy plugin enable dotbrain`. Start a new session after setup or reactivation.
+
+After upgrading Dotbrain, run `dotbrain bootstrap` to update its Antigravity plugin. For GUI-only
+setup, rerun the global skills link command above. Start a new session to load the update.
+To remove machine delivery, run `dotbrain detach --runtime antigravity`.

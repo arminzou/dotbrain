@@ -65,7 +65,7 @@ pathlib.Path.symlink_to = _symlink_to_auto
 # Beads, Hermes and Pi are external tools: the suite must behave the same whether or not a developer
 # has `bd`, `hermes` or `pi` installed. Hide them from discovery, and fail any test that would launch
 # one instead of injecting a fake runner.
-_EXTERNAL_TOOLS = ("bd", "hermes", "pi")
+_EXTERNAL_TOOLS = ("bd", "hermes", "pi", "agy")
 _original_which = shutil.which
 _original_popen_init = subprocess.Popen.__init__
 

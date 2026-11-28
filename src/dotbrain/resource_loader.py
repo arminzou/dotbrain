@@ -59,6 +59,7 @@ def plugin_tree() -> Iterator[Path]:
 
 
 # The wheel force-includes these from the shared plugin tree; keep pyproject.toml in step.
+ANTIGRAVITY_PLUGIN_FILES = (".antigravity-plugin/plugin.json", "hooks.json", "skills", "assets/dotbrain-icon-dark.png")
 HERMES_PLUGIN_FILES = ("plugin.yaml", "__init__.py", "skills")
 PI_EXTENSION_FILES = ("index.js", "skills")
 

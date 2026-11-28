@@ -140,6 +140,7 @@ def install(target: Path, names: Sequence[str]) -> Path | None:
                 if (source / name).is_dir():
                     shutil.copytree(source / name, staging / name, ignore=shutil.ignore_patterns("__pycache__"))
                 else:
+                    (staging / name).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source / name, staging / name)
             (staging / MARKER).write_text("dotbrain\n", encoding="utf-8", newline="\n")
         preserved = _preserve_retired(target) if target.exists() else None

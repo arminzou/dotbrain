@@ -75,6 +75,7 @@ def hook_session_end(args: list[str] = typer.Argument(None)) -> None:
 
 # str enums, not Literal: Typer before 0.16 cannot resolve Literal and then fails every command.
 HookEvent = Enum("HookEvent", {event: event for event in hooks.EVENTS}, type=str)
+AntigravityHookEvent = Enum("AntigravityHookEvent", {"startup": "startup", "turn-end": "turn-end"}, type=str)
 HookFormat = Enum("HookFormat", {"text": "text", "json": "json"}, type=str)
 
 
@@ -90,6 +91,16 @@ def hook_run(
     """Handle a session event for any runtime adapter, without reading a hook payload. Fail-open."""
 
     hooks.handle_event(event.value, checkout, output.value)
+
+
+@hook_app.command("antigravity")
+def hook_antigravity(
+    event: AntigravityHookEvent = typer.Option(
+        ..., "--event", metavar="<event>", help="Antigravity event: startup or turn-end."
+    ),
+) -> None:
+    """Read an Antigravity hook payload and emit a JSON response. Fail-open."""
+    hooks.handle_antigravity_event(event.value)
 
 
 def _project_report(command: str, root: Path, project: str | None, json_output: bool) -> None:

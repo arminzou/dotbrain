@@ -18,7 +18,7 @@
 
 **为你的 Coding Agent 管理私有项目上下文。**
 
-支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
+支持 Claude Code、Codex、Hermes、OpenCode、Pi、Cursor CLI 和 Antigravity。
 
 Dotbrain 将管理 Dotfiles 的方式用在项目上：把工作笔记、计划、agent instructions 和选用的 Agent 资源
 集中保存在私有目录中，再连接到你使用的各个 checkout。
@@ -57,7 +57,7 @@ Dotbrain 可以与 Agent 自带的记忆系统及其他上下文工具配合使�
 ## 快速开始
 
 根据你使用的 Coding Agent 选择安装方式：Claude Code 和 Codex 通过 marketplace 安装插件，
-Hermes、OpenCode、Pi 和 Cursor CLI 通过 CLI 配置。无需克隆本仓库。
+Hermes、OpenCode、Pi、Cursor CLI 和 Antigravity 通过 CLI 配置。无需克隆本仓库。
 
 **Claude Code**：下面两条命令要分两次发送：
 
@@ -76,8 +76,9 @@ codex plugin add dotbrain@dotbrain
 在 Codex 里打开 `/hooks`，信任 dotbrain 的 hook，然后新开一个 thread。
 [Hermes](https://arminzou.github.io/dotbrain/zh/getting-started#hermes)、
 [OpenCode](https://arminzou.github.io/dotbrain/zh/getting-started#opencode)、
-[Pi](https://arminzou.github.io/dotbrain/zh/getting-started#pi) 和
-[Cursor](https://arminzou.github.io/dotbrain/zh/getting-started#cursor) 则通过 CLI 安装，具体步骤见各自的文档。
+[Pi](https://arminzou.github.io/dotbrain/zh/getting-started#pi)、
+[Cursor](https://arminzou.github.io/dotbrain/zh/getting-started#cursor) 和
+[Antigravity](https://arminzou.github.io/dotbrain/zh/getting-started#antigravity) 都通过 CLI 配置。
 Windows 用户请先开启
 [开发人员模式](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
 再连接项目，这样 Dotbrain 不用管理员权限也能创建目录符号链接。
@@ -124,7 +125,7 @@ dotbrain refresh --all
 
 如果 CLI 是通过 pipx 或 pip 安装的，请使用对应工具升级。详见
 [保持更新](https://arminzou.github.io/dotbrain/zh/getting-started#staying-current)。
-使用 Hermes、OpenCode、Pi 或 Cursor CLI 时，升级 CLI 后运行 `dotbrain bootstrap` 更新对应的集成，
+使用 Hermes、OpenCode、Pi、Cursor CLI 或 Antigravity 时，升级 CLI 后运行 `dotbrain bootstrap` 更新对应的集成，
 具体说明见上方各 runtime 的安装文档。
 
 ## 工作原理
@@ -148,7 +149,7 @@ checkout 通过符号链接访问它们。这些链接被 Git 忽略，实际文
 Skills 和 Claude subagents 使用符号链接，Codex subagents 则使用自动生成、被 Git 忽略的
 TOML 文件。连接 Git worktree 时，会复用主 checkout 已有的 Brainspace，
 两边共用同一份项目知识和任务记录。
-Hermes、OpenCode、Pi 和 Cursor CLI 支持 skills 和会话集成，但 Dotbrain 不会为它们配置 native subagents。
+Hermes、OpenCode、Pi、Cursor CLI 和 Antigravity 接收 skills 和会话集成。Dotbrain 只向 Claude Code 和 Codex 交付原生 subagents。
 
 会话开始时，各 runtime 的集成提供共享约定 `DOTBRAIN.md`。不同 runtime 的上下文加载和同步方式，
 见[运行时说明](https://arminzou.github.io/dotbrain/zh/session-context#runtime-notes)。

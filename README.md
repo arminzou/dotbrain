@@ -18,7 +18,7 @@ English | [简体中文](README.zh-CN.md)
 
 **Private project context for your coding agents.**
 
-Supports Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI.
+Supports Claude Code, Codex, Hermes, OpenCode, Pi, Cursor CLI, and Antigravity.
 
 Dotbrain brings the Dotfiles convention to your project work. Keep your working notes, plans,
 instructions, and selected agent resources in a private home, then wire them into the checkouts
@@ -61,7 +61,7 @@ If a few standing instructions in `AGENTS.md` or `CLAUDE.md` cover your needs, k
 ## Get started
 
 Setup depends on your coding agent. Claude Code and Codex use marketplace plugins;
-Hermes, OpenCode, Pi, and Cursor CLI use CLI-based setup. You do not need to clone this repo.
+Hermes, OpenCode, Pi, Cursor CLI, and Antigravity use CLI-based setup. You do not need to clone this repo.
 
 **Claude Code** — send these as two separate prompts:
 
@@ -80,9 +80,9 @@ codex plugin add dotbrain@dotbrain
 In Codex, open `/hooks`, trust the dotbrain hook, then start a new thread.
 [Hermes](https://arminzou.github.io/dotbrain/getting-started#hermes),
 [OpenCode](https://arminzou.github.io/dotbrain/getting-started#opencode),
-[Pi](https://arminzou.github.io/dotbrain/getting-started#pi), and
-[Cursor](https://arminzou.github.io/dotbrain/getting-started#cursor) are supported through the CLI rather
-than a marketplace.
+[Pi](https://arminzou.github.io/dotbrain/getting-started#pi),
+[Cursor](https://arminzou.github.io/dotbrain/getting-started#cursor), and
+[Antigravity](https://arminzou.github.io/dotbrain/getting-started#antigravity) use CLI-based setup.
 On Windows, enable
 [Developer Mode](https://learn.microsoft.com/windows/apps/get-started/enable-your-device-for-development)
 before wiring so Dotbrain can create directory symlinks without Administrator privileges.
@@ -130,7 +130,7 @@ dotbrain refresh --all
 
 Installed the CLI with pipx or pip? Upgrade with that tool instead. See
 [Staying current](https://arminzou.github.io/dotbrain/getting-started#staying-current).
-For Hermes, OpenCode, Pi, and Cursor CLI, upgrade the CLI and run `dotbrain bootstrap`
+For Hermes, OpenCode, Pi, Cursor CLI, and Antigravity, upgrade the CLI and run `dotbrain bootstrap`
 to update their integrations; see the runtime-specific setup guides linked above.
 
 ## How it works
@@ -155,7 +155,8 @@ Codex skills under `.agents/skills/`, and Codex agents under `.codex/agents/`. C
 Skills and Claude agents use symlinks; Codex agents use generated, Git-ignored
 TOML files. Wiring a Git worktree connects it to the main checkout's existing Brainspace, so
 both use the same knowledge and tracker.
-Hermes, OpenCode, Pi, and Cursor CLI receive skills and session integrations, but no Dotbrain native subagents.
+Hermes, OpenCode, Pi, Cursor CLI, and Antigravity receive skills and session integrations.
+Dotbrain delivers native subagents to Claude Code and Codex.
 
 At session start, the runtime integration supplies `DOTBRAIN.md`, the shared convention.
 See [Runtime notes](https://arminzou.github.io/dotbrain/session-context#runtime-notes)

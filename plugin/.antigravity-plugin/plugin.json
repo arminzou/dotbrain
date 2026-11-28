@@ -1,0 +1,15 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "dotbrain",
+  "displayName": "Dotbrain",
+  "version": "0.17.0",
+  "description": "Private project context, shared across coding agents and worktrees.",
+  "logo": "assets/dotbrain-icon-dark.png",
+  "author": {
+    "name": "Armin Zou",
+    "url": "https://github.com/arminzou"
+  },
+  "homepage": "https://arminzou.github.io/dotbrain/",
+  "repository": "https://github.com/arminzou/dotbrain",
+  "license": "MIT"
+}

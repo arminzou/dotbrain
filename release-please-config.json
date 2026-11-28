@@ -7,6 +7,7 @@
     ".": {
       "extra-files": [
         {"type": "json", "path": "plugin/.claude-plugin/plugin.json", "jsonpath": "$.version"},
+        {"type": "json", "path": "plugin/.antigravity-plugin/plugin.json", "jsonpath": "$.version"},
         {"type": "json", "path": "plugin/.codex-plugin/plugin.json", "jsonpath": "$.version"},
         {"type": "yaml", "path": "plugin/plugin.yaml", "jsonpath": "$.version"},
         "plugin/opencode/dotbrain.js",

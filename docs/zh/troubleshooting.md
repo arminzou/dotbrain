@@ -193,4 +193,19 @@ dotbrain unwire             # disconnect, keep the Brainspace
 
 ### 支持哪些 Agent？ {#which-agents-are-supported}
 
-Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode)、[Pi](getting-started.md#pi) 和 [Cursor](getting-started.md#cursor)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+Claude Code 和 Codex，以及 [Hermes](getting-started.md#hermes)、[OpenCode](getting-started.md#opencode)、[Pi](getting-started.md#pi)、[Cursor](getting-started.md#cursor) 和 [Antigravity](getting-started.md#antigravity)。用 [`project.yaml`](configuration.md#project-yaml) 里的 `agents:` 选择项目使用哪些工作区。
+
+## Antigravity 插件或 hook 缺失 {#antigravity-plugin}
+
+运行 `dotbrain doctor`。如果它提示 `~/.gemini/config/config.json` 禁用了插件，
+运行 `agy plugin enable dotbrain`，然后启动新会话。
+
+如果 `~/.gemini/config/plugins/dotbrain` 中的插件缺失或过期，运行
+`dotbrain bootstrap --runtime antigravity`。如果你使用 IDE 或 App，且没有安装 `agy`，
+运行 `dotbrain skills link --scope global --runtime antigravity`。
+
+如果 doctor 提示插件目录并非由 Dotbrain 管理，先检查目录里的内容。如果你想让 Dotbrain
+管理插件，先把现有副本移出 `plugins/`，再重新配置。
+
+如果插件已启用，但 hook 仍未运行，检查 Antigravity 继承的 PATH 能否找到 `dotbrain`。
+修改 PATH 后，重启 Antigravity，再启动新会话。

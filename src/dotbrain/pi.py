@@ -63,3 +63,8 @@ def deliver(agent_dir: Path, *, run=None) -> LinkResult:
             result.notices.append(f"modified or ambiguous retired resources preserved at {preserved}; inspect before removing")
         result.linked.append(f"pi/extensions/{EXTENSION}")
     return result
+
+
+def remove(agent_dir: Path, *, run=None) -> LinkResult:
+    target = plugin_dir(agent_dir)
+    return LinkResult(pruned=[str(target)] if owned_copy.remove(target) else [])

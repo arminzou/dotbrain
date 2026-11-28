@@ -20,6 +20,10 @@ GLOBAL = ".global-delivery"
 HOOK_EVENTS = {"sessionStart": "startup", "stop": "turn-end", "sessionEnd": "session-end"}
 
 
+def skills_dir(user_dir: Path) -> Path:
+    return user_dir / "skills"
+
+
 def hook_entries(*, windows: bool | None = None) -> dict:
     windows = sys.platform == "win32" if windows is None else windows
     checkout = '$env:CURSOR_PROJECT_DIR' if windows else '"$CURSOR_PROJECT_DIR"'

@@ -41,11 +41,12 @@ def test_bootstrap_runner_bounds_and_hides_version_probe(monkeypatch):
 
 
 
-@pytest.mark.parametrize("resolved", ["/fake/bin/pi.cmd", None])
-def test_bootstrap_probes_resolved_runtime_path(tmp_path, monkeypatch, resolved):
+@pytest.mark.parametrize("resolved", ["/fake/bin/runtime.cmd", None])
+@pytest.mark.parametrize("runtime,binary,label", [("pi", "pi", "Pi"), ("antigravity", "agy", "Antigravity")])
+def test_bootstrap_probes_resolved_runtime_path(tmp_path, monkeypatch, resolved, runtime, binary, label):
     import shutil
     root, user = tmp_path / "data", tmp_path / "user"
-    monkeypatch.setattr(shutil, "which", lambda command: resolved if command == "pi" else None)
+    monkeypatch.setattr(shutil, "which", lambda command: resolved if command == binary else None)
     monkeypatch.setattr(runtimes, "installed", _installed_on_path)
     probes = []
 
@@ -54,10 +55,10 @@ def test_bootstrap_probes_resolved_runtime_path(tmp_path, monkeypatch, resolved)
             probes.append(argv[0])
         return subprocess.CompletedProcess(argv, 0, "", "")
 
-    result = bootstrap_mod.prepare(root, "pi", home=user, run=run)
+    result = bootstrap_mod.prepare(root, runtime, home=user, run=run)
     assert probes == ([resolved] if resolved else [])
-    assert ("Pi: ready" if resolved else "Pi: skipped (command not on PATH)") in str(result)
-    assert assets.HOME_DELIVERY["pi"].owned(runtimes.user_dir(runtimes.find("pi"), user)) == bool(resolved)
+    assert (f"{label}: ready" if resolved else f"{label}: skipped (command not on PATH)") in str(result)
+    assert assets.HOME_DELIVERY[runtime].owned(runtimes.user_dir(runtimes.find(runtime), user)) == bool(resolved)
 
 @pytest.mark.parametrize("answer", ["", "Y", "n", None])
 @pytest.mark.parametrize("existing_root", [False, True])
@@ -76,7 +77,7 @@ def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
 
     def confirm(found, prompt):
         prompts.append(prompt)
-        assert found == ["Hermes: ready", "OpenCode: ready", "Pi: ready", "Cursor: ready"]
+        assert found == ["Hermes: ready", "OpenCode: ready", "Pi: ready", "Cursor: ready", "Antigravity: ready"]
         return answer.lower() in ("", "y")
 
     result = bootstrap_mod.prepare(root, home=user, run=run, confirm=confirm if answer is not None else None)
@@ -89,7 +90,7 @@ def test_first_machine_bootstrap(tmp_path, monkeypatch, answer, existing_root):
         assert (f"dotbrain bootstrap --runtime {name}" if answer == "n" else
                 f"dotbrain detach --runtime {name}") in text
     assert sorted(argv for argv, _ in calls if argv[-1] == "--version") == [  # probes run in parallel
-        ["agent", "--version"], ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"]]
+        ["agent", "--version"], ["agy", "--version"], ["hermes", "--version"], ["opencode", "--version"], ["pi", "--version"]]
     assert all(kwargs["timeout"] == 30 for argv, kwargs in calls if argv[-1] == "--version")
 
 
@@ -213,7 +214,7 @@ def test_cloned_home_without_cache_is_first_machine_run(dotbrain_home, tmp_path,
     assert "dotbrain detach --runtime pi" in str(result)
 
 
-@pytest.mark.parametrize("runtime", ["hermes", "opencode", "pi", "cursor"])
+@pytest.mark.parametrize("runtime", tuple(assets.HOME_DELIVERY))
 def test_explicit_bootstrap_never_prompts(tmp_path, monkeypatch, runtime):
     monkeypatch.setattr(runtimes, "installed", lambda rt: rt.name in assets.HOME_DELIVERY)
     result = bootstrap_mod.prepare(tmp_path / "data", runtime, home=tmp_path / "user",
@@ -384,7 +385,7 @@ def test_global_delivery_reads_the_runtime_description(dotbrain_home: Path, tmp_
     assert [f.message for f in findings if f.status == "error"] == []
     result = runner.invoke(app, ["bootstrap", "--home", str(dotbrain_home), "--runtime", "later", "--json"])
     assert result.exit_code == 2
-    assert "--runtime must be claude, codex, hermes, opencode, pi, cursor, skillsonly, or all" in result.stdout
+    assert "--runtime must be claude, codex, hermes, opencode, pi, cursor, antigravity, skillsonly, or all" in result.stdout
 
 
 def test_ensure_data_root_seeds_global_subagents(tmp_path: Path):

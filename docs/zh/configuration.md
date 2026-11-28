@@ -91,7 +91,7 @@ sync:
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
 # 省略 agents 则跟随本机配置；显式列表只启用所列项。
-agents:            # claude, codex, hermes, opencode, pi, cursor
+agents:            # claude, codex, hermes, opencode, pi, cursor, antigravity
   - claude
   - codex
 
@@ -109,17 +109,21 @@ subagents:                    # project-only custom subagents
 
 | 键 | 默认值 | 含义 |
 | --- | --- | --- |
-| `agents` | 本机已配置的 runtime | Claude、Codex 按 CLI 是否在 PATH 上判断；[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi)、[`cursor`](getting-started.md#cursor) 按 dotbrain 自己分发的副本是否存在判断。显式列表只启用所列项；`[]` 全部禁用。新项目默认注释掉此键，已有列表保持不变。 |
+| `agents` | 本机已配置的 runtime | Claude、Codex 按 CLI 是否在 PATH 上判断；[`hermes`](getting-started.md#hermes)、[`opencode`](getting-started.md#opencode)、[`pi`](getting-started.md#pi)、[`cursor`](getting-started.md#cursor)、[`antigravity`](getting-started.md#antigravity) 按 dotbrain 自己分发的副本是否存在判断。显式列表只启用所列项；`[]` 全部禁用。新项目默认注释掉此键，已有列表保持不变。 |
 | `beads.mode` | 配置了服务器主机时为 `server`，否则为 `embedded` | `embedded`、`server` 或 `none` |
 | `beads.remote` | — | embedded 跟踪器的 Dolt remote |
 | `beads.database` | 项目名 | 服务器上的数据库名 |
 | `skills` | `[]` | 链接到这个项目工作区的 skills |
 | `subagents` | `[]` | 只给这个项目用的自定义 subagents |
 
-refresh 会报告已存在但不在 `agents` 解析结果中的工作区，保留其中无关、其他工具或用户拥有的内容。
+如果某个 runtime 专用工作区已存在，但对应的 runtime 不在 `agents` 的解析结果中，refresh 会报告该工作区。
+refresh 会保留无关内容和用户自己的文件。
 
-Codex 项目 skills 使用 `<checkout>/.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。全局 skills 和
-profile 主目录的位置不变。旧链接迁移和冲突处理见[skills 同步](skills.md#select-and-reconcile-skills)。
+Codex 和 Antigravity 共用 `<checkout>/.agents/skills/` 存放项目 skills。Codex 的配置和 subagents 放在
+`.codex/` 下。旧链接迁移和冲突处理见 [skills 同步](skills.md#select-and-reconcile-skills)。
+
+Antigravity 使用固定的用户配置目录 `~/.gemini/config`。全局 skills 放在 `~/.gemini/config/skills/`，
+Dotbrain 插件放在 `~/.gemini/config/plugins/dotbrain`。
 
 `packaged-subagents`、`retro`、`execution-engine`、`public-tracker` 和 `public-tracker-id`
 已废弃并忽略。refresh 会报告，但不改写用户声明。请阅读[升级说明](upgrading.md)后明确删除这些键，保留无关设置。
@@ -164,8 +168,8 @@ skills 和 Claude Agent 定义是符号链接。Codex Agent 定义是可随时�
 自己的 Codex 符号链接，覆盖带标记的副本，保留没有标记的文件和其他来源的链接。如果和用户自己的文件重名，
 会报告冲突，而不是替换。
 
-runtime 参数用 `--runtime claude|codex|hermes|opencode|pi|cursor|all`。profiles 的键是 `claude-code` 和 `codex`；
-Hermes、OpenCode、Pi 和 Cursor 不接收 subagents。项目链接默认作用于当前已连接的 checkout；`--scope global`
+runtime 参数用 `--runtime claude|codex|hermes|opencode|pi|cursor|antigravity|all`。profiles 的键是 `claude-code` 和 `codex`；
+只有 Claude Code 和 Codex 使用 `subagents:` 配置项。项目链接默认作用于当前已连接的 checkout；`--scope global`
 需要显式指定，并且不能和项目选择参数或 `--all` 一起用。
 
 ## 从旧版本升级 {#upgrading}

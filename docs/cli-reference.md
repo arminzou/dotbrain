@@ -51,6 +51,7 @@ The old severity is no longer emitted; other result fields and exit codes are un
 | [`hook stop`](#dotbrain-hook-stop) | Start a detached push-only home sync and return at once. |
 | [`hook session-end`](#dotbrain-hook-session-end) | Start a detached full home sync and return at once. |
 | [`hook run`](#dotbrain-hook-run) | Handle a session event for any runtime adapter, without reading a hook payload. |
+| [`hook antigravity`](#dotbrain-hook-antigravity) | Read an Antigravity hook payload and emit a JSON response. |
 
 ## Setup
 
@@ -67,7 +68,7 @@ dotbrain bootstrap [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain detach` {#dotbrain-detach}
@@ -80,7 +81,7 @@ dotbrain detach [OPTIONS]
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `--runtime` *text* | — | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | — | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--home` *path* | — | Override the private data root. |
 | `--json` | — | Emit one structured result. |
 
@@ -138,7 +139,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | Select a named Brainspace. |
 | `--all` | — | Refresh all registered projects. |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--json` | — | Emit one structured result. |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -198,7 +199,7 @@ dotbrain skills list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -217,7 +218,7 @@ dotbrain skills link [OPTIONS] [ENTRIES]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -239,7 +240,7 @@ dotbrain skills unlink [OPTIONS] ENTRIES
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -310,7 +311,7 @@ dotbrain subagents list [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--project` *text* | — | Show selections for a named Brainspace. |
 | `--json` | — | Emit one structured result. |
 
@@ -325,7 +326,7 @@ dotbrain subagents link [OPTIONS]
 | Option | Default | Description |
 | --- | --- | --- |
 | `--home` *path* | — | Override the private data root. |
-| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, or all. |
+| `--runtime` *text* | `all` | Filter runtimes: claude, codex, hermes, opencode, pi, cursor, antigravity, or all. |
 | `--scope` *text* | `project` | Delivery scope: project or global. |
 | `--project` *text* | — | Select a named Brainspace. |
 | `--repo` *path* | — | Select a wired checkout; defaults to the current checkout. |
@@ -485,3 +486,15 @@ dotbrain hook run [OPTIONS]
 | `--event` *choice* | — | Session event: startup, resume, clear, compaction, turn-end, or session-end. |
 | `--checkout` *path* | — | Checkout the event belongs to. Default: the working directory. |
 | `--format` *choice* | `text` | Context output: text (raw) or json (an additional_context object). |
+
+### `dotbrain hook antigravity` {#dotbrain-hook-antigravity}
+
+Read an Antigravity hook payload and emit a JSON response. Fail-open.
+
+```text
+dotbrain hook antigravity [OPTIONS]
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--event` *choice* | — | Antigravity event: startup or turn-end. |

@@ -15,6 +15,10 @@ from pathlib import Path
 from dotbrain import run_cache
 
 
+SHARED_SKILLS_WORKSPACE = ".agents"
+SHARED_PROJECT_SKILLS = f"{SHARED_SKILLS_WORKSPACE}/skills"
+
+
 @dataclass(frozen=True)
 class Runtime:
     name: str  # `agents:` declaration and --runtime value
@@ -26,11 +30,7 @@ class Runtime:
     subagents: tuple[str, str] | None = None
     hooks: bool = False  # the dotbrain plugin supplies session hooks
     default: bool = False  # a default global target
-    # Environment variable that relocates the runtime's user home; dotbrain copies its plugin there
-    # and opts in by the presence of that owned copy rather than by a default global target.
     home_env: str | None = None
-    # Where home_env points by default, relative to the user's home (the workspace when None), and
-    # the runtime's own directory below it.
     home_default: str | None = None
     home_subdir: str = ""
     project_skills: str | None = None  # checkout-relative; global homes still use workspace
@@ -40,15 +40,22 @@ class Runtime:
         return self.project_skills or f"{self.workspace}/skills"
 
 
+    @property
+    def home_label(self) -> str:
+        return self.home_env or f"~/{self.home_default or self.workspace}"
+
+
 RUNTIMES: dict[str, Runtime] = {
     "claude": Runtime("claude", "claude-code", "Claude", ".claude", ("claude", ".md"), hooks=True, default=True),
     "codex": Runtime("codex", "codex", "Codex", ".codex", ("codex", ".toml"), hooks=True, default=True,
-                     project_skills=".agents/skills"),
+                     project_skills=SHARED_PROJECT_SKILLS),
     "hermes": Runtime("hermes", "hermes", "Hermes", ".hermes", hooks=True, home_env="HERMES_HOME"),
     "opencode": Runtime("opencode", "opencode", "OpenCode", ".opencode", hooks=True, home_env="XDG_CONFIG_HOME",
                         home_default=".config", home_subdir="opencode"),
     "pi": Runtime("pi", "pi", "Pi", ".pi", hooks=True, home_env="PI_CODING_AGENT_DIR", home_default=".pi/agent"),
     "cursor": Runtime("cursor", "cursor", "Cursor", ".cursor", hooks=True),
+    "antigravity": Runtime("antigravity", "antigravity", "Antigravity", SHARED_SKILLS_WORKSPACE,
+                           hooks=True, home_default=".gemini/config"),
 }
 
 
@@ -93,7 +100,7 @@ def installed(rt: Runtime) -> bool:
 
 
 def command(rt: Runtime) -> str:
-    return "agent" if rt.name == "cursor" else rt.name
+    return {"antigravity": "agy", "cursor": "agent"}.get(rt.name, rt.name)
 
 
 def user_dir(rt: Runtime, user_home: Path) -> Path:

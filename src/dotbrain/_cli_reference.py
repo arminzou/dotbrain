@@ -34,7 +34,7 @@ GROUPS: list[tuple[str, str, str | None, list[str]]] = [
     ("Exchange", "Record the dotbrain home's changes and exchange them with its remote.", None,
      ["sync"]),
     ("Internal", "Run by the plugin's hooks, not by hand.", "session-context",
-     ["hook session-start", "hook stop", "hook session-end", "hook run"]),
+     ["hook session-start", "hook stop", "hook session-end", "hook run", "hook antigravity"]),
 ]
 
 _GUIDE_TITLES = {

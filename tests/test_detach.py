@@ -41,7 +41,7 @@ def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, t
     rt = runtimes.find(runtime)
     directory = runtimes.user_dir(rt, fake_home)
     module = assets.HOME_DELIVERY.get(runtime)
-    receiver = module.skills_dir(directory) if rt.home_env else fake_home / rt.workspace / "skills"
+    receiver = module.skills_dir(directory) if module else fake_home / rt.workspace / "skills"
     source = dotbrain_home / "skills/misc/discovery-test"
     receiver.mkdir(parents=True)
     (receiver / "owned").symlink_to(source, target_is_directory=True)
@@ -58,7 +58,7 @@ def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, t
     legacy = dotbrain_home / ".cache/skills/legacy"
     legacy.mkdir(parents=True)
     (checkout / "legacy").symlink_to(legacy, target_is_directory=True)
-    if rt.home_env:
+    if runtime in assets.HOME_PLUGINS:
         module.deliver(directory, run=lambda *a, **kw: None)
     elif runtime == "cursor":
         cursor.deliver(dotbrain_home, receiver, (), scopes=(fake_home,), global_scope=True)
@@ -93,7 +93,7 @@ def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, t
     elif runtime == "opencode":
         assert not opencode.plugin_file(directory).exists()
         assert not opencode.packaged_dir(directory).exists()
-    elif rt.home_env:
+    elif runtime in assets.HOME_PLUGINS:
         assert not module.plugin_dir(directory).exists()
     else:
         assert (marketplace / "data").read_text() == "marketplace"
@@ -104,7 +104,7 @@ def test_detach_removes_only_owned_delivery(runtime, dotbrain_home, fake_home, t
     assert "nothing to remove" in again.targets[0].findings[-1]["message"]
 
 
-@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi", "cursor"))
+@pytest.mark.parametrize("runtime", tuple(assets.HOME_DELIVERY))
 def test_detach_preserves_foreign_delivery(runtime, dotbrain_home, fake_home, monkeypatch):
     set_fake_home(monkeypatch, fake_home)
     for variable in ("HERMES_HOME", "XDG_CONFIG_HOME", "PI_CODING_AGENT_DIR"):
@@ -182,7 +182,7 @@ def test_detach_cursor_receiver_and_empty_hooks(dotbrain_home, fake_home, tmp_pa
     assert not (fake_home / ".cursor/hooks.json").exists()
 
 
-@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi", "cursor"))
+@pytest.mark.parametrize("runtime", tuple(assets.HOME_DELIVERY))
 def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home, fake_home, monkeypatch):
     set_fake_home(monkeypatch, fake_home)
     for variable in ("HERMES_HOME", "XDG_CONFIG_HOME", "PI_CODING_AGENT_DIR"):
@@ -210,7 +210,7 @@ def test_detach_opts_machine_out_until_explicit_bootstrap(runtime, dotbrain_home
     assert not opted_in()
     assert not list(receiver.iterdir())
     findings = [f for f in doctor._check_machine(dotbrain_home, fake_home)
-                if runtime in f.message or str(receiver) in f.message]
+                if f.message.startswith((f"{runtime}:", f"{rt.label} ")) or str(receiver) in f.message]
     assert [(f.status, f.message) for f in findings] == [
         ("info", f"{rt.label} is installed; run `dotbrain bootstrap --runtime {runtime}` to deliver dotbrain to it")]
     explicit = assets.link_global(dotbrain_home, "skills", runtime, user_home=fake_home, run=run)
@@ -281,7 +281,7 @@ def test_detach_prunes_global_skills_under_symlinked_home_ancestor(dotbrain_home
     assert not [f for f in result.targets[0].findings if f["severity"] == "warning"]
 
 
-@pytest.mark.parametrize("runtime", ("hermes", "opencode", "pi", "cursor"))
+@pytest.mark.parametrize("runtime", tuple(assets.HOME_DELIVERY))
 def test_project_doctor_does_not_request_home_delivery_after_detach(runtime, dotbrain_home, fake_home, tmp_path, monkeypatch):
     from dotbrain import projects
 
@@ -303,7 +303,8 @@ def test_project_doctor_does_not_request_home_delivery_after_detach(runtime, dot
     findings = doctor._check_project(target, dotbrain_home, run, home=fake_home)
 
     assert not [f for f in findings if "not delivered" in f.message or "hook entries" in f.message]
-    assert not [f for f in findings if "bootstrap" in f.suggestion or "--scope global" in f.suggestion]
+    assert not [f for f in findings if f.status != "info" and
+                ("bootstrap" in f.suggestion or "--scope global" in f.suggestion)]
     assert any("delivery is missing" in f.message for f in findings)  # Project resources still checked.
     assert [(f.status, f.message) for f in findings if "is declared but not set up" in f.message] == [
         ("info", f"{rt.label} is declared but not set up on this machine; "
@@ -441,7 +442,7 @@ def test_bootstrap_writes_no_cursor_hooks_into_a_checkout_home(dotbrain_home, fa
 
 
 # A safe runtime home whose plugin folder links into a wired checkout: (runtime, linked folder below the home).
-LINKED_BELOW_HOME = (("hermes", "plugins"), ("pi", "extensions"), ("opencode", "plugins"), ("opencode", "dotbrain"))
+LINKED_BELOW_HOME = (("antigravity", "plugins"), ("hermes", "plugins"), ("pi", "extensions"), ("opencode", "plugins"), ("opencode", "dotbrain"))
 
 
 def _linked_below_home(runtime, folder, fake_home, tmp_path):

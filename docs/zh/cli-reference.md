@@ -44,6 +44,7 @@ JSON 的使用方需要把对 `severity: advisory` 的判断改成 `severity: wa
 | [`hook stop`](#dotbrain-hook-stop) | 在后台启动一次只推送的 home 同步，立即返回。 |
 | [`hook session-end`](#dotbrain-hook-session-end) | 在后台启动一次完整的 home 同步，立即返回。 |
 | [`hook run`](#dotbrain-hook-run) | 为任意运行时适配器处理一个会话事件，不读取 hook 输入数据。 |
+| [`hook antigravity`](#dotbrain-hook-antigravity) | 读取 Antigravity hook 的输入并返回 JSON。 |
 
 ## 配置 {#setup}
 
@@ -60,7 +61,7 @@ dotbrain bootstrap [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain detach` {#dotbrain-detach}
@@ -74,7 +75,7 @@ dotbrain detach [OPTIONS]
 
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `--runtime` *text* | 必填 | claude、codex、hermes、opencode、pi、cursor 或 all（全部运行时）。 |
+| `--runtime` *text* | 必填 | claude、codex、hermes、opencode、pi、cursor、antigravity 或 all（全部运行时）。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
 | `--json` | — | 输出一个结构化结果，每个运行时一个目标。 |
 
@@ -134,7 +135,7 @@ dotbrain refresh [OPTIONS]
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--all` | — | 刷新所有已注册的项目。 |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--json` | — | 输出一个结构化结果。 |
 
 ### `dotbrain unwire` {#dotbrain-unwire}
@@ -194,7 +195,7 @@ dotbrain skills list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -213,7 +214,7 @@ dotbrain skills link [OPTIONS] [ENTRIES]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -235,7 +236,7 @@ dotbrain skills unlink [OPTIONS] ENTRIES
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -306,7 +307,7 @@ dotbrain subagents list [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--project` *text* | — | 显示某个指定 Brainspace 的选择。 |
 | `--json` | — | 输出一个结构化结果。 |
 
@@ -321,7 +322,7 @@ dotbrain subagents link [OPTIONS]
 | 选项 | 默认值 | 说明 |
 | --- | --- | --- |
 | `--home` *path* | — | 覆盖私有数据目录。 |
-| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor 或 all。 |
+| `--runtime` *text* | `all` | 过滤运行时：claude、codex、hermes、opencode、pi、cursor、antigravity 或 all。 |
 | `--scope` *text* | `project` | 分发范围：project 或 global。 |
 | `--project` *text* | — | 选择一个指定的 Brainspace。 |
 | `--repo` *path* | — | 选择一个已连接的 checkout；默认是当前 checkout。 |
@@ -481,3 +482,15 @@ dotbrain hook run [OPTIONS]
 | `--event` *choice* | — | 会话事件：startup、resume、clear、compaction、turn-end 或 session-end。 |
 | `--checkout` *path* | — | 事件所属的 checkout。默认是当前工作目录。 |
 | `--format` *choice* | `text` | 上下文输出格式：text（原样输出）或 json（一个 additional_context 对象）。 |
+
+### `dotbrain hook antigravity` {#dotbrain-hook-antigravity}
+
+读取 Antigravity hook 的输入并返回 JSON。失败时放行。
+
+```text
+dotbrain hook antigravity [OPTIONS]
+```
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--event` *antigravityhookevent* | 必填 | Antigravity 事件：startup 或 turn-end。 |

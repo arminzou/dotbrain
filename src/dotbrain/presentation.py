@@ -202,7 +202,9 @@ def render_operation(result, *, preview: bool = False) -> None:
             else:
                 # Later runtimes first: "claude/" must not claim a ".codex/" change.
                 for rt in reversed(runtimes.RUNTIMES.values()):
-                    if any(f"{prefix}/" in change for prefix in (rt.workspace, rt.key, rt.name)):
+                    prefixes = ((rt.key, rt.name) if rt.workspace == runtimes.SHARED_SKILLS_WORKSPACE
+                                else (rt.workspace, rt.key, rt.name))
+                    if any(f"{prefix}/" in change for prefix in prefixes):
                         category = f"{rt.label} resources"
                         break
             groups.setdefault(category, []).append(change)

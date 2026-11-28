@@ -210,6 +210,22 @@ Archive or delete the retained Brainspace through your own filesystem workflow. 
 ### Which agents are supported?
 
 Claude Code and Codex, plus [Hermes](getting-started.md#hermes), [OpenCode](getting-started.md#opencode),
-[Pi](getting-started.md#pi), and [Cursor](getting-started.md#cursor).
+[Pi](getting-started.md#pi), [Cursor](getting-started.md#cursor), and
+[Antigravity](getting-started.md#antigravity).
 Choose which workspaces a project gets with `agents:` in
 [`project.yaml`](configuration.md#project-yaml).
+
+## Antigravity plugin or hooks are missing {#antigravity-plugin}
+
+Run `dotbrain doctor`. If it reports that `~/.gemini/config/config.json` disables the plugin,
+run `agy plugin enable dotbrain` and start a new session.
+
+If the plugin at `~/.gemini/config/plugins/dotbrain` is missing or out of date, run
+`dotbrain bootstrap --runtime antigravity`. If you use the IDE or app without `agy`, run
+`dotbrain skills link --scope global --runtime antigravity`.
+
+If doctor reports a plugin directory that Dotbrain does not own, inspect that copy. If you
+want Dotbrain to manage it, move the existing copy out of `plugins/` before running setup.
+
+If the plugin is enabled and the hooks still do not run, check that `dotbrain` is on the
+PATH Antigravity inherits. Restart Antigravity after changing its PATH, then start a new session.

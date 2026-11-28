@@ -36,5 +36,5 @@ see [configuration](configuration.md#global-subagents) and
 [session context](session-context.md#subagents).
 
 Filesystem delivery does not prove that a runtime loaded or spawned an agent.
-Hermes, OpenCode, Pi and Cursor receive core skills and session integrations,
-but Dotbrain does not deliver native custom subagents to them.
+Hermes, OpenCode, Pi, Cursor, and Antigravity receive core skills and session integrations.
+Dotbrain delivers native custom subagents only to Claude Code and Codex.

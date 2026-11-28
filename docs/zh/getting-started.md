@@ -1,11 +1,11 @@
 # 快速开始
 
-Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
+Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi、Cursor CLI 和 Antigravity。
 使用 Claude Code 或 Codex 时，先安装 marketplace 插件，首次使用时，`wire-brain` skill 会帮你安装 CLI。
 下面的步骤介绍这条安装路径。
 
 使用其他 Coding Agent 时，请直接查看 [Hermes](#hermes)、[OpenCode](#opencode)、
-[Pi](#pi) 或 [Cursor CLI](#cursor) 的 CLI 配置步骤。
+[Pi](#pi)、[Cursor CLI](#cursor) 或 [Antigravity](#antigravity) 的 CLI 配置步骤。
 
 1. 安装插件。
 2. 安装 CLI。
@@ -15,7 +15,7 @@ Dotbrain 支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
 
 | 需要 | 说明 |
 | --- | --- |
-| 受支持的 Coding Agent | Claude Code、Codex、Hermes、OpenCode、Pi 或 Cursor CLI |
+| 受支持的 Coding Agent | Claude Code、Codex、Hermes、OpenCode、Pi、Cursor CLI 或 Antigravity |
 | Git | dotbrain 主目录是一个 Git 仓库 |
 | `uv` 和 `bd`（Beads） | 插件的安装脚本会帮你装 |
 | 仅 Windows：开发人员模式 | 让 dotbrain 不需要管理员权限就能创建目录符号链接 |
@@ -134,8 +134,8 @@ pwsh -NoProfile -File "$env:USERPROFILE\.claude\plugins\cache\dotbrain\dotbrain\
 bootstrap 会用配置初始化全局的 dotbrain 主目录，并分发选定的全局 skills 和 subagents。会话启动 hook
 由插件提供。重复运行安装脚本是安全的。
 
-本机首次运行 bootstrap 时，dotbrain 会限时运行 Hermes、OpenCode、Pi 和 Cursor 的 CLI
-`--version` 命令（Cursor 用 `agent --version`），列出找到的每个 runtime 及其状态。命令失败或超时的
+本机首次运行 bootstrap 时，Dotbrain 会限时检查 Hermes、OpenCode、Pi、Cursor 和 Antigravity 的 CLI 版本。
+Cursor 使用 `agent --version`，Antigravity 使用 `agy --version`。Dotbrain 会列出找到的 runtime 及其状态。命令失败或超时的
 runtime 会被跳过，其主目录不会被修改。stdin 和 stdout 都是终端时，会一次询问是否设置所有能运行的
 runtime；按 Enter 接受，输入 `n` 则全部跳过，并给出逐个设置的命令。非交互运行或使用 `--json` 时，
 会自动设置。结果会列出设置了哪些 runtime，以及用于撤销的 `dotbrain detach --runtime <name>` 命令。
@@ -258,7 +258,8 @@ dotbrain refresh
 
 ## 保持更新 {#staying-current}
 
-dotbrain 发布新版本时，插件和 CLI 要一起更新。
+Dotbrain 发布新版本时，插件和 CLI 要一起更新。
+如果使用 Antigravity，先升级 CLI，再按 [Antigravity 的更新步骤](#antigravity)更新插件。
 
 ### Skill 集合升级 {#skill-set-upgrade}
 
@@ -714,3 +715,27 @@ dotbrain detach --runtime cursor
 - [工作流程](workflow.md)解释核心能力，以及如何使用自己的工作流。
 - [架构](architecture.md)解释 Brainspace 模型。
 - [故障排查与常见问题](troubleshooting.md)覆盖常见的安装问题。
+
+## Antigravity {#antigravity}
+
+首次运行 `dotbrain bootstrap` 时，Dotbrain 会执行 `agy --version`。如果检查成功，
+Dotbrain 会询问是否配置 Antigravity。要单独配置 Antigravity，运行 `dotbrain bootstrap --runtime antigravity`。
+
+如果你使用 Antigravity IDE 或 App，且 PATH 中没有 `agy`，运行
+`dotbrain skills link --scope global --runtime antigravity`。
+
+Dotbrain 把插件安装到 `~/.gemini/config/plugins/dotbrain`。插件提供五项[核心 skills](skills.md)
+以及 [SessionStart 和 Stop hook](session-context.md#runtime-notes)。Antigravity 默认启用插件。
+Dotbrain 把你在 `config.yaml` 中选定的全局 skills 链接到 `~/.gemini/config/skills/`。
+
+如果项目有显式的 `agents:` 列表，把 `antigravity` 加进去。跟随本机配置的项目会在安装插件后自动选用 Antigravity。
+在已连接的 checkout 中运行 `dotbrain refresh`，把选定的项目 skills 链接到 `<checkout>/.agents/skills/`。
+Antigravity 和 Codex 都会读取这个目录。
+
+如果安装了 CLI，运行 `agy plugin list --json` 查看 Dotbrain 插件及其 skills 和 hook。
+插件发现和启用状态已在 Windows 上用 `agy` 1.5.18 验证。运行 `dotbrain doctor` 检查本地文件。
+如果 `~/.gemini/config/config.json` 禁用了插件，运行 `agy plugin enable dotbrain`。
+配置或重新启用后，启动一个新会话。
+
+升级 Dotbrain 后，运行 `dotbrain bootstrap` 更新 Antigravity 插件。只用图形界面时，重新运行上面的全局链接命令。
+启动新会话以加载更新。要移除本机的 Antigravity 交付，运行 `dotbrain detach --runtime antigravity`。

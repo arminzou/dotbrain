@@ -7,9 +7,11 @@ user resources without changing the packaged core inventory.
 
 ## Select and reconcile skills
 
-Codex project skills are linked into `<checkout>/.agents/skills/`. Its configuration and
-subagents remain under `.codex/`; global skills still use `~/.codex/skills/` and configured
-profiles. Claude Code and the other runtimes keep their existing destinations.
+Codex and Antigravity share project skill links in `<checkout>/.agents/skills/`. Codex stores
+configuration and subagents in `.codex/`. Codex global skills use `~/.codex/skills/` and configured
+profiles. Antigravity reads the core skills from `~/.gemini/config/plugins/dotbrain/skills/` and
+selected global skills from `~/.gemini/config/skills/`. Antigravity supports
+`disable-model-invocation: true` in `SKILL.md` frontmatter for skills you invoke by name.
 
 `wire`, `refresh`, and `skills link` migrate legacy `.codex/skills/` links whose targets establish
 Dotbrain ownership. A selected legacy link is removed only after its replacement is delivered;
@@ -152,7 +154,7 @@ stays reserved to protect preserved old resources from custom delivery.
 ## Installing them {#installing-them}
 
 Claude Code and Codex load the core from their marketplace plugin. Hermes,
-OpenCode, Pi, and Cursor retain their runtime-specific plugin and resource
+OpenCode, Pi, Cursor, and Antigravity use their runtime-specific plugin and resource
 delivery paths. See [getting started](getting-started.md) for installation and
 [session context](session-context.md) for hook and discovery boundaries.
 

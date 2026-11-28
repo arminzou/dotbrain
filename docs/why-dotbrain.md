@@ -6,7 +6,7 @@ keeping that context connected, current, and private has become enough work to j
 ## What do I get that my coding agent doesn't already provide?
 
 Dotbrain gives you a consistent home for project knowledge and execution state, plus commands
-to connect it to Claude Code, Codex, Hermes, OpenCode, Pi, and Cursor CLI. Your Brain holds vocabulary, decisions, working rules,
+to connect it to Claude Code, Codex, Hermes, OpenCode, Pi, Cursor CLI, and Antigravity. Your Brain holds vocabulary, decisions, working rules,
 and designs. Selected skills and subagents are delivered into the agent's workspace.
 
 For example, after recording why a project uses a particular database, a later session can read

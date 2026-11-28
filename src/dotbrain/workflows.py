@@ -68,7 +68,7 @@ def _tracker_changes(synced) -> list[str]:
 def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = None,
                    run=hermes._default_run) -> CommandResult:
     """Remove owned machine delivery without visiting any project checkout."""
-    from dotbrain import cursor, opencode, owned_copy
+    from dotbrain import cursor, owned_copy
 
     selected = runtimes.select(runtime)
     bootstrap.mark_complete(dotbrain_home)
@@ -79,7 +79,6 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
         target = TargetResult(scope="global", data={"runtime": rt.name})
         report.targets.append(target)
         directory = runtimes.user_dir(rt, user_home)
-        module = assets.HOME_DELIVERY.get(rt.name)
         try:
             destinations = assets.global_targets((rt,), "skills", user_home, explicit=True,
                                                   errors=target.errors, profiles=cfg.profiles, dotbrain_home=dotbrain_home)
@@ -104,12 +103,8 @@ def detach_runtime(dotbrain_home: Path, runtime: str, *, home: Path | None = Non
                 bundle = cursor.plugin_dir(dotbrain_home)
                 if owned_copy.remove(bundle):
                     removed.pruned.append(str(bundle))
-            elif rt.name in ("hermes", "opencode"):
-                removed = hermes.remove(directory, run=run) if rt.name == "hermes" else opencode.remove(directory)
-            elif rt.name == "pi":
-                bundle = module.plugin_dir(directory)
-                if owned_copy.remove(bundle):
-                    removed.pruned.append(str(bundle))
+            elif rt.name in assets.HOME_PLUGINS:
+                removed = assets.HOME_PLUGINS[rt.name].remove(directory, run=run)
             target.changes += [f"removed {name}" for name in removed.pruned]
             target.findings += [{"severity": "warning", "message": m} for m in removed.warnings]
             if rt.name in ("claude", "codex"):
@@ -197,6 +192,11 @@ def wire_project(
         if entry.exists() and not entry.is_symlink():
             raise ValueError(f"{entry}: a user-owned entry conflicts with attachment")
     existing = brainspace.is_dir()
+    workspaces = assets.project_workspaces(dotbrain_home,
+                 project_selection.ProjectTarget(project, brainspace, resolved_repo), "all")
+    if any(runtimes.for_workspace(ws).skill_path == runtimes.SHARED_PROJECT_SKILLS for ws in workspaces):
+        if conflict := skills.project_directory_conflict(resolved_repo, runtimes.SHARED_PROJECT_SKILLS):
+            raise ValueError(conflict)
     obsolete = []
     if existing:
         obsolete = config.obsolete_project_settings(dotbrain_home, project)
@@ -204,8 +204,6 @@ def wire_project(
         if legacy.exists():
             raise RuntimeError(f"{legacy}: move skills into .brain/project.yaml before wiring")
         # Resolve complete asset selections before converting an owned workspace link.
-        workspaces = assets.project_workspaces(dotbrain_home,
-                     project_selection.ProjectTarget(project, brainspace, resolved_repo), "all")
         try:
             skills.resolve_selection(dotbrain_home, config.load_project_skills(dotbrain_home, project))
         except ValueError as exc:
@@ -245,7 +243,7 @@ def wire_project(
     result.warnings += brainspaces.unknown_agent_warnings(brainspace, dotbrain_home)
     workspace_dirs, workspace_warnings = project_workspace_dirs(brainspace, resolved_repo, active_workspaces, run)
     result.errors += workspace_warnings
-    result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs]
+    result.logs += [f"materialized {name}" for name in changed_workspaces if name in workspace_dirs and name != runtimes.SHARED_SKILLS_WORKSPACE]
     target = project_selection.ProjectTarget(project, brainspace, resolved_repo)
     if not result.errors:
         for kind in ("skills", "agents"):
@@ -341,7 +339,12 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
         entry = repo / name
         if entry.exists() and not entry.is_symlink():
             raise RuntimeError(f'{entry}: foreign entry conflicts with setup repair')
+    if any(runtimes.for_workspace(ws).skill_path == runtimes.SHARED_PROJECT_SKILLS for ws in workspaces):
+        if conflict := skills.project_directory_conflict(repo, runtimes.SHARED_PROJECT_SKILLS):
+            raise RuntimeError(conflict)
     for ws in workspaces:
+        if ws == runtimes.SHARED_SKILLS_WORKSPACE:
+            continue
         directory = repo / ws
         if directory.is_symlink():
             if directory.resolve() != (target.brainspace / ws).resolve():
@@ -352,11 +355,6 @@ def _refresh_preflight(dotbrain_home, target, runtime, run):
             legacy_receiver = directory / kind
             if legacy_receiver.is_symlink() or (legacy_receiver.exists() and not legacy_receiver.is_dir()):
                 raise RuntimeError(f'{legacy_receiver}: foreign asset directory conflicts with delivery')
-            receiver = repo / runtimes.for_workspace(ws).skill_path if kind == 'skills' else directory / kind
-            conflict = (skills.project_directory_conflict(repo, receiver.relative_to(repo).as_posix())
-                        if kind == 'skills' and receiver != legacy_receiver else None)
-            if conflict:
-                raise RuntimeError(conflict)
     return workspaces
 
 
@@ -427,7 +425,8 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                 resolved = assets.project_workspaces(dotbrain_home, selected, 'all')
                 for rt in runtimes.RUNTIMES.values():
                     directory = repo / rt.workspace
-                    if rt.workspace not in resolved and (directory.exists() or directory.is_symlink()):
+                    if (rt.workspace != runtimes.SHARED_SKILLS_WORKSPACE and rt.workspace not in resolved
+                            and (directory.exists() or directory.is_symlink())):
                         target.findings.append({'severity': 'warning', 'message':
                             f'{rt.workspace} exists but {rt.name} is not in agents:; dotbrain will not link project skills there'})
                 for ws in workspaces:
@@ -435,7 +434,7 @@ def _refresh_projects(dotbrain_home, *, project, all_projects, runtime, cwd, run
                     warning = adopter_repos.materialize_workspace(repo, selected.brainspace, ws, run)
                     if warning:
                         raise RuntimeError(warning)
-                    if not was_local:
+                    if not was_local and ws != runtimes.SHARED_SKILLS_WORKSPACE:
                         target.data['checkout_changes'].append(f'materialized {ws}')
                 # An explicit runtime without native subagents has no agents to link.
                 kinds = ('skills', 'agents') if runtime == 'all' or runtimes.find(runtime).subagents else ('skills',)

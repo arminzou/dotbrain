@@ -56,7 +56,7 @@ every Brainspace, so Brain changes reach your other machines without a manual co
 | `Stop` | `dotbrain hook stop` | After each turn of the main agent, starts a background sync that records and pushes without fetching, and returns at once. Files never change under a running agent. |
 | `SessionEnd` | `dotbrain hook session-end` | Starts a full sync in the background and returns at once; skipped on `/clear`, whose `SessionStart` syncs. |
 
-Hooks for other runtimes call `dotbrain hook run` instead, which reads no hook payload. It takes
+Hermes, OpenCode, Pi, and Cursor call `dotbrain hook run`, which reads no hook payload. It takes
 the event as `--event startup|resume|clear|compaction|turn-end|session-end`, the checkout as
 `--checkout PATH` (default: the working directory), and `--format json` to print the convention
 as `{"additional_context": "..."}`. Each event syncs as its hook above does: the session starts
@@ -158,12 +158,24 @@ broken setup is silent: if a session in a wired repo does not know the conventio
 - In a runtime with no hook support, invoke the `brain-convention` skill to load the convention by hand,
   and run `dotbrain sync` yourself.
 
+- **Antigravity** loads the hook commands from `plugin/hooks.json` in the source tree.
+  Dotbrain installs that file as `hooks.json` in the plugin directory. `SessionStart` runs
+  `dotbrain hook antigravity --event startup`. Dotbrain reads JSON from stdin and looks for a wired
+  checkout in `cwd`, then in `workspacePaths`. It waits up to 10 seconds for home sync,
+  then returns `DOTBRAIN.md` as a `systemMessage` in `injectSteps`. `Stop` runs
+  `dotbrain hook antigravity --event turn-end`. It starts a detached push-only home sync and returns
+  `{}` immediately. Both commands use `|| echo {}` to return an empty JSON object if the command
+  fails. Antigravity has no `SessionEnd` hook for a full sync on exit.
+
+  Use `agy plugin enable dotbrain` or `agy plugin disable dotbrain` to control activation.
+  `dotbrain doctor` reads the setting in `~/.gemini/config/config.json`. Antigravity manages that file.
+
 ## Subagents
 
 Dotbrain delivers selected custom Claude Code and Codex definitions; it ships no
 workflow agents. Use `subagents:` in global `config.yaml` or project `project.yaml`.
 The `dotbrain-` prefix is reserved to protect preserved old resources. Hermes,
-OpenCode, Pi and Cursor receive no native custom subagents from Dotbrain.
+OpenCode, Pi, Cursor, and Antigravity receive no native custom subagents from Dotbrain.
 
 Claude definitions are symlinks; Codex definitions are generated TOML copies with
 the `# dotbrain-managed-agent: v1` marker. Edit the private source, not a generated

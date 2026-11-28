@@ -29,11 +29,14 @@ import json
 import os
 import subprocess
 import sys
+from time import monotonic
 from pathlib import Path
-from typing import BinaryIO, TextIO
+from typing import BinaryIO, Callable, TextIO
 
 from dotbrain import config, paths
 
+Runner = Callable[..., subprocess.CompletedProcess[str]]
+ANTIGRAVITY_GIT_SECONDS = 3.0
 CONVENTION_HEADING = "## dotbrain convention"
 
 # Hook stdout over this many bytes is spilled to a file and never reaches the model.
@@ -44,18 +47,20 @@ PAYLOAD_LIMIT = 10_000
 SESSION_START_SYNC_SECONDS = 10
 
 
-def repo_root(cwd: Path | None = None) -> Path | None:
+def repo_root(cwd: Path | None = None, *, timeout: float | None = None,
+              run: Runner = subprocess.run) -> Path | None:
     """Return the enclosing git repo root, or None outside one (and with no git)."""
 
     try:
-        completed = subprocess.run(
+        completed = run(
             ["git", "rev-parse", "--show-toplevel"],
             cwd=cwd,
             capture_output=True,
             check=False,
             encoding="utf-8",
+            timeout=timeout,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     if completed.returncode != 0:
         return None
@@ -69,8 +74,13 @@ def brain_context(cwd: Path | None = None) -> bytes:
     root = repo_root(cwd)
     if root is None:
         return b""
-    convention = root / ".brain" / "DOTBRAIN.md"
-    if not convention.is_file():
+    return _brain_context_at(root)
+
+
+def _brain_context_at(root: Path, *, confined: bool = False) -> bytes:
+    brain = root / ".brain"
+    convention = paths.confined_path(brain, "DOTBRAIN.md") if confined else brain / "DOTBRAIN.md"
+    if (confined and convention.is_symlink()) or not convention.is_file():
         return b""
 
     heading = (CONVENTION_HEADING + "\n\n").encode("utf-8")
@@ -147,16 +157,89 @@ def start_sync(*, push_only: bool = False, wait: float = 0, checkout: Path | Non
         home = sync_home(checkout)
         if home is None:
             return
-        argv = _sync_argv(home, push_only)
-        if wait:
-            argv += ["--wait-for-lock", str(wait)]
-        child = _launch_detached(argv, home)
-        if wait:
-            child.wait(timeout=wait)
-    except subprocess.TimeoutExpired:
-        return  # still running: it finishes detached; killing it could strand a merge
-    except Exception:  # noqa: BLE001 - a hook must never break the session
+        _start_home_sync(home, push_only=push_only, wait=wait)
+    except Exception:
         return
+
+
+def _start_home_sync(home: Path, *, push_only: bool, wait: float) -> None:
+    argv = _sync_argv(home, push_only)
+    if wait:
+        argv += ["--wait-for-lock", str(wait)]
+    child = _launch_detached(argv, home)
+    if wait:
+        child.wait(timeout=wait)
+
+
+def _antigravity_checkout(payload: object, home: Path, *, run: Runner = subprocess.run) -> Path | None:
+    if not isinstance(payload, dict):
+        return None
+    workspaces = payload.get("workspacePaths")
+    candidates = workspaces if isinstance(workspaces, list) else []
+    deadline = monotonic() + ANTIGRAVITY_GIT_SECONDS
+    seen = set()
+    for value in (payload.get("cwd"), *candidates):
+        if not isinstance(value, str) or not value or "\0" in value:
+            continue
+        try:
+            directory = Path(value)
+            if not directory.is_absolute() or not directory.is_dir():
+                continue
+            directory = directory.resolve()
+            if directory in seen:
+                continue
+            seen.add(directory)
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                return None
+            root = repo_root(directory, timeout=remaining, run=run)
+            if root is None:
+                continue
+            if monotonic() >= deadline:
+                return None
+            root = root.resolve()
+            if root == home:
+                return root
+            brain = root / ".brain"
+            if not brain.is_symlink() or not brain.is_dir():
+                continue
+            resolved = brain.resolve()
+            project, marker = resolved.relative_to(paths.data_dir(home)).parts
+            if marker == ".brain" and resolved == paths.brainspace(home, project) / ".brain":
+                return root
+        except (OSError, ValueError, RuntimeError):
+            continue
+    return None
+
+
+def handle_antigravity_event(event: str, *, stream: BinaryIO | None = None,
+                             output: BinaryIO | None = None, run: Runner = subprocess.run) -> int:
+    response = {}
+    try:
+        source = stream if stream is not None else sys.stdin.buffer
+        payload = {} if source.isatty() else json.loads(source.read().decode("utf-8") or "{}")
+        home = paths.resolve_dotbrain_home().expanduser().resolve()
+        root = _antigravity_checkout(payload, home, run=run)
+        if root is not None:
+            startup = event == "startup"
+            try:
+                if config.load_config(home).sync.enabled:
+                    _start_home_sync(home, push_only=not startup, wait=SESSION_START_SYNC_SECONDS if startup else 0)
+            except Exception:
+                pass
+            if startup and root != home:
+                context = _brain_context_at(root, confined=True)
+                if context:
+                    response = {"injectSteps": [{"systemMessage": {"systemMessage": context.decode("utf-8", "replace")}}]}
+    except Exception:
+        pass
+    try:
+        target = output if output is not None else sys.stdout.buffer
+        target.write((json.dumps(response) + "\n").encode("utf-8"))
+        target.flush()
+    except (OSError, ValueError, AttributeError):
+        pass
+    return 0
 
 
 EVENTS = ("startup", "resume", "clear", "compaction", "turn-end", "session-end")

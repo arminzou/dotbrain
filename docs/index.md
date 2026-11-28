@@ -101,7 +101,9 @@ Five core skills maintain wiring, project understanding, repository requirements
 <li>
 <h3>Set up your coding agent</h3>
 <p>For Claude Code and Codex, install the plugin once per machine. It provides skills and session hooks.</p>
-<p>For CLI-based setup, see <a href="./getting-started#hermes">Hermes</a>, <a href="./getting-started#opencode">OpenCode</a>, <a href="./getting-started#pi">Pi</a>, or <a href="./getting-started#cursor">Cursor CLI</a>.</p>
+<p>For CLI-based setup, see <a href="./getting-started#hermes">Hermes</a>, <a href="./getting-started#opencode">OpenCode</a>, <a href="./getting-started#pi">Pi</a>, <a href="./getting-started#cursor">Cursor CLI</a>, or <a href="./getting-started#antigravity">Antigravity</a>.</p>
+<p>After upgrading Dotbrain, refresh Antigravity with <code>dotbrain bootstrap</code>.
+See <a href="./getting-started#antigravity">Antigravity setup and updates</a> for GUI-only installs.</p>
 
 ::: code-group
 
