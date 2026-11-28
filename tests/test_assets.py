@@ -20,6 +20,7 @@ def write(path, content):
     ("hermes", ".hermes/skills"),
     ("opencode", ".opencode/skills"),
     ("pi", ".pi/skills"),
+    ("antigravity", ".agents/skills"),
     ("cursor", ".cursor/skills"),
 ])
 def test_project_skill_destination_smoke(tmp_path, runtime, skill_path):
@@ -51,7 +52,7 @@ def test_project_skill_destination_smoke(tmp_path, runtime, skill_path):
             assets.link_project(home, target, "agents", runtime, run=run)
 
 
-@pytest.mark.parametrize("name", ["hermes", "opencode", "pi", "cursor"])
+@pytest.mark.parametrize("name", tuple(assets.HOME_DELIVERY))
 def test_machine_agents_requires_owned_delivery(tmp_path, name):
     home = tmp_path / "data"
     runtime = runtimes.find(name)

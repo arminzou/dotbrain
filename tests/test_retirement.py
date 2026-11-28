@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from dotbrain import assets, cursor, hermes, opencode, owned_copy, pi, resource_loader, subagents
+from dotbrain import antigravity, assets, cursor, hermes, opencode, owned_copy, pi, resource_loader, subagents
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -18,7 +18,7 @@ def old_bundle(target):
     shutil.copytree(FIXTURES / "retired-plugin/skills", target / "skills")
 
 
-@pytest.mark.parametrize("runtime,module", [("hermes", hermes), ("pi", pi), ("cursor", cursor), ("opencode", opencode)])
+@pytest.mark.parametrize("runtime,module", [("antigravity", antigravity), ("hermes", hermes), ("pi", pi), ("cursor", cursor), ("opencode", opencode)])
 @pytest.mark.parametrize("modified", [False, True])
 def test_runtime_transition_preserves_changed_old_bundle_and_reports_path(tmp_path, runtime, module, modified):
     home, user = tmp_path / "data", tmp_path / "user"

@@ -107,8 +107,11 @@ def test_refresh_follows_machine_only_without_agents_and_notices_old_defaults(se
     expected_agents = (['claude', 'codex'] if cli_installed else []) + (['opencode'] if set_up else [])
     if agents is not None:
         expected_agents = yaml.safe_load(agents)
+    expected_dirs = {rt.workspace for rt in runtimes.recognized(expected_agents)}
+    expected_dirs.update(runtimes.find(name).skill_path.split('/')[0] for name in expected_agents)
     for rt in runtimes.RUNTIMES.values():
-        assert (checkout / rt.workspace).exists() == (rt.name in expected_agents)
+        assert (checkout / rt.workspace).exists() == (rt.workspace in expected_dirs)
+    assert not any('.agents exists but antigravity' in f['message'] for f in report['findings'])
     assert declaration.read_bytes() == before
     notices = [f for f in report['findings'] if 'follow the machine' in f['message']]
     assert bool(notices) == (set_up and agents == '[claude, codex]')

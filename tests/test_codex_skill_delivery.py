@@ -382,8 +382,13 @@ def test_global_homes_and_runtime_workspaces_unchanged():
     assert all(rt.skill_path == f"{rt.workspace}/skills" for rt in runtimes.RUNTIMES.values() if rt.name != "codex")
 
 
-def test_migration_and_unwire_retain_sibling_excludes(delivery, tmp_path):
+@pytest.mark.parametrize("agents", ["codex", "antigravity, codex"])
+def test_migration_and_unwire_retain_sibling_excludes(delivery, tmp_path, agents):
     home, brainspace, main = delivery
+    declaration = brainspace / ".brain/project.yaml"
+    text = declaration.read_text(encoding="utf-8")
+    assert "agents: [codex]" in text
+    declaration.write_text(text.replace("agents: [codex]", f"agents: [{agents}]"), encoding="utf-8")
     sibling = tmp_path / "sibling"
     subprocess.run(["git", "-C", str(main), "worktree", "add", "-b", "sibling", str(sibling)],
                    check=True, capture_output=True)

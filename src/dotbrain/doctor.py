@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, hermes, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, skills, subagents
+from dotbrain import adopter_repos, assets, beads, brainspaces, claude_plugins, config, cursor, home_sync, opencode, paths, profile_migration, projects, resource_loader, run_cache, runtimes, skills, subagents
 from dotbrain.results import CommandResult, TargetResult
 from dotbrain import __version__
 
@@ -171,12 +171,18 @@ def _check_machine(root: Path, home: Path) -> list[Finding]:
                      assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home)))
             if not owned:
                 findings.append(Finding("info", f"{rt.label} is installed; run `dotbrain bootstrap --runtime {rt.name}` to deliver dotbrain to it"))
-        if rt.hooks and not rt.home_env and rt.name not in ("cursor", "claude"):
+        if rt.name == "codex":
             findings.extend(_check_plugin(home, rt.key))
-        if rt.home_env and assets.HOME_DELIVERY[rt.name].owned(runtimes.user_dir(rt, home)):
+        if rt.name in assets.HOME_PLUGINS:
             directory = runtimes.user_dir(rt, home)
-            findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
-                            else _check_home_plugin(rt, directory))
+            adapter = assets.HOME_PLUGINS[rt.name]
+            if adapter.owned(directory):
+                findings.extend(_check_opencode_plugin(directory, home) if rt.name == "opencode"
+                                else _check_home_plugin(rt, directory))
+            elif rt.name == "antigravity":
+                target = adapter.plugin_dir(directory)
+                if target.exists() or target.is_symlink():
+                    findings.extend(_check_home_plugin(rt, directory))
     if cursor.global_delivery(root):
         findings.extend(_check_home_plugin(runtimes.find("cursor"), root))
         findings.extend(_check_cursor_hooks(home))
@@ -323,7 +329,7 @@ def _opencode_absent(config_dir: Path, state: str) -> list[Finding]:
 
 
 def _check_home_plugin(rt: runtimes.Runtime, directory: Path) -> list[Finding]:
-    """Presence and freshness of dotbrain's own copy in a runtime's home, and Hermes activation."""
+    """Presence, freshness, and activation of dotbrain's own copy in a runtime's home."""
     adapter = assets.HOME_DELIVERY[rt.name]
     target = adapter.plugin_dir(directory)
     try:
@@ -333,8 +339,9 @@ def _check_home_plugin(rt: runtimes.Runtime, directory: Path) -> list[Finding]:
         hooks = ", with its session hooks," if rt.hooks and rt.name != "cursor" else ""
         findings = [Finding("ok", f"{rt.name}: dotbrain {adapter.KIND} copy{hooks} current at {target}") if state == "current"
                     else Finding("warn", f"{rt.name}: dotbrain {adapter.KIND} copy is stale at {target}", "run dotbrain bootstrap")]
-        if adapter is hermes and (activation := hermes.activation(directory)) != "enabled":
-            findings.append(Finding("warn", f"hermes: dotbrain plugin is {activation}", f"run {hermes.ENABLE}"))
+        if hasattr(adapter, "activation") and (activation := adapter.activation(directory)) != "enabled":
+            findings.append(Finding("warn", f"{rt.name}: dotbrain plugin is {activation}",
+                                    f"run {adapter.ENABLE}, then start a new session"))
         return findings
     except DIAGNOSIS_ERRORS as exc:
         return [Finding("warn", f"{rt.name}: {adapter.KIND} check unavailable: {exc}", f"inspect {directory}")]
@@ -356,8 +363,8 @@ def _check_home_project(rt: runtimes.Runtime, directory: Path, repo: Path | None
     findings = []
     try:
         findings.extend(_plugin_absent(rt, directory, adapter.state(directory)))
-        if repo is not None and repo.is_dir() and selected and not adapter.trusted(directory, repo):
-            # Both runtimes read <checkout>/<workspace>/skills only from trusted project roots.
+        if (hasattr(adapter, "trusted") and repo is not None and repo.is_dir()
+                and selected and not adapter.trusted(directory, repo)):
             findings.append(Finding("warn", f"{rt.name}: project skills load only from a trusted checkout",
                                     adapter.trust_hint(repo)))
     except DIAGNOSIS_ERRORS as exc:
@@ -440,6 +447,8 @@ def _check_brainspace_links(repo: Path, brainspace: Path) -> list[Finding]:
         if not link.is_symlink() or link.resolve() != expected.resolve() or not expected.is_dir():
             findings.append(Finding("error", f"{link}: missing, broken, or points to the wrong Brainspace", "run dotbrain refresh for this checkout"))
     for workspace in assets.project_workspaces(root, projects.ProjectTarget(brainspace.name, brainspace, repo), "all"):
+        if workspace == runtimes.SHARED_SKILLS_WORKSPACE:
+            continue
         directory = repo / workspace
         if directory.is_symlink() or not directory.is_dir():
             findings.append(Finding("error", f"{directory}: workspace is not a checkout-local directory", "run dotbrain refresh"))
@@ -546,19 +555,22 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         findings.extend(Finding("error", f"custom subagent '{name}' uses the reserved {subagents.PACKAGED_PREFIX} prefix",
                                 "rename the custom subagent") for name in agents if name.startswith(subagents.PACKAGED_PREFIX))
         entries = ["/.brain"] + (["/.beads"] if beads.mode != "none" else [])
+        checked_skills = set()
         for workspace in workspaces:
             directory = repo / workspace
-            if directory.is_symlink() or not directory.is_dir():
-                continue
             rt = runtimes.for_workspace(workspace)
             runtime = rt.key
-            skill_directory = repo / rt.skill_path
-            conflict = skills.project_directory_conflict(repo, rt.skill_path)
-            if conflict:
-                findings.append(Finding("error", conflict, "move the conflicting entry aside, then run dotbrain refresh"))
-            elif runtime != "cursor":
-                findings.extend(_check_assets(root, skill_directory, selected, "skills", runtime))
-                entries.extend(f"/{rt.skill_path}/{Path(name).name}" for name in selected)
+            local_workspace = directory.is_dir() and not directory.is_symlink()
+            if (local_workspace or rt.skill_path == runtimes.SHARED_PROJECT_SKILLS) and rt.skill_path not in checked_skills:
+                checked_skills.add(rt.skill_path)
+                conflict = skills.project_directory_conflict(repo, rt.skill_path)
+                if conflict:
+                    findings.append(Finding("error", conflict, "move the conflicting entry aside, then run dotbrain refresh"))
+                elif runtime != "cursor":
+                    findings.extend(_check_assets(root, repo / rt.skill_path, selected, "skills", runtime))
+                    entries.extend(f"/{rt.skill_path}/{Path(name).name}" for name in selected)
+            if not local_workspace or workspace == runtimes.SHARED_SKILLS_WORKSPACE:
+                continue
             if runtime == "codex":
                 legacy, warnings = skills.codex_legacy_entries(root, repo)
                 findings.extend(Finding("warn", warning, "inspect preserved legacy skills") for warning in warnings)
@@ -582,14 +594,17 @@ def _check_project(target: projects.ProjectTarget, root: Path, run: Runner, *, s
         for workspace in workspaces:
             rt = runtimes.for_workspace(workspace)
             directory = runtimes.user_dir(rt, home or Path.home())
-            if rt.home_env and not assets.HOME_DELIVERY[rt.name].owned(directory):
+            if rt.name in assets.HOME_PLUGINS and not assets.HOME_PLUGINS[rt.name].owned(directory):
+                if rt.name == "antigravity":
+                    findings.append(Finding("info", "antigravity: dotbrain plugin setup is available",
+                                            "run dotbrain skills link --scope global --runtime antigravity"))
                 continue
             if rt.name == "opencode":
                 try:
                     findings.extend(_opencode_absent(directory, opencode.state(directory)))
                 except DIAGNOSIS_ERRORS as exc:
                     findings.append(Finding("warn", f"opencode: delivery check unavailable: {exc}", "inspect the OpenCode config directory"))
-            elif rt.home_env:
+            elif rt.name in assets.HOME_PLUGINS:
                 findings.extend(_check_home_project(rt, directory, repo, selected))
             if rt.name == "cursor" and cursor.global_delivery(root):
                 findings.extend(_check_home_plugin(rt, root))

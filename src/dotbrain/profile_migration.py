@@ -99,7 +99,7 @@ def _convert_targets(data: dict, kind: str, location: str, user_home: Path,
                 skills_dir = assets.HOME_DELIVERY[rt.name].skills_dir(Path("<home>") / rt.home_subdir).as_posix()
                 hint = f"set {rt.home_env}=<home> instead; global skills then go to {skills_dir}"
             else:
-                hint = f"{rt.label} global skills always go to {default.as_posix() if default else '~/' + rt.workspace + '/skills'}"
+                hint = f"{rt.label} global skills always go to {default.as_posix() if default else '~/' + (rt.home_default or rt.workspace) + '/skills'}"
             reports.append(f"{location}: dropped targets.{key} ({rt.label}, folder {value}); {hint}")
             continue
         normalized = value.replace("\\", "/").rstrip("/")

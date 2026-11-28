@@ -201,7 +201,7 @@ def deliver(config_dir: Path, *, run=None) -> LinkResult:
     return result
 
 
-def remove(config_dir: Path) -> LinkResult:
+def remove(config_dir: Path, *, run=None) -> LinkResult:
     result = LinkResult()
     target = packaged_dir(config_dir)
     file_owned = _file_owned(config_dir)

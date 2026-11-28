@@ -349,6 +349,10 @@ def materialize_workspace(
     # repo was moved or deleted silently created a phantom repo at the stale location.
     if not repo.is_dir():
         return f"{repo} does not exist; skipping {name} workspace"
+    if name == runtimes.SHARED_SKILLS_WORKSPACE:
+        from dotbrain import skills
+
+        return skills.project_directory_conflict(repo, runtimes.SHARED_PROJECT_SKILLS)
     workspace = repo / name
     expected = Path(brainspace) / name
     if workspace.is_symlink():
@@ -505,11 +509,11 @@ def _managed_workspace_links(repo: Path, dotbrain_home: Path) -> list[Path]:
                           + [str(Path(rt.skill_path).parent) for rt in runtimes.RUNTIMES.values()])
     for name in names:
         workspace = Path(repo) / name
-        if name == ".agents" or (name == ".codex" and not workspace.is_symlink()):
+        if name == runtimes.SHARED_SKILLS_WORKSPACE or (name == ".codex" and not workspace.is_symlink()):
             # Shared skills and Codex configuration can contain foreign resources. Inspect
             # only direct asset entries, never linked receivers or user-owned subdirectories.
             candidates = []
-            for kind in ("skills",) if name == ".agents" else ("skills", "agents"):
+            for kind in ("skills",) if name == runtimes.SHARED_SKILLS_WORKSPACE else ("skills", "agents"):
                 receiver = workspace / kind
                 if not skills.project_directory_conflict(Path(repo), f"{name}/{kind}") and receiver.is_dir():
                     candidates.extend(receiver.iterdir())
@@ -587,7 +591,8 @@ def unwire_repo(
     if exclude and exclude.is_file():
         lines = exclude.read_text(encoding="utf-8").splitlines(keepends=True)
         excludes = {*paths.EXCLUDE_ENTRIES, paths.RETIRED_AGENT_TMP_EXCLUDE,
-                    *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values())}
+                    *(f"/{rt.workspace}" for rt in runtimes.RUNTIMES.values()
+                      if rt.workspace != runtimes.SHARED_SKILLS_WORKSPACE)}
         excludes.update(f"/{entry}" for entry in (*managed_entries, *retired_entries))
         filtered = [l for l in lines if l.rstrip("\r\n") not in excludes
                     or _exclude_needed_elsewhere(repo, l.rstrip("\r\n"), run)]

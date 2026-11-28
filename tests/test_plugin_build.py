@@ -27,7 +27,7 @@ MAX_SKILL_LINES = 500
 
 def test_plugin_does_not_deliver_packaged_subagents():
     assert not (PLUGIN_ROOT / "agents").exists()
-    for runtime in ("claude", "codex"):
+    for runtime in ("claude", "codex", "antigravity"):
         manifest = json.loads((PLUGIN_ROOT / f".{runtime}-plugin/plugin.json").read_text(encoding="utf-8"))
         assert "agents" not in manifest
 
@@ -220,7 +220,8 @@ def test_first_run_installers_pin_the_plugin_cli_version():
 
     # Every host manifest takes the release version, and release-please bumps each one. The release
     # workflow runs this suite at the tag and rejects a tag that disagrees with pyproject.
-    manifests = {"plugin/.claude-plugin/plugin.json": json.loads,
+    manifests = {"plugin/.antigravity-plugin/plugin.json": json.loads,
+                 "plugin/.claude-plugin/plugin.json": json.loads,
                  "plugin/.codex-plugin/plugin.json": json.loads,
                  "plugin/plugin.yaml": yaml.safe_load,
                  "plugin/index.js": lambda text: {"version": re.search(r'VERSION = "([^"]+)"', text)[1]}}

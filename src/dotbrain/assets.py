@@ -2,10 +2,11 @@
 import os
 from pathlib import Path
 
-from dotbrain import adopter_repos, config, cursor, hermes, opencode, paths, pi, projects, run_cache, runtimes, skills, subagents
+from dotbrain import adopter_repos, antigravity, config, cursor, hermes, opencode, paths, pi, projects, run_cache, runtimes, skills, subagents
 
 # The owned plugin delivery of each runtime that has no marketplace install.
-HOME_DELIVERY = {"hermes": hermes, "opencode": opencode, "pi": pi, "cursor": cursor}
+HOME_PLUGINS = {"hermes": hermes, "opencode": opencode, "pi": pi, "antigravity": antigravity}
+HOME_DELIVERY = {**HOME_PLUGINS, "cursor": cursor}
 
 
 @run_cache.memo
@@ -45,12 +46,15 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
         raise ValueError(f"project '{target.project}' has no available checkout")
     adopter_repos.ensure_wiring_matches(target.checkout, home, target.project)
     workspace_dirs = {ws: target.checkout / ws for ws in workspaces}
+    receivers = {}
     for ws, directory in workspace_dirs.items():
-        if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
+        if ws != runtimes.SHARED_SKILLS_WORKSPACE and (directory.is_symlink() or (directory.exists() and not directory.is_dir())):
             raise ValueError(f"{directory}: workspace must be a checkout-local directory; run dotbrain refresh to migrate legacy workspace links")
         receiver = (target.checkout / runtimes.for_workspace(ws).skill_path if kind == "skills"
                     else directory / kind)
-        conflict = skills.project_directory_conflict(target.checkout, receiver.relative_to(target.checkout).as_posix())
+        receivers[receiver.relative_to(target.checkout).as_posix()] = receiver
+    for relative in receivers:
+        conflict = skills.project_directory_conflict(target.checkout, relative)
         if conflict:
             raise ValueError(conflict)
     legacy = target.brainspace / ".brain/agents/skills.yaml"
@@ -71,9 +75,7 @@ def link_project(home: Path, target: projects.ProjectTarget, kind: str, runtime:
         result = subagents.link_project_subagents(home, target.brainspace, workspaces, names,
                                                   workspace_dirs=workspace_dirs)
     linked_entries = []
-    for workspace in workspaces:
-        relative = runtimes.for_workspace(workspace).skill_path if kind == "skills" else f"{workspace}/agents"
-        directory = target.checkout / relative
+    for relative, directory in receivers.items():
         if directory.is_dir():
             for entry in directory.iterdir():
                 roots = ((home / "skills", home / ".cache/skills") if kind == "skills" else
@@ -92,7 +94,7 @@ def global_targets(selected, kind: str, user_home: Path, *, explicit: bool,
                    profiles: dict[str, list[str]] | None = None) -> dict[str, tuple[Path, ...]]:
     """Resolve global folders, including existing profiles, before any delivery or pruning.
 
-    Such a runtime (Hermes, OpenCode, Pi) is opted in by an explicit --runtime request or by an
+    A runtime with owned home delivery is opted in by an explicit --runtime request or by an
     existing owned plugin copy, so later unfiltered runs keep its delivery current.
     """
     targets = runtimes.global_targets(kind)
@@ -104,7 +106,7 @@ def global_targets(selected, kind: str, user_home: Path, *, explicit: bool,
         owned = cursor.global_delivery(dotbrain_home) if rt.name == "cursor" else HOME_DELIVERY[rt.name].owned(directory)
         if not explicit and not owned:
             continue
-        destination = HOME_DELIVERY[rt.name].skills_dir(directory) if rt.home_env else user_home / ".cursor/skills"
+        destination = HOME_DELIVERY[rt.name].skills_dir(directory)
         targets[rt.key] = str(destination)
     destinations = {key: (adopter_repos.expand_path(value, home=user_home),) for key, value in targets.items()}
     settings = {}
@@ -128,7 +130,7 @@ def global_targets(selected, kind: str, user_home: Path, *, explicit: bool,
         if rt.name in HOME_DELIVERY and rt.key in destinations:
             directory = runtimes.user_dir(rt, user_home)
             if paths.inside_wired_checkout(directory):
-                errors.append(f"{rt.home_env or '~/' + rt.workspace}: {directory} is inside a wired checkout; "
+                errors.append(f"{rt.home_label}: {directory} is inside a wired checkout; "
                               "choose a runtime home outside it")
                 destinations[rt.key] = ()
                 continue
@@ -136,7 +138,7 @@ def global_targets(selected, kind: str, user_home: Path, *, explicit: bool,
         for folder in destinations.get(rt.key, ()):
             # Check the home too: an asset symlink must not hide a checkout marker above it.
             if paths.inside_wired_checkout(folder.parent) or paths.inside_wired_checkout(folder):
-                setting = settings.get((rt.key, folder), rt.home_env or rt.workspace)
+                setting = settings.get((rt.key, folder), rt.home_label)
                 errors.append(f"{setting}: {folder} is inside a wired checkout; choose a global {kind} destination outside it")
             elif folder.resolve() not in {p.resolve() for p in safe}:
                 safe.append(folder)
@@ -210,10 +212,10 @@ def link_global(home: Path, kind: str, runtime: str = "all", *, user_home: Path 
             result.linked += delivered_hooks.linked
             result.warnings += delivered_hooks.warnings
         rt = runtimes.find(k)
-        if kind == "skills" and rt.home_env:
+        if kind == "skills" and rt.name in HOME_PLUGINS:
             # The plugin carries the Brain-coupled skills this runtime has no marketplace install for.
             try:
-                delivered = HOME_DELIVERY[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
+                delivered = HOME_PLUGINS[rt.name].deliver(runtimes.user_dir(rt, user_home), run=run)
             except ValueError as exc:
                 result.warnings.append(f"{k}: {exc}")
                 continue

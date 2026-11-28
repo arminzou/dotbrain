@@ -263,33 +263,28 @@ def link_project(
         result.warnings.append(str(exc))
         return result
     result.notices += _legacy_skill_cache_notice(dotbrain_home)
+    reconciled = set()
     for workspace in workspaces:
         workspace_dir = workspace_dirs.get(workspace) if workspace_dirs else None
         base = (workspace_dir or brainspace / workspace).parent
         rt = runtimes.for_workspace(workspace)
-        skills_dir = base / rt.skill_path
-        # A shared skill directory is never an ownership claim on its parent or receiver.
-        conflict = project_directory_conflict(base, rt.skill_path)
-        if conflict:
-            result.warnings.append(conflict)
-            continue
-        ws_result = link_into(
-            dotbrain_home,
-            skills_dir,
-            skill_paths,
-            label=rt.skill_path,
-            prune_owned_only=True,
-            preserve_collisions=True,
-            # A project/runtime cannot retire a shared cache that preserved legacy
-            # links in another runtime or checkout may still need.
-            cleanup_cache=False,
-        )
+        destination = base / rt.skill_path
+        if destination not in reconciled:
+            conflict = project_directory_conflict(base, rt.skill_path)
+            if conflict:
+                if conflict not in result.warnings:
+                    result.warnings.append(conflict)
+                continue
+            reconciled.add(destination)
+            if rt.skill_path != runtimes.SHARED_PROJECT_SKILLS or skill_paths or destination.is_dir():
+                ws_result = link_into(dotbrain_home, destination, skill_paths, label=rt.skill_path,
+                                      prune_owned_only=True, preserve_collisions=True, cleanup_cache=False)
+                result.linked += ws_result.linked
+                result.pruned += ws_result.pruned
+                result.stashed += ws_result.stashed
+                result.warnings += ws_result.warnings
         if rt.name == "codex":
-            _prune_codex_legacy(dotbrain_home, base, skills_dir, skill_paths, ws_result)
-        result.linked += ws_result.linked
-        result.pruned += ws_result.pruned
-        result.stashed += ws_result.stashed
-        result.warnings += ws_result.warnings
+            _prune_codex_legacy(dotbrain_home, base, destination, skill_paths, result)
     return result
 
 
