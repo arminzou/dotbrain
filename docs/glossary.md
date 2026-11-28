@@ -12,7 +12,7 @@
 | Home sync | Git versioning and exchange of private home files; separate from Beads backend persistence and backup. |
 | Core skill | One of `wire-brain`, `brain-convention`, `maintain-brain`, `work-graph`, or `repo-rules`, usable with any engineering workflow. |
 | Engineering workflow | The selected procedures for planning, delegation, verification, recovery and delivery, subject to user/repository authority. |
-| Runtime | Claude Code, Codex, Hermes, OpenCode, Pi or Cursor; each has its own integration and limitations. |
+| Runtime | Claude Code, Codex, Hermes, OpenCode, Pi, Cursor, or Antigravity. Each runtime has its own integration and limitations. |
 | Custom subagent | An operator-selected Claude Code or Codex definition; the core ships no workflow agents. |
 | Worktree | An isolated Git checkout that can share the existing Brainspace while receiving checkout-local runtime resources. |
 | Adopted requirement | Public repository policy, normally in `RULES.md`, maintained separately from proposed improvements. |

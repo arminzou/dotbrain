@@ -10,7 +10,7 @@
 | `.brain` | 符号链接 | Brainspace 的 Brain |
 | `.beads` | 符号链接 | Brainspace 的执行存储 |
 | `.claude/skills/` | 真实目录，内含符号链接 | `~/dotbrain/skills/` 下选中的私有 skills |
-| `.agents/skills/` | 真实目录，内含符号链接 | Codex 在 `~/dotbrain/skills/` 下选中的私有 skills |
+| `.agents/skills/` | 真实目录，内含符号链接 | 从 `~/dotbrain/skills/` 选出的 Codex 和 Antigravity 私有 skills |
 | `.claude/agents/` | 真实目录，内含符号链接 | `~/dotbrain/subagents/` 下选中的私有 Claude Agent |
 | `.codex/agents/` | 真实目录，内含生成的 TOML 文件 | 选中的私有 Codex Agent |
 
@@ -19,7 +19,9 @@ Agent 是符号链接。Codex Agent 是生成的真实 TOML 文件，带有 `# d
 dotbrain 可以覆盖和清理带标记的副本；要自定义，请改私有主目录里的源文件。没有标记的文件和其他来源的
 链接都会保留。每个分发的资源都单独被忽略。
 
-Codex 项目 skills 放在 `.agents/skills/`，配置和 subagents 仍在 `.codex/` 下。`wire`、`refresh` 和
+Codex 和 Antigravity 共用 `<checkout>/.agents/skills/`。Dotbrain 在每个 checkout 中只同步一次这个目录，
+并在 `.git/info/exclude` 中为每个它管理的链接添加一条精确规则。`dotbrain unwire` 移除这些链接及其规则，
+保留其他条目和 `.agents` 目录。Codex 的配置和 subagents 放在 `.codex/` 下。`wire`、`refresh` 和
 `skills link` 会在新链接分发成功后移除自有的 `.codex/skills/` 旧链接，保留并报告其他来源的条目和冲突。
 迁移细节见[Skills](skills.md#select-and-reconcile-skills)。全局 skills 主目录的位置不变。
 

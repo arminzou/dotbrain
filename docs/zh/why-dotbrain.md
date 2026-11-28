@@ -6,7 +6,7 @@
 ## 相比 Coding Agent 自带的功能，Dotbrain 提供了什么？
 
 Dotbrain 给项目知识和执行状态一个统一的存放位置，并将它连接到你使用的 Coding Agent。
-支持 Claude Code、Codex、Hermes、OpenCode、Pi 和 Cursor CLI。
+支持 Claude Code、Codex、Hermes、OpenCode、Pi、Cursor CLI 和 Antigravity。
 Brain 里存放术语、决策、工作规则和设计；选定的 skills 和 subagents 会放进 Agent 的工作区。
 
 比如你记下了项目为什么选某个数据库，之后的会话可以直接读这条决策，不用再让你重新解释一遍。

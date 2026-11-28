@@ -49,9 +49,10 @@ flowchart TB
 - `.beads/` 是执行存储：任务、依赖和计划。
 
 代码仓库通过被 gitignore 的 `.brain` 和 `.beads` 符号链接访问它的 Brainspace。仓库里的 `.claude` 和
-`.codex` Agent 工作区是真实目录，Codex 项目 skills 单独放在 `.agents/skills`。dotbrain 添加逐个被忽略的
-skills 链接、Claude Agent 链接和带标记的
-Codex Agent 文件，不会占用项目自己的文件。Agent 看到的是一棵完整的目录树，仓库保持干净，上下文保持私有。
+`.codex` 工作区是真实目录。Codex 和 Antigravity 共用 `<checkout>/.agents/skills/`。Dotbrain 在每个 checkout
+中只同步一次这个目录下的链接，并在 `.git/info/exclude` 中为每个链接添加一条精确规则。断开连接时，Dotbrain
+移除自己管理的链接及其规则，保留其他条目和 `.agents` 目录。Dotbrain 也会为 Claude Agent 链接和带标记的
+Codex Agent 文件逐项添加忽略规则。
 细节见[项目连接](wiring.md)。
 
 ## Brain {#the-brain}

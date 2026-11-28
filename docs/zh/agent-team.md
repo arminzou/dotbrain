@@ -28,5 +28,5 @@ Claude 定义使用链接；Codex 使用带 `# dotbrain-managed-agent: v1` 标�
 请修改来源，而不是生成资源。修改过、属于其他工具或发生名称冲突的资源需要明确检查；
 详见[配置](configuration.md#global-subagents)和[会话上下文](session-context.md#subagents)。
 
-文件交付不代表 runtime 已加载或成功启动 Agent。Hermes、OpenCode、Pi 和 Cursor 接收核心 skills 和会话集成，
-但 Dotbrain 不向它们交付原生自定义 subagents。
+文件交付不代表 runtime 已加载或成功启动 Agent。Hermes、OpenCode、Pi、Cursor 和 Antigravity 接收核心 skills 和会话集成。
+Dotbrain 只向 Claude Code 和 Codex 交付原生自定义 subagents。

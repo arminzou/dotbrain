@@ -101,7 +101,9 @@ skills 只需在 `~/dotbrain/` 里写一次，再为每个项目选好它需要�
 <li>
 <h3>配置你的 Coding Agent</h3>
 <p>Claude Code 和 Codex 每台机器只需安装一次插件，即可使用 skills 和会话 hook。</p>
-<p>其他 runtime 通过 CLI 配置，见 <a href="./getting-started#hermes">Hermes</a>、<a href="./getting-started#opencode">OpenCode</a>、<a href="./getting-started#pi">Pi</a> 或 <a href="./getting-started#cursor">Cursor CLI</a>。</p>
+<p>其他 runtime 通过 CLI 配置，见 <a href="./getting-started#hermes">Hermes</a>、<a href="./getting-started#opencode">OpenCode</a>、<a href="./getting-started#pi">Pi</a>、<a href="./getting-started#cursor">Cursor CLI</a> 或 <a href="./getting-started#antigravity">Antigravity</a>。</p>
+<p>升级 Dotbrain 后，运行 <code>dotbrain bootstrap</code> 更新 Antigravity 插件。
+如果只用图形界面，见 <a href="./getting-started#antigravity">Antigravity 的配置和更新步骤</a>。</p>
 
 ::: code-group
 

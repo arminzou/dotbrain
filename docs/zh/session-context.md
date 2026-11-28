@@ -51,7 +51,7 @@ Brain 的改动不用手动提交和推送，就能到达你的其他机器。
 | `Stop` | `dotbrain hook stop` | 主 Agent 每轮结束后，在后台启动一次只记录和推送、不 fetch 的同步，然后立即返回。文件不会在 Agent 运行期间被改动。 |
 | `SessionEnd` | `dotbrain hook session-end` | 在后台启动一次完整同步，然后立即返回；`/clear` 时跳过，由随后的 `SessionStart` 同步。 |
 
-其他 runtime 的 hook 改为调用 `dotbrain hook run`，它不读取 hook 的输入数据。用
+Hermes、OpenCode、Pi 和 Cursor 调用 `dotbrain hook run`。这个命令不读取 hook 的输入。用
 `--event startup|resume|clear|compaction|turn-end|session-end` 指定事件，用 `--checkout PATH`
 指定 checkout（默认是当前工作目录），加 `--format json` 则把约定输出为
 `{"additional_context": "..."}`。各事件的同步方式与上表对应的 hook 相同：会话开始类事件
@@ -131,11 +131,22 @@ hook 从不阻塞会话。在 git 仓库之外、在没有连接的仓库里，�
   下次会话启动时的同步会补上。
 - 在不支持 hook 的 runtime 里，调用 `brain-convention` skill 手动加载约定，并自己运行 `dotbrain sync`。
 
+- **Antigravity** 的 hook 命令定义在源码的 `plugin/hooks.json` 中。Dotbrain 将该文件安装为插件目录中的
+  `hooks.json`。`SessionStart` 运行 `dotbrain hook antigravity --event startup`。Dotbrain 从 stdin 读取
+  JSON，先检查 `cwd`，再按顺序检查 `workspacePaths`，直到找到已连接的 checkout。Dotbrain 最多等待
+  10 秒让主目录同步完成，然后通过 `injectSteps` 中的 `systemMessage` 返回 `DOTBRAIN.md` 的内容。
+  `Stop` 运行 `dotbrain hook antigravity --event turn-end`。Dotbrain 在后台启动只推送的主目录同步，
+  随即返回 `{}`。两个命令都用 `|| echo {}` 在命令失败时返回空 JSON 对象。Antigravity 没有
+  `SessionEnd` hook，退出时不会执行完整同步。
+
+  用 `agy plugin enable dotbrain` 或 `agy plugin disable dotbrain` 控制插件是否启用。
+  `dotbrain doctor` 读取 `~/.gemini/config/config.json` 中的设置。这个文件由 Antigravity 管理。
+
 ## 自定义 subagents {#subagents}
 
 Dotbrain 交付选中的自定义 Claude Code 和 Codex 定义，不附带工作流 agents。
 通过全局 `config.yaml` 或项目 `project.yaml` 中的 `subagents:` 选择。
-`dotbrain-` 前缀保留，以保护需检查的旧版资源。Hermes、OpenCode、Pi 和 Cursor 不接收 Dotbrain 原生自定义 subagents。
+`dotbrain-` 前缀保留，以保护需检查的旧版资源。Hermes、OpenCode、Pi、Cursor 和 Antigravity 不接收 Dotbrain 原生自定义 subagents。
 
 Claude 定义使用符号链接；Codex 定义使用带 `# dotbrain-managed-agent: v1` 标记的生成 TOML 文件。
 请修改私有来源，而不是生成副本。`dotbrain subagents link` 同步当前 checkout，`--scope global` 同步全局主目录。

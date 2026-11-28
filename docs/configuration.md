@@ -96,7 +96,7 @@ extra skill looks like this:
 ```yaml
 # ~/dotbrain/brainspaces/<name>/.brain/project.yaml
 # Omit agents to follow this machine; an explicit list is exact.
-agents:            # claude, codex, hermes, opencode, pi, cursor
+agents:            # claude, codex, hermes, opencode, pi, cursor, antigravity
   - claude
   - codex
 
@@ -114,18 +114,20 @@ subagents:                    # project-only custom subagents
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `agents` | Runtimes set up on this machine | Claude and Codex when their CLI is on PATH; [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), and [`cursor`](getting-started.md#cursor) when their dotbrain-owned delivery exists. An explicit list is exact; `[]` disables all. New projects leave this key commented out; existing lists are preserved. |
+| `agents` | Runtimes set up on this machine | Claude and Codex when their CLI is on PATH; [`hermes`](getting-started.md#hermes), [`opencode`](getting-started.md#opencode), [`pi`](getting-started.md#pi), [`cursor`](getting-started.md#cursor), and [`antigravity`](getting-started.md#antigravity) when their dotbrain-owned delivery exists. An explicit list is exact; `[]` disables all. New projects leave this key commented out; existing lists are preserved. |
 | `beads.mode` | `server` when a server host is configured; otherwise `embedded` | `embedded`, `server`, or `none` |
 | `beads.remote` | — | Dolt remote for an embedded tracker |
 | `beads.database` | project name | Server database name |
 | `skills` | `[]` | Skills linked into this project's workspaces |
 | `subagents` | `[]` | Project-only custom subagents |
 
-Refresh warns about existing workspaces outside the resolved `agents` set.
-Their unrelated, foreign and user-owned content is preserved.
+Refresh warns about runtime-specific workspaces outside the resolved `agents` set.
+Refresh preserves unrelated and user-owned content in those workspaces.
 
-Codex project skills use `<checkout>/.agents/skills/`, independently of its `.codex/`
-configuration and subagents. Global skills and profiles retain their existing homes.
+Codex and Antigravity share `<checkout>/.agents/skills/` for project skills. Codex uses
+`.codex/` for its configuration and subagents. Antigravity uses the fixed user directory
+`~/.gemini/config`. Its global skills go in `~/.gemini/config/skills/` and its Dotbrain plugin
+goes in `~/.gemini/config/plugins/dotbrain`.
 See [skill reconciliation](skills.md#select-and-reconcile-skills) for legacy-link migration and collisions.
 
 ## Global skills and profiles {#global-skills}
@@ -168,8 +170,8 @@ TOML copies with the ownership marker `# dotbrain-managed-agent: v1`; edit sourc
 overwrites marked copies, and preserves unmarked files and foreign links. A conflicting user-owned
 filename is reported instead of replaced.
 
-Runtime flags use `--runtime claude|codex|hermes|opencode|pi|cursor|all`. Profile keys are
-`claude-code` and `codex`. Hermes, OpenCode, Pi, and Cursor receive no subagents.
+Runtime flags use `--runtime claude|codex|hermes|opencode|pi|cursor|antigravity|all`. Profile keys are
+`claude-code` and `codex`. Only Claude Code and Codex use the `subagents:` setting.
 Project linking defaults to the current wired checkout; `--scope global` is explicit and conflicts
 with project selectors or `--all`.
 

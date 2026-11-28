@@ -13,4 +13,5 @@ export const agents: Agent[] = [
   { name: 'Cursor', icon: 'cursor', themed: true },
   { name: 'Hermes', icon: 'hermesagent', themed: true },
   { name: 'Pi', icon: 'pi', themed: true },
+  { name: 'Antigravity', icon: 'antigravity-color' },
 ]
